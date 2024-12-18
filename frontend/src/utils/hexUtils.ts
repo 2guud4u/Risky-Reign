@@ -1,43 +1,66 @@
+import { CubeCoord } from "./helperUtils";
+import { shuffleArray, flattenAndFillObject } from "./helperUtils";
+export type Resource = "Wheat" | "Sheep" | "Ore" | "Desert" | "Brick" | "Wood";
+const boardRadius = 2;
 
-export interface CubeCoord {
-  q: number;
-  r: number;
-  s: number;
-}
+let numTokens: { [key in number]: number } = {
+  2: 1,
+  3: 2,
+  4: 2,
+  5: 2,
+  6: 2,
+  8: 2,
+  9: 2,
+  10: 2,
+  11: 2,
+  12: 1
+};
 
-export interface pixelCoord {
-  x: number;
-  y: number;
-}
-
+let resources: { [key in Resource]: number } = {
+  "Wheat": 4,
+  "Sheep": 4,
+  "Ore": 3,
+  "Desert": 1,
+  "Brick": 3,
+  "Wood": 4
+};
 export interface HexProps extends CubeCoord {
   terrain: string;
+  robber: boolean;
+  rollNumber: number | null;
 }
 
 export const terrainColors: { [key: string]: string } = {
-  forest: "#228B22",
-  pasture: "#7CFC00",
-  fields: "#FFD700",
-  hills: "#CD853F",
-  mountains: "#A9A9A9",
-  desert: "#F4A460",
+  Wood: "#228B22",
+  Sheep: "#7CFC00",
+  Wheat: "#FFD700",
+  Brick: "#CD853F",
+  Ore: "#A9A9A9",
+  Desert: "#F4A460",
 };
 
-export function cubeToPixel(cube: CubeCoord, size: number): { x: number; y: number } {
-  const x = size * (Math.sqrt(3) * cube.q + (Math.sqrt(3) / 2) * cube.r);
-  const y = size * ((3 / 2) * cube.r);
-  return { x, y };
-}
-
-export function pixelToCube(x: number, y: number, size: number): CubeCoord {
-  const sqrt3 = Math.sqrt(3);
-
-  // Reverse the x calculation: q = (x / (size * sqrt3) - (sqrt3 / 2) * r / sqrt3)
-  const r = (y*size)*(3/2)
-  const q = ((x/size)-((sqrt3/2)*r))/sqrt3;
-  const s = -(q + r);
-  return { q, r, s };
+export const generateBoard = (): HexProps[] => {
+  const board: HexProps[] = [];
+  let ResourceList = shuffleArray(flattenAndFillObject(resources));
+  let tokenList = shuffleArray(flattenAndFillObject(numTokens));
   
-}
+  for (let q = -boardRadius; q <= boardRadius; q++) {
+    for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
+      const s = -q - r;
+      const terrain = ResourceList.pop() as string;
+      if (terrain === "Desert") {
+        board.push({ q, r, s, terrain, robber: true, rollNumber: null });
+        continue;
+      }
+      const token = tokenList.pop() as number;
+      board.push({ q, r, s, terrain, robber: false, rollNumber: token });
+    }
+  }
+
+  return board;
+};
+
+
+
 
 

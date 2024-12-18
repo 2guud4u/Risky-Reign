@@ -1,20 +1,25 @@
 import React from "react";
-import { CubeCoord } from "../utils/hexUtils";
-import { IntersectionProps } from '../utils/intersectUtils';
+import { Intersect } from "../utils/intersectUtils";
+export interface IntersectionProps extends Intersect {
 
-const Intersection: React.FC<IntersectionProps> = ({x, y, size, onDrop}) => {
+  size: number;
+}
 
+const Intersection: React.FC<IntersectionProps> = ({ key ,x, y, size}) => {
+  
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    onDrop(x, y);
+    console.log("droped", e)
+    let type = e.dataTransfer.getData("type");
+    console.log("type", type)
   };
 
 return (
-    <g >
+    <g key={key}>
         <circle         onDragOver={handleDragOver}
         onDrop={handleDrop} cx={x} cy={y} r={size} fill="red" fillOpacity="0.3" />
 

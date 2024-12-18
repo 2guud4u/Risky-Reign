@@ -3,9 +3,11 @@ import React from 'react';
 interface SettlementProps {
   x: number;
   y: number;
+  owner: string;
+  upgrade: boolean;
 }
 
-const Settlement: React.FC<SettlementProps> = ({ x, y }) => {
+const Settlement: React.FC<SettlementProps> = ({  x, y,owner, upgrade }) => {
   return (
     <g transform={`translate(${x}, ${y})`}>
       <polygon

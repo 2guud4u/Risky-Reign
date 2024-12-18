@@ -1,13 +1,14 @@
 import React from 'react';
-import { HexProps, cubeToPixel, terrainColors } from '../utils/hexUtils';
-import Intersection from './Intersection';
+import { HexProps, terrainColors } from '../utils/hexUtils';
+import { cubeToPixel } from '../utils/helperUtils';
 
 interface HexagonProps extends HexProps {
   size: number;
+  rollNumber: number | null;
   onDrop: (q: number, r: number, s: number) => void;
 }
 
-const Hexagon: React.FC<HexagonProps> = ({ q, r, s, terrain, size, onDrop }) => {
+const Hexagon: React.FC<HexagonProps> = ({ q, r, s, terrain, size, onDrop, rollNumber }) => {
   const { x, y } = cubeToPixel({ q, r, s }, size);
 
 
@@ -47,10 +48,9 @@ const Hexagon: React.FC<HexagonProps> = ({ q, r, s, terrain, size, onDrop }) => 
         fontSize={size / 3}
       >
         {terrain}
+        {rollNumber}
       </text>
-      {/* {hexPoints.map(([px, py], index) => (
-        <Intersection index={index} x={px} y={py} size={size} onDrop={onDrop}/>
-      ))} */}
+      <circle  cx={x} cy={y} r={size} fill="blue" fillOpacity="0.3" />
     </g>
     
   );

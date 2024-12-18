@@ -1,14 +1,13 @@
-import { cubeToPixel, pixelCoord } from './hexUtils';
-export interface IntersectionProps {
-    x: number;
-    y: number;
-    size: number;
-    onDrop: (x: number, y: number) => void;
-    
-  }
+import { cubeToPixel, PixelCoord } from './helperUtils';
+import { IntersectionProps } from '../components/Intersection';
 
-export function calculateHexagonVertices(q: number, r:number, s:number, size:number): pixelCoord[] {
-    const intersects:pixelCoord[] = [];
+export interface Intersect extends PixelCoord {
+    key: number;
+
+
+}
+export function calculateHexagonVertices(q: number, r:number, s:number, size:number): PixelCoord[] {
+    const intersects:PixelCoord[] = [];
     const { x, y } = cubeToPixel({ q, r, s }, size);
   
     const hexPoints = [
@@ -25,3 +24,7 @@ export function calculateHexagonVertices(q: number, r:number, s:number, size:num
   
     return intersects;
   }
+
+export function getIntersectByIndex(key: number, intersects: Intersect[]): Intersect {
+    return intersects[key];
+}

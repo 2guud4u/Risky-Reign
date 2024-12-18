@@ -2,31 +2,18 @@ import React, { useState } from 'react';
 import Hexagon from './Hexagon';
 import Settlement from './Settlement';
 import Intersection from './Intersection';
-import { HexProps, terrainColors, cubeToPixel, pixelCoord } from '../utils/hexUtils';
-import {IntersectionProps,calculateHexagonVertices} from '../utils/intersectUtils';
+import { HexProps, terrainColors,generateBoard } from '../utils/hexUtils';
+import {calculateHexagonVertices} from '../utils/intersectUtils';
+import { PixelCoord } from '../utils/helperUtils';
 
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
 
-const generateBoard = (): HexProps[] => {
-  const board: HexProps[] = [];
 
-  const terrainTypes = Object.keys(terrainColors);
 
-  for (let q = -boardRadius; q <= boardRadius; q++) {
-    for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
-      const s = -q - r;
-      const terrain = terrainTypes[Math.floor(Math.random() * terrainTypes.length)];
-      board.push({ q, r, s, terrain });
-    }
-  }
-
-  return board;
-};
-
-const generateIntersections = (board: HexProps[], size: number): pixelCoord[] => {
-  const intersections: pixelCoord[] = [];
+const generateIntersections = (board: HexProps[], size: number): PixelCoord[] => {
+  const intersections: PixelCoord[] = [];
 
   board.forEach(({ q, r, s }) => {
     const hexagonVertices = calculateHexagonVertices(q, r, s, size);
@@ -54,7 +41,7 @@ const CatanBoard: React.FC = () => {
         <div
           className="w-10 h-10 bg-red-500 cursor-move"
           draggable
-          onDragStart={(e) => e.dataTransfer.setData('text/plain', 'settlement')}
+          onDragStart={(e) => e.dataTransfer.setData('type', 'settlement')}
           role="img"
           aria-label="Draggable settlement piece"
         >drag me</div>
@@ -63,12 +50,12 @@ const CatanBoard: React.FC = () => {
         {board.map((hex, index) => (
           <Hexagon key={index} {...hex} size={hexSize} onDrop={handleDrop} />
         ))}
-        {settlements.map((settlement, index) => {
+        {/* {settlements.map((settlement, index) => {
           const { x, y } = settlement;
           return <Settlement key={index} x={x} y={y} />;
-        })}
+        })} */}
         {intersections.map((intersection, index) => (
-          <Intersection {...intersection} size={intersectSize} onDrop={handleDrop}/>
+          <Intersection key={index} {...intersection} size={intersectSize}/>
         ))}
       </svg>
       <div className="mt-4 grid grid-cols-3 gap-2">
