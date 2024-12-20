@@ -24,7 +24,17 @@ let resources: { [key in Resource]: number } = {
   "Brick": 3,
   "Wood": 4
 };
-export interface HexProps extends CubeCoord {
+export interface HexProps {
+  terrain: string;
+  robber: boolean;
+  rollNumber: number | null;
+
+}
+
+export interface HexNode {
+  id: number;
+  coord: CubeCoord;
+  intersections: Set<number>;
   terrain: string;
   robber: boolean;
   rollNumber: number | null;
@@ -39,25 +49,27 @@ export const terrainColors: { [key: string]: string } = {
   Desert: "#F4A460",
 };
 
-export const generateBoard = (): HexProps[] => {
-  const board: HexProps[] = [];
+export const generateHexes = (boardRadius: number): HexNode[] => {
+  const hexes: HexNode[] = [];
   let ResourceList = shuffleArray(flattenAndFillObject(resources));
   let tokenList = shuffleArray(flattenAndFillObject(numTokens));
-  
+  let id = 0;
   for (let q = -boardRadius; q <= boardRadius; q++) {
     for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
       const s = -q - r;
       const terrain = ResourceList.pop() as string;
       if (terrain === "Desert") {
-        board.push({ q, r, s, terrain, robber: true, rollNumber: null });
-        continue;
+        hexes.push({ id:id, intersections: new Set(), coord: {q, r, s}, terrain: terrain, robber: true, rollNumber: null });
+        
+      } else {
+        const token = tokenList.pop() as number;
+        hexes.push({ id:id, intersections: new Set(), coord: {q, r, s}, terrain: terrain, robber: false, rollNumber: token });
       }
-      const token = tokenList.pop() as number;
-      board.push({ q, r, s, terrain, robber: false, rollNumber: token });
+      id += 1;
     }
   }
 
-  return board;
+  return hexes;
 };
 
 

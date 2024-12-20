@@ -1,15 +1,15 @@
 import React from 'react';
-import { HexProps, terrainColors } from '../utils/hexUtils';
+import { HexNode, terrainColors } from '../utils/hexUtils';
 import { cubeToPixel } from '../utils/helperUtils';
 
-interface HexagonProps extends HexProps {
+interface HexagonProps extends HexNode {
   size: number;
   rollNumber: number | null;
-  onDrop: (q: number, r: number, s: number) => void;
+
 }
 
-const Hexagon: React.FC<HexagonProps> = ({ q, r, s, terrain, size, onDrop, rollNumber }) => {
-  const { x, y } = cubeToPixel({ q, r, s }, size);
+const Hexagon: React.FC<HexagonProps> = ({ coord, terrain, size, rollNumber }) => {
+  const { x, y } = cubeToPixel({ q:coord.q, r:coord.r, s:coord.s }, size);
 
 
 
@@ -25,7 +25,7 @@ const Hexagon: React.FC<HexagonProps> = ({ q, r, s, terrain, size, onDrop, rollN
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    onDrop(q, r, s);
+    //onDrop(q, r, s);
   };
 
   return (
@@ -50,7 +50,7 @@ const Hexagon: React.FC<HexagonProps> = ({ q, r, s, terrain, size, onDrop, rollN
         {terrain}
         {rollNumber}
       </text>
-      <circle  cx={x} cy={y} r={size} fill="blue" fillOpacity="0.3" />
+      <circle  cx={x} cy={y} r={size/8} fill="blue" fillOpacity="0.3" />
     </g>
     
   );

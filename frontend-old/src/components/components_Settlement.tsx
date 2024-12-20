@@ -1,13 +1,11 @@
 import React from 'react';
-import { SettlementObj } from '../utils/settlementUtils';
-interface SettlementProps extends SettlementObj{
 
-  size: number;
+interface SettlementProps {
+  x: number;
+  y: number;
 }
 
-const Settlement: React.FC<SettlementProps> = ({  coord, owner, upgraded, size }) => {
-
-  const { x, y } = coord;
+const Settlement: React.FC<SettlementProps> = ({ x, y }) => {
   return (
     <g transform={`translate(${x}, ${y})`}>
       <polygon
