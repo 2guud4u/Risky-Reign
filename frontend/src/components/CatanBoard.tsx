@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Hexagon from './Hexagon';
 import Settlement from './Settlement';
 import Intersection from './Intersection';
-import { HexProps, terrainColors,generateHexes, getRollMap } from '../utils/hexUtils';
-import {calculateHexagonVertices, generateIntersections} from '../utils/intersectUtils';
+import { HexProps, terrainColors,generateHexes, getRollMap, HexNode } from '../utils/hexUtils';
+import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
 import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
 import {generateGameBoard} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
@@ -11,12 +11,20 @@ import { Player } from './Player';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
 import Road from './Road';
+
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
 
-
+interface BoardProps {
+  settlements: SettlementObj[];
+  players: PlayerObj[];
+  diceRoll: string;
+  roads: RoadObj[];
+  hexes: HexNode[];
+  intersects: IntersectNode[];
+}
 
 
 
@@ -153,7 +161,7 @@ const CatanBoard: React.FC = () => {
           <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleIntersectDrop} onClick={handleIntersectClick}/>
         ))}
         {roads.map((road, index) => (
-          <Road key={road.id} {...road} size={intersectSize/3} />
+          <Road key={road.id} {...road} size={roadSize} />
         ))}
       </svg>
       <div className="mt-4 grid grid-cols-3 gap-2">
