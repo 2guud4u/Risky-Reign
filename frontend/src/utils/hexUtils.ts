@@ -25,7 +25,7 @@ let resources: { [key in Resource]: number } = {
   "Wood": 4
 };
 export interface HexProps {
-  terrain: string;
+  terrain: Resource;
   robber: boolean;
   rollNumber: number | null;
 
@@ -35,9 +35,23 @@ export interface HexNode {
   id: number;
   coord: CubeCoord;
   intersections: Set<number>;
-  terrain: string;
+  terrain: Resource;
   robber: boolean;
   rollNumber: number | null;
+}
+export function getRollMap(hexes: HexNode[]): Map<string, number[]> {
+  let rollMap = new Map();
+  hexes.forEach((hex) => {
+    if (hex.rollNumber !== null) {
+      if (rollMap.has(hex.rollNumber)) {
+        (rollMap.get(hex.rollNumber) as number[]).push(hex.id);
+      } else {
+        rollMap.set(hex.rollNumber, [hex.id]);
+      }
+    }
+  });
+  console.log(rollMap);
+  return rollMap;
 }
 
 export const terrainColors: { [key: string]: string } = {
@@ -57,7 +71,7 @@ export const generateHexes = (boardRadius: number): HexNode[] => {
   for (let q = -boardRadius; q <= boardRadius; q++) {
     for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
       const s = -q - r;
-      const terrain = ResourceList.pop() as string;
+      const terrain = ResourceList.pop() as Resource;
       if (terrain === "Desert") {
         hexes.push({ id:id, intersections: new Set(), coord: {q, r, s}, terrain: terrain, robber: true, rollNumber: null });
         

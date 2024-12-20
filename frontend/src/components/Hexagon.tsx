@@ -8,7 +8,7 @@ interface HexagonProps extends HexNode {
 
 }
 
-const Hexagon: React.FC<HexagonProps> = ({ coord, terrain, size, rollNumber }) => {
+const Hexagon: React.FC<HexagonProps> = ({ id,coord, terrain, size, rollNumber }) => {
   const { x, y } = cubeToPixel({ q:coord.q, r:coord.r, s:coord.s }, size);
 
 
@@ -19,14 +19,7 @@ const Hexagon: React.FC<HexagonProps> = ({ coord, terrain, size, rollNumber }) =
     ]
       .map(([px, py]) => [px * size + x, py * size + y])
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    //onDrop(q, r, s);
-  };
 
   return (
     <g>
@@ -35,8 +28,7 @@ const Hexagon: React.FC<HexagonProps> = ({ coord, terrain, size, rollNumber }) =
         fill={terrainColors[terrain]}
         stroke="#000"
         strokeWidth="2"
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
+
       />
 
       <text
@@ -47,8 +39,10 @@ const Hexagon: React.FC<HexagonProps> = ({ coord, terrain, size, rollNumber }) =
         fill="#000"
         fontSize={size / 3}
       >
-        {terrain}
+        {terrain[0]}
         {rollNumber}
+        id:
+        {id}
       </text>
       <circle  cx={x} cy={y} r={size/8} fill="blue" fillOpacity="0.3" />
     </g>

@@ -17,7 +17,6 @@ export const generateGameBoard = (boardRadius: number, hexSize: number):GameBoar
     intersections = connectIntersections(intersections, hexSize);
     let hexMap:Map<number , HexNode> = hexes.reduce((map, hex) => { map.set(hex.id, hex); return map; }, new Map<number, HexNode>());
     let intersectMap:Map<number , IntersectNode> = intersections.reduce((map, intersect) => { map.set(intersect.id, intersect); return map; }, new Map<number, IntersectNode>());
-    console.log(hexMap)
     return {hexMap, intersectMap};
 
 }
