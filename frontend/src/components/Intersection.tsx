@@ -21,7 +21,7 @@ const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, on
   };
   const handleClick = (e: React.MouseEvent) => {
     // onClick(id);
-    console.log("clicked", id);
+    onClick("intersection", id);
 
   }
   // const orbitRadius = size; // Radius of the circle on which the other circles will surround

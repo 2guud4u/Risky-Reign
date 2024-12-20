@@ -30,6 +30,7 @@ interface BoardProps {
 
 
 const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll, roads, intersects, UiEventCaller}) => {
+  const [roadStart, setRoadStart] = useState<number>(-1);
 
   const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
 
@@ -127,6 +128,7 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
         break;
       case 'startBuildRoad':
         console.log('Starting to build a road');
+        setRoadStart(targetId);
         break;
       default:
         break;
@@ -135,6 +137,10 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
 
   const handleClick = (target: string, targetId: number) => {
     console.log(`Clicked on ${target} ${targetId}`);
+    if (roadStart !== -1) {
+      UiEventCaller('buildRoad', {startIntersectId: roadStart, endIntersectId: targetId});
+      setRoadStart(-1);
+    }
   };
 
   return (
@@ -166,12 +172,13 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
           return <Settlement {...settlement}size={hexSize}/>;
         })}
 
-        {intersects.map((intersect) => (
-          <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick}/>
-        ))}
+        
 
         {roads.map((road) => (
           <Road key={road.id} {...road} size={roadSize} />
+        ))}
+        {intersects.map((intersect) => (
+          <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick}/>
         ))}
       </svg>
       <div className="mt-4 grid grid-cols-3 gap-2">
