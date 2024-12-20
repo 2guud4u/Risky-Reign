@@ -26,11 +26,18 @@ const Game: React.FC = () =>{
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [roadStart, setRoadStart] = useState<number>(-1);
     const [players, setPlayers] = useState<PlayerObj[]>(
-        [{id: 0, name: "hi", color: "red", resources: new Map(
-        [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
-        )}]
+        [
+            {id: 0, name: "jia", color: "red", resources: new Map(
+            [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
+            )},
+            {id: 1, name: "fel", color: "green", resources: new Map(
+                [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
+            )},
+    ]
         );
+    const [playerMap, setPlayerMap] = useState<Map<number, PlayerObj>>(new Map());
     const [playerIndex, setPlayerIndex] = useState(0);
+    
     
     useEffect(() => {
         let {hexMap, intersectMap} = generateGameBoard(boardRadius, hexSize)
@@ -38,22 +45,25 @@ const Game: React.FC = () =>{
         setIntersectMap(intersectMap);
     }, []);
 
+    
+
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log("handling", UiEvent, UiEventPayload);
+        let player = players[playerIndex];
         let error: void | string = undefined;
         switch (UiEvent) {
             case "buildSettlement":
-                error = handleBuildSettlement(UiEventPayload as buildSettlementPayload, intersectMap, setSettlements, setIntersectMap);
+                error = handleBuildSettlement(UiEventPayload as buildSettlementPayload, player,intersectMap, setSettlements, setIntersectMap);
                 break;
             case "buildRoad":
-                error = handleBuildRoad(UiEventPayload as buildRoadPayload, intersectMap);
+                error = handleBuildRoad(UiEventPayload as buildRoadPayload, intersectMap, player);
                 break;
             default:
                 break;
         }
         console.log(error);
     };
-    const handleBuildSettlement = (payload: buildSettlementPayload, intersectMap: Map<number , IntersectNode>, setSettlements:React.Dispatch<React.SetStateAction<SettlementObj[]>>,setIntersectMap:React.Dispatch<React.SetStateAction<Map<number, IntersectNode>>> ): void | string => {
+    const handleBuildSettlement = (payload: buildSettlementPayload, player: PlayerObj,intersectMap: Map<number , IntersectNode>, setSettlements:React.Dispatch<React.SetStateAction<SettlementObj[]>>,setIntersectMap:React.Dispatch<React.SetStateAction<Map<number, IntersectNode>>> ): void | string => {
         
         const intersect = intersectMap.get(payload.intersectId);
         if(intersect === undefined){
@@ -72,7 +82,7 @@ const Game: React.FC = () =>{
             return "Cannot build here, settlement too close to other settlement";
         }
         const settlementId = settlements.length;
-        const newSettlement = {coord: intersect.coord, id: settlementId, owner: players[playerIndex].name, upgraded: false};
+        const newSettlement = {coord: intersect.coord, id: settlementId, owner: player.name, upgraded: false};
         setSettlements([...settlements, newSettlement]);
         setIntersectMap(new Map(intersectMap.set(payload.intersectId, {...intersect, settlement: settlementId})));
     };
@@ -95,7 +105,7 @@ const Game: React.FC = () =>{
         return false;
     };
     
-    const handleBuildRoad = (payload: buildRoadPayload, intersectMap: Map<number , IntersectNode>): void | string => {
+    const handleBuildRoad = (payload: buildRoadPayload, intersectMap: Map<number , IntersectNode>, player: PlayerObj): void | string => {
         const intersect1 = intersectMap.get(payload.startIntersectId);
         const intersect2 = intersectMap.get(payload.endIntersectId);
         if(intersect1 === undefined || intersect2 === undefined){
@@ -106,20 +116,29 @@ const Game: React.FC = () =>{
             return "Cannot build here, road already exists";
         }
         //check if has building on either end or if road is connected to another road
-        if(!checkRoadValid(intersect1, intersect2, players[playerIndex].name, roads, settlements)){
+        if(!checkRoadValid(intersect1, intersect2, player.name, roads, settlements)){
             return "Cannot build here, no building nor road to connect to";
         }
         const roadId = roads.length;
-        setRoads([...roads, {id: roadId, intersect1: payload.startIntersectId, intersect2: payload.endIntersectId, owner: players[playerIndex].name, coord1: intersect1.coord, coord2: intersect2.coord, upgraded: false}]);
+        setRoads([...roads, {id: roadId, intersect1: payload.startIntersectId, intersect2: payload.endIntersectId, owner: player.name, coord1: intersect1.coord, coord2: intersect2.coord, upgraded: false}]);
         let newIntersectMap = intersectMap.set(payload.startIntersectId, {...intersect1, roads: intersect1.roads.add(roadId)});
         newIntersectMap = newIntersectMap.set(payload.endIntersectId, {...intersect2, roads: intersect2.roads.add(roadId)});
         
         setIntersectMap(newIntersectMap);
     };
-
+    const switchPlayer = () => {
+        setPlayerIndex((playerIndex + 1) % players.length);
+    }
 
         return (
+            <>
+            <div>playing as</div>
+            {players[playerIndex].name}
+            <button onClick={switchPlayer}>Switch Player</button>
             <Board hexes={Array.from(hexMap.values())} intersects={Array.from(intersectMap.values())} players={players} roads={roads} diceRoll={roll} settlements={settlements} UiEventCaller={handleUiEvent}/>
+            
+            
+            </>
         );
 }
 

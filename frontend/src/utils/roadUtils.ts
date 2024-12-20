@@ -9,4 +9,5 @@ export interface RoadObj {
     coord2: PixelCoord;
     upgraded: boolean;
 
+
 }

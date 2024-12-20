@@ -168,15 +168,14 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
           <Hexagon key={hex.id} {...hex} size={hexSize}  />
         ))}
         {settlements.map((settlement) => {
-
-          return <Settlement {...settlement}size={hexSize}/>;
+          const player = players.find((player) => player.name === settlement.owner);
+          return <Settlement color={player ? player.color : "grey"} {...settlement}size={hexSize}/>;
         })}
+        {roads.map((road) => {
+          const player = players.find((player) => player.name === road.owner);
 
-        
-
-        {roads.map((road) => (
-          <Road key={road.id} {...road} size={roadSize} />
-        ))}
+            return <Road key={road.id} color={player ? player.color : "grey"} {...road} size={roadSize} />
+          })}
         {intersects.map((intersect) => (
           <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick}/>
         ))}

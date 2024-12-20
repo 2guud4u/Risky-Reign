@@ -5,4 +5,5 @@ export interface SettlementObj{
     owner: string;
     upgraded: boolean;
     coord: PixelCoord
+
 }
