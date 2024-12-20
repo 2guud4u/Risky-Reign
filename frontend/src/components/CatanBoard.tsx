@@ -137,9 +137,18 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
 
   const handleClick = (target: string, targetId: number) => {
     console.log(`Clicked on ${target} ${targetId}`);
-    if (roadStart !== -1) {
-      UiEventCaller('buildRoad', {startIntersectId: roadStart, endIntersectId: targetId});
-      setRoadStart(-1);
+    switch (target) {
+      case 'diceRoll':
+        UiEventCaller('rollDice', {});
+        break;
+      case 'intersection':
+        if (roadStart !== -1) {
+          UiEventCaller('buildRoad', {startIntersectId: roadStart, endIntersectId: targetId});
+          setRoadStart(-1);
+        }
+        break;
+      default:
+        break;
     }
   };
 

@@ -19,16 +19,14 @@ const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
 
 const Game: React.FC = () =>{
-    const [roll, setRoll] = useState("");
+    const [roll, setRoll] = useState("0");
     const [hexMap, setHexMap] = useState<Map<number , HexNode>>(new Map());
     const [intersectMap, setIntersectMap] = useState<Map<number , IntersectNode>>(new Map());
     const [roads, setRoads] = useState<RoadObj[]>([]);
-    const [settlements, setSettlements] = useState<SettlementObj[]>([]);
-    const [roadStart, setRoadStart] = useState<number>(-1);
-    
+    const [settlements, setSettlements] = useState<SettlementObj[]>([]);    
     const [playerMap, setPlayerMap] = useState<Map<string, PlayerObj>>(new Map());
     const [playerName, setPlayerName] = useState("jia");
-    
+    const [rollMap, setRollMap] = useState<Map<string, number[]>>(new Map());
     useEffect(() => {
         let {hexMap, intersectMap} = generateGameBoard(boardRadius, hexSize)
         const playerList = 
@@ -44,6 +42,7 @@ const Game: React.FC = () =>{
         setPlayerMap(playerMap);
         setHexMap(hexMap);
         setIntersectMap(intersectMap);
+        setRollMap(getRollMap(Array.from(hexMap.values())));
     }, []);
 
 
@@ -61,6 +60,11 @@ const Game: React.FC = () =>{
                 break;
             case "buildRoad":
                 error = handleBuildRoad(UiEventPayload as buildRoadPayload, intersectMap, player);
+                break;
+            case "rollDice":
+                let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+                setRoll(rollNum);
+                error = handleRollDice(rollNum, playerMap, setPlayerMap);
                 break;
             default:
                 break;
@@ -130,12 +134,56 @@ const Game: React.FC = () =>{
         
         setIntersectMap(newIntersectMap);
     };
+
+    const handleRollDice = (rollNum: string, playerMap: Map<string, PlayerObj>, setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>): void | string => {
+    const hexes = rollMap.get(rollNum);
+    console.log("looking at hexes", hexes);
+    if(hexes === undefined){
+      return;
+    }
+
+    for (let hexId of hexes) {
+      let hex = hexMap.get(hexId);
+      if(hex === undefined){
+        continue;
+      }
+      if(hex.terrain !== "Desert"){
+        let intersects = hex.intersections; 
+        if(intersects === undefined){
+          continue;
+        }
+        console.log("looking at intersects", intersects);
+        for (let intersectId of Array.from(intersects)) {
+          let intersect = intersectMap.get(intersectId);
+          if(intersect === undefined){
+            continue;
+          }
+          
+          let settlementId = intersect.settlement;
+          if(settlementId !== null){
+            let settlement = settlements[settlementId];
+            let playerName = settlement.owner;
+            let player = playerMap.get(playerName);
+            if(player === undefined){
+              continue;
+            }
+            let resources = player.resources;
+            resources.set(hex.terrain, resources.get(hex.terrain) as number + (settlement.upgraded ? 2 : 1));
+            setPlayerMap(new Map(playerMap.set(playerName, {...player, resources})));
+            console.log("given resources to player");
+          }
+        }
+      }
+    }
+    }
     const switchPlayer = () => {
         setPlayerName(playerName === "jia" ? "fel" : "jia");
     }
 
         return (
             <>
+            <div>dice rolled</div>
+            {roll}
             <div>playing as</div>
             {playerName}
             <button onClick={switchPlayer}>Switch Player</button>

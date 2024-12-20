@@ -23,7 +23,7 @@ export const generateGameBoard = (boardRadius: number, hexSize: number):GameBoar
 
 export type UiEvent = "buildSettlement" | "buildRoad" | "endTurn" | "rollDice" | "trade" | "buyDevCard" | "playDevCard";
 
-export type UiEventPayload = buildSettlementPayload | buildRoadPayload;
+export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 export interface buildSettlementPayload {
     intersectId: number;
 }
@@ -31,4 +31,8 @@ export interface buildSettlementPayload {
 export interface buildRoadPayload {
     startIntersectId: number;
     endIntersectId: number;
+}
+
+export interface rollDicePayload {
+    
 }
