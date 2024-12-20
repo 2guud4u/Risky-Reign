@@ -17,8 +17,7 @@ const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, on
     e.preventDefault();
 
     let action = e.dataTransfer.getData("action");
-    console.log("dropped", id, action);
-    // onDrop(id, action);
+    onDrop("intersection", id, action);
   };
   const handleClick = (e: React.MouseEvent) => {
     // onClick(id);

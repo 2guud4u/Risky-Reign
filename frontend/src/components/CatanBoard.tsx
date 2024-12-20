@@ -5,7 +5,7 @@ import Intersection from './Intersection';
 import { HexProps, terrainColors,generateHexes, getRollMap, HexNode } from '../utils/hexUtils';
 import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
 import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
-import {generateGameBoard} from '../utils/gameUtils';
+import {generateGameBoard, UiEvent, UiEventPayload} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { Player } from './Player';
 import { PlayerObj } from '../utils/playerUtils';
@@ -24,11 +24,12 @@ interface BoardProps {
   diceRoll: string;
   roads: RoadObj[];
   intersects: IntersectNode[];
+  UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
 }
 
 
 
-const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll, roads, intersects}) => {
+const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll, roads, intersects, UiEventCaller}) => {
 
   const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
 
@@ -120,9 +121,20 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
   // }
   const handleDrop = (target: string, targetId: number, action: string) => {
     console.log(`Dropped ${action} on ${target} ${targetId}`);
-  };
+    switch (action) {
+      case 'buildSettlement':
+        UiEventCaller('buildSettlement', {intersectId: targetId});
+        break;
+      case 'startBuildRoad':
+        console.log('Starting to build a road');
+        break;
+      default:
+        break;
+    };
+  }
 
   const handleClick = (target: string, targetId: number) => {
+    console.log(`Clicked on ${target} ${targetId}`);
   };
 
   return (
@@ -146,19 +158,19 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
       </div>
       <svg width={svgSize} height={svgSize} viewBox={`${-svgSize/2} ${-svgSize/2} ${svgSize} ${svgSize}`}>
         
-        {hexes.map((hex, index) => (
+        {hexes.map((hex) => (
           <Hexagon key={hex.id} {...hex} size={hexSize}  />
         ))}
-        {settlements.map((settlement, index) => {
+        {settlements.map((settlement) => {
 
           return <Settlement {...settlement}size={hexSize}/>;
         })}
 
-        {intersects.map((intersect, index) => (
+        {intersects.map((intersect) => (
           <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick}/>
         ))}
 
-        {roads.map((road, index) => (
+        {roads.map((road) => (
           <Road key={road.id} {...road} size={roadSize} />
         ))}
       </svg>
@@ -174,4 +186,3 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
 };
 
 export default CatanBoard;
-
