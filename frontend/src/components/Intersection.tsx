@@ -3,8 +3,8 @@ import { IntersectNode } from "../utils/intersectUtils";
 export interface IntersectionProps extends IntersectNode {
 
   size: number;
-  onDrop: (id: number, action:string) => void;
-  onClick: (id: number) => void;
+  onDrop: (target: string, targetId: number, action: string) => void;
+  onClick: (target: string, targetId: number) => void;
 }
 
 const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, onClick}) => {
@@ -18,10 +18,10 @@ const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, on
 
     let action = e.dataTransfer.getData("action");
     console.log("dropped", id, action);
-    onDrop(id, action);
+    // onDrop(id, action);
   };
   const handleClick = (e: React.MouseEvent) => {
-    onClick(id);
+    // onClick(id);
     console.log("clicked", id);
 
   }
