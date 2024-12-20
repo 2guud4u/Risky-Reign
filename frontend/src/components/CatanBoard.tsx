@@ -9,9 +9,12 @@ import {generateGameBoard} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { Player } from './Player';
 import { PlayerObj } from '../utils/playerUtils';
+import { RoadObj } from '../utils/roadUtils';
+import Road from './Road';
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
+const roadSize = intersectSize / 2;
 
 
 
@@ -20,8 +23,9 @@ const intersectSize = hexSize / 4;
 const CatanBoard: React.FC = () => {
   const [roll, setRoll] = useState("");
   const [{hexMap, intersectMap}, setGameBoard] = useState(generateGameBoard(boardRadius, hexSize));
-  const [roads, setRoads] = useState([]);
+  const [roads, setRoads] = useState<RoadObj[]>([]);
   const [settlements, setSettlements] = useState<SettlementObj[]>([]);
+  const [roadStart, setRoadStart] = useState<number>(-1);
   const [players, setPlayers] = useState<PlayerObj[]>(
     [{id: 0, name: "hi", color: "red", resources: new Map(
       [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
@@ -44,8 +48,31 @@ const CatanBoard: React.FC = () => {
         setSettlements([...settlements, newSettlement]);
         setGameBoard({hexMap, intersectMap: intersectMap.set(intersectId, {...intersect, settlement: newSettlement.id})});
         break;
+      case 'startBuildRoad':
+        setRoadStart(intersectId);
+        break;
       default:
         break;
+    }
+  };
+  const handleIntersectClick = (id:number) => {
+    if(roadStart !== -1){
+      
+        if(roadStart === -1){
+          return;
+        }
+        const startIntersect = intersectMap.get(roadStart);
+        const endIntersect = intersectMap.get(id);
+        if(startIntersect === undefined || endIntersect === undefined){
+          return;
+        }
+        const distance = calcEuclideanDistance(startIntersect.coord, endIntersect.coord);
+        if(distance > (hexSize * 1.1)){
+          return;
+        }
+        setRoads([...roads, {id: roads.length, intersect1: roadStart, intersect2: id, owner: "hi", coord1: startIntersect.coord, coord2: endIntersect.coord, upgraded: false}]);
+        setRoadStart(-1);
+
     }
   };
   const handelDiceRoll = () => {
@@ -104,7 +131,14 @@ const CatanBoard: React.FC = () => {
           onDragStart={(e) => e.dataTransfer.setData('action', 'buildSettlement')}
           role="img"
           aria-label="Draggable settlement piece"
-        >drag me</div>
+        >settlement</div>
+                <div
+          className="w-10 h-10 bg-red-500 cursor-move"
+          draggable
+          onDragStart={(e) => e.dataTransfer.setData('action', 'startBuildRoad')}
+          role="img"
+          aria-label="Draggable settlement piece"
+        >road</div>
       </div>
       <svg width={svgSize} height={svgSize} viewBox={`${-svgSize/2} ${-svgSize/2} ${svgSize} ${svgSize}`}>
         
@@ -116,9 +150,11 @@ const CatanBoard: React.FC = () => {
           return <Settlement {...settlement}size={hexSize}/>;
         })}
         {Array.from(intersectMap.values()).map((intersect, index) => (
-          <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleIntersectDrop}/>
+          <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleIntersectDrop} onClick={handleIntersectClick}/>
         ))}
-        
+        {roads.map((road, index) => (
+          <Road key={road.id} {...road} size={intersectSize/3} />
+        ))}
       </svg>
       <div className="mt-4 grid grid-cols-3 gap-2">
       {players.map((player, index) => (

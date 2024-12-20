@@ -13,6 +13,7 @@ export interface IntersectNode {
   id: number;
   settlement: number | null;
   soldiers: Set<number>;
+  roads: Set<number>;
 }
 
 export const generateIntersections = (hexes: HexNode[], size: number): IntersectNode[] => {
@@ -25,7 +26,7 @@ export const generateIntersections = (hexes: HexNode[], size: number): Intersect
     hexagonVertices.forEach((vertex) => {
       let intersect = intersects.find(({ coord }) => calcEuclideanDistance(vertex, coord) < 1);
       if (!intersect) {
-        intersect = { id:id, coord: vertex, intersections: new Set(), settlement: null, soldiers: new Set() };
+        intersect = { id:id, coord: vertex, intersections: new Set(), settlement: null, soldiers: new Set(), roads: new Set() };
         id++;
       } 
       hex.intersections.add(intersect.id);
