@@ -1,6 +1,6 @@
 import { CubeCoord } from "./helperUtils";
 import { shuffleArray, flattenAndFillObject } from "./helperUtils";
-export type Resource = "Wheat" | "Sheep" | "Ore" | "Desert" | "Brick" | "Wood";
+export type Resource = "Wheat" | "Sheep" | "Ore" | "Desert" | "Brick" | "Wood" | "Water";
 const boardRadius = 2;
 
 let numTokens: { [key in number]: number } = {
@@ -22,7 +22,9 @@ let resources: { [key in Resource]: number } = {
   "Ore": 3,
   "Desert": 1,
   "Brick": 3,
-  "Wood": 4
+  "Wood": 4,
+  "Water": 0
+
 };
 export interface HexProps {
   terrain: Resource;
@@ -61,6 +63,7 @@ export const terrainColors: { [key: string]: string } = {
   Brick: "#CD853F",
   Ore: "#A9A9A9",
   Desert: "#F4A460",
+  Water: "#00FFFF"
 };
 
 export const generateHexes = (boardRadius: number): HexNode[] => {
@@ -71,7 +74,10 @@ export const generateHexes = (boardRadius: number): HexNode[] => {
   for (let q = -boardRadius; q <= boardRadius; q++) {
     for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
       const s = -q - r;
-      const terrain = ResourceList.pop() as Resource;
+      let terrain = ResourceList.pop() as Resource;
+      if(!terrain){
+        terrain = "Water";
+      }
       if (terrain === "Desert") {
         hexes.push({ id:id, intersections: new Set(), coord: {q, r, s}, terrain: terrain, robber: true, rollNumber: null });
         

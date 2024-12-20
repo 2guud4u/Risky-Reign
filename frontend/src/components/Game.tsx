@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Hexagon from './Hexagon';
 import Settlement from './Settlement';
 import Intersection from './Intersection';
-import { HexProps, terrainColors,generateHexes, getRollMap, HexNode } from '../utils/hexUtils';
+import { HexProps, terrainColors,generateHexes, getRollMap, HexNode, Resource } from '../utils/hexUtils';
 import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
 import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
 import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload} from '../utils/gameUtils';
@@ -25,31 +25,35 @@ const Game: React.FC = () =>{
     const [roads, setRoads] = useState<RoadObj[]>([]);
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [roadStart, setRoadStart] = useState<number>(-1);
-    const [players, setPlayers] = useState<PlayerObj[]>(
-        [
-            {id: 0, name: "jia", color: "red", resources: new Map(
-            [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
-            )},
-            {id: 1, name: "fel", color: "green", resources: new Map(
-                [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
-            )},
-    ]
-        );
-    const [playerMap, setPlayerMap] = useState<Map<number, PlayerObj>>(new Map());
-    const [playerIndex, setPlayerIndex] = useState(0);
     
+    const [playerMap, setPlayerMap] = useState<Map<string, PlayerObj>>(new Map());
+    const [playerName, setPlayerName] = useState("jia");
     
     useEffect(() => {
         let {hexMap, intersectMap} = generateGameBoard(boardRadius, hexSize)
+        const playerList = 
+        [
+            { name: "jia", color: "red", resources: new Map<Resource, number>(
+            [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
+            )},
+            { name: "fel", color: "green", resources: new Map<Resource, number>(
+                [["Wood", 0], ["Brick", 0], ["Sheep", 0], ["Wheat", 0], ["Ore", 0]]
+            )},
+    ];
+        const playerMap = new Map(playerList.map((player) => [player.name, player]));
+        setPlayerMap(playerMap);
         setHexMap(hexMap);
         setIntersectMap(intersectMap);
     }, []);
 
-    
+
 
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log("handling", UiEvent, UiEventPayload);
-        let player = players[playerIndex];
+        let player = playerMap.get(playerName);
+        if(player === undefined){
+            return;
+        }
         let error: void | string = undefined;
         switch (UiEvent) {
             case "buildSettlement":
@@ -127,15 +131,15 @@ const Game: React.FC = () =>{
         setIntersectMap(newIntersectMap);
     };
     const switchPlayer = () => {
-        setPlayerIndex((playerIndex + 1) % players.length);
+        setPlayerName(playerName === "jia" ? "fel" : "jia");
     }
 
         return (
             <>
             <div>playing as</div>
-            {players[playerIndex].name}
+            {playerName}
             <button onClick={switchPlayer}>Switch Player</button>
-            <Board hexes={Array.from(hexMap.values())} intersects={Array.from(intersectMap.values())} players={players} roads={roads} diceRoll={roll} settlements={settlements} UiEventCaller={handleUiEvent}/>
+            <Board hexes={Array.from(hexMap.values())} intersects={Array.from(intersectMap.values())} players={Array.from(playerMap.values())} roads={roads} diceRoll={roll} settlements={settlements} UiEventCaller={handleUiEvent}/>
             
             
             </>

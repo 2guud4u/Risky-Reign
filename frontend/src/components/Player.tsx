@@ -5,10 +5,9 @@ interface PlayerProps extends PlayerObj {
    
 }
 
-export const Player: React.FC<PlayerProps> = ({ id, name, color, resources }) => {
+export const Player: React.FC<PlayerProps> = ({ name, color, resources }) => {
     return (
         <div>
-            <h1>Player {id}</h1>
             <h2>{name}</h2>
             <h3>{color}</h3>
             <ul>
