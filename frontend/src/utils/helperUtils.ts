@@ -46,3 +46,15 @@ export interface CubeCoord {
     x: number;
     y: number;
   }
+
+  export function groupBy<T, K extends keyof T>(array: T[], key: K): Record<string, T[]> {
+    return array.reduce((acc, item) => {
+      const groupKey = item[key] as unknown as string; // The key by which to group
+      if (!acc[groupKey]) {
+        acc[groupKey] = [];
+      }
+      acc[groupKey].push(item);
+      return acc;
+    }, {} as Record<string, T[]>); // Initialize accumulator as an empty object
+  }
+  

@@ -1,14 +1,24 @@
 import React from "react";
 import { IntersectNode } from "../utils/intersectUtils";
+import { SoldierType, SoldierObj } from "../utils/soldierUtils";
+import {groupBy} from '../utils/helperUtils';
 export interface IntersectionProps extends IntersectNode {
-
+  soldierGroups: Record<string, SoldierObj[]>;
   size: number;
   onDrop: (target: string, targetId: number, action: string) => void;
   onClick: (target: string, targetId: number) => void;
 }
+interface SoldierDisp {
+  number: number;
+  coord: { x: number; y: number };
+  size: number;
+  type: SoldierType;
 
-const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, onClick}) => {
+}
+const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, onClick, soldierGroups}) => {
   const { x, y } = coord;
+  const [soldierComps, setSoldierComps] = React.useState<SoldierDisp[]>([]);
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -24,21 +34,42 @@ const Intersection: React.FC<IntersectionProps> = ({ id ,coord, size, onDrop, on
     onClick("intersection", id);
 
   }
-  // const orbitRadius = size; // Radius of the circle on which the other circles will surround
-  // const numIntersections = 6; // Number of intersection points to surround the center
-  // const enemySize = size/3;
+  // create soldier circles
+  React.useEffect(() => {
 
-  // const soldiers = Array.from({ length: numIntersections }).map((_, index) => {
-  //   const angle = (index * (2 * Math.PI)) / numIntersections; // Evenly spaced angles
-  //   const x =  coord.x + orbitRadius * Math.cos(angle);
-  //   const y = -10 + coord.y + orbitRadius * Math.sin(angle);
+    const groupedSoldiersList = Object.values(soldierGroups)
+    const orbitRadius = size; // Radius of the circle on which the other circles will surround
+    const numGroups = groupedSoldiersList.length; // Number of intersection points to surround the center
+    const multiEnemySize = size/3;
+    const enemySize = size/2;
 
-  //   return {
-  //     id: index + 1,
-  //     coord: { x, y },
-  //     size: enemySize, // You can adjust the size
-  //   };
-  // });
+    if (groupedSoldiersList.length === 1) {
+      setSoldierComps([
+        {
+          number: groupedSoldiersList[0].length,
+          coord: { x, y },
+          size: enemySize,
+          type: groupedSoldiersList[0][0].type,
+        },
+      ]);
+      return;
+    }
+
+    const soldierComps = groupedSoldiersList.map(( soldiers, index) => {
+      const angle = (index * (2 * Math.PI)) / numGroups; // Evenly spaced angles
+      const x =  coord.x + orbitRadius * Math.cos(angle);
+      const y = -10 + coord.y + orbitRadius * Math.sin(angle);
+
+      return {
+        number: soldiers.length,
+        coord: { x, y },
+        size: multiEnemySize, // You can adjust the size
+        type: soldiers[0].type,
+      };
+    });
+    setSoldierComps(soldierComps);
+  }, [soldierGroups, coord, size]);
+
 return (
   
   <g >
@@ -55,11 +86,11 @@ return (
       </text>
       <circle         onDragOver={handleDragOver}
         onDrop={handleDrop} cx={x} cy={y} r={size} fill="red" fillOpacity="0.3" onClick={handleClick}/>
-        {/* {soldiers.map((soldier) => (
+        
+        {soldierComps.map((soldier, index) => (
           <g >
-
             <circle
-              key={soldier.id}
+              key={index}
               cx={soldier.coord.x}
               cy={soldier.coord.y}
               r={soldier.size}
@@ -74,10 +105,10 @@ return (
               fill="white"
               fontSize={size / 3}
             >
-              {id}
+              {soldier.number}
             </text>
           </g>
-        ))} */}
+        ))}
     </g>
     
   

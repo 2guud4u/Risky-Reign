@@ -1,6 +1,7 @@
 import { cubeToPixel, PixelCoord, calcEuclideanDistance } from './helperUtils';
 import { IntersectionProps } from '../components/Intersection';
 import { HexNode } from './hexUtils';
+import { SoldierObj } from './soldierUtils';
 
 export interface Intersect extends PixelCoord {
     
@@ -12,7 +13,7 @@ export interface IntersectNode {
   intersections: Set<number>;
   id: number;
   settlement: number | null;
-  soldiers: Set<number>;
+  soldiers: SoldierObj[];
   roads: Set<number>;
 }
 
@@ -26,7 +27,7 @@ export const generateIntersections = (hexes: HexNode[], size: number): Intersect
     hexagonVertices.forEach((vertex) => {
       let intersect = intersects.find(({ coord }) => calcEuclideanDistance(vertex, coord) < 1);
       if (!intersect) {
-        intersect = { id:id, coord: vertex, intersections: new Set(), settlement: null, soldiers: new Set(), roads: new Set() };
+        intersect = { id:id, coord: vertex, intersections: new Set(), settlement: null, soldiers: [], roads: new Set() };
         id++;
       } 
       hex.intersections.add(intersect.id);

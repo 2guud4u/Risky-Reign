@@ -15,7 +15,7 @@ import Board from './CatanBoard';
 
 import Grid from '@mui/material/Grid2';
 import PlayersList from './PlayersList';
-import IntersectViewer from './IntersectViewer';
+import { SoldierObj } from '../utils/soldierUtils';
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -27,7 +27,18 @@ const Game: React.FC = () =>{
     const [hexMap, setHexMap] = useState<Map<number , HexNode>>(new Map());
     const [intersectMap, setIntersectMap] = useState<Map<number , IntersectNode>>(new Map());
     const [roads, setRoads] = useState<RoadObj[]>([]);
-    const [settlements, setSettlements] = useState<SettlementObj[]>([]);    
+    const [settlements, setSettlements] = useState<SettlementObj[]>([]);
+    const [soldiersMap, setSoldiersMap] = useState<Map<number,SoldierObj[]>>(new Map(
+        [
+        [1,
+            [
+                {id: 0, owner: "jia", intersect:1, type: "infantry", injured: false, stationed: false},
+                {id: 1, owner: "fel", intersect:1, type: "infantry", injured: false, stationed: false},
+
+            ]
+        ]
+        ])
+    );  
     const [playerMap, setPlayerMap] = useState<Map<string, PlayerObj>>(new Map());
     const [playerName, setPlayerName] = useState("jia");
     const [rollMap, setRollMap] = useState<Map<string, number[]>>(new Map());
@@ -72,6 +83,8 @@ const Game: React.FC = () =>{
                     error = "Not enough resources";
                 }
                 break;
+            case "upgradeSettlement":
+                break;
             case "buildRoad":
                 if(checkHasPrice(player, RoadPrice)){
                     error = handleBuildRoad(UiEventPayload as buildRoadPayload, intersectMap, player);
@@ -86,6 +99,8 @@ const Game: React.FC = () =>{
                 let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
                 setRoll(rollNum);
                 error = handleRollDice(rollNum, playerMap, setPlayerMap);
+                break;
+            case "buildSoldier":
                 break;
             default:
                 break;
@@ -202,11 +217,6 @@ const Game: React.FC = () =>{
                         if(resources === undefined || resource === undefined || resource === "Nothing"){
                             continue;
                         }
-
-                        // resources[resource] = resources[resource] as number + (settlement.upgraded ? 2 : 1);
-                        // setPlayerMap(new Map(playerMap.set(playerName, {...player, resources})));
-                        // console.log("given resources to player");
-                        //construct price object
                         let price = {
                             "Wood": 0,
                             "Brick": 0,
@@ -214,6 +224,7 @@ const Game: React.FC = () =>{
                             "Wheat": 0,
                             "Ore": 0
                         } as Price;
+
                         price[resource] = settlement.upgraded ? 2 : 1;
                         
                         changePlayerResources(player, price, playerMap, setPlayerMap, true);
@@ -265,7 +276,13 @@ const Game: React.FC = () =>{
             <button onClick={switchPlayer}>Switch Player</button>
             <Grid container spacing={3}>
                 <Grid size={10}>
-                    <Board hexes={Array.from(hexMap.values())} intersects={Array.from(intersectMap.values())} players={Array.from(playerMap.values())} roads={roads} diceRoll={roll} settlements={settlements} UiEventCaller={handleUiEvent}/>
+                    <Board hexes={Array.from(hexMap.values())} 
+                    intersects={Array.from(intersectMap.values())} 
+                    players={Array.from(playerMap.values())} 
+                    roads={roads} diceRoll={roll} 
+                    settlements={settlements} 
+                    UiEventCaller={handleUiEvent}
+                    soldiersMap={soldiersMap}/>
                 </Grid>
                 <Grid size={2}>
                     <PlayersList players={Array.from(playerMap.values())}/>

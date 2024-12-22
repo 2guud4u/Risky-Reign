@@ -4,7 +4,7 @@ import Settlement from '../components/Settlement';
 import Intersection from '../components/Intersection';
 import { HexProps, terrainColors,generateHexes, getRollMap, HexNode } from '../utils/hexUtils';
 import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
-import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
+import { PixelCoord, calcEuclideanDistance, groupBy } from '../utils/helperUtils';
 import {generateGameBoard, UiEvent, UiEventPayload, Price, SettlementPrice,RoadPrice} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { Player } from '../components/Player';
@@ -14,6 +14,7 @@ import Road from '../components/Road';
 import IntersectViewer from './IntersectViewer';
 
 import Grid from '@mui/material/Grid2';
+import { SoldierObj } from '../utils/soldierUtils';
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
@@ -26,12 +27,13 @@ interface BoardProps {
   diceRoll: string;
   roads: RoadObj[];
   intersects: IntersectNode[];
+  soldiersMap: Map<number, SoldierObj[]>;
   UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
 }
 
 
 
-const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll, roads, intersects, UiEventCaller}) => {
+const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller}) => {
   const [roadStart, setRoadStart] = useState<number>(-1);
   const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode|undefined>(undefined);
 
@@ -109,13 +111,16 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
 
                 return <Road key={road.id} color={player ? player.color : "grey"} {...road} size={roadSize} />
               })}
-            {intersects.map((intersect) => (
-              <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick}/>
-            ))}
+            {intersects.map((intersect) => {
+              const soldiers = soldiersMap.get(intersect.id) || [];
+              const soldierGroups = groupBy(soldiers, 'owner');
+              return <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick} soldierGroups={soldierGroups}/>
+            })}
           </svg>
         </Grid>
         <Grid size={4}>
-          <IntersectViewer intersect={selectedIntersect} setRoadStart={setRoadStart} UiEventCaller={UiEventCaller}/>
+          <IntersectViewer soldierGroups={groupBy((selectedIntersect ? (soldiersMap.get(selectedIntersect.id) || []) : []), 'owner')} 
+          intersect={selectedIntersect} setRoadStart={setRoadStart} UiEventCaller={UiEventCaller}/>
         </Grid>
       </Grid>
       <div>{diceRoll}</div>
