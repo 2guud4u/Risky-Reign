@@ -203,9 +203,20 @@ const Game: React.FC = () =>{
                             continue;
                         }
 
-                        resources[resource] = resources[resource] as number + (settlement.upgraded ? 2 : 1);
-                        setPlayerMap(new Map(playerMap.set(playerName, {...player, resources})));
-                        console.log("given resources to player");
+                        // resources[resource] = resources[resource] as number + (settlement.upgraded ? 2 : 1);
+                        // setPlayerMap(new Map(playerMap.set(playerName, {...player, resources})));
+                        // console.log("given resources to player");
+                        //construct price object
+                        let price = {
+                            "Wood": 0,
+                            "Brick": 0,
+                            "Sheep": 0,
+                            "Wheat": 0,
+                            "Ore": 0
+                        } as Price;
+                        price[resource] = settlement.upgraded ? 2 : 1;
+                        
+                        changePlayerResources(player, price, playerMap, setPlayerMap, true);
                     }
                 }
             }
@@ -234,7 +245,6 @@ const Game: React.FC = () =>{
             }
             return acc;
         }, {} as ResourceCount);
-        console.log(newResources);
         setPlayerMap(new Map(playerMap.set(player.name, {...player, resources: newResources} )));
 
         return true
