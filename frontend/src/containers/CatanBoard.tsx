@@ -72,13 +72,7 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
         break;
     }
   };
-  // const handleCheckHasResources = (player: PlayerObj, price: Price): boolean => {
-  //   const playerResources = player.resources;
-  //   if (playerResources === undefined) {
-  //     return false;
-  //   }
-  //   return Object.entries(price).every(([resource, amount]) => playerResources.get(resource) >= amount);
-  // }
+
 
   return (
 

@@ -6,7 +6,6 @@ interface PlayerProps extends PlayerObj {
 }
 
 export const Player: React.FC<PlayerProps> = ({ name, color, resources }) => {
-    console.log(Object.entries(resources))
     return (
         <div>
             <h2>{name}</h2>

@@ -5,7 +5,7 @@ import Intersection from '../components/Intersection';
 import { HexProps, terrainColors,generateHexes, getRollMap, HexNode, Resource, TerrainResourceMap } from '../utils/hexUtils';
 import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
 import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
-import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload} from '../utils/gameUtils';
+import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload, Price, ResourceCount, SettlementPrice, RoadPrice} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { Player } from '../components/Player';
 import { PlayerObj } from '../utils/playerUtils';
@@ -35,7 +35,7 @@ const Game: React.FC = () =>{
         let {hexMap, intersectMap} = generateGameBoard(boardRadius, hexSize)
         const playerList = 
         [
-            { name: "jia", color: "red", resources: {Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0}},
+            { name: "jia", color: "red", resources: {Wood: 100, Brick: 100, Sheep: 100, Wheat: 100, Ore: 100}},
             
             { name: "fel", color: "green", resources: {Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0}},
         ];
@@ -62,11 +62,25 @@ const Game: React.FC = () =>{
         let error: void | string = undefined;
         switch (UiEvent) {
             case "buildSettlement":
-
-                error = handleBuildSettlement(UiEventPayload as buildSettlementPayload, player,intersectMap, setSettlements, setIntersectMap);
+                if(checkHasPrice(player, SettlementPrice)){
+                
+                    error = handleBuildSettlement(UiEventPayload as buildSettlementPayload, player,intersectMap, setSettlements, setIntersectMap);
+                    if(error === undefined){
+                        changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap, false);
+                    }
+                } else{
+                    error = "Not enough resources";
+                }
                 break;
             case "buildRoad":
-                error = handleBuildRoad(UiEventPayload as buildRoadPayload, intersectMap, player);
+                if(checkHasPrice(player, RoadPrice)){
+                    error = handleBuildRoad(UiEventPayload as buildRoadPayload, intersectMap, player);
+                    if(error === undefined){
+                        changePlayerResources(player, RoadPrice, playerMap, setPlayerMap, false);
+                    }
+                } else{
+                    error = "Not enough resources";
+                }
                 break;
             case "rollDice":
                 let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
@@ -197,6 +211,37 @@ const Game: React.FC = () =>{
             }
         }
     }
+    const checkHasPrice = (player: PlayerObj, price: Price): boolean => {
+        const playerResources = player.resources;
+        if(playerResources === undefined){
+            return false;
+        }
+        console.log(playerResources, price);
+        return Object.entries(price).every(([resource, amount]) => {const key = resource as keyof ResourceCount ; return playerResources[key] >= amount});
+    }
+
+    const changePlayerResources = (player: PlayerObj, price: Price, playerMap: Map<string, PlayerObj>, setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>, add:boolean): boolean => {
+        const playerResources = player.resources;
+        if(playerResources === undefined){
+            return false;
+        }
+        const newResources = Object.entries(price).reduce((acc, [resource, amount]) => {
+            const key = resource as keyof ResourceCount;
+            if(add){
+                acc[key] = playerResources[key] + amount;
+            } else {
+                acc[key] = playerResources[key] - amount;
+            }
+            return acc;
+        }, {} as ResourceCount);
+        console.log(newResources);
+        setPlayerMap(new Map(playerMap.set(player.name, {...player, resources: newResources} )));
+
+        return true
+        
+    }
+
+
     const switchPlayer = () => {
         setPlayerName(playerName === "jia" ? "fel" : "jia");
     }
