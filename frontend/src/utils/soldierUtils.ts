@@ -3,7 +3,7 @@
 export type SoldierType = "infantry" | "cannon";
 
 export interface SoldierObj{
-    id: number;
+    id: string;
     owner: string;
     injured: boolean;
     intersect: number;

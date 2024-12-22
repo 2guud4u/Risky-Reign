@@ -27,6 +27,9 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     const handleBuildSoldier = () => {
         UiEventCaller('buildSoldier', {intersectId: intersect?.id});
     }
+    const handleMoveSoldier = (soldierId: string) => {
+        UiEventCaller('moveSoldier', {soldierId, intersectId: intersect?.id});
+    }
     return (
     <>
         {intersect === undefined ? (
@@ -46,7 +49,10 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                     {owner}
                     <ul>
                     {soldiers.map((soldier) => (
-                        <li key={soldier.id}>{soldier.type}</li>
+                        <li key={soldier.id}>
+                            {soldier.type}
+                            <button onClick={()=>handleMoveSoldier(soldier.id)}>Move</button>
+                            </li>
                     ))}
                     </ul>
                 </li>

@@ -5,7 +5,7 @@ import Intersection from '../components/Intersection';
 import { HexProps, terrainColors,generateHexes, getRollMap, HexNode, Resource, TerrainResourceMap } from '../utils/hexUtils';
 import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
 import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
-import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload, Price, ResourceCount, SettlementPrice, RoadPrice} from '../utils/gameUtils';
+import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload, Price, ResourceCount, SettlementPrice, RoadPrice, SoldierPrice, buildSoldierPayload} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { Player } from '../components/Player';
 import { PlayerObj } from '../utils/playerUtils';
@@ -15,7 +15,8 @@ import Board from './CatanBoard';
 
 import Grid from '@mui/material/Grid2';
 import PlayersList from './PlayersList';
-import { SoldierObj } from '../utils/soldierUtils';
+import { SoldierObj, SoldierType } from '../utils/soldierUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -32,8 +33,8 @@ const Game: React.FC = () =>{
         [
         [1,
             [
-                {id: 0, owner: "jia", intersect:1, type: "infantry", injured: false, stationed: false},
-                {id: 1, owner: "fel", intersect:1, type: "infantry", injured: false, stationed: false},
+                {id: "0", owner: "jia", intersect:1, type: "infantry", injured: false, stationed: false},
+                {id: "1", owner: "fel", intersect:1, type: "infantry", injured: false, stationed: false},
 
             ]
         ]
@@ -101,6 +102,11 @@ const Game: React.FC = () =>{
                 error = handleRollDice(rollNum, playerMap, setPlayerMap);
                 break;
             case "buildSoldier":
+                if(checkHasPrice(player, SoldierPrice)){
+                    error = handleBuildSoldier(UiEventPayload as buildSoldierPayload, player, soldiersMap, setSoldiersMap);
+                } else{
+                    error = "Not enough resources";
+                }
                 break;
             default:
                 break;
@@ -177,9 +183,33 @@ const Game: React.FC = () =>{
         setIntersectMap(newIntersectMap);
     };
 
+    const handleBuildSoldier = (payload: buildSoldierPayload, player: PlayerObj, soldiersMap: Map<number, SoldierObj[]>, setSoldiersMap:React.Dispatch<React.SetStateAction<Map<number, SoldierObj[]>>> ): void | string => {
+        const intersect = intersectMap.get(payload.intersectId);
+        if(intersect === undefined){
+            return "Invalid intersection";
+        }
+        const soldierId = uuidv4();
+        const settlement = intersect.settlement;
+        if(settlement === null){
+            return "Cannot build soldier here, no settlement";
+        }
+        if(settlements[settlement].owner !== player.name){
+            return "Cannot build soldier here, not your settlement";
+        }
+
+        const newSoldier = {id: soldierId, owner: player.name, intersect: payload.intersectId, type: "infantry" as SoldierType, injured: false, stationed: false};
+        const soldiers = soldiersMap.get(intersect.id);
+        if(soldiers === undefined){
+            setSoldiersMap(new Map(soldiersMap.set(intersect.id, [newSoldier])));
+        } else {
+            setSoldiersMap(new Map(soldiersMap.set(intersect.id, [...soldiers, newSoldier])));
+        }
+        
+    };
+
     const handleRollDice = (rollNum: string, playerMap: Map<string, PlayerObj>, setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>): void | string => {
         const hexes = rollMap.get(rollNum);
-        console.log("looking at hexes", hexes);
+       
         if(hexes === undefined){
         return;
         }
@@ -197,7 +227,7 @@ const Game: React.FC = () =>{
                 if(intersects === undefined){
                 continue;
                 }
-                console.log("looking at intersects", intersects);
+                
                 for (let intersectId of Array.from(intersects)) {
                     let intersect = intersectMap.get(intersectId);
                     if(intersect === undefined){
@@ -238,7 +268,7 @@ const Game: React.FC = () =>{
         if(playerResources === undefined){
             return false;
         }
-        console.log(playerResources, price);
+    
         return Object.entries(price).every(([resource, amount]) => {const key = resource as keyof ResourceCount ; return playerResources[key] >= amount});
     }
 
