@@ -21,7 +21,7 @@ export const generateGameBoard = (boardRadius: number, hexSize: number):GameBoar
 
 }
 
-export type UiEvent = "buildSettlement" | "buildRoad" | "endTurn" | "rollDice" | "trade" | "buyDevCard" | "playDevCard";
+export type UiEvent = "buildSettlement" | "buildRoad" | "endTurn" | "rollDice" | "trade" | "buyDevCard" | "playDevCard" | "placeRobber" ;
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 export interface buildSettlementPayload {
@@ -35,4 +35,29 @@ export interface buildRoadPayload {
 
 export interface rollDicePayload {
     
+}
+export interface ResourceCount {
+    "Wood": number;
+    "Brick": number;
+    "Sheep": number;
+    "Wheat": number;
+    "Ore": number;
+}
+export interface Price extends ResourceCount {
+}
+
+export const SettlementPrice:Price = {
+    "Wood": 1,
+    "Brick": 1,
+    "Sheep": 1,
+    "Wheat": 1,
+    "Ore": 0
+}
+
+export const RoadPrice:Price = {
+    "Wood": 1,
+    "Brick": 1,
+    "Sheep": 0,
+    "Wheat": 0,
+    "Ore": 0
 }

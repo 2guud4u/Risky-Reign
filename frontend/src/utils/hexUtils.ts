@@ -1,7 +1,7 @@
 import { CubeCoord } from "./helperUtils";
 import { shuffleArray, flattenAndFillObject } from "./helperUtils";
-export type Resource = "Wheat" | "Sheep" | "Ore" | "Desert" | "Brick" | "Wood" | "Water";
-const boardRadius = 2;
+export type Resource = "Wheat" | "Sheep" | "Ore" | "Brick" | "Wood" | "Nothing";
+export type Terrain =  Resource | ("Water" | "Desert");
 
 let numTokens: { [key in number]: number } = {
   2: 1,
@@ -16,18 +16,33 @@ let numTokens: { [key in number]: number } = {
   12: 1
 };
 
-let resources: { [key in Resource]: number } = {
+let terrains: { [key in Terrain]: number } = {
   "Wheat": 4,
   "Sheep": 4,
   "Ore": 3,
   "Desert": 1,
   "Brick": 3,
   "Wood": 4,
-  "Water": 0
+  "Water": 0,
+  "Nothing": 0
+
 
 };
+
+export const TerrainResourceMap: { [key in Terrain]: Resource } = {
+  "Wheat": "Wheat",
+  "Sheep": "Sheep",
+  "Ore": "Ore",
+  "Brick": "Brick",
+  "Wood": "Wood",
+  "Water": "Nothing",
+  "Desert": "Nothing",
+  "Nothing": "Nothing"
+
+};
+
 export interface HexProps {
-  terrain: Resource;
+  terrain: Terrain;
   robber: boolean;
   rollNumber: number | null;
 
@@ -37,7 +52,7 @@ export interface HexNode {
   id: number;
   coord: CubeCoord;
   intersections: Set<number>;
-  terrain: Resource;
+  terrain: Terrain;
   robber: boolean;
   rollNumber: number | null;
 }
@@ -68,13 +83,13 @@ export const terrainColors: { [key: string]: string } = {
 
 export const generateHexes = (boardRadius: number): HexNode[] => {
   const hexes: HexNode[] = [];
-  let ResourceList = shuffleArray(flattenAndFillObject(resources));
+  let TerrainList = shuffleArray(flattenAndFillObject(terrains));
   let tokenList = shuffleArray(flattenAndFillObject(numTokens));
   let id = 0;
   for (let q = -boardRadius; q <= boardRadius; q++) {
     for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
       const s = -q - r;
-      let terrain = ResourceList.pop() as Resource;
+      let terrain = TerrainList.pop() as Terrain;
       if(!terrain){
         terrain = "Water";
       }

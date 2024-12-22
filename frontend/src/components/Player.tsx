@@ -6,14 +6,17 @@ interface PlayerProps extends PlayerObj {
 }
 
 export const Player: React.FC<PlayerProps> = ({ name, color, resources }) => {
+    console.log(Object.entries(resources))
     return (
         <div>
             <h2>{name}</h2>
             <h3>{color}</h3>
             <ul>
-                {Array.from(resources.entries()).map(([resource, amount]) => (
-                    <li key={resource}>{resource}: {amount}</li>
-                ))}
+                {Object.entries(resources).map(([resource, value]) => (
+                <li key={resource}>
+                {resource}: {value} 
+                </li>
+        ))}
             </ul>
         </div>
     );
