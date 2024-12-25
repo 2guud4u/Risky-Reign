@@ -53,7 +53,8 @@ export interface ResourceCount {
 
 export interface moveSoldierPayload {
     soldierId: string;
-    intersectId: number;
+    startIntersectId: number;
+    endIntersectId: number;
 }
 export interface Price extends ResourceCount {
 }

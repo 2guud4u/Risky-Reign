@@ -35,6 +35,7 @@ interface BoardProps {
 
 const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller}) => {
   const [roadStart, setRoadStart] = useState<number>(-1);
+  const [moveSoldier, setMoveSoldier] = useState<string>('');
   const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode|undefined>(undefined);
 
   const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
@@ -63,8 +64,8 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
         break;
       case 'intersection':
         if (roadStart !== -1) {
-          UiEventCaller('buildRoad', {startIntersectId: roadStart, endIntersectId: targetId});
-          setRoadStart(-1);
+          // UiEventCaller('buildRoad', {startIntersectId: roadStart, endIntersectId: targetId});
+          // setRoadStart(-1);
         } else {
 
           setSelectedIntersect(intersects.find((intersect) => intersect.id === targetId));
@@ -114,13 +115,15 @@ const CatanBoard: React.FC<BoardProps> = ({hexes, settlements, players, diceRoll
             {intersects.map((intersect) => {
               const soldiers = soldiersMap.get(intersect.id) || [];
               const soldierGroups = groupBy(soldiers, 'owner');
-              return <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick} soldierGroups={soldierGroups}/>
+              const colorSoldierGroups = Object.entries(soldierGroups).map(([key, value]) => ({color: players.find((player) => player.name === key)?.color || "grey"
+                , soldiers: value}));
+              return <Intersection key={intersect.id} {...intersect} size={intersectSize} onDrop={handleDrop} onClick={handleClick} soldierGroups={soldierGroups} colorSoldierGroups={colorSoldierGroups}/>
             })}
           </svg>
         </Grid>
         <Grid size={4}>
           <IntersectViewer soldierGroups={groupBy((selectedIntersect ? (soldiersMap.get(selectedIntersect.id) || []) : []), 'owner')} 
-          intersect={selectedIntersect} setRoadStart={setRoadStart} UiEventCaller={UiEventCaller}/>
+          intersect={selectedIntersect}  UiEventCaller={UiEventCaller}/>
         </Grid>
       </Grid>
       <div>{diceRoll}</div>

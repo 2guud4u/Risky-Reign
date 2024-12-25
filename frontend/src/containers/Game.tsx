@@ -5,7 +5,7 @@ import Intersection from '../components/Intersection';
 import { HexProps, terrainColors,generateHexes, getRollMap, HexNode, Resource, TerrainResourceMap } from '../utils/hexUtils';
 import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
 import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
-import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload, Price, ResourceCount, SettlementPrice, RoadPrice, SoldierPrice, buildSoldierPayload} from '../utils/gameUtils';
+import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload, Price, ResourceCount, SettlementPrice, RoadPrice, SoldierPrice, buildSoldierPayload, moveSoldierPayload} from '../utils/gameUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { Player } from '../components/Player';
 import { PlayerObj } from '../utils/playerUtils';
@@ -49,7 +49,7 @@ const Game: React.FC = () =>{
         [
             { name: "jia", color: "red", resources: {Wood: 100, Brick: 100, Sheep: 100, Wheat: 100, Ore: 100}},
             
-            { name: "fel", color: "green", resources: {Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0}},
+            { name: "fel", color: "green", resources: {Wood: 50, Brick: 50, Sheep: 50, Wheat: 50, Ore: 50}},
         ];
 
         if(playerList.length === 0){
@@ -104,9 +104,15 @@ const Game: React.FC = () =>{
             case "buildSoldier":
                 if(checkHasPrice(player, SoldierPrice)){
                     error = handleBuildSoldier(UiEventPayload as buildSoldierPayload, player, soldiersMap, setSoldiersMap);
+                    if(error === undefined){
+                        changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap, false);
+                    }
                 } else{
                     error = "Not enough resources";
                 }
+                break;
+            case "moveSoldier":
+                error = handleMoveSoldier(UiEventPayload as moveSoldierPayload, roads,player, soldiersMap, setSoldiersMap);
                 break;
             default:
                 break;
@@ -206,7 +212,29 @@ const Game: React.FC = () =>{
         }
         
     };
+    const handleMoveSoldier = (payload: moveSoldierPayload, roads: RoadObj[],player: PlayerObj,soldiersMap: Map<number, SoldierObj[]>, setSoldiersMap:React.Dispatch<React.SetStateAction<Map<number, SoldierObj[]>>>): void | string => {
+        if(payload.startIntersectId === payload.endIntersectId){
+            return "Soldier is moving to the same location"
+        }
+        //check if road exists
+        if(roads.find((road) => (road.intersect1 === payload.startIntersectId && road.intersect2 === payload.endIntersectId) || (road.intersect1 === payload.endIntersectId && road.intersect2 === payload.startIntersectId)) === undefined){
+            return "Cannot move soldier, no road";
+        }
+        const soldiers = soldiersMap.get(payload.startIntersectId);
+        if(soldiers === undefined){
+            return "No soldiers to move";
+        }
+        const soldier = soldiers.find((soldier) => soldier.id === payload.soldierId);
+        if(soldier === undefined){
+            return "No soldiers to move";
+        }
+        if(player.name !== soldier.owner){
+            return "Cannot move soldier, not your soldier";
+        }
 
+        setSoldiersMap(new Map(soldiersMap.set(payload.startIntersectId, soldiers.filter((s) => s.id !== soldier.id))));
+        setSoldiersMap(new Map(soldiersMap.set(payload.endIntersectId, [...(soldiersMap.get(payload.endIntersectId) ?? []), soldier])));
+    }
     const handleRollDice = (rollNum: string, playerMap: Map<string, PlayerObj>, setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>): void | string => {
         const hexes = rollMap.get(rollNum);
        
