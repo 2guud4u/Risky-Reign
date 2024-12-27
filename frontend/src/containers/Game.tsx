@@ -1,22 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import Hexagon from '../components/Hexagon';
-import Settlement from '../components/Settlement';
-import Intersection from '../components/Intersection';
-import { HexProps, terrainColors,generateHexes, getRollMap, HexNode, Resource, TerrainResourceMap } from '../utils/hexUtils';
-import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
-import { PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
-import {generateGameBoard, UiEvent, UiEventPayload, buildSettlementPayload, buildRoadPayload, Price, ResourceCount, SettlementPrice, RoadPrice, SoldierPrice, buildSoldierPayload, moveSoldierPayload} from '../utils/gameUtils';
-import { SettlementObj } from '../utils/settlementUtils';
-import { Player } from '../components/Player';
+import React, { useEffect, useState } from 'react';
+import { buildRoadPayload, buildSettlementPayload, buildSoldierPayload, generateGameBoard, moveSoldierPayload, Price, ResourceCount, RoadPrice, SettlementPrice, SoldierPrice, UiEvent, UiEventPayload } from '../utils/gameUtils';
+import { getRollMap, HexNode, TerrainResourceMap } from '../utils/hexUtils';
+import { IntersectNode } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
-import Road from '../components/Road';
+import { SettlementObj } from '../utils/settlementUtils';
 import Board from './CatanBoard';
 
 import Grid from '@mui/material/Grid2';
-import PlayersList from './PlayersList';
-import { SoldierObj, SoldierType } from '../utils/soldierUtils';
 import { v4 as uuidv4 } from 'uuid';
+import { SoldierObj, SoldierType } from '../utils/soldierUtils';
+import PlayersList from './PlayersList';
 
 const hexSize = 100;
 const boardRadius = 2;

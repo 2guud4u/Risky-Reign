@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Hexagon from '../components/Hexagon';
-import Settlement from '../components/Settlement';
 import Intersection from '../components/Intersection';
-import { HexProps, terrainColors,generateHexes, getRollMap, HexNode } from '../utils/hexUtils';
-import {calculateHexagonVertices, generateIntersections, IntersectNode} from '../utils/intersectUtils';
-import { PixelCoord, calcEuclideanDistance, groupBy } from '../utils/helperUtils';
-import {generateGameBoard, UiEvent, UiEventPayload, Price, SettlementPrice,RoadPrice} from '../utils/gameUtils';
-import { SettlementObj } from '../utils/settlementUtils';
-import { Player } from '../components/Player';
+import Road from '../components/Road';
+import Settlement from '../components/Settlement';
+import { UiEvent, UiEventPayload } from '../utils/gameUtils';
+import { groupBy } from '../utils/helperUtils';
+import { HexNode } from '../utils/hexUtils';
+import { IntersectNode } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
-import Road from '../components/Road';
+import { SettlementObj } from '../utils/settlementUtils';
 import IntersectViewer from './IntersectViewer';
 
 import Grid from '@mui/material/Grid2';

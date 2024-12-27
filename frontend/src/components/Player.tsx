@@ -1,5 +1,4 @@
-import React from "react"
-import { Resource } from "../utils/hexUtils";
+import React from "react";
 import { PlayerObj } from "../utils/playerUtils";
 interface PlayerProps extends PlayerObj {
    

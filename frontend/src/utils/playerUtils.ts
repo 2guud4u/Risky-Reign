@@ -1,4 +1,3 @@
-import { Resource } from "./hexUtils";
 import { ResourceCount } from "./gameUtils";
 export interface PlayerObj {
     name: string;

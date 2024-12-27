@@ -1,7 +1,6 @@
 import React from "react";
 import { IntersectNode } from "../utils/intersectUtils";
-import { SoldierType, SoldierObj } from "../utils/soldierUtils";
-import {groupBy} from '../utils/helperUtils';
+import { SoldierObj, SoldierType } from "../utils/soldierUtils";
 export interface IntersectionProps extends IntersectNode {
   soldierGroups: Record<string, SoldierObj[]>;
   colorSoldierGroups: colorSoldierGroups[];

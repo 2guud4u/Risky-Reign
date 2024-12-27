@@ -1,7 +1,6 @@
-import React from "react";
-import {generateHexes, HexNode} from "./hexUtils";
-import {generateIntersections, connectIntersections, IntersectNode} from "./intersectUtils";
-import {PlayerObj} from "./playerUtils";
+import { generateHexes, HexNode } from "./hexUtils";
+import { connectIntersections, generateIntersections, IntersectNode } from "./intersectUtils";
+import { PlayerObj } from "./playerUtils";
 export interface GameState {
     GameBoard: GameBoard;
     players: PlayerObj[];
