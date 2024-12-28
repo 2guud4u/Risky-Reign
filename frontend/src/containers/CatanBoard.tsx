@@ -31,7 +31,6 @@ interface BoardProps {
 }
 
 const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller }) => {
-
     const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
 
     const handleClick = (target: string, targetId: number) => {
@@ -41,7 +40,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                 UiEventCaller('rollDice', {});
                 break;
             case 'intersection':
-                    UiEventCaller('selectIntersect', { intersectId: targetId });
+                UiEventCaller('selectIntersect', { intersectId: targetId });
                 break;
             default:
                 break;
@@ -49,9 +48,8 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
     };
 
     return (
-        
-            <div className="mb-4">
-                {/* <div
+        <div className="mb-4">
+            {/* <div
                     className="w-10 h-10 bg-red-500 cursor-move"
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('action', 'buildSettlement')}
@@ -60,7 +58,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                 >
                     settlement
                 </div> */}
-                
+
             <Grid container>
                 <Grid size={8}>
                     <svg width={svgSize} height={svgSize} viewBox={`${-svgSize / 2} ${-svgSize / 2} ${svgSize} ${svgSize}`}>
@@ -96,7 +94,6 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                         })}
                     </svg>
                 </Grid>
-                
             </Grid>
             <div>{diceRoll}</div>
             <button onClick={() => handleClick('diceRoll', -1)}>Roll Dice</button>

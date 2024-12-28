@@ -37,8 +37,8 @@ export type UiEvent =
     | 'upgradeSettlement'
     | 'buildSoldier'
     | 'moveSoldier'
-    | "initiateBattle"
-    | "selectIntersect";
+    | 'initiateBattle'
+    | 'selectIntersect';
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 
@@ -75,7 +75,7 @@ export interface ResourceCount {
 }
 
 export interface moveSoldierPayload {
-    soldierId: string;
+    soldierIds: string[];
     startIntersectId: number;
     endIntersectId: number;
 }

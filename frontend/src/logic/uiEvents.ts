@@ -173,6 +173,7 @@ export const handleBuildSoldier = (
     settlements: SettlementObj[],
     intersectMap: Map<number, IntersectNode>
 ): void | string => {
+    
     if (!checkHasPrice(player, SoldierPrice)) {
         return 'Not enough resources';
     }
@@ -211,6 +212,7 @@ export const handleMoveSoldier = (
     soldiersMap: Map<number, SoldierObj[]>,
     setSoldiersMap: React.Dispatch<React.SetStateAction<Map<number, SoldierObj[]>>>
 ): void | string => {
+    
     if (payload.startIntersectId === payload.endIntersectId) {
         return 'Soldier is moving to the same location';
     }
@@ -228,11 +230,13 @@ export const handleMoveSoldier = (
     if (soldiers === undefined) {
         return 'No soldiers to move';
     }
-    const soldier = soldiers.find((soldier) => soldier.id === payload.soldierId);
-    if (soldier === undefined) {
+
+    const movingSoldiers = soldiers.filter((soldier) => payload.soldierIds.includes(soldier.id));
+
+    if (movingSoldiers === undefined) {
         return 'No soldiers to move';
     }
-    if (player.name !== soldier.owner) {
+    if (player.name !== movingSoldiers[0].owner) {
         return 'Cannot move soldier, not your soldier';
     }
 
@@ -240,11 +244,12 @@ export const handleMoveSoldier = (
         new Map(
             soldiersMap.set(
                 payload.startIntersectId,
-                soldiers.filter((s) => s.id !== soldier.id)
+                soldiers.filter((s) => !payload.soldierIds.includes(s.id))
             )
         )
     );
-    setSoldiersMap(new Map(soldiersMap.set(payload.endIntersectId, [...(soldiersMap.get(payload.endIntersectId) ?? []), soldier])));
+
+    setSoldiersMap(new Map(soldiersMap.set(payload.endIntersectId, [...(soldiersMap.get(payload.endIntersectId) ?? []), ...movingSoldiers])));
 };
 export const handleRollDice = (
     rollNum: string,

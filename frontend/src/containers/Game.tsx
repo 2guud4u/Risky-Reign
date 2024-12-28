@@ -10,7 +10,7 @@ import {
     SoldierPrice,
     UiEvent,
     selectIntersectPayload,
-    UiEventPayload
+    UiEventPayload,
 } from '../utils/gameUtils';
 import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -190,11 +190,11 @@ const Game: React.FC = () => {
                 <Grid container size={6}>
                     <Grid size={6}>
                         <IntersectViewer
-                        soldierGroups={groupBy(selectedIntersect ? soldiersMap.get(selectedIntersect.id) || [] : [], 'owner')}
-                        intersect={selectedIntersect}
-                        UiEventCaller={handleUiEvent}
-                        playerName={playerName}
-                        settlements={settlements}
+                            soldierGroups={groupBy(selectedIntersect ? soldiersMap.get(selectedIntersect.id) || [] : [], 'owner')}
+                            intersect={selectedIntersect}
+                            UiEventCaller={handleUiEvent}
+                            playerName={playerName}
+                            settlements={settlements}
                         />
                     </Grid>
                     <Grid size={6}>

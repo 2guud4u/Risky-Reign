@@ -28,7 +28,6 @@ let terrains: { [key in Terrain]: number } = {
     Nothing: 0,
 };
 
-
 export const TerrainResourceMap: { [key in Terrain]: Resource } = {
     Wheat: 'Wheat',
     Sheep: 'Sheep',
