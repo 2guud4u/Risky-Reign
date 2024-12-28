@@ -20,6 +20,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     const [settlement, setSettlement] = useState<SettlementObj | undefined>(undefined);
     const [action, setAction] = useState<string>('');
     const [selectedSoldiers, setSelectedSoldiers] = useState<string[]>([]);
+
     //new intersect selected
     useEffect(() => {
         if (intersect === undefined) {
@@ -73,6 +74,15 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     const handleSelectSoldier = (soldierId: string) => {
         setSelectedSoldiers([...selectedSoldiers, soldierId]);
     };
+
+    const handleCancel = () => {
+        setAction('');
+        setSelectedSoldiers([]);
+    }
+
+    const handleConfirm = () => {
+
+    }
     return (
         <>
             {intersect === undefined ? (
@@ -133,16 +143,13 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                         </Grid>
                         <Grid container size={12} >
                             <Grid size={12}><h2>You</h2></Grid>
-                                <Grid container> 
+                                <Grid container spacing={1}> 
                                 {soldierGroups[playerName] ? (<>
                                 {soldierGroups[playerName].map((soldier) => (
                                     <Grid key={soldier.id}>
                                         {soldier.type}
-                                        {action === "move" ? (
-                                            <button onClick={()=>handleMoveSoldier(soldier.id)}>Move</button>)
-                                            : (<></>)
-                                        }
-                                        {action === "battle" ? (<>
+                                        
+                                        {action !== "" ? (<>
                                             {selectedSoldiers.includes(soldier.id) ? (
                                                 <button onClick={()=>handleUnselectSoldier(soldier.id)}>Deselect</button>
                                             ) : (
@@ -162,9 +169,15 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
         
             <div style={{ border: '2px solid black', padding: '16px' }}>
                 {action !== "" ? (
-                    <button onClick={()=>setAction("")}>
+                    <>
+                    
+                    <button onClick={handleCancel}>
                         Cancel
                     </button>
+                    <button onClick={handleConfirm}>
+                    Confirm
+                    </button>
+                    </>
                 ) :(
                     <>
                         <button onClick={()=>setAction("battle")}>
