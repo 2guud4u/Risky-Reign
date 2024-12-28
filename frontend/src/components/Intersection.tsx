@@ -5,7 +5,7 @@ export interface IntersectionProps extends IntersectNode {
     soldierGroups: Record<string, SoldierObj[]>;
     colorSoldierGroups: colorSoldierGroups[];
     size: number;
-    onDrop: (target: string, targetId: number, action: string) => void;
+    // onDrop: (target: string, targetId: number, action: string) => void;
     onClick: (target: string, targetId: number) => void;
 }
 interface colorSoldierGroups {
@@ -19,7 +19,7 @@ interface SoldierDisp {
     type: SoldierType;
     color: string;
 }
-const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onDrop, onClick, soldierGroups, colorSoldierGroups }) => {
+const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onClick, soldierGroups, colorSoldierGroups }) => {
     const { x, y } = coord;
     const [soldierComps, setSoldierComps] = React.useState<SoldierDisp[]>([]);
 
@@ -27,12 +27,12 @@ const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onDrop, on
         e.preventDefault();
     };
 
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
+    // const handleDrop = (e: React.DragEvent) => {
+    //     e.preventDefault();
 
-        let action = e.dataTransfer.getData('action');
-        onDrop('intersection', id, action);
-    };
+    //     let action = e.dataTransfer.getData('action');
+    //     onDrop('intersection', id, action);
+    // };
     const handleClick = (e: React.MouseEvent) => {
         // onClick(id);
         onClick('intersection', id);
@@ -79,7 +79,7 @@ const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onDrop, on
             <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#000" fontSize={size / 3}>
                 {id}
             </text>
-            <circle onDragOver={handleDragOver} onDrop={handleDrop} cx={x} cy={y} r={size} fill="red" fillOpacity="0.3" onClick={handleClick} />
+            <circle onDragOver={handleDragOver} cx={x} cy={y} r={size} fill="red" fillOpacity="0.3" onClick={handleClick} />
 
             {soldierComps.map((soldier, index) => (
                 <g>

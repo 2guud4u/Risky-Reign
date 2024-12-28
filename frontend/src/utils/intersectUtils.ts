@@ -4,6 +4,8 @@ import { HexNode } from './hexUtils';
 import { SoldierObj } from './soldierUtils';
 
 export interface Intersect extends PixelCoord {}
+export type IntersectId = number;
+
 export interface IntersectNode {
     coord: PixelCoord;
     intersections: Set<number>;

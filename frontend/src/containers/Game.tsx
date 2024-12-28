@@ -5,16 +5,15 @@ import {
     buildSoldierPayload,
     generateGameBoard,
     moveSoldierPayload,
-    Price,
-    ResourceCount,
     RoadPrice,
     SettlementPrice,
     SoldierPrice,
     UiEvent,
-    UiEventPayload,
+    selectIntersectPayload,
+    UiEventPayload
 } from '../utils/gameUtils';
-import { getRollMap, HexNode } from '../utils/hexUtils';
-import { IntersectNode } from '../utils/intersectUtils';
+import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
+import { IntersectNode, IntersectId } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
@@ -25,6 +24,9 @@ import { handleBuildRoad, handleBuildSettlement, handleBuildSoldier, handleMoveS
 import { changePlayerResources } from '../services/update';
 import { SoldierObj } from '../utils/soldierUtils';
 import PlayersList from './PlayersList';
+import BattleArena from './BattleArena';
+import IntersectViewer from './IntersectViewer';
+import { groupBy } from '../utils/helperUtils';
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -33,10 +35,12 @@ const roadSize = intersectSize / 2;
 
 const Game: React.FC = () => {
     const [roll, setRoll] = useState('0');
-    const [hexMap, setHexMap] = useState<Map<number, HexNode>>(new Map());
-    const [intersectMap, setIntersectMap] = useState<Map<number, IntersectNode>>(new Map());
+    const [hexMap, setHexMap] = useState<Map<HexId, HexNode>>(new Map());
+    const [intersectMap, setIntersectMap] = useState<Map<IntersectId, IntersectNode>>(new Map());
     const [roads, setRoads] = useState<RoadObj[]>([]);
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
+    const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
+
     const [soldiersMap, setSoldiersMap] = useState<Map<number, SoldierObj[]>>(
         new Map([
             [
@@ -65,6 +69,7 @@ const Game: React.FC = () => {
     const [playerMap, setPlayerMap] = useState<Map<string, PlayerObj>>(new Map());
     const [playerName, setPlayerName] = useState('jia');
     const [rollMap, setRollMap] = useState<Map<string, number[]>>(new Map());
+
     useEffect(() => {
         let { hexMap, intersectMap } = generateGameBoard(boardRadius, hexSize);
         const playerList = [
@@ -98,7 +103,6 @@ const Game: React.FC = () => {
         }
         const playerMap = new Map(playerList.map((player) => [player.name, player]));
         setPlayerMap(playerMap);
-
         setHexMap(hexMap);
         setIntersectMap(intersectMap);
         setRollMap(getRollMap(Array.from(hexMap.values())));
@@ -112,6 +116,9 @@ const Game: React.FC = () => {
         }
         let error: void | string = undefined;
         switch (UiEvent) {
+            case 'selectIntersect':
+                setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
+                break;
             case 'buildSettlement':
                 error = handleBuildSettlement(
                     UiEventPayload as buildSettlementPayload,
@@ -168,7 +175,7 @@ const Game: React.FC = () => {
             {playerName}
             <button onClick={switchPlayer}>Switch Player</button>
             <Grid container spacing={3}>
-                <Grid size={10}>
+                <Grid size={6}>
                     <Board
                         hexes={Array.from(hexMap.values())}
                         intersects={Array.from(intersectMap.values())}
@@ -180,8 +187,20 @@ const Game: React.FC = () => {
                         soldiersMap={soldiersMap}
                     />
                 </Grid>
-                <Grid size={2}>
-                    <PlayersList players={Array.from(playerMap.values())} />
+                <Grid container size={6}>
+                    <Grid size={6}>
+                        <IntersectViewer
+                        soldierGroups={groupBy(selectedIntersect ? soldiersMap.get(selectedIntersect.id) || [] : [], 'owner')}
+                        intersect={selectedIntersect}
+                        UiEventCaller={handleUiEvent}
+                        />
+                    </Grid>
+                    <Grid size={6}>
+                        <PlayersList players={Array.from(playerMap.values())} />
+                    </Grid>
+                    <Grid size={12}>
+                        <BattleArena />
+                    </Grid>
                 </Grid>
             </Grid>
         </>

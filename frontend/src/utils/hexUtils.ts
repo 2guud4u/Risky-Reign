@@ -3,6 +3,7 @@ import { shuffleArray, flattenAndFillObject } from './helperUtils';
 export type Resource = 'Wheat' | 'Sheep' | 'Ore' | 'Brick' | 'Wood' | 'Nothing';
 export type Terrain = Resource | ('Water' | 'Desert');
 
+export type HexId = number;
 let numTokens: { [key in number]: number } = {
     2: 1,
     3: 2,
@@ -26,6 +27,7 @@ let terrains: { [key in Terrain]: number } = {
     Water: 0,
     Nothing: 0,
 };
+
 
 export const TerrainResourceMap: { [key in Terrain]: Resource } = {
     Wheat: 'Wheat',

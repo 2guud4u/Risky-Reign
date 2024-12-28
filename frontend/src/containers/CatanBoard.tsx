@@ -31,26 +31,8 @@ interface BoardProps {
 }
 
 const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller }) => {
-    const [roadStart, setRoadStart] = useState<number>(-1);
-    const [moveSoldier, setMoveSoldier] = useState<string>('');
-    const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
 
     const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
-
-    const handleDrop = (target: string, targetId: number, action: string) => {
-        console.log(`Dropped ${action} on ${target} ${targetId}`);
-        switch (action) {
-            case 'buildSettlement':
-                UiEventCaller('buildSettlement', { intersectId: targetId });
-                break;
-            case 'startBuildRoad':
-                console.log('Starting to build a road');
-                setRoadStart(targetId);
-                break;
-            default:
-                break;
-        }
-    };
 
     const handleClick = (target: string, targetId: number) => {
         console.log(`Clicked on ${target} ${targetId}`);
@@ -59,12 +41,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                 UiEventCaller('rollDice', {});
                 break;
             case 'intersection':
-                if (roadStart !== -1) {
-                    // UiEventCaller('buildRoad', {startIntersectId: roadStart, endIntersectId: targetId});
-                    // setRoadStart(-1);
-                } else {
-                    setSelectedIntersect(intersects.find((intersect) => intersect.id === targetId));
-                }
+                    UiEventCaller('selectIntersect', { intersectId: targetId });
                 break;
             default:
                 break;
@@ -72,9 +49,9 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
     };
 
     return (
-        <div className="flex flex-col items-center">
+        
             <div className="mb-4">
-                <div
+                {/* <div
                     className="w-10 h-10 bg-red-500 cursor-move"
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('action', 'buildSettlement')}
@@ -82,17 +59,8 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                     aria-label="Draggable settlement piece"
                 >
                     settlement
-                </div>
-                <div
-                    className="w-10 h-10 bg-red-500 cursor-move"
-                    draggable
-                    onDragStart={(e) => e.dataTransfer.setData('action', 'startBuildRoad')}
-                    role="img"
-                    aria-label="Draggable settlement piece"
-                >
-                    road
-                </div>
-            </div>
+                </div> */}
+                
             <Grid container>
                 <Grid size={8}>
                     <svg width={svgSize} height={svgSize} viewBox={`${-svgSize / 2} ${-svgSize / 2} ${svgSize} ${svgSize}`}>
@@ -120,7 +88,6 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                                     key={intersect.id}
                                     {...intersect}
                                     size={intersectSize}
-                                    onDrop={handleDrop}
                                     onClick={handleClick}
                                     soldierGroups={soldierGroups}
                                     colorSoldierGroups={colorSoldierGroups}
@@ -129,13 +96,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                         })}
                     </svg>
                 </Grid>
-                <Grid size={4}>
-                    <IntersectViewer
-                        soldierGroups={groupBy(selectedIntersect ? soldiersMap.get(selectedIntersect.id) || [] : [], 'owner')}
-                        intersect={selectedIntersect}
-                        UiEventCaller={UiEventCaller}
-                    />
-                </Grid>
+                
             </Grid>
             <div>{diceRoll}</div>
             <button onClick={() => handleClick('diceRoll', -1)}>Roll Dice</button>

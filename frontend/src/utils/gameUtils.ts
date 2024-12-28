@@ -1,5 +1,5 @@
-import { generateHexes, HexNode } from './hexUtils';
-import { connectIntersections, generateIntersections, IntersectNode } from './intersectUtils';
+import { generateHexes, HexNode, HexId } from './hexUtils';
+import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './intersectUtils';
 import { PlayerObj } from './playerUtils';
 export interface GameState {
     GameBoard: GameBoard;
@@ -7,8 +7,8 @@ export interface GameState {
 }
 
 export interface GameBoard {
-    hexMap: Map<number, HexNode>;
-    intersectMap: Map<number, IntersectNode>;
+    hexMap: Map<HexId, HexNode>;
+    intersectMap: Map<IntersectId, IntersectNode>;
 }
 export const generateGameBoard = (boardRadius: number, hexSize: number): GameBoard => {
     let hexes = generateHexes(boardRadius);
@@ -36,9 +36,20 @@ export type UiEvent =
     | 'placeRobber'
     | 'upgradeSettlement'
     | 'buildSoldier'
-    | 'moveSoldier';
+    | 'moveSoldier'
+    | "initiateBattle"
+    | "selectIntersect";
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
+
+export interface selectIntersectPayload {
+    intersectId: number;
+}
+export interface initiateBattlePayload {
+    intersectId: number;
+    friendlyId: string[];
+    enemyId: string[];
+}
 export interface buildSettlementPayload {
     intersectId: number;
 }
