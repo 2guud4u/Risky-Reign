@@ -193,6 +193,8 @@ const Game: React.FC = () => {
                         soldierGroups={groupBy(selectedIntersect ? soldiersMap.get(selectedIntersect.id) || [] : [], 'owner')}
                         intersect={selectedIntersect}
                         UiEventCaller={handleUiEvent}
+                        playerName={playerName}
+                        settlements={settlements}
                         />
                     </Grid>
                     <Grid size={6}>
