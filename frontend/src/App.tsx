@@ -4,11 +4,7 @@ import './App.css';
 import Board from './containers/CatanBoard';
 import Game from './containers/Game';
 function App() {
-  return (
-
-        <Game />
-        
-  );
+    return <Game />;
 }
 
 export default App;

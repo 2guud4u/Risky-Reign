@@ -1,8 +1,6 @@
-import React from "react";
-import { PlayerObj } from "../utils/playerUtils";
-interface PlayerProps extends PlayerObj {
-   
-}
+import React from 'react';
+import { PlayerObj } from '../utils/playerUtils';
+interface PlayerProps extends PlayerObj {}
 
 export const Player: React.FC<PlayerProps> = ({ name, color, resources }) => {
     return (
@@ -11,12 +9,11 @@ export const Player: React.FC<PlayerProps> = ({ name, color, resources }) => {
             <h3>{color}</h3>
             <ul>
                 {Object.entries(resources).map(([resource, value]) => (
-                <li key={resource}>
-                {resource}: {value} 
-                </li>
-        ))}
+                    <li key={resource}>
+                        {resource}: {value}
+                    </li>
+                ))}
             </ul>
         </div>
     );
-
-}
+};

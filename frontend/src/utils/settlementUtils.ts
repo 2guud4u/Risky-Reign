@@ -1,9 +1,8 @@
-import { PixelCoord } from "./helperUtils";
+import { PixelCoord } from './helperUtils';
 
-export interface SettlementObj{
+export interface SettlementObj {
     id: number;
     owner: string;
     upgraded: boolean;
-    coord: PixelCoord
-
+    coord: PixelCoord;
 }

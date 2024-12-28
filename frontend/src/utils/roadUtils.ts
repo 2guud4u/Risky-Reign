@@ -1,4 +1,4 @@
-import { PixelCoord } from "./helperUtils";
+import { PixelCoord } from './helperUtils';
 
 export interface RoadObj {
     id: number;
@@ -8,6 +8,4 @@ export interface RoadObj {
     coord1: PixelCoord;
     coord2: PixelCoord;
     upgraded: boolean;
-
-
 }

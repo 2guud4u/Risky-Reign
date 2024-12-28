@@ -1,8 +1,6 @@
+export type SoldierType = 'infantry' | 'cannon';
 
-
-export type SoldierType = "infantry" | "cannon";
-
-export interface SoldierObj{
+export interface SoldierObj {
     id: string;
     owner: string;
     injured: boolean;
