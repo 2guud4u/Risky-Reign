@@ -33,7 +33,6 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                 endIntersectId: intersect.id,
             } as buildRoadPayload);
             setRoadStart(-1);
-
         } else if (moveSoldiers[1] !== -1) {
             UiEventCaller('moveSoldier', {
                 soldierIds: moveSoldiers[0],
@@ -62,7 +61,6 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
         UiEventCaller('buildSoldier', { intersectId: intersect?.id });
     };
 
-
     const handleUnselectSoldier = (soldierId: string) => {
         setSelectedSoldiers(selectedSoldiers.filter((s) => s !== soldierId));
     };
@@ -78,17 +76,26 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     };
 
     const handleConfirm = () => {
+        if (selectedSoldiers.length === 0) {
+            console.log('no soldiers selected');
+            return;
+        }
         switch (action) {
             case 'battle':
+                if (selectedEnemy === '') {
+                    console.log('no enemy selected');
+                    return;
+                }
                 UiEventCaller('initiateBattle', {
                     intersectId: intersect?.id,
-                    friendlyId: selectedSoldiers,
-                    enemyId: soldierGroups[selectedEnemy].map((s) => s.id),
+                    friendlyIds: selectedSoldiers,
+                    enemyIds: soldierGroups[selectedEnemy].map((s) => s.id),
+                    enemyName: selectedEnemy,
                 });
                 break;
             case 'move':
-                if(intersect === undefined){
-                    return
+                if (intersect === undefined) {
+                    return;
                 }
                 setMoveSoldiers([selectedSoldiers, intersect?.id]);
                 break;
@@ -105,12 +112,9 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     const handleOnClickEnemy = (owner: string) => {
         if (selectedEnemy !== owner) {
             setSelectedEnemy(owner);
-            
         } else {
             setSelectedEnemy('');
-            
         }
-
     };
     return (
         <>

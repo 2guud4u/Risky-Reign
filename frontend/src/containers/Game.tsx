@@ -11,6 +11,8 @@ import {
     UiEvent,
     selectIntersectPayload,
     UiEventPayload,
+    initiateBattlePayload,
+    rolledSoldierScorePayload,
 } from '../utils/gameUtils';
 import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -20,9 +22,17 @@ import { SettlementObj } from '../utils/settlementUtils';
 import Board from './CatanBoard';
 
 import Grid from '@mui/material/Grid2';
-import { handleBuildRoad, handleBuildSettlement, handleBuildSoldier, handleMoveSoldier, handleRollDice } from '../logic/uiEvents';
+import {
+    handleBuildRoad,
+    handleBuildSettlement,
+    handleBuildSoldier,
+    handleInitiateBattle,
+    handleMoveSoldier,
+    handleRollDice,
+    handleRolledSoldierScore,
+} from '../logic/uiEvents';
 import { changePlayerResources } from '../services/update';
-import { SoldierObj } from '../utils/soldierUtils';
+import { SoldierObj, BattleState } from '../utils/soldierUtils';
 import PlayersList from './PlayersList';
 import BattleArena from './BattleArena';
 import IntersectViewer from './IntersectViewer';
@@ -40,8 +50,8 @@ const Game: React.FC = () => {
     const [roads, setRoads] = useState<RoadObj[]>([]);
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
-
-    const [soldiersMap, setSoldiersMap] = useState<Map<number, SoldierObj[]>>(
+    const [battleState, setBattleState] = useState<BattleState | null>(null);
+    const [soldiersMap, setSoldiersMap] = useState<Map<IntersectId, SoldierObj[]>>(
         new Map([
             [
                 1,
@@ -56,6 +66,30 @@ const Game: React.FC = () => {
                     },
                     {
                         id: '1',
+                        owner: 'fel',
+                        intersect: 1,
+                        type: 'infantry',
+                        injured: false,
+                        stationed: false,
+                    },
+                    {
+                        id: '2',
+                        owner: 'jia',
+                        intersect: 1,
+                        type: 'infantry',
+                        injured: false,
+                        stationed: false,
+                    },
+                    {
+                        id: '3',
+                        owner: 'jia',
+                        intersect: 1,
+                        type: 'infantry',
+                        injured: false,
+                        stationed: false,
+                    },
+                    {
+                        id: '4',
                         owner: 'fel',
                         intersect: 1,
                         type: 'infantry',
@@ -88,6 +122,17 @@ const Game: React.FC = () => {
             {
                 name: 'fel',
                 color: 'green',
+                resources: {
+                    Wood: 50,
+                    Brick: 50,
+                    Sheep: 50,
+                    Wheat: 50,
+                    Ore: 50,
+                },
+            },
+            {
+                name: 'idk',
+                color: 'blue',
                 resources: {
                     Wood: 50,
                     Brick: 50,
@@ -152,10 +197,15 @@ const Game: React.FC = () => {
                 if (error === undefined) {
                     changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap, false);
                 }
-
                 break;
             case 'moveSoldier':
                 error = handleMoveSoldier(UiEventPayload as moveSoldierPayload, roads, player, soldiersMap, setSoldiersMap);
+                break;
+            case 'initiateBattle':
+                error = handleInitiateBattle(UiEventPayload as initiateBattlePayload, playerName, setBattleState, soldiersMap);
+                break;
+            case 'rolledSoldierScore':
+                error = handleRolledSoldierScore(UiEventPayload as rolledSoldierScorePayload, playerName, setBattleState);
                 break;
             default:
                 break;
@@ -174,6 +224,7 @@ const Game: React.FC = () => {
             <div>playing as</div>
             {playerName}
             <button onClick={switchPlayer}>Switch Player</button>
+            <button onClick={() => setPlayerName('idk')}>Switch to idk</button>
             <Grid container spacing={3}>
                 <Grid size={6}>
                     <Board
@@ -201,7 +252,12 @@ const Game: React.FC = () => {
                         <PlayersList players={Array.from(playerMap.values())} />
                     </Grid>
                     <Grid size={12}>
-                        <BattleArena />
+                        <BattleArena
+                            playerName={playerName}
+                            BattleState={battleState}
+                            UiEventCaller={handleUiEvent}
+                            setBattleState={setBattleState}
+                        />
                     </Grid>
                 </Grid>
             </Grid>

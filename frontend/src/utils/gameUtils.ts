@@ -38,17 +38,23 @@ export type UiEvent =
     | 'buildSoldier'
     | 'moveSoldier'
     | 'initiateBattle'
+    | 'rolledSoldierScore'
     | 'selectIntersect';
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 
+export interface rolledSoldierScorePayload {
+    soldierId: string;
+    rollNum: number;
+}
 export interface selectIntersectPayload {
     intersectId: number;
 }
 export interface initiateBattlePayload {
     intersectId: number;
-    friendlyId: string[];
-    enemyId: string[];
+    friendlyIds: string[];
+    enemyIds: string[];
+    enemyName: string;
 }
 export interface buildSettlementPayload {
     intersectId: number;
@@ -66,6 +72,7 @@ export interface buildRoadPayload {
 }
 
 export interface rollDicePayload {}
+
 export interface ResourceCount {
     Wood: number;
     Brick: number;

@@ -8,17 +8,20 @@ import {
     ResourceCount,
     RoadPrice,
     SoldierPrice,
+    initiateBattlePayload,
+    rolledSoldierScorePayload,
 } from '../utils/gameUtils';
 import { PlayerObj } from '../utils/playerUtils';
-import { IntersectNode } from '../utils/intersectUtils';
+import { IntersectNode, IntersectId } from '../utils/intersectUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { RoadObj } from '../utils/roadUtils';
-import { SoldierObj, SoldierType } from '../utils/soldierUtils';
+import { SoldierObj, SoldierType, BattleState } from '../utils/soldierUtils';
 import { v4 as uuidv4 } from 'uuid';
 import Settlement from '../components/Settlement';
 import { TerrainResourceMap, HexNode } from '../utils/hexUtils';
 import { changePlayerResources } from '../services/update';
 import Road from '../components/Road';
+import { groupBy } from '../utils/helperUtils';
 
 export const checkHasPrice = (player: PlayerObj, price: Price): boolean => {
     const playerResources = player.resources;
@@ -164,7 +167,9 @@ export const handleBuildRoad = (
 
     setIntersectMap(newIntersectMap);
 };
-
+////////////////////////////////////////
+// Soldier Stuff
+////////////////////////////////////////
 export const handleBuildSoldier = (
     payload: buildSoldierPayload,
     player: PlayerObj,
@@ -173,7 +178,6 @@ export const handleBuildSoldier = (
     settlements: SettlementObj[],
     intersectMap: Map<number, IntersectNode>
 ): void | string => {
-    
     if (!checkHasPrice(player, SoldierPrice)) {
         return 'Not enough resources';
     }
@@ -205,6 +209,7 @@ export const handleBuildSoldier = (
         setSoldiersMap(new Map(soldiersMap.set(intersect.id, [...soldiers, newSoldier])));
     }
 };
+
 export const handleMoveSoldier = (
     payload: moveSoldierPayload,
     roads: RoadObj[],
@@ -212,7 +217,6 @@ export const handleMoveSoldier = (
     soldiersMap: Map<number, SoldierObj[]>,
     setSoldiersMap: React.Dispatch<React.SetStateAction<Map<number, SoldierObj[]>>>
 ): void | string => {
-    
     if (payload.startIntersectId === payload.endIntersectId) {
         return 'Soldier is moving to the same location';
     }
@@ -250,6 +254,63 @@ export const handleMoveSoldier = (
     );
 
     setSoldiersMap(new Map(soldiersMap.set(payload.endIntersectId, [...(soldiersMap.get(payload.endIntersectId) ?? []), ...movingSoldiers])));
+};
+export const handleInitiateBattle = (
+    payload: initiateBattlePayload,
+    friendlyName: string,
+    setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>,
+    soldiersMap: Map<IntersectId, SoldierObj[]>
+): void | string => {
+    const { intersectId, friendlyIds, enemyIds, enemyName } = payload;
+    const soldiers = soldiersMap.get(intersectId);
+    if (soldiers === undefined) {
+        return 'No soldiers to battle';
+    }
+
+    const idToSoldier = groupBy(soldiers, 'id');
+
+    if (friendlyIds.length === 0 || enemyIds.length === 0) {
+        return 'No soldiers to battle';
+    }
+    const friendlySoldiers = friendlyIds.map((id) => idToSoldier[id][0]);
+    const enemySoldiers = enemyIds.map((id) => idToSoldier[id][0]);
+
+    if (friendlySoldiers.length === 0 || enemySoldiers.length === 0) {
+        return 'No soldiers to battle';
+    }
+
+    const states = new Map<string, { soldiers: { soldier: SoldierObj; rollNum: number }[]; submitted: boolean }>();
+    states.set(friendlyName, { soldiers: friendlySoldiers.map((soldier) => ({ soldier, rollNum: 0 })), submitted: false });
+    states.set(enemyName, { soldiers: enemySoldiers.map((soldier) => ({ soldier, rollNum: 0 })), submitted: false });
+    setBattleState({ states, intersectId });
+};
+export const handleRolledSoldierScore = (
+    payload: rolledSoldierScorePayload,
+    playerName: string,
+    setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>
+) => {
+    let error: void | string = undefined;
+    setBattleState((prev) => {
+        if (prev === null) {
+            error = 'No battle state';
+            return null;
+        }
+        const newStates = new Map(prev.states);
+        const playerState = newStates.get(playerName);
+        if (playerState === undefined) {
+            error = 'No player state';
+            return prev;
+        }
+        const newSoldiers = playerState.soldiers.map((soldier) => {
+            if (soldier.soldier.id === payload.soldierId) {
+                return { ...soldier, rollNum: payload.rollNum };
+            }
+            return soldier;
+        });
+        newStates.set(playerName, { soldiers: newSoldiers, submitted: playerState.submitted });
+        return { ...prev, states: newStates };
+    });
+    return error;
 };
 export const handleRollDice = (
     rollNum: string,
