@@ -13,6 +13,7 @@ import {
     UiEventPayload,
     initiateBattlePayload,
     rolledSoldierScorePayload,
+    confirmedLineUpPayload,
 } from '../utils/gameUtils';
 import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -30,6 +31,7 @@ import {
     handleMoveSoldier,
     handleRollDice,
     handleRolledSoldierScore,
+    handleConfirmedLineUp,
 } from '../logic/uiEvents';
 import { changePlayerResources } from '../services/update';
 import { SoldierObj, BattleState } from '../utils/soldierUtils';
@@ -153,6 +155,15 @@ const Game: React.FC = () => {
         setRollMap(getRollMap(Array.from(hexMap.values())));
     }, []);
 
+    useEffect(() => {
+        if (battleState === null) {
+            return;
+        }
+        if (Array.from(battleState.states.values()).every((state) => state.submitted)) {
+            console.log('both player submitted');
+        }
+        
+    }, [battleState]);
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log('handling', UiEvent, UiEventPayload);
         let player = playerMap.get(playerName);
@@ -206,6 +217,9 @@ const Game: React.FC = () => {
                 break;
             case 'rolledSoldierScore':
                 error = handleRolledSoldierScore(UiEventPayload as rolledSoldierScorePayload, playerName, setBattleState);
+                break;
+            case 'confirmedLineUp':
+                error = handleConfirmedLineUp(UiEventPayload as confirmedLineUpPayload, setBattleState);
                 break;
             default:
                 break;

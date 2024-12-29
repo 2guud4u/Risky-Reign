@@ -10,6 +10,7 @@ import {
     SoldierPrice,
     initiateBattlePayload,
     rolledSoldierScorePayload,
+    confirmedLineUpPayload
 } from '../utils/gameUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -288,7 +289,7 @@ export const handleRolledSoldierScore = (
     payload: rolledSoldierScorePayload,
     playerName: string,
     setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>
-) => {
+): void | string => {
     let error: void | string = undefined;
     setBattleState((prev) => {
         if (prev === null) {
@@ -312,6 +313,23 @@ export const handleRolledSoldierScore = (
     });
     return error;
 };
+export const handleConfirmedLineUp = (payload: confirmedLineUpPayload, setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>): void | string => {
+    let error: void | string = undefined;
+    setBattleState((prev) => {
+        if (prev === null) {
+            return null;
+        }
+        const newStates = new Map(prev.states);
+        const playerState = newStates.get(payload.playerName);
+        if (playerState === undefined) {
+            return prev;
+        }
+        newStates.set(payload.playerName, { soldiers: payload.lineUp, submitted: true });
+        return { ...prev, states: newStates };
+    });
+    return error;
+};
+
 export const handleRollDice = (
     rollNum: string,
     playerMap: Map<string, PlayerObj>,

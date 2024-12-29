@@ -1,6 +1,7 @@
 import { generateHexes, HexNode, HexId } from './hexUtils';
 import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './intersectUtils';
 import { PlayerObj } from './playerUtils';
+import { BattleState, SoldierObj, SoldierBattleState } from '../utils/soldierUtils';
 export interface GameState {
     GameBoard: GameBoard;
     players: PlayerObj[];
@@ -39,10 +40,15 @@ export type UiEvent =
     | 'moveSoldier'
     | 'initiateBattle'
     | 'rolledSoldierScore'
-    | 'selectIntersect';
+    | 'selectIntersect'
+    | 'confirmedLineUp';
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 
+export interface confirmedLineUpPayload {
+    playerName: string;
+    lineUp: SoldierBattleState[];
+}
 export interface rolledSoldierScorePayload {
     soldierId: string;
     rollNum: number;

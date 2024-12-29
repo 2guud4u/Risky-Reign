@@ -25,7 +25,18 @@ const BattleArena: React.FC<BattleArenaProps> = ({ BattleState, setBattleState, 
         }
     }, [BattleState, playerName]);
 
-    const handleSubmit = () => {};
+    const handleConfirm = () => {
+        UiEventCaller('confirmedLineUp', { playerName: playerName, lineUp: yourSoldierStates });
+    };
+
+
+    const handleReorder = (index1: number, index2: number) => {
+        const newSoldierStates = [...yourSoldierStates];
+        const temp = newSoldierStates[index1];
+        newSoldierStates[index1] = newSoldierStates[index2];
+        newSoldierStates[index2] = temp;
+        setYourSoldierStates(newSoldierStates);
+    }
 
     const handleRoll = (soldierId: string) => {
         UiEventCaller('rolledSoldierScore', { soldierId: soldierId, rollNum: Math.floor(Math.random() * 6) + 1 });
@@ -37,8 +48,10 @@ const BattleArena: React.FC<BattleArenaProps> = ({ BattleState, setBattleState, 
                 //view if in battle
 
                 <>
-                    {yourSoldierStates.length > 0 ? (
-                        <CombatView yourSoldierStates={yourSoldierStates} enemySoldierStates={[]} enemyName={'enemy'} handleRoll={handleRoll} />
+                    {spectating ? (
+                        <CombatView yourSoldierStates={yourSoldierStates} enemySoldierStates={[]} enemyName={'enemy'} handleRoll={handleRoll} handleReorder={handleReorder}
+                        handleConfirm={handleConfirm}
+                        />
                     ) : (
                         <SpectatorView BattleState={BattleState} />
                     )}
@@ -54,9 +67,18 @@ interface CombatViewProps {
     enemySoldierStates: SoldierBattleState[];
     enemyName: string;
     handleRoll: (soldierId: string) => void;
+    handleReorder: (index1: number, index2: number) => void;
+    handleConfirm: () => void;
 }
-const CombatView: React.FC<CombatViewProps> = ({ yourSoldierStates, enemySoldierStates, enemyName, handleRoll }) => {
-    
+const CombatView: React.FC<CombatViewProps> = ({ yourSoldierStates, enemySoldierStates, enemyName, handleRoll, handleReorder, handleConfirm }) => {
+    const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+        e.preventDefault();
+        let index = parseInt(e.dataTransfer.getData('index'));
+        handleReorder(index, targetIndex);
+    };
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    }
     return (
         <Grid container spacing={2}>
             <Grid container size={12}>
@@ -70,7 +92,9 @@ const CombatView: React.FC<CombatViewProps> = ({ yourSoldierStates, enemySoldier
                             <div
                                 style={{ border: '2px solid black', padding: '16px' }}
                                 draggable
-                                onDragStart={(e) => e.dataTransfer.setData('text/plain', 'settlement')}
+                                onDragStart={(e) => e.dataTransfer.setData('index', index.toString())}
+                                onDrop={(e)=>handleDrop(e, index)}
+                                onDragOver={handleDragOver}
                             >
                                 {soldierState.rollNum === 0 ? (
                                     <button
@@ -86,6 +110,9 @@ const CombatView: React.FC<CombatViewProps> = ({ yourSoldierStates, enemySoldier
                             </div>
                         </Grid>
                     ))}
+                </Grid>
+                <Grid size={12}>
+                    <button onClick={()=>handleConfirm()}>Confirm Line Up</button>
                 </Grid>
             </Grid>
         </Grid>
