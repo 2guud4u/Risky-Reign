@@ -10,7 +10,7 @@ import {
     SoldierPrice,
     initiateBattlePayload,
     rolledSoldierScorePayload,
-    confirmedLineUpPayload
+    confirmedLineUpPayload,
 } from '../utils/gameUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -313,7 +313,10 @@ export const handleRolledSoldierScore = (
     });
     return error;
 };
-export const handleConfirmedLineUp = (payload: confirmedLineUpPayload, setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>): void | string => {
+export const handleConfirmedLineUp = (
+    payload: confirmedLineUpPayload,
+    setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>
+): void | string => {
     let error: void | string = undefined;
     setBattleState((prev) => {
         if (prev === null) {

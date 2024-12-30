@@ -161,8 +161,8 @@ const Game: React.FC = () => {
         }
         if (Array.from(battleState.states.values()).every((state) => state.submitted)) {
             console.log('both player submitted');
+            //perform battle stuff
         }
-        
     }, [battleState]);
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log('handling', UiEvent, UiEventPayload);

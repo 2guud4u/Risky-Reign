@@ -10,33 +10,60 @@ interface BattleArenaProps {
     playerName: string;
 }
 const BattleArena: React.FC<BattleArenaProps> = ({ BattleState, setBattleState, UiEventCaller, playerName }) => {
-    const [yourSoldierStates, setYourSoldierStates] = React.useState<SoldierBattleState[]>([]);
+    const [bottomSoldierStates, setBottomSoldierStates] = React.useState<SoldierBattleState[]>([]);
+    const [topSoldierStates, setTopSoldierStates] = React.useState<SoldierBattleState[]>([]);
     const [spectating, setSpectating] = React.useState<boolean>(false);
+    const [editing, setEditing] = React.useState<boolean>(false);
+    const [revealed, setRevealed] = React.useState<boolean>(false);
+    const [confirmed, setConfirmed] = React.useState<boolean>(false);
+    const [topPlayerName, setTopPlayerName] = React.useState<string>('');
+    const [bottomPlayerName, setBottomPlayerName] = React.useState<string>('');
 
     React.useEffect(() => {
         if (BattleState) {
-            const soldiers = BattleState.states.get(playerName)?.soldiers;
-            if (soldiers && soldiers.length > 0) {
-                setYourSoldierStates(soldiers);
-            }
-            if (!Object.keys(BattleState.states).includes(playerName)) {
+            let participants = Array.from(BattleState.states.keys());
+            let bottomSoldiers: SoldierBattleState[] | undefined = [];
+            let topSoldiers: SoldierBattleState[] | undefined = [];
+            let topPlayerName: string = '';
+            let bottomPlayerName: string = '';
+            if (!participants.includes(playerName)) {
                 setSpectating(true);
+                bottomSoldiers = BattleState.states.get(participants[0])?.soldiers;
+                bottomPlayerName = participants[0];
+                topSoldiers = BattleState.states.get(participants[1])?.soldiers;
+                topPlayerName = participants[1];
+            } else {
+                setSpectating(false);
+                const enemyName = participants.filter((name) => name !== playerName)[0];
+                bottomSoldiers = BattleState.states.get(playerName)?.soldiers;
+                topSoldiers = BattleState.states.get(enemyName)?.soldiers;
+                bottomPlayerName = playerName;
+                topPlayerName = enemyName;
             }
+            if (topSoldiers && topSoldiers.length > 0 && bottomSoldiers && bottomSoldiers.length > 0 && !editing) {
+                setBottomSoldierStates(bottomSoldiers);
+                setTopSoldierStates(topSoldiers);
+                setTopPlayerName(topPlayerName);
+                setBottomPlayerName(bottomPlayerName);
+            }
+            setConfirmed(BattleState.states.get(playerName)?.submitted ?? false);
+            setRevealed(Array.from(BattleState.states.values()).every((state) => state.submitted));
         }
-    }, [BattleState, playerName]);
+    }, [BattleState, playerName, editing]);
 
     const handleConfirm = () => {
-        UiEventCaller('confirmedLineUp', { playerName: playerName, lineUp: yourSoldierStates });
+        UiEventCaller('confirmedLineUp', { playerName: playerName, lineUp: bottomSoldierStates });
+        setEditing(false);
     };
 
-
     const handleReorder = (index1: number, index2: number) => {
-        const newSoldierStates = [...yourSoldierStates];
+        const newSoldierStates = [...bottomSoldierStates];
         const temp = newSoldierStates[index1];
         newSoldierStates[index1] = newSoldierStates[index2];
         newSoldierStates[index2] = temp;
-        setYourSoldierStates(newSoldierStates);
-    }
+        setBottomSoldierStates(newSoldierStates);
+        setEditing(true);
+    };
 
     const handleRoll = (soldierId: string) => {
         UiEventCaller('rolledSoldierScore', { soldierId: soldierId, rollNum: Math.floor(Math.random() * 6) + 1 });
@@ -45,16 +72,36 @@ const BattleArena: React.FC<BattleArenaProps> = ({ BattleState, setBattleState, 
     return (
         <div style={{ border: '2px solid black', padding: '16px' }}>
             {BattleState && (
-                //view if in battle
-
                 <>
-                    {spectating ? (
-                        <CombatView yourSoldierStates={yourSoldierStates} enemySoldierStates={[]} enemyName={'enemy'} handleRoll={handleRoll} handleReorder={handleReorder}
-                        handleConfirm={handleConfirm}
-                        />
-                    ) : (
-                        <SpectatorView BattleState={BattleState} />
-                    )}
+                    <Grid container spacing={2}>
+                        <Grid container size={12}>
+                            <Grid size={12}>{topPlayerName}'s Battle Line Up</Grid>
+                            <Grid container size={12}>
+                                <LineUpView
+                                    SoldierBattleStates={topSoldierStates}
+                                    editable={false}
+                                    handleReorder={handleReorder}
+                                    handleRoll={handleRoll}
+                                    revealed={revealed}
+                                />
+                            </Grid>
+                        </Grid>
+                        <Grid container size={12}>
+                            <Grid size={12}>
+                                {spectating ? <>{bottomPlayerName}'s Battle Line Up</> : <>Your Battle Line Up(Drag and drop to sort order)</>}
+                            </Grid>
+                            <Grid container size={12}>
+                                <LineUpView
+                                    SoldierBattleStates={bottomSoldierStates}
+                                    editable={spectating ? false : !confirmed}
+                                    handleReorder={handleReorder}
+                                    handleRoll={handleRoll}
+                                    revealed={spectating ? revealed : true}
+                                />
+                            </Grid>
+                            <Grid size={12}>{!confirmed && <button onClick={() => handleConfirm()}>Confirm Line Up</button>}</Grid>
+                        </Grid>
+                    </Grid>
                 </>
             )}
         </div>
@@ -62,67 +109,59 @@ const BattleArena: React.FC<BattleArenaProps> = ({ BattleState, setBattleState, 
     );
 };
 
-interface CombatViewProps {
-    yourSoldierStates: SoldierBattleState[];
-    enemySoldierStates: SoldierBattleState[];
-    enemyName: string;
-    handleRoll: (soldierId: string) => void;
+interface LineUpViewProps {
+    SoldierBattleStates: SoldierBattleState[];
+    editable: boolean;
+    revealed: boolean;
     handleReorder: (index1: number, index2: number) => void;
-    handleConfirm: () => void;
+    handleRoll: (soldierId: string) => void;
 }
-const CombatView: React.FC<CombatViewProps> = ({ yourSoldierStates, enemySoldierStates, enemyName, handleRoll, handleReorder, handleConfirm }) => {
+const LineUpView: React.FC<LineUpViewProps> = ({ SoldierBattleStates, editable, handleReorder, handleRoll, revealed }) => {
+    const [canReorder, setCanReorder] = React.useState<boolean>(false);
+
+    React.useEffect(() => {
+        setCanReorder(SoldierBattleStates.every((soldierState) => soldierState.rollNum !== 0));
+    }, [SoldierBattleStates, editable, revealed]);
+
     const handleDrop = (e: React.DragEvent, targetIndex: number) => {
         e.preventDefault();
         let index = parseInt(e.dataTransfer.getData('index'));
-        handleReorder(index, targetIndex);
+        if (canReorder) handleReorder(index, targetIndex);
     };
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
-    }
+    };
     return (
-        <Grid container spacing={2}>
-            <Grid container size={12}>
-                <Grid size={12}>{enemyName}'s Battle Line Up</Grid>
-            </Grid>
-            <Grid container size={12}>
-                <Grid size={12}>Your Battle Line Up(Drag and drop to sort order)</Grid>
-                <Grid container size={12}>
-                    {yourSoldierStates.map((soldierState, index) => (
-                        <Grid key={index}>
-                            <div
-                                style={{ border: '2px solid black', padding: '16px' }}
-                                draggable
-                                onDragStart={(e) => e.dataTransfer.setData('index', index.toString())}
-                                onDrop={(e)=>handleDrop(e, index)}
-                                onDragOver={handleDragOver}
-                            >
-                                {soldierState.rollNum === 0 ? (
-                                    <button
-                                        onClick={() => {
-                                            handleRoll(soldierState.soldier.id);
-                                        }}
-                                    >
-                                        Roll
-                                    </button>
-                                ) : (
-                                    <>{soldierState.rollNum}</>
-                                )}
-                            </div>
-                        </Grid>
-                    ))}
+        <>
+            {SoldierBattleStates.map((soldierState, index) => (
+                <Grid key={index}>
+                    <div
+                        style={{ border: '2px solid black', padding: '16px' }}
+                        draggable={editable ? true : false}
+                        onDragStart={(e) => e.dataTransfer.setData('index', index.toString())}
+                        onDrop={(e) => handleDrop(e, index)}
+                        onDragOver={handleDragOver}
+                    >
+                        {revealed ? (
+                            soldierState.rollNum === 0 ? (
+                                <button
+                                    onClick={() => {
+                                        handleRoll(soldierState.soldier.id);
+                                    }}
+                                >
+                                    Roll
+                                </button>
+                            ) : (
+                                <>{soldierState.rollNum}</>
+                            )
+                        ) : (
+                            <>?</>
+                        )}
+                    </div>
                 </Grid>
-                <Grid size={12}>
-                    <button onClick={()=>handleConfirm()}>Confirm Line Up</button>
-                </Grid>
-            </Grid>
-        </Grid>
+            ))}
+        </>
     );
-};
-interface SpectatorViewProps {
-    BattleState: BattleState | null;
-}
-const SpectatorView: React.FC<SpectatorViewProps> = () => {
-    return <div>Spectating</div>;
 };
 
 export default BattleArena;

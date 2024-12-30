@@ -64,7 +64,7 @@ export function getRollMap(hexes: HexNode[]): Map<string, number[]> {
             }
         }
     });
-    console.log(rollMap);
+
     return rollMap;
 }
 

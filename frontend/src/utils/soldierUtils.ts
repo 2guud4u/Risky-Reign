@@ -15,5 +15,6 @@ export interface SoldierBattleState {
 }
 export interface BattleState {
     states: Map<string, { soldiers: SoldierBattleState[]; submitted: boolean }>;
+
     intersectId: number;
 }
