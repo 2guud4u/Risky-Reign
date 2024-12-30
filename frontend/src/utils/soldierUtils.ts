@@ -12,6 +12,7 @@ export interface SoldierObj {
 export interface SoldierBattleState {
     soldier: SoldierObj;
     rollNum: number;
+    dead: boolean;
 }
 export interface BattleState {
     states: Map<string, { soldiers: SoldierBattleState[]; submitted: boolean }>;

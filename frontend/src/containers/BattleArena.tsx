@@ -136,7 +136,7 @@ const LineUpView: React.FC<LineUpViewProps> = ({ SoldierBattleStates, editable, 
             {SoldierBattleStates.map((soldierState, index) => (
                 <Grid key={index}>
                     <div
-                        style={{ border: '2px solid black', padding: '16px' }}
+                        style={{ border: '2px solid black', padding: '16px', backgroundColor: soldierState.dead ? 'red' : 'white' }}
                         draggable={editable ? true : false}
                         onDragStart={(e) => e.dataTransfer.setData('index', index.toString())}
                         onDrop={(e) => handleDrop(e, index)}
