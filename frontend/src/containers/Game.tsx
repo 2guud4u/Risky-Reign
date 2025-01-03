@@ -155,6 +155,30 @@ const Game: React.FC = () => {
         setRollMap(getRollMap(Array.from(hexMap.values())));
     }, []);
 
+    const getSettlementByIntersect = (intersectId: IntersectId):SettlementObj | null => {
+        const intersect = intersectMap.get(intersectId);
+        if (intersect === undefined) {
+            return null;
+        }
+        const settlementId = intersect.settlement;
+        if (settlementId === undefined) {
+            return null;
+        }
+        return settlements.find((settlement) => settlement.id === settlementId) || null;
+    }
+
+    const getRoadsByIntersect = (intersectId: IntersectId):RoadObj[] | null => {
+        const intersect = intersectMap.get(intersectId);
+        if (intersect === undefined) {
+            return null;
+        }
+        const roadIds = intersect.roads;
+        if (roadIds === undefined) {
+            return null;
+        }
+        return roads.filter((road) => roadIds.has(road.id)) || null
+    }
+
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log('handling', UiEvent, UiEventPayload);
         let player = playerMap.get(playerName);
@@ -211,7 +235,7 @@ const Game: React.FC = () => {
                 break;
             case 'confirmedLineUp':
                 let payload = UiEventPayload as confirmedLineUpPayload;
-                error = handleConfirmedLineUp(payload, setBattleState, setSoldiersMap);
+                error = handleConfirmedLineUp(payload, setBattleState, setSoldiersMap, getSettlementByIntersect, getRoadsByIntersect);
                 if (battleState === null) {
                     return;
                 }
