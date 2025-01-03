@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IntersectNode } from '../utils/intersectUtils';
-import { UiEvent, UiEventPayload, buildRoadPayload, moveSoldierPayload } from '../utils/gameUtils';
+import { UiEvent, UiEventPayload, buildRoadPayload, moveSoldierPayload } from '../utils/eventsUtils';
 import { SoldierObj } from '../utils/soldierUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import Grid from '@mui/material/Grid2';

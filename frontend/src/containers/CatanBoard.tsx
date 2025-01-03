@@ -3,7 +3,7 @@ import Hexagon from '../components/Hexagon';
 import Intersection from '../components/Intersection';
 import Road from '../components/Road';
 import Settlement from '../components/Settlement';
-import { UiEvent, UiEventPayload } from '../utils/gameUtils';
+import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
 import { groupBy } from '../utils/helperUtils';
 import { HexNode } from '../utils/hexUtils';
 import { IntersectNode } from '../utils/intersectUtils';
@@ -49,8 +49,6 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
 
     return (
         <div className="mb-4">
-
-
             <Grid container>
                 <Grid size={8}>
                     <svg width={svgSize} height={svgSize} viewBox={`${-svgSize / 2} ${-svgSize / 2} ${svgSize} ${svgSize}`}>

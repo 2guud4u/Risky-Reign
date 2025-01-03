@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { RoadPrice, SettlementPrice, SoldierPrice, generateGameBoard } from '../utils/gameUtils';
+
 import {
     buildRoadPayload,
     buildSettlementPayload,
     buildSoldierPayload,
-    generateGameBoard,
     moveSoldierPayload,
-    RoadPrice,
-    SettlementPrice,
-    SoldierPrice,
     UiEvent,
     selectIntersectPayload,
     UiEventPayload,
     initiateBattlePayload,
     rolledSoldierScorePayload,
     confirmedLineUpPayload,
-} from '../utils/gameUtils';
+} from '../utils/eventsUtils';
 import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
@@ -286,12 +284,7 @@ const Game: React.FC = () => {
                         <PlayersList players={Array.from(playerMap.values())} />
                     </Grid>
                     <Grid size={12}>
-                        <BattleHud
-                            playerName={playerName}
-                            BattleState={battleState}
-                            UiEventCaller={handleUiEvent}
-                            setBattleState={setBattleState}
-                        />
+                        <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
                     </Grid>
                 </Grid>
             </Grid>

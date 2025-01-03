@@ -1,17 +1,13 @@
+import { Price, SettlementPrice, ResourceCount, RoadPrice, SoldierPrice } from '../utils/gameUtils';
 import {
     buildRoadPayload,
     buildSettlementPayload,
     buildSoldierPayload,
     moveSoldierPayload,
-    Price,
-    SettlementPrice,
-    ResourceCount,
-    RoadPrice,
-    SoldierPrice,
     initiateBattlePayload,
     rolledSoldierScorePayload,
     confirmedLineUpPayload,
-} from '../utils/gameUtils';
+} from '../utils/eventsUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
 import { SettlementObj } from '../utils/settlementUtils';

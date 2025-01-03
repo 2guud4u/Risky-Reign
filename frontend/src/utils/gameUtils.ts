@@ -26,59 +26,6 @@ export const generateGameBoard = (boardRadius: number, hexSize: number): GameBoa
     return { hexMap, intersectMap };
 };
 
-export type UiEvent =
-    | 'buildSettlement'
-    | 'buildRoad'
-    | 'endTurn'
-    | 'rollDice'
-    | 'trade'
-    | 'buyDevCard'
-    | 'playDevCard'
-    | 'placeRobber'
-    | 'upgradeSettlement'
-    | 'buildSoldier'
-    | 'moveSoldier'
-    | 'initiateBattle'
-    | 'rolledSoldierScore'
-    | 'selectIntersect'
-    | 'confirmedLineUp';
-
-export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
-
-export interface confirmedLineUpPayload {
-    playerName: string;
-    lineUp: SoldierBattleState[];
-}
-export interface rolledSoldierScorePayload {
-    soldierId: string;
-    rollNum: number;
-}
-export interface selectIntersectPayload {
-    intersectId: number;
-}
-export interface initiateBattlePayload {
-    intersectId: number;
-    friendlyIds: string[];
-    enemyIds: string[];
-    enemyName: string;
-}
-export interface buildSettlementPayload {
-    intersectId: number;
-}
-
-export interface upgradeSettlementPayload extends buildSettlementPayload {}
-
-export interface buildSoldierPayload {
-    intersectId: number;
-}
-
-export interface buildRoadPayload {
-    startIntersectId: number;
-    endIntersectId: number;
-}
-
-export interface rollDicePayload {}
-
 export interface ResourceCount {
     Wood: number;
     Brick: number;
@@ -87,11 +34,6 @@ export interface ResourceCount {
     Ore: number;
 }
 
-export interface moveSoldierPayload {
-    soldierIds: string[];
-    startIntersectId: number;
-    endIntersectId: number;
-}
 export interface Price extends ResourceCount {}
 
 export const SettlementPrice: Price = {
