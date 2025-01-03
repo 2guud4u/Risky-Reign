@@ -36,7 +36,7 @@ import {
 import { changePlayerResources } from '../services/update';
 import { SoldierObj, BattleState } from '../utils/soldierUtils';
 import PlayersList from './PlayersList';
-import BattleArena from './BattleArena';
+import BattleHud from './BattleHud';
 import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
 
@@ -286,7 +286,7 @@ const Game: React.FC = () => {
                         <PlayersList players={Array.from(playerMap.values())} />
                     </Grid>
                     <Grid size={12}>
-                        <BattleArena
+                        <BattleHud
                             playerName={playerName}
                             BattleState={battleState}
                             UiEventCaller={handleUiEvent}

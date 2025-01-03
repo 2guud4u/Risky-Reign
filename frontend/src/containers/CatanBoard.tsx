@@ -49,15 +49,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
 
     return (
         <div className="mb-4">
-            {/* <div
-                    className="w-10 h-10 bg-red-500 cursor-move"
-                    draggable
-                    onDragStart={(e) => e.dataTransfer.setData('action', 'buildSettlement')}
-                    role="img"
-                    aria-label="Draggable settlement piece"
-                >
-                    settlement
-                </div> */}
+
 
             <Grid container>
                 <Grid size={8}>

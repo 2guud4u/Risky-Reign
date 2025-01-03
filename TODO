@@ -1,11 +1,4 @@
-implement 
 
-
-- all soldier stuff
-    - fight
-- make all updates to board in updates
-- refactor uievents
-- upgrade stuff
 - trading
 - ports
 - phase stuff
@@ -13,8 +6,7 @@ implement
     - trade
     - build/buy
     - action
-
-
+- make all updates to board in updates
 
 
 
