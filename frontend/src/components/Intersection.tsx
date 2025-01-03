@@ -72,7 +72,7 @@ const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onClick, s
             };
         });
         setSoldierComps(soldierComps);
-    }, [soldierGroups, coord, size]);
+    }, [soldierGroups, coord, size, x, y]);
 
     return (
         <g>
@@ -82,7 +82,7 @@ const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onClick, s
             <circle onDragOver={handleDragOver} cx={x} cy={y} r={size} fill="red" fillOpacity="0.3" onClick={handleClick} />
 
             {soldierComps.map((soldier, index) => (
-                <g>
+                <g key={index}>
                     <circle key={index} cx={soldier.coord.x} cy={soldier.coord.y} r={soldier.size} fill={soldier.color} />
                     <text x={soldier.coord.x} y={soldier.coord.y} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={size / 3}>
                         {soldier.number}

@@ -155,7 +155,7 @@ const Game: React.FC = () => {
         setRollMap(getRollMap(Array.from(hexMap.values())));
     }, []);
 
-    const getSettlementByIntersect = (intersectId: IntersectId):SettlementObj | null => {
+    const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
         const intersect = intersectMap.get(intersectId);
         if (intersect === undefined) {
             return null;
@@ -165,9 +165,9 @@ const Game: React.FC = () => {
             return null;
         }
         return settlements.find((settlement) => settlement.id === settlementId) || null;
-    }
+    };
 
-    const getRoadsByIntersect = (intersectId: IntersectId):RoadObj[] | null => {
+    const getRoadsByIntersect = (intersectId: IntersectId): RoadObj[] | null => {
         const intersect = intersectMap.get(intersectId);
         if (intersect === undefined) {
             return null;
@@ -176,8 +176,8 @@ const Game: React.FC = () => {
         if (roadIds === undefined) {
             return null;
         }
-        return roads.filter((road) => roadIds.has(road.id)) || null
-    }
+        return roads.filter((road) => roadIds.has(road.id)) || null;
+    };
 
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log('handling', UiEvent, UiEventPayload);
@@ -275,7 +275,7 @@ const Game: React.FC = () => {
                 <Grid container size={6}>
                     <Grid size={6}>
                         <IntersectViewer
-                            soldierGroups={groupBy(selectedIntersect ? soldiersMap.get(selectedIntersect.id) || [] : [], 'owner')}
+                            soldiersMap={soldiersMap}
                             intersect={selectedIntersect}
                             UiEventCaller={handleUiEvent}
                             playerName={playerName}

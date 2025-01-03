@@ -4,46 +4,40 @@ import { UiEvent, UiEventPayload, buildRoadPayload, moveSoldierPayload } from '.
 import { SoldierObj } from '../utils/soldierUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import Grid from '@mui/material/Grid2';
+import { groupBy } from '../utils/helperUtils';
 
 interface IntersectViewerProps {
     intersect?: IntersectNode | undefined; // Assuming `intersect` can be undefined or null
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
-    //   setRoadStart: (roadStart: number) => void;
-    soldierGroups: Record<string, SoldierObj[]>;
     playerName: string;
     settlements: SettlementObj[];
+    soldiersMap: Map<number, SoldierObj[]>;
 }
 
-const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCaller, soldierGroups, playerName, settlements }) => {
-    const [roadStart, setRoadStart] = useState<number>(-1);
-    const [moveSoldiers, setMoveSoldiers] = useState<[string[], number]>([[], -1]);
+const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, soldiersMap, UiEventCaller, playerName, settlements }) => {
     const [settlement, setSettlement] = useState<SettlementObj | undefined>(undefined);
     const [action, setAction] = useState<string>('');
     const [selectedSoldiers, setSelectedSoldiers] = useState<string[]>([]);
     const [selectedEnemy, setSelectedEnemy] = useState<string>('');
-
+    const [viewIntersect, setViewIntersect] = useState<IntersectNode | undefined>(undefined);
+    const [soldierGroups, setSoldierGroups] = useState<Record<string, SoldierObj[]>>({});
     //new intersect selected
     useEffect(() => {
         if (intersect === undefined) {
             return;
         }
-        if (roadStart !== -1) {
-            UiEventCaller('buildRoad', {
-                startIntersectId: roadStart,
-                endIntersectId: intersect.id,
-            } as buildRoadPayload);
-            setRoadStart(-1);
-        } else if (moveSoldiers[1] !== -1) {
-            UiEventCaller('moveSoldier', {
-                soldierIds: moveSoldiers[0],
-                endIntersectId: intersect.id,
-                startIntersectId: moveSoldiers[1],
-            } as moveSoldierPayload);
-            setMoveSoldiers([[], -1]);
+        if (action === '') {
+            setViewIntersect(intersect);
         }
+    }, [intersect, action]);
 
-        setSettlement(settlements.find((s) => (intersect.settlement !== null ? s.id === intersect.settlement : false)));
-    }, [intersect, UiEventCaller]);
+    useEffect(() => {
+        if (viewIntersect === undefined) {
+            return;
+        }
+        setSoldierGroups(groupBy(soldiersMap.get(viewIntersect.id) || [], 'owner'));
+        setSettlement(settlements.find((s) => (viewIntersect.settlement !== null ? s.id === viewIntersect.settlement : false)));
+    }, [viewIntersect, soldiersMap, settlements]);
 
     const handleBuildSettlement = () => {
         UiEventCaller('buildSettlement', { intersectId: intersect?.id });
@@ -52,7 +46,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
         if (intersect === undefined) {
             return;
         }
-        setRoadStart(intersect.id);
+        setAction('buildRoad');
     };
     const handleUpgradeSettlement = () => {
         UiEventCaller('upgradeSettlement', { intersectId: intersect?.id });
@@ -76,12 +70,12 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     };
 
     const handleConfirm = () => {
-        if (selectedSoldiers.length === 0) {
-            console.log('no soldiers selected');
-            return;
-        }
         switch (action) {
             case 'battle':
+                if (selectedSoldiers.length === 0) {
+                    console.log('no soldiers selected');
+                    return;
+                }
                 if (selectedEnemy === '') {
                     console.log('no enemy selected');
                     return;
@@ -94,10 +88,29 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                 });
                 break;
             case 'move':
-                if (intersect === undefined) {
+                if (selectedSoldiers.length === 0) {
+                    console.log('no soldiers selected');
                     return;
                 }
-                setMoveSoldiers([selectedSoldiers, intersect?.id]);
+                if (intersect === undefined || viewIntersect === undefined) {
+                    return;
+                }
+                UiEventCaller('moveSoldier', {
+                    soldierIds: selectedSoldiers,
+                    endIntersectId: intersect.id,
+                    startIntersectId: viewIntersect.id,
+                } as moveSoldierPayload);
+
+                break;
+            case 'buildRoad':
+                if (intersect === undefined || viewIntersect === undefined) {
+                    return;
+                }
+                UiEventCaller('buildRoad', {
+                    startIntersectId: viewIntersect.id,
+                    endIntersectId: intersect.id,
+                } as buildRoadPayload);
+
                 break;
             default:
                 break;
@@ -118,12 +131,12 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
     };
     return (
         <>
-            {intersect === undefined ? (
+            {viewIntersect === undefined ? (
                 <div>No intersection selected</div>
             ) : (
                 <>
                     <div style={{ border: '2px solid black', padding: '16px' }}>
-                        <h1>Intersection {intersect.id}</h1>
+                        <h1>Intersection {viewIntersect.id}</h1>
 
                         {settlement ? (
                             <>
@@ -194,7 +207,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                                                 <Grid key={soldier.id}>
                                                     {soldier.type}
 
-                                                    {action !== '' ? (
+                                                    {['move', 'battle'].includes(action) ? (
                                                         <>
                                                             {selectedSoldiers.includes(soldier.id) ? (
                                                                 <button onClick={() => handleUnselectSoldier(soldier.id)}>Deselect</button>
@@ -211,16 +224,6 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                                     ) : (
                                         <>You have no soldiers here</>
                                     )}
-                                    <Grid size={12}>
-                                        {action !== '' ? (
-                                            <>
-                                                <button onClick={handleSelectAll}>Select All</button>
-                                                <button onClick={() => setSelectedSoldiers([])}>Deselect All</button>
-                                            </>
-                                        ) : (
-                                            <></>
-                                        )}
-                                    </Grid>
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -229,8 +232,14 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, UiEventCal
                     <div style={{ border: '2px solid black', padding: '16px' }}>
                         {action !== '' ? (
                             <>
+                                {['move', 'battle'].includes(action) && (
+                                    <>
+                                        <button onClick={handleSelectAll}>Select All</button>
+                                        <button onClick={() => setSelectedSoldiers([])}>Deselect All</button>
+                                    </>
+                                )}
+                                <button onClick={handleConfirm}>Confirm Select</button>
                                 <button onClick={handleCancel}>Cancel</button>
-                                <button onClick={handleConfirm}>Confirm</button>
                             </>
                         ) : (
                             <>

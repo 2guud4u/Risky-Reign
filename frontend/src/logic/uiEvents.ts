@@ -314,7 +314,7 @@ export const handleRolledSoldierScore = (
     });
     return error;
 };
-const handleBattleSubmitted = (newBattleState: BattleState, roads: RoadObj[] | null, settlement: SettlementObj| null) => {
+const handleBattleSubmitted = (newBattleState: BattleState, roads: RoadObj[] | null, settlement: SettlementObj | null) => {
     //perform battle stuff
     let participants = Array.from(newBattleState.states.keys());
 
@@ -341,30 +341,27 @@ const handleBattleSubmitted = (newBattleState: BattleState, roads: RoadObj[] | n
                 soldierState1.soldier.injured = true;
             }
         } else {
-
             //check tie breaker
             let winner = null;
-            if (settlement){
+            if (settlement) {
                 winner = settlement.owner;
-                
-            } else if (roads){
+            } else if (roads) {
                 const roadOwnership = roads.filter((road) => road.owner === participants[1] || road.owner === participants[0]);
-                if (roadOwnership.length !== 1){
-                    return
+                if (roadOwnership.length !== 1) {
+                    return;
                 }
                 winner = roadOwnership[0].owner;
             }
 
-            if (winner === soldierState1.soldier.owner){
+            if (winner === soldierState1.soldier.owner) {
                 soldierState2.soldier.injured = true;
-            } else{
+            } else {
                 soldierState1.soldier.injured = true;
             }
-            return
+            return;
         }
     });
 
-    
     return lineUpComparison.flat();
 };
 export const handleConfirmedLineUp = (
@@ -373,7 +370,6 @@ export const handleConfirmedLineUp = (
     setSoldiersMap: React.Dispatch<React.SetStateAction<Map<IntersectId, SoldierObj[]>>>,
     getSettlementByIntersect: (intersectId: number) => SettlementObj | null,
     getRoadsByIntersect: (intersectId: number) => RoadObj[] | null
-
 ): void | string => {
     let error: void | string = undefined;
     setBattleState((prev) => {
@@ -398,7 +394,7 @@ export const handleConfirmedLineUp = (
             const settlement = getSettlementByIntersect(newBattleState.intersectId);
             const roads = getRoadsByIntersect(newBattleState.intersectId);
             const soldierUpdates = handleBattleSubmitted(newBattleState, roads, settlement);
-            
+
             soldierUpdates.forEach((soldierState) => {
                 updateSingleSoldier(setSoldiersMap, soldierState.soldier, soldierState.soldier.intersect, soldierState.dead);
             });

@@ -67,7 +67,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                         ))}
                         {settlements.map((settlement) => {
                             const player = players.find((player) => player.name === settlement.owner);
-                            return <Settlement color={player ? player.color : 'grey'} {...settlement} size={hexSize} />;
+                            return <Settlement key={settlement.id} color={player ? player.color : 'grey'} {...settlement} size={hexSize} />;
                         })}
                         {roads.map((road) => {
                             const player = players.find((player) => player.name === road.owner);
