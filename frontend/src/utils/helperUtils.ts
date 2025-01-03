@@ -59,14 +59,14 @@ export function groupBy<T, K extends keyof T>(array: T[], key: K): Record<string
 
 export function zip<T>(...arrays: T[][]): T[][] {
     // Get the shortest array length
-    const length = Math.min(...arrays.map(arr => arr.length));
+    const length = Math.min(...arrays.map((arr) => arr.length));
     const result: T[][] = [];
-  
+
     // Iterate over the arrays and create the zipped result
     for (let i = 0; i < length; i++) {
-      const zippedItem = arrays.map(arr => arr[i]);
-      result.push(zippedItem);
+        const zippedItem = arrays.map((arr) => arr[i]);
+        result.push(zippedItem);
     }
-  
+
     return result;
-  }
+}

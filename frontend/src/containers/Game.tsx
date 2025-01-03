@@ -38,7 +38,7 @@ import { SoldierObj, BattleState } from '../utils/soldierUtils';
 import PlayersList from './PlayersList';
 import BattleArena from './BattleArena';
 import IntersectViewer from './IntersectViewer';
-import { groupBy,zip } from '../utils/helperUtils';
+import { groupBy, zip } from '../utils/helperUtils';
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -155,8 +155,6 @@ const Game: React.FC = () => {
         setRollMap(getRollMap(Array.from(hexMap.values())));
     }, []);
 
-   
-
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log('handling', UiEvent, UiEventPayload);
         let player = playerMap.get(playerName);
@@ -213,11 +211,11 @@ const Game: React.FC = () => {
                 break;
             case 'confirmedLineUp':
                 let payload = UiEventPayload as confirmedLineUpPayload;
-                error = handleConfirmedLineUp(payload, setBattleState,setSoldiersMap);
+                error = handleConfirmedLineUp(payload, setBattleState, setSoldiersMap);
                 if (battleState === null) {
                     return;
                 }
-                
+
                 break;
             default:
                 break;

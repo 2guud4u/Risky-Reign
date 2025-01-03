@@ -20,7 +20,7 @@ import { SoldierObj, SoldierType, BattleState } from '../utils/soldierUtils';
 import { v4 as uuidv4 } from 'uuid';
 import Settlement from '../components/Settlement';
 import { TerrainResourceMap, HexNode } from '../utils/hexUtils';
-import { changePlayerResources } from '../services/update';
+import { changePlayerResources, updateSingleSoldier } from '../services/update';
 import Road from '../components/Road';
 import { groupBy, zip } from '../utils/helperUtils';
 
@@ -280,7 +280,7 @@ export const handleInitiateBattle = (
         return 'No soldiers to battle';
     }
 
-    const states = new Map<string, { soldiers: { soldier: SoldierObj; rollNum: number; dead: boolean; }[]; submitted: boolean }>();
+    const states = new Map<string, { soldiers: { soldier: SoldierObj; rollNum: number; dead: boolean }[]; submitted: boolean }>();
     states.set(friendlyName, { soldiers: friendlySoldiers.map((soldier) => ({ soldier, rollNum: 0, dead: false })), submitted: false });
     states.set(enemyName, { soldiers: enemySoldiers.map((soldier) => ({ soldier, rollNum: 0, dead: false })), submitted: false });
     setBattleState({ states, intersectId });
@@ -315,63 +315,56 @@ export const handleRolledSoldierScore = (
     return error;
 };
 const handleBattleSubmitted = (newBattleState: BattleState) => {
-    console.log('both player submitted');
     //perform battle stuff
     let participants = Array.from(newBattleState.states.keys());
-    
 
-    let lineUpComparison = zip(newBattleState.states.get(participants[1])?.soldiers || [], newBattleState.states.get(participants[0])?.soldiers || []);
+    let lineUpComparison = zip(
+        newBattleState.states.get(participants[1])?.soldiers || [],
+        newBattleState.states.get(participants[0])?.soldiers || []
+    );
     lineUpComparison.forEach(([soldierState1, soldierState2]) => {
         let difference = soldierState1.rollNum - soldierState2.rollNum;
         if (difference > 0) {
-            if(difference > 2){
+            if (difference > 2) {
                 //dead
                 soldierState2.dead = true;
-                
             } else {
-
                 //soldier2 is injured
                 soldierState2.soldier.injured = true;
             }
-            
         } else if (difference < 0) {
-            if(difference*-1 > 2){
-                 //dead
-                 soldierState1.dead = true;
+            if (difference * -1 > 2) {
+                //dead
+                soldierState1.dead = true;
             } else {
                 //soldier2 is injured
                 soldierState1.soldier.injured = true;
-               
             }
         } else {
             //check tie breaker
             // todo
         }
     });
+
     
-    console.log('battle ended', newBattleState);
-    return newBattleState;
-
-
-}
+    return lineUpComparison.flat();
+};
 export const handleConfirmedLineUp = (
     payload: confirmedLineUpPayload,
     setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>,
-    setSoldiersMap: React.Dispatch<React.SetStateAction<Map<IntersectId, SoldierObj[]>>>,
+    setSoldiersMap: React.Dispatch<React.SetStateAction<Map<IntersectId, SoldierObj[]>>>
 ): void | string => {
     let error: void | string = undefined;
     setBattleState((prev) => {
         if (prev === null) {
             return null;
         }
-        
+
         let newBattleState: BattleState = {
             ...prev,
             states: new Map(prev.states), // Make a shallow copy of the 'states' map
-          };
+        };
         const playerState = newBattleState.states.get(payload.playerName);
-
-
 
         if (playerState === undefined) {
             return prev;
@@ -379,14 +372,18 @@ export const handleConfirmedLineUp = (
         newBattleState.states.set(payload.playerName, { soldiers: payload.lineUp, submitted: true });
         // check if both players submitted
         if (Array.from(newBattleState.states.values()).every((state) => state.submitted)) {
-            return handleBattleSubmitted(newBattleState);
+            //also update soldier map
+            //todo
+            const soldierUpdates = handleBattleSubmitted(newBattleState);
             
+            soldierUpdates.forEach((soldierState) => {
+                updateSingleSoldier(setSoldiersMap, soldierState.soldier, soldierState.soldier.intersect, soldierState.dead);
+            });
         }
         return newBattleState;
     });
     return error;
 };
-
 
 export const handleRollDice = (
     rollNum: string,
