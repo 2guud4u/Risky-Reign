@@ -7,6 +7,8 @@ import {
     initiateBattlePayload,
     rolledSoldierScorePayload,
     confirmedLineUpPayload,
+    updateTradePayload,
+    respondTradePayload,
 } from '../utils/eventsUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -19,6 +21,7 @@ import { TerrainResourceMap, HexNode } from '../utils/hexUtils';
 import { changePlayerResources, updateSingleSoldier } from '../services/update';
 import Road from '../components/Road';
 import { groupBy, zip } from '../utils/helperUtils';
+import { tradeState } from '../utils/tradeUtils';
 
 export const checkHasPrice = (player: PlayerObj, price: Price): boolean => {
     const playerResources = player.resources;
@@ -463,4 +466,57 @@ export const handleRollDice = (
             }
         }
     }
+};
+
+////////////////////////////////////////
+// Trade Stuff
+////////////////////////////////////////
+
+export const handleUpdateTrade = (payload: updateTradePayload, setTradeStates: React.Dispatch<React.SetStateAction<tradeState[]>>) => {
+    let replaced = false;
+    setTradeStates((prev) =>
+        prev.map((tradeState) => {
+            if (tradeState.id === payload.tradeState.id) {
+                replaced = true;
+                return payload.tradeState;
+            }
+            return tradeState;
+        })
+    );
+    if (!replaced) {
+        setTradeStates((prev) => [...prev, payload.tradeState]);
+    }
+
+    return;
+};
+
+export const handleRespondTrade = (
+    payload: respondTradePayload,
+    tradeStates: tradeState[],
+    setTradeStates: React.Dispatch<React.SetStateAction<tradeState[]>>
+) => {
+    const { tradeId, response, playerName } = payload;
+    const tradeState = tradeStates.find((tradeState) => tradeState.id === tradeId);
+    if (tradeState === undefined) {
+        return;
+    }
+    //if player who is trader respond no then remove trade
+    if (tradeState.trader.name === playerName) {
+        if (!response) {
+            setTradeStates(tradeStates.filter((tradeState) => tradeState.id !== tradeId));
+        }
+        return;
+    }
+
+    //if player who is tradee respond no then remove trade
+    if (tradeState.tradee.name === playerName) {
+        if (!response) {
+            setTradeStates(tradeStates.filter((tradeState) => tradeState.id !== tradeId));
+        } else {
+            // handle trade go though
+        }
+        return;
+    }
+
+    return;
 };

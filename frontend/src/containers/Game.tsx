@@ -12,6 +12,7 @@ import {
     initiateBattlePayload,
     rolledSoldierScorePayload,
     confirmedLineUpPayload,
+    updateTradePayload,
 } from '../utils/eventsUtils';
 import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -30,6 +31,7 @@ import {
     handleRollDice,
     handleRolledSoldierScore,
     handleConfirmedLineUp,
+    handleUpdateTrade,
 } from '../logic/uiEvents';
 import { changePlayerResources } from '../services/update';
 import { SoldierObj, BattleState } from '../utils/soldierUtils';
@@ -38,6 +40,7 @@ import BattleHud from './BattleHud';
 import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
 import TradeHud from './TradeHud';
+import { tradeState } from '../utils/tradeUtils';
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -52,7 +55,7 @@ const Game: React.FC = () => {
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
     const [battleState, setBattleState] = useState<BattleState | null>(null);
-    const [tradeStates, setTradeStates] = useState([
+    const [tradeStates, setTradeStates] = useState<tradeState[]>([
         {
             id: '1',
             trader: {
@@ -64,7 +67,7 @@ const Game: React.FC = () => {
                     Wheat: 1,
                     Ore: 1,
                 },
-                response: null,
+                accept: null,
             },
             tradee: {
                 name: 'fel',
@@ -75,10 +78,9 @@ const Game: React.FC = () => {
                     Wheat: 1,
                     Ore: 1,
                 },
-                response: null,
+                accept: null,
             },
-
-        }, 
+        },
         {
             id: '2',
             trader: {
@@ -90,7 +92,7 @@ const Game: React.FC = () => {
                     Wheat: 1,
                     Ore: 1,
                 },
-                response: null,
+                accept: null,
             },
             tradee: {
                 name: 'fel',
@@ -101,10 +103,9 @@ const Game: React.FC = () => {
                     Wheat: 1,
                     Ore: 1,
                 },
-                response: null,
+                accept: null,
             },
-
-        }
+        },
     ]);
     const [soldiersMap, setSoldiersMap] = useState<Map<IntersectId, SoldierObj[]>>(
         new Map([
@@ -292,7 +293,12 @@ const Game: React.FC = () => {
                 if (battleState === null) {
                     return;
                 }
+                break;
 
+            case 'updateTrade':
+                error = handleUpdateTrade(UiEventPayload as updateTradePayload, setTradeStates);
+                break;
+            case 'respondTrade':
                 break;
             default:
                 break;
@@ -342,7 +348,7 @@ const Game: React.FC = () => {
                         <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
                     </Grid>
                     <Grid size={12}>
-                        <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent}/>
+                        <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
                     </Grid>
                 </Grid>
             </Grid>

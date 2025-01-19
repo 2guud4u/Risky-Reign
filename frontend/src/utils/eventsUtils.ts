@@ -1,5 +1,6 @@
 import { SoldierBattleState } from '../utils/soldierUtils';
 import { Price } from './gameUtils';
+import { tradeState } from './tradeUtils';
 export type UiEvent =
     | 'buildSettlement'
     | 'buildRoad'
@@ -16,20 +17,17 @@ export type UiEvent =
     | 'rolledSoldierScore'
     | 'selectIntersect'
     | 'confirmedLineUp'
-    | 'startTrade'
-    | 'respondTrade'
-    ;
+    | 'updateTrade'
+    | 'respondTrade';
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 
-export interface startTradePayload {
-    trader: string;
-    tradee: string;
-    give: Price;
-    receive: Price;
+export interface updateTradePayload {
+    tradeState: tradeState;
 }
 export interface respondTradePayload {
     tradeId: string;
+    playerName: string;
     response: boolean;
 }
 

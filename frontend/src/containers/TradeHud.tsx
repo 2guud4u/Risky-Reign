@@ -9,54 +9,100 @@ interface TradeHudProps {
     playerName: string;
     playerMap: Map<string, PlayerObj>;
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
-
-
 }
-type id = string;
 
-const TradeHud: React.FC<TradeHudProps> = ({tradeStates, playerName, playerMap, UiEventCaller}) => {
-    const [selectedTrade, setSelectedTrade] = React.useState< tradeState| null>(null);
+const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap, UiEventCaller }) => {
+    const [selectedTrade, setSelectedTrade] = React.useState<tradeState | null>(null);
 
     const handleTradeSelect = (id: string) => {
         setSelectedTrade(tradeStates.find((trade) => trade.id === id) || null);
-    }
+    };
+    const handleSubmit = (tradeState: tradeState) => {
+        UiEventCaller('updateTrade', { tradeState: tradeState });
+    };
+    const handleCreate = (tradee: string) => {
+        const newTrade: tradeState = {
+            id: uuidv4(),
+            trader: {
+                name: playerName,
+                offer: {
+                    Brick: 0,
+                    Wood: 0,
+                    Wheat: 0,
+                    Sheep: 0,
+                    Ore: 0,
+                },
+                accept: true,
+            },
+            tradee: {
+                name: tradee,
+                offer: {
+                    Brick: 0,
+                    Wood: 0,
+                    Wheat: 0,
+                    Sheep: 0,
+                    Ore: 0,
+                },
+                accept: null,
+            },
+        };
+        setSelectedTrade(newTrade);
+    };
 
-    return <div style={{ border: '2px solid black', padding: '16px' }}>
-        <Grid container >
-            <Grid  size={12}>
-                <div>Trade Hud</div>
-            </Grid>
-            <Grid container size={6}>
-                {selectedTrade ? (
-                    <Grid container direction={"column"}>
-                        <Grid><h1>Detail View</h1></Grid>
-                        <Grid>{selectedTrade ? 
-                            <TradeView tradeState={selectedTrade} handleSubmit={(hi)=>{}} player={playerMap.get(playerName)}/>
-                         : null}</Grid>   
-                    </Grid>
-                    
-                ) : (
-                    // <CreateView playerMap={playerMap} playerName={playerName} />
-                    <div></div>
-                )}
-            </Grid>
-            <Grid container size={6}>
+    return (
+        <div style={{ border: '2px solid black', padding: '16px' }}>
+            <Grid container>
                 <Grid size={12}>
-                    <h1>Ongoing</h1>
+                    <div>Trade Hud</div>
                 </Grid>
-                <Grid container alignItems="flex-start" direction={"row"}>
-                    {tradeStates.map((trade) => (
-                        <MiniTradeView trade={trade} handleTradeSelect={handleTradeSelect} />
-                    ))}
+                <Grid container size={6}>
+                    {selectedTrade ? (
+                        <Grid container direction={'column'}>
+                            <Grid>
+                                <h1>Detail View</h1>
+                            </Grid>
+                            <Grid>
+                                {selectedTrade ? (
+                                    <TradeView tradeState={selectedTrade} handleSubmit={handleSubmit} player={playerMap.get(playerName)} />
+                                ) : null}
+                            </Grid>
+                        </Grid>
+                    ) : (
+                        <Grid container direction={'column'}>
+                            <Grid size={12}>
+                                <h1>Create</h1>
+                            </Grid>
+                            <Grid>
+                                <div>Select who trade</div>
+                                {Array.from(playerMap.keys()).map((name) => (
+                                    <>
+                                        {playerName !== name && (
+                                            <button key={name} onClick={() => handleCreate(name)}>
+                                                {name}
+                                            </button>
+                                        )}
+                                    </>
+                                ))}
+                            </Grid>
+                        </Grid>
+                    )}
                 </Grid>
-                <Grid>
-                    <button onClick={()=>setSelectedTrade(null)}>
-                        Create Trade
-                    </button>
+                <Grid container size={6}>
+                    <Grid size={12}>
+                        <h1>Ongoing</h1>
+                    </Grid>
+                    <Grid container alignItems="flex-start" direction={'row'}>
+                        {tradeStates.map((trade, index) => (
+                            <MiniTradeView key={index} trade={trade} handleTradeSelect={handleTradeSelect} />
+                        ))}
+                    </Grid>
+                    <Grid>
+                        <button onClick={() => setSelectedTrade(null)}>Create Trade</button>
+                    </Grid>
                 </Grid>
             </Grid>
-        </Grid>
-    </div>;
+        </div>
+    );
 };
 
 interface MiniTradeViewProps {
@@ -64,93 +110,89 @@ interface MiniTradeViewProps {
     handleTradeSelect: (id: string) => void;
 }
 
-const MiniTradeView: React.FC<MiniTradeViewProps> = ({trade, handleTradeSelect}) => {
+const MiniTradeView: React.FC<MiniTradeViewProps> = ({ trade, handleTradeSelect }) => {
     return (
-    <Grid onClick={() => handleTradeSelect(trade.id)} style={{ border: '1px solid black', padding: '8px', margin: '8px' }} container size={12}>
-        
-        <Grid size={5}>
-        <MiniTradeCard tradeParty={trade.trader} />
-           </Grid>
-        <Grid container size={2} alignItems= "flex-end">
-            <Grid>For</Grid>
+        <Grid onClick={() => handleTradeSelect(trade.id)} style={{ border: '1px solid black', padding: '8px', margin: '8px' }} container size={12}>
+            <Grid size={5}>
+                <MiniTradeCard tradeParty={trade.trader} />
+            </Grid>
+            <Grid container size={2} alignItems="flex-end">
+                <Grid>For</Grid>
+            </Grid>
+            <Grid size={5}>
+                <MiniTradeCard tradeParty={trade.tradee} />
+            </Grid>
         </Grid>
-        <Grid size={5}>
-        <MiniTradeCard tradeParty={trade.tradee} />
-        </Grid>
-    </Grid>
-    )
-    
+    );
 };
 
 interface MiniTradeCardProps {
     tradeParty: tradeParty;
 }
 
-const MiniTradeCard: React.FC<MiniTradeCardProps> = ({tradeParty}) => {
+const MiniTradeCard: React.FC<MiniTradeCardProps> = ({ tradeParty }) => {
     return (
-        
-            <>
-            
-            <Grid size={12}>
-                {tradeParty.name}
-            </Grid>
+        <>
+            <Grid size={12}>{tradeParty.name}</Grid>
             <Grid>
-            {Object.entries(tradeParty.offer).map(([resource, count]) => (
-                <>
-                    {' '}{count}
-                </>
-            ))}
+                {Object.entries(tradeParty.offer).map(([resource, count]) => (
+                    <> {count}</>
+                ))}
             </Grid>
-            </>
-        
+        </>
     );
-}
+};
 interface TradeCardProps {
     tradeParty: tradeParty;
     editMode: boolean;
-    handleChange: (name: string,resource: string, count: number) => void;
+    handleChange: (name: string, resource: string, count: number) => void;
 }
 
-const TradeCard: React.FC<TradeCardProps> = ({tradeParty, editMode, handleChange}) => {
-
+const TradeCard: React.FC<TradeCardProps> = ({ tradeParty, editMode, handleChange }) => {
     return (
-        
-            <>
-            
+        <>
             <Grid size={12}>-------</Grid>
-            <Grid container direction={"column"}>
+            <Grid container direction={'column'}>
+                {Object.entries(tradeParty.offer).map(([resource, count]) => (
+                    <Grid key={resource} container justifyContent="space-between" direction={'row'}>
+                        <Grid>
+                            {resource}
+                            {':'} {count}
+                        </Grid>
 
-            {Object.entries(tradeParty.offer).map(([resource, count]) => (
-                <Grid key={resource} container justifyContent="space-between" direction={"row"}>
-                    <Grid>{resource}{":"} {count}</Grid>
-                    
-                    {editMode ? (<Grid container direction="row">
-                    <Grid><button onClick={()=>handleChange(tradeParty.name, resource, count+1)}>+</button></Grid>
-                    <Grid><button onClick={()=>handleChange(tradeParty.name, resource, count-1)}>-</button></Grid>
+                        {editMode ? (
+                            <Grid container direction="row">
+                                <Grid>
+                                    <button onClick={() => handleChange(tradeParty.name, resource, count + 1)}>+</button>
+                                </Grid>
+                                <Grid>
+                                    <button onClick={() => handleChange(tradeParty.name, resource, count - 1)}>-</button>
+                                </Grid>
+                            </Grid>
+                        ) : null}
                     </Grid>
-                    )
-                     : null}
-                </Grid>
-                
-            ))}
+                ))}
             </Grid>
-            
-            </>
-        
+        </>
     );
-}
+};
 
-interface TradeViewProps{
+interface TradeViewProps {
     tradeState: tradeState;
     handleSubmit: (tradeState: tradeState) => void;
     player: PlayerObj | undefined;
 }
 
-const TradeView: React.FC<TradeViewProps> = ({player, tradeState, handleSubmit}) => {
+const TradeView: React.FC<TradeViewProps> = ({ player, tradeState, handleSubmit }) => {
     const [editMode, setEditMode] = React.useState(false);
+    const [edited, setEdited] = React.useState(false);
     const [tradeStateLocal, setTradeStateLocal] = React.useState<tradeState>(tradeState);
     const [yourOffer, setYourOffer] = React.useState<tradeParty>();
     const [theirOffer, setTheirOffer] = React.useState<tradeParty>();
+
+    React.useEffect(() => {
+        setTradeStateLocal(tradeState);
+    }, [tradeState]);
 
     React.useEffect(() => {
         if (player) {
@@ -163,11 +205,14 @@ const TradeView: React.FC<TradeViewProps> = ({player, tradeState, handleSubmit})
             }
         }
     }, [player, tradeStateLocal]);
-
+    const handleCancelEdit = () => {
+        setTradeStateLocal(tradeState);
+        setEditMode(false);
+        setEdited(false);
+    };
     const handleChange = (name: string, resource: string, count: number) => {
         count = count < 0 ? 0 : count;
         if (name === tradeStateLocal.trader.name) {
-
             setTradeStateLocal({
                 ...tradeStateLocal,
                 trader: {
@@ -175,10 +220,9 @@ const TradeView: React.FC<TradeViewProps> = ({player, tradeState, handleSubmit})
                     offer: {
                         ...tradeStateLocal.trader.offer,
                         [resource]: count,
-                    }
-                }
-            })
-
+                    },
+                },
+            });
         } else {
             setTradeStateLocal({
                 ...tradeStateLocal,
@@ -187,42 +231,64 @@ const TradeView: React.FC<TradeViewProps> = ({player, tradeState, handleSubmit})
                     offer: {
                         ...tradeStateLocal.tradee.offer,
                         [resource]: count,
-                    }
-                }
-            })
+                    },
+                },
+            });
         }
-    }
+        setEdited(true);
+    };
     return (
-        <Grid container direction={"column"}>
-            <Grid container direction={"row"} justifyContent="space-between">
-                
-                    
-                    {yourOffer &&  (
-                         <Grid>
-                        <div>Your Offer</div>
-                        <TradeCard tradeParty={yourOffer} editMode={editMode} handleChange={handleChange}/>
-                        </Grid>
-                        )}
-               
-                <Grid>{"----->"}</Grid>
-                {theirOffer &&  (
-                         <Grid>
+        <Grid container direction={'column'}>
+            <Grid container direction={'row'} justifyContent="space-between">
+                {yourOffer && (
+                    <Grid>
+                        <div>You Give</div>
+                        <TradeCard tradeParty={yourOffer} editMode={editMode} handleChange={handleChange} />
+                    </Grid>
+                )}
+
+                <Grid>{'----->'}</Grid>
+                {theirOffer && (
+                    <Grid>
                         <div> {theirOffer.name}'s Offer</div>
-                        <TradeCard tradeParty={theirOffer} editMode={editMode} handleChange={handleChange}/>
-                        </Grid>
-                        )}
+                        <TradeCard tradeParty={theirOffer} editMode={editMode} handleChange={handleChange} />
+                    </Grid>
+                )}
             </Grid>
             <Grid container>
-                <Grid><button>Accept</button></Grid>
-                <Grid><button>Decline</button></Grid>
-                <Grid><button onClick={()=>(editMode ? setEditMode(false) : setEditMode(true))}>Edit</button></Grid>
-                {editMode && (<Grid>
-                    <button onClick={()=>handleSubmit(tradeStateLocal)}>Submit Edit</button>
-                    </Grid>)}
+                {!edited && yourOffer?.accept === null && (
+                    <>
+                        <Grid>
+                            <button>Accept</button>
+                        </Grid>
+                        <Grid>
+                            <button>Decline</button>
+                        </Grid>
+                    </>
+                )}
+
+                <Grid>
+                    {editMode ? (
+                        <>
+                            <button onClick={handleCancelEdit}>Cancel Edit</button>
+                            <button
+                                onClick={() => {
+                                    setEditMode(false);
+                                    setEdited(false);
+                                    handleSubmit(tradeStateLocal);
+                                }}
+                            >
+                                Submit Edit
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={() => setEditMode(true)}>Edit</button>
+                    )}
+                </Grid>
             </Grid>
         </Grid>
-    )
-}
+    );
+};
 
 // interface CreateViewProps {
 //     playerMap: Map<string, PlayerObj>;
@@ -241,7 +307,7 @@ const TradeView: React.FC<TradeViewProps> = ({player, tradeState, handleSubmit})
 //                 Sheep: 0,
 //                 Ore: 0,
 //             },
-//             response: null,
+//             accept: null,
 //         },
 //         tradee: {
 //             name: '',
@@ -252,7 +318,7 @@ const TradeView: React.FC<TradeViewProps> = ({player, tradeState, handleSubmit})
 //                 Sheep: 0,
 //                 Ore: 0,
 //             },
-//             response: null,
+//             accept: null,
 //         },
 //     });
 //     return (
