@@ -37,6 +37,7 @@ import PlayersList from './PlayersList';
 import BattleHud from './BattleHud';
 import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
+import TradeHud from './TradeHud';
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -51,6 +52,60 @@ const Game: React.FC = () => {
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
     const [battleState, setBattleState] = useState<BattleState | null>(null);
+    const [tradeStates, setTradeStates] = useState([
+        {
+            id: '1',
+            trader: {
+                name: 'jia',
+                offer: {
+                    Wood: 1,
+                    Brick: 1,
+                    Sheep: 1,
+                    Wheat: 1,
+                    Ore: 1,
+                },
+                response: null,
+            },
+            tradee: {
+                name: 'fel',
+                offer: {
+                    Wood: 1,
+                    Brick: 1,
+                    Sheep: 1,
+                    Wheat: 1,
+                    Ore: 1,
+                },
+                response: null,
+            },
+
+        }, 
+        {
+            id: '2',
+            trader: {
+                name: 'jia',
+                offer: {
+                    Wood: 1,
+                    Brick: 4,
+                    Sheep: 1,
+                    Wheat: 1,
+                    Ore: 1,
+                },
+                response: null,
+            },
+            tradee: {
+                name: 'fel',
+                offer: {
+                    Wood: 1,
+                    Brick: 1,
+                    Sheep: 1,
+                    Wheat: 1,
+                    Ore: 1,
+                },
+                response: null,
+            },
+
+        }
+    ]);
     const [soldiersMap, setSoldiersMap] = useState<Map<IntersectId, SoldierObj[]>>(
         new Map([
             [
@@ -106,7 +161,7 @@ const Game: React.FC = () => {
 
     useEffect(() => {
         let { hexMap, intersectMap } = generateGameBoard(boardRadius, hexSize);
-        const playerList = [
+        const playerList: PlayerObj[] = [
             {
                 name: 'jia',
                 color: 'red',
@@ -285,6 +340,9 @@ const Game: React.FC = () => {
                     </Grid>
                     <Grid size={12}>
                         <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
+                    </Grid>
+                    <Grid size={12}>
+                        <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent}/>
                     </Grid>
                 </Grid>
             </Grid>
