@@ -8,7 +8,6 @@ export const changePlayerResources = (
     price: Price,
     playerMap: Map<string, PlayerObj>,
     setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>,
-    add: boolean
 ): boolean => {
     const playerResources = player.resources;
     if (playerResources === undefined) {
@@ -16,11 +15,9 @@ export const changePlayerResources = (
     }
     const newResources = Object.entries(price).reduce((acc, [resource, amount]) => {
         const key = resource as keyof ResourceCount;
-        if (add) {
-            acc[key] = playerResources[key] + amount;
-        } else {
-            acc[key] = playerResources[key] - amount;
-        }
+        
+        acc[key] = playerResources[key] + amount;
+        
         return acc;
     }, {} as ResourceCount);
     setPlayerMap(
@@ -33,6 +30,16 @@ export const changePlayerResources = (
     );
 
     return true;
+};
+
+export const priceMath = (price1: Price, price2: Price, operator: '-' | '+'): Price => {
+    return Object.entries(price1).reduce((acc, [resource, amount]) => {
+        const key = resource as keyof ResourceCount;
+        if (operator === '-') acc[key] = amount - price2[key];
+        else
+        acc[key] = amount + price2[key];
+        return acc;
+    }, {} as ResourceCount);
 };
 
 export const updateSingleSoldier = (

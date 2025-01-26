@@ -17,9 +17,27 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
     const handleTradeSelect = (id: string) => {
         setSelectedTrade(tradeStates.find((trade) => trade.id === id) || null);
     };
-    const handleSubmit = (tradeState: tradeState) => {
+    const handleSubmit = (player: string | null, tradeState: tradeState) => {
+        if (!player) {
+            return;
+        }
+        if (player === tradeState.trader.name) {
+            tradeState.trader.accept = true;
+        } else {
+            tradeState = {
+                ...tradeState,
+                trader: {...tradeState.tradee, accept: true},
+                tradee: tradeState.trader,
+            }
+        }
         UiEventCaller('updateTrade', { tradeState: tradeState });
+        setSelectedTrade(null);
     };
+    const handleResponse = (response: boolean) => {
+        UiEventCaller('respondTrade', { tradeId: selectedTrade?.id || '', playerName: playerName, response: response });
+        setSelectedTrade(null);
+    };
+
     const handleCreate = (tradee: string) => {
         const newTrade: tradeState = {
             id: uuidv4(),
@@ -63,7 +81,7 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                             </Grid>
                             <Grid>
                                 {selectedTrade ? (
-                                    <TradeView tradeState={selectedTrade} handleSubmit={handleSubmit} player={playerMap.get(playerName)} />
+                                    <TradeView tradeState={selectedTrade} handleSubmit={handleSubmit} handleResponse={handleResponse} player={playerMap.get(playerName)} />
                                 ) : null}
                             </Grid>
                         </Grid>
@@ -87,7 +105,7 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                         </Grid>
                     )}
                 </Grid>
-                <Grid container size={6}>
+                <Grid container size={6} direction='column'>
                     <Grid size={12}>
                         <h1>Ongoing</h1>
                     </Grid>
@@ -179,11 +197,12 @@ const TradeCard: React.FC<TradeCardProps> = ({ tradeParty, editMode, handleChang
 
 interface TradeViewProps {
     tradeState: tradeState;
-    handleSubmit: (tradeState: tradeState) => void;
+    handleSubmit: (player: string | null,tradeState: tradeState) => void;
     player: PlayerObj | undefined;
+    handleResponse: (response: boolean) => void;
 }
 
-const TradeView: React.FC<TradeViewProps> = ({ player, tradeState, handleSubmit }) => {
+const TradeView: React.FC<TradeViewProps> = ({ player, tradeState, handleSubmit, handleResponse }) => {
     const [editMode, setEditMode] = React.useState(false);
     const [edited, setEdited] = React.useState(false);
     const [tradeStateLocal, setTradeStateLocal] = React.useState<tradeState>(tradeState);
@@ -192,6 +211,7 @@ const TradeView: React.FC<TradeViewProps> = ({ player, tradeState, handleSubmit 
 
     React.useEffect(() => {
         setTradeStateLocal(tradeState);
+
     }, [tradeState]);
 
     React.useEffect(() => {
@@ -256,16 +276,21 @@ const TradeView: React.FC<TradeViewProps> = ({ player, tradeState, handleSubmit 
                 )}
             </Grid>
             <Grid container>
-                {!edited && yourOffer?.accept === null && (
+                {!edited && (yourOffer?.accept === null ? (
                     <>
                         <Grid>
-                            <button>Accept</button>
+                            <button onClick={()=>handleResponse(true)}>Accept</button>
                         </Grid>
                         <Grid>
-                            <button>Decline</button>
+                            <button onClick={()=>handleResponse(false)}>Decline</button>
                         </Grid>
                     </>
-                )}
+                ) : (
+                    <Grid>
+                        <button onClick={()=>handleResponse(false)}>Cancel Trade</button>
+                    </Grid>
+                )
+            )}
 
                 <Grid>
                     {editMode ? (
@@ -275,7 +300,7 @@ const TradeView: React.FC<TradeViewProps> = ({ player, tradeState, handleSubmit 
                                 onClick={() => {
                                     setEditMode(false);
                                     setEdited(false);
-                                    handleSubmit(tradeStateLocal);
+                                    handleSubmit( player? player.name : null ,tradeStateLocal);
                                 }}
                             >
                                 Submit Edit

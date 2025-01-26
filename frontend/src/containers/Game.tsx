@@ -13,6 +13,7 @@ import {
     rolledSoldierScorePayload,
     confirmedLineUpPayload,
     updateTradePayload,
+    respondTradePayload,
 } from '../utils/eventsUtils';
 import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
@@ -32,6 +33,7 @@ import {
     handleRolledSoldierScore,
     handleConfirmedLineUp,
     handleUpdateTrade,
+    handleRespondTrade,
 } from '../logic/uiEvents';
 import { changePlayerResources } from '../services/update';
 import { SoldierObj, BattleState } from '../utils/soldierUtils';
@@ -67,7 +69,7 @@ const Game: React.FC = () => {
                     Wheat: 1,
                     Ore: 1,
                 },
-                accept: null,
+                accept: true,
             },
             tradee: {
                 name: 'fel',
@@ -84,7 +86,7 @@ const Game: React.FC = () => {
         {
             id: '2',
             trader: {
-                name: 'jia',
+                name: 'fel',
                 offer: {
                     Wood: 1,
                     Brick: 4,
@@ -92,10 +94,10 @@ const Game: React.FC = () => {
                     Wheat: 1,
                     Ore: 1,
                 },
-                accept: null,
+                accept: true,
             },
             tradee: {
-                name: 'fel',
+                name: 'jia',
                 offer: {
                     Wood: 1,
                     Brick: 1,
@@ -254,7 +256,7 @@ const Game: React.FC = () => {
                     settlements
                 );
                 if (error === undefined) {
-                    changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap, false);
+                    changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap);
                 }
 
                 break;
@@ -263,7 +265,7 @@ const Game: React.FC = () => {
             case 'buildRoad':
                 error = handleBuildRoad(UiEventPayload as buildRoadPayload, setIntersectMap, intersectMap, player, roads, setRoads, settlements);
                 if (error === undefined) {
-                    changePlayerResources(player, RoadPrice, playerMap, setPlayerMap, false);
+                    changePlayerResources(player, RoadPrice, playerMap, setPlayerMap);
                 }
 
                 break;
@@ -275,7 +277,7 @@ const Game: React.FC = () => {
             case 'buildSoldier':
                 error = handleBuildSoldier(UiEventPayload as buildSoldierPayload, player, soldiersMap, setSoldiersMap, settlements, intersectMap);
                 if (error === undefined) {
-                    changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap, false);
+                    changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap);
                 }
                 break;
             case 'moveSoldier':
@@ -299,6 +301,7 @@ const Game: React.FC = () => {
                 error = handleUpdateTrade(UiEventPayload as updateTradePayload, setTradeStates);
                 break;
             case 'respondTrade':
+                error = handleRespondTrade(UiEventPayload as respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
                 break;
             default:
                 break;

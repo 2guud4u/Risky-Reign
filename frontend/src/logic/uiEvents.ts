@@ -18,7 +18,7 @@ import { SoldierObj, SoldierType, BattleState } from '../utils/soldierUtils';
 import { v4 as uuidv4 } from 'uuid';
 import Settlement from '../components/Settlement';
 import { TerrainResourceMap, HexNode } from '../utils/hexUtils';
-import { changePlayerResources, updateSingleSoldier } from '../services/update';
+import { changePlayerResources, updateSingleSoldier, priceMath } from '../services/update';
 import Road from '../components/Road';
 import { groupBy, zip } from '../utils/helperUtils';
 import { tradeState } from '../utils/tradeUtils';
@@ -461,7 +461,7 @@ export const handleRollDice = (
 
                     price[resource] = settlement.upgraded ? 2 : 1;
 
-                    changePlayerResources(player, price, playerMap, setPlayerMap, true);
+                    changePlayerResources(player, price, playerMap, setPlayerMap);
                 }
             }
         }
@@ -483,6 +483,7 @@ export const handleUpdateTrade = (payload: updateTradePayload, setTradeStates: R
             return tradeState;
         })
     );
+    
     if (!replaced) {
         setTradeStates((prev) => [...prev, payload.tradeState]);
     }
@@ -493,13 +494,17 @@ export const handleUpdateTrade = (payload: updateTradePayload, setTradeStates: R
 export const handleRespondTrade = (
     payload: respondTradePayload,
     tradeStates: tradeState[],
-    setTradeStates: React.Dispatch<React.SetStateAction<tradeState[]>>
+    setTradeStates: React.Dispatch<React.SetStateAction<tradeState[]>>,
+    setPlayerMap:React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>,
+    playerMap: Map<string, PlayerObj>
+
 ) => {
     const { tradeId, response, playerName } = payload;
     const tradeState = tradeStates.find((tradeState) => tradeState.id === tradeId);
     if (tradeState === undefined) {
         return;
     }
+
     //if player who is trader respond no then remove trade
     if (tradeState.trader.name === playerName) {
         if (!response) {
@@ -514,6 +519,18 @@ export const handleRespondTrade = (
             setTradeStates(tradeStates.filter((tradeState) => tradeState.id !== tradeId));
         } else {
             // handle trade go though
+            const traderPrice = priceMath(tradeState.tradee.offer, tradeState.trader.offer, "-");
+            const tradeePrice = priceMath(tradeState.trader.offer,tradeState.tradee.offer, "-");
+            const trader = playerMap.get(tradeState.trader.name);
+            const tradee = playerMap.get(tradeState.tradee.name);
+            
+            if (trader === undefined || tradee === undefined) {
+                return;
+            }
+            changePlayerResources(trader, traderPrice, playerMap, setPlayerMap);
+            changePlayerResources(tradee, tradeePrice, playerMap, setPlayerMap);
+            setTradeStates(tradeStates.filter((tradeState) => tradeState.id !== tradeId));
+
         }
         return;
     }
