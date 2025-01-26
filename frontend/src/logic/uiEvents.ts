@@ -540,7 +540,9 @@ export const handleRespondTrade = (
     return;
 };
 
-export const handleEndTurn = (setTurnObj: React.Dispatch<React.SetStateAction<TurnState>>) => {
+export const handleEndTurn = (setTurnObj: React.Dispatch<React.SetStateAction<TurnState>>, 
+    setExhaustedSoldiers: React.Dispatch<React.SetStateAction<string[]>>
+) => {
     setTurnObj((prev) => {
         let playerIndex = prev.playerOrder.indexOf(prev.player);
         if (prev === null) {
@@ -563,6 +565,7 @@ export const handleEndTurn = (setTurnObj: React.Dispatch<React.SetStateAction<Tu
         }
         if (prev.phase === 'Action') {
             if (prev.offset === prev.playerOrder.length - 1) {
+                setExhaustedSoldiers([])
                 return { ...prev, phase: 'Dice', offset: 0 };
             } else {
                 return { ...prev, 

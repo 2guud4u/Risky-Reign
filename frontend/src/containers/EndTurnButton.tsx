@@ -37,6 +37,7 @@ const EndTurnButton: React.FC<EndTurnButtonProps> = ({UiEventCaller, turnObj, pl
         if (turnObj.phase === 'Dice') {
             UiEventCaller('rollDice', {});
         }
+        
         UiEventCaller('endTurn', {});  
     }
     return (

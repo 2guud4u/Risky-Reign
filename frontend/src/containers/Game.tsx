@@ -331,7 +331,14 @@ const Game: React.FC = () => {
                     error = 'Not your Action turn';
                     break;
                 }
-                error = handleInitiateBattle(UiEventPayload as initiateBattlePayload, playerName, setBattleState, soldiersMap);
+                let initiateBattlePayload = UiEventPayload as initiateBattlePayload;
+                initiateBattlePayload.friendlyIds = initiateBattlePayload.friendlyIds.filter((soldierId) => {
+                    return !exhaustedSoldiers.includes(soldierId);
+                });
+                error = handleInitiateBattle(initiateBattlePayload, playerName, setBattleState, soldiersMap);
+                if (error === undefined) {
+                    setExhaustedSoldiers([...exhaustedSoldiers, ...initiateBattlePayload.friendlyIds]);
+                }
                 break;
             case 'rolledSoldierScore':
                 error = handleRolledSoldierScore(UiEventPayload as rolledSoldierScorePayload, playerName, setBattleState);
@@ -362,7 +369,7 @@ const Game: React.FC = () => {
                 }
                 break;
             case 'endTurn':
-                handleEndTurn(setTurnObj);
+                handleEndTurn(setTurnObj, setExhaustedSoldiers);
                 break;
             default:
                 break;
