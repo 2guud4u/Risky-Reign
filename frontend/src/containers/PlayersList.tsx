@@ -1,17 +1,19 @@
 import React from 'react';
 import { Player } from '../components/Player';
 import { PlayerObj } from '../utils/playerUtils';
-
+import Grid from '@mui/material/Grid2';
 interface PlayerListProps {
     players: PlayerObj[];
 }
 const PlayersList: React.FC<PlayerListProps> = ({ players }) => {
     return (
-        <div>
+        <Grid container direction={'row'}>
             {players.map((player, index) => (
-                <Player key={index} {...player} />
+                <Grid>
+                    <Player key={index} {...player} />
+                </Grid>
             ))}
-        </div>
+        </Grid>
     );
 };
 

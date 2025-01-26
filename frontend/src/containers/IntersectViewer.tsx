@@ -132,12 +132,12 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedS
         }
     };
     return (
-        <>
+        <Grid container>
             {viewIntersect === undefined ? (
                 <div>No intersection selected</div>
             ) : (
-                <>
-                    <div style={{ border: '2px solid black', padding: '16px' }}>
+                <Grid container>
+                    <Grid style={{ border: '2px solid black', padding: '16px' }}>
                         <h1>Intersection {viewIntersect.id}</h1>
 
                         {settlement ? (
@@ -234,9 +234,9 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedS
                                 </Grid>
                             </Grid>
                         </Grid>
-                    </div>
+                    </Grid>
 
-                    <div style={{ border: '2px solid black', padding: '16px' }}>
+                    <Grid style={{ border: '2px solid black', padding: '16px' }}>
                         {action !== '' ? (
                             <>
                                 {['move', 'battle'].includes(action) && (
@@ -254,10 +254,10 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedS
                                 <button onClick={() => setAction('move')}>Move</button>
                             </>
                         )}
-                    </div>
-                </>
+                    </Grid>
+                </Grid>
             )}
-        </>
+        </Grid>
     );
 };
 

@@ -70,63 +70,61 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
     };
 
     return (
-        <div style={{ border: '2px solid black', padding: '16px' }}>
-            <Grid container>
+        <Grid container style={{ border: '2px solid black', padding: '16px' }} alignItems="stretch">
+            <Grid size={12}>
+                <div>Trade Hud</div>
+            </Grid>
+            <Grid container size={6}>
+                {selectedTrade ? (
+                    <Grid container direction={'column'}>
+                        <Grid>
+                            <h1>Detail View</h1>
+                        </Grid>
+                        <Grid>
+                            {selectedTrade ? (
+                                <TradeView
+                                    tradeState={selectedTrade}
+                                    handleSubmit={handleSubmit}
+                                    handleResponse={handleResponse}
+                                    player={playerMap.get(playerName)}
+                                />
+                            ) : null}
+                        </Grid>
+                    </Grid>
+                ) : (
+                    <Grid container direction={'column'}>
+                        <Grid size={12}>
+                            <h1>Create</h1>
+                        </Grid>
+                        <Grid>
+                            <div>Select who trade</div>
+                            {Array.from(playerMap.keys()).map((name) => (
+                                <>
+                                    {playerName !== name && (
+                                        <button key={name} onClick={() => handleCreate(name)}>
+                                            {name}
+                                        </button>
+                                    )}
+                                </>
+                            ))}
+                        </Grid>
+                    </Grid>
+                )}
+            </Grid>
+            <Grid container size={6} direction="column">
                 <Grid size={12}>
-                    <div>Trade Hud</div>
+                    <h1>Ongoing</h1>
                 </Grid>
-                <Grid container size={6}>
-                    {selectedTrade ? (
-                        <Grid container direction={'column'}>
-                            <Grid>
-                                <h1>Detail View</h1>
-                            </Grid>
-                            <Grid>
-                                {selectedTrade ? (
-                                    <TradeView
-                                        tradeState={selectedTrade}
-                                        handleSubmit={handleSubmit}
-                                        handleResponse={handleResponse}
-                                        player={playerMap.get(playerName)}
-                                    />
-                                ) : null}
-                            </Grid>
-                        </Grid>
-                    ) : (
-                        <Grid container direction={'column'}>
-                            <Grid size={12}>
-                                <h1>Create</h1>
-                            </Grid>
-                            <Grid>
-                                <div>Select who trade</div>
-                                {Array.from(playerMap.keys()).map((name) => (
-                                    <>
-                                        {playerName !== name && (
-                                            <button key={name} onClick={() => handleCreate(name)}>
-                                                {name}
-                                            </button>
-                                        )}
-                                    </>
-                                ))}
-                            </Grid>
-                        </Grid>
-                    )}
+                <Grid container alignItems="flex-start" direction={'row'}>
+                    {tradeStates.map((trade, index) => (
+                        <MiniTradeView key={index} trade={trade} handleTradeSelect={handleTradeSelect} />
+                    ))}
                 </Grid>
-                <Grid container size={6} direction="column">
-                    <Grid size={12}>
-                        <h1>Ongoing</h1>
-                    </Grid>
-                    <Grid container alignItems="flex-start" direction={'row'}>
-                        {tradeStates.map((trade, index) => (
-                            <MiniTradeView key={index} trade={trade} handleTradeSelect={handleTradeSelect} />
-                        ))}
-                    </Grid>
-                    <Grid>
-                        <button onClick={() => setSelectedTrade(null)}>Create Trade</button>
-                    </Grid>
+                <Grid>
+                    <button onClick={() => setSelectedTrade(null)}>Create Trade</button>
                 </Grid>
             </Grid>
-        </div>
+        </Grid>
     );
 };
 

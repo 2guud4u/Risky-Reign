@@ -385,16 +385,18 @@ const Game: React.FC = () => {
 
     return (
         <>
-            <h1>
-                {turnObj.phase} for {turnObj.player}
-            </h1>
-            <div>playing as</div>
-            {playerName}
-            <button onClick={switchPlayer}>Switch Player</button>
-            <button onClick={() => setPlayerName('idk')}>Switch to idk</button>
             <Grid container direction="row">
-                <Grid container spacing={3}>
-                    <Grid size={6}>
+                <Grid container direction="column" size={6}>
+                    <Grid>
+                        <h1>
+                            {turnObj.phase} for {turnObj.player}
+                        </h1>
+                        <div>playing as</div>
+                        {playerName}
+                        <button onClick={switchPlayer}>Switch Player</button>
+                        <button onClick={() => setPlayerName('idk')}>Switch to idk</button>
+                    </Grid>
+                    <Grid>
                         <Board
                             exhaustedSoldiers={exhaustedSoldiers}
                             hexes={Array.from(hexMap.values())}
@@ -407,8 +409,22 @@ const Game: React.FC = () => {
                             soldiersMap={soldiersMap}
                         />
                     </Grid>
-                    <Grid container size={6}>
-                        <Grid size={6}>
+                    <Grid container direction="row">
+                        <Grid size={2}>
+                            <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnObj} player={playerName} />
+                        </Grid>
+                        <Grid size={10}>
+                            <Inventory />
+                        </Grid>
+                    </Grid>
+                </Grid>
+
+                <Grid container size={6} direction="column">
+                    <Grid size={12}>
+                        <PlayersList players={Array.from(playerMap.values())} />
+                    </Grid>
+                    <Grid container direction="row">
+                        <Grid size={4}>
                             <IntersectViewer
                                 soldiersMap={soldiersMap}
                                 intersect={selectedIntersect}
@@ -418,31 +434,14 @@ const Game: React.FC = () => {
                                 exhaustedSoldiers={exhaustedSoldiers}
                             />
                         </Grid>
-                        <Grid size={6}>
-                            <PlayersList players={Array.from(playerMap.values())} />
-                        </Grid>
-                        <Grid size={12}>
-                            <BattleHud
-                                playerName={playerName}
-                                BattleState={battleState}
-                                UiEventCaller={handleUiEvent}
-                                setBattleState={setBattleState}
-                            />
-                        </Grid>
-                        <Grid size={12}>
+                        <Grid size={8}>
                             <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
                         </Grid>
                     </Grid>
-                </Grid>
-                
-                <Grid container direction="row">
-                    <Grid size={2}>
-                        <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnObj} player={playerName} />
 
+                    <Grid size={12}>
+                        <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
                     </Grid>
-                    <Grid size={10}>
-                        <Inventory />
-                </Grid>
                 </Grid>
             </Grid>
         </>
