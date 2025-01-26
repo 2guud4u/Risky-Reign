@@ -50,7 +50,7 @@ const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
-
+type Id = string;
 const Game: React.FC = () => {
     const [roll, setRoll] = useState('0');
     const [hexMap, setHexMap] = useState<Map<HexId, HexNode>>(new Map());
@@ -59,6 +59,7 @@ const Game: React.FC = () => {
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
     const [battleState, setBattleState] = useState<BattleState | null>(null);
+    const [exhaustedSoldiers, setExhaustedSoldiers] = useState<Set<Id>>(new Set());
     const [turnObj, setTurnObj] = useState<TurnState>({
         phase: 'Dice',
         player: 'jia',
@@ -252,10 +253,21 @@ const Game: React.FC = () => {
         }
         let error: void | string = undefined;
         switch (UiEvent) {
+            case 'rollDice':
+                let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+                setRoll(rollNum);
+                error = handleRollDice(rollNum, playerMap, setPlayerMap, hexMap, intersectMap, rollMap, settlements);
+                break;
+
             case 'selectIntersect':
                 setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
+                
                 break;
             case 'buildSettlement':
+                if(turnObj.phase !== 'Build' || turnObj.player !== playerName){
+                    error = 'Not your build turn';
+                    break;
+                }
                 error = handleBuildSettlement(
                     UiEventPayload as buildSettlementPayload,
                     player,
@@ -270,29 +282,50 @@ const Game: React.FC = () => {
 
                 break;
             case 'upgradeSettlement':
+                if(turnObj.phase !== 'Build' || turnObj.player !== playerName){
+                    error = 'Not your build turn';
+                    break;
+                }
                 break;
             case 'buildRoad':
+                if(turnObj.phase !== 'Build' || turnObj.player !== playerName){
+                    error = 'Not your build turn';
+                    break;
+                }
                 error = handleBuildRoad(UiEventPayload as buildRoadPayload, setIntersectMap, intersectMap, player, roads, setRoads, settlements);
                 if (error === undefined) {
                     changePlayerResources(player, RoadPrice, playerMap, setPlayerMap);
                 }
 
                 break;
-            case 'rollDice':
-                let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
-                setRoll(rollNum);
-                error = handleRollDice(rollNum, playerMap, setPlayerMap, hexMap, intersectMap, rollMap, settlements);
-                break;
+            
             case 'buildSoldier':
+                if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
+                    error = 'Not your Action turn';
+                    break;
+                }
                 error = handleBuildSoldier(UiEventPayload as buildSoldierPayload, player, soldiersMap, setSoldiersMap, settlements, intersectMap);
                 if (error === undefined) {
                     changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap);
                 }
                 break;
+
+            
             case 'moveSoldier':
-                error = handleMoveSoldier(UiEventPayload as moveSoldierPayload, roads, player, soldiersMap, setSoldiersMap);
+                if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
+                    error = 'Not your Action turn';
+                    break;
+                }
+                //check if soldier all have actions
+                let movePayload = UiEventPayload as moveSoldierPayload;
+                // movePayload.soldierIds = new Set(movePayload.soldierIds).difference(exhaustedSoldiers)
+                error = handleMoveSoldier(movePayload, roads, player, soldiersMap, setSoldiersMap);
                 break;
             case 'initiateBattle':
+                if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
+                    error = 'Not your Action turn';
+                    break;
+                }
                 error = handleInitiateBattle(UiEventPayload as initiateBattlePayload, playerName, setBattleState, soldiersMap);
                 break;
             case 'rolledSoldierScore':

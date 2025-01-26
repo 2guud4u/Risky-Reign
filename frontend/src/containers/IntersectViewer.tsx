@@ -5,7 +5,7 @@ import { SoldierObj } from '../utils/soldierUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import Grid from '@mui/material/Grid2';
 import { groupBy } from '../utils/helperUtils';
-
+type Id = string;
 interface IntersectViewerProps {
     intersect?: IntersectNode | undefined; // Assuming `intersect` can be undefined or null
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
@@ -21,6 +21,8 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, soldiersMa
     const [selectedEnemy, setSelectedEnemy] = useState<string>('');
     const [viewIntersect, setViewIntersect] = useState<IntersectNode | undefined>(undefined);
     const [soldierGroups, setSoldierGroups] = useState<Record<string, SoldierObj[]>>({});
+    
+    
     //new intersect selected
     useEffect(() => {
         if (intersect === undefined) {
