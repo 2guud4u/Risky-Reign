@@ -85,8 +85,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                     </svg>
                 </Grid>
             </Grid>
-            <div>{diceRoll}</div>
-            <button onClick={() => handleClick('diceRoll', -1)}>Roll Dice</button>
+
         </div>
     );
 };

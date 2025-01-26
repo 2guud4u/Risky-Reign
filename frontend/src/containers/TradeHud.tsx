@@ -4,14 +4,16 @@ import { tradeState, tradeParty } from '../utils/tradeUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
 import { v4 as uuidv4 } from 'uuid';
+import { TurnState } from '../utils/turnUtils';
 interface TradeHudProps {
     tradeStates: tradeState[];
     playerName: string;
     playerMap: Map<string, PlayerObj>;
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
+    // turnObj: TurnState;
 }
 
-const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap, UiEventCaller }) => {
+const TradeHud: React.FC<TradeHudProps> = ({  tradeStates, playerName, playerMap, UiEventCaller }) => {
     const [selectedTrade, setSelectedTrade] = React.useState<tradeState | null>(null);
 
     const handleTradeSelect = (id: string) => {

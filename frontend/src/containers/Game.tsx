@@ -310,7 +310,18 @@ const Game: React.FC = () => {
                 error = handleUpdateTrade(UiEventPayload as updateTradePayload, setTradeStates);
                 break;
             case 'respondTrade':
-                error = handleRespondTrade(UiEventPayload as respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
+                let respondTradePayload = UiEventPayload as respondTradePayload;
+                let targetTrade = tradeStates.find((trade) => trade.id === respondTradePayload.tradeId);
+                if (targetTrade === undefined) {
+                    return;
+                }
+                if(respondTradePayload.response === false){
+                    error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
+                } else if (turnObj.phase === 'Trade' && (turnObj.player === targetTrade.tradee.name || turnObj.player === targetTrade.trader.name)) {
+                        error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
+                } else{
+                    error = 'Not in trade phase';
+                }
                 break;
             case 'endTurn':
                 handleEndTurn(setTurnObj);
