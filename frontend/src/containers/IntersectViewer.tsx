@@ -12,9 +12,10 @@ interface IntersectViewerProps {
     playerName: string;
     settlements: SettlementObj[];
     soldiersMap: Map<number, SoldierObj[]>;
+    exhaustedSoldiers: Id[];
 }
 
-const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, soldiersMap, UiEventCaller, playerName, settlements }) => {
+const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedSoldiers,soldiersMap, UiEventCaller, playerName, settlements }) => {
     const [settlement, setSettlement] = useState<SettlementObj | undefined>(undefined);
     const [action, setAction] = useState<string>('');
     const [selectedSoldiers, setSelectedSoldiers] = useState<string[]>([]);
@@ -122,7 +123,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, soldiersMa
         setSelectedEnemy('');
     };
     const handleSelectAll = () => {
-        setSelectedSoldiers(soldierGroups[playerName].map((s) => s.id));
+        setSelectedSoldiers(soldierGroups[playerName].map((s) => s.id).filter((id)=>!exhaustedSoldiers.includes(id)));
     };
     const handleOnClickEnemy = (owner: string) => {
         if (selectedEnemy !== owner) {
@@ -214,7 +215,9 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, soldiersMa
                                                             {selectedSoldiers.includes(soldier.id) ? (
                                                                 <button onClick={() => handleUnselectSoldier(soldier.id)}>Deselect</button>
                                                             ) : (
-                                                                <button onClick={() => handleSelectSoldier(soldier.id)}>Select</button>
+                                                                <button onClick={() => handleSelectSoldier(soldier.id)} 
+                                                                disabled={exhaustedSoldiers.includes(soldier.id)}
+                                                                >Select</button>
                                                             )}
                                                         </>
                                                     ) : (

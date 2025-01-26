@@ -10,7 +10,6 @@ import { IntersectNode } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
-import IntersectViewer from './IntersectViewer';
 
 import Grid from '@mui/material/Grid2';
 import { SoldierObj } from '../utils/soldierUtils';
@@ -18,7 +17,7 @@ const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
-
+type Id = string;
 interface BoardProps {
     hexes: HexNode[];
     settlements: SettlementObj[];
@@ -27,10 +26,11 @@ interface BoardProps {
     roads: RoadObj[];
     intersects: IntersectNode[];
     soldiersMap: Map<number, SoldierObj[]>;
+    exhaustedSoldiers: Id[];
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
 }
 
-const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller }) => {
+const CatanBoard: React.FC<BoardProps> = ({ exhaustedSoldiers, hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller }) => {
     const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
 
     const handleClick = (target: string, targetId: number) => {
@@ -73,6 +73,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexes, settlements, players, diceRol
                             }));
                             return (
                                 <Intersection
+                                    exhaustedSoldiers={exhaustedSoldiers}
                                     key={intersect.id}
                                     {...intersect}
                                     size={intersectSize}

@@ -59,7 +59,7 @@ const Game: React.FC = () => {
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
     const [battleState, setBattleState] = useState<BattleState | null>(null);
-    const [exhaustedSoldiers, setExhaustedSoldiers] = useState<Set<Id>>(new Set());
+    const [exhaustedSoldiers, setExhaustedSoldiers] = useState<string[]>([]);
     const [turnObj, setTurnObj] = useState<TurnState>({
         phase: 'Dice',
         player: 'jia',
@@ -318,8 +318,13 @@ const Game: React.FC = () => {
                 }
                 //check if soldier all have actions
                 let movePayload = UiEventPayload as moveSoldierPayload;
-                // movePayload.soldierIds = new Set(movePayload.soldierIds).difference(exhaustedSoldiers)
+                movePayload.soldierIds = movePayload.soldierIds.filter((soldierId) => {
+                    return !exhaustedSoldiers.includes(soldierId);
+                });
                 error = handleMoveSoldier(movePayload, roads, player, soldiersMap, setSoldiersMap);
+                if (error === undefined) {
+                    setExhaustedSoldiers([...exhaustedSoldiers, ...movePayload.soldierIds]);
+                }
                 break;
             case 'initiateBattle':
                 if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
@@ -382,6 +387,7 @@ const Game: React.FC = () => {
             <Grid container spacing={3}>
                 <Grid size={6}>
                     <Board
+                        exhaustedSoldiers={exhaustedSoldiers}
                         hexes={Array.from(hexMap.values())}
                         intersects={Array.from(intersectMap.values())}
                         players={Array.from(playerMap.values())}
@@ -400,6 +406,7 @@ const Game: React.FC = () => {
                             UiEventCaller={handleUiEvent}
                             playerName={playerName}
                             settlements={settlements}
+                            exhaustedSoldiers={exhaustedSoldiers}
                         />
                     </Grid>
                     <Grid size={6}>

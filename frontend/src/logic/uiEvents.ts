@@ -238,9 +238,10 @@ export const handleMoveSoldier = (
 
     const movingSoldiers = soldiers.filter((soldier) => payload.soldierIds.includes(soldier.id));
 
-    if (movingSoldiers === undefined) {
+    if (movingSoldiers === undefined || movingSoldiers.length === 0) {
         return 'No soldiers to move';
     }
+    
     if (player.name !== movingSoldiers[0].owner) {
         return 'Cannot move soldier, not your soldier';
     }

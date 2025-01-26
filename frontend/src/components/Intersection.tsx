@@ -1,11 +1,12 @@
 import React from 'react';
 import { IntersectNode } from '../utils/intersectUtils';
 import { SoldierObj, SoldierType } from '../utils/soldierUtils';
+type Id = string;
 export interface IntersectionProps extends IntersectNode {
     soldierGroups: Record<string, SoldierObj[]>;
     colorSoldierGroups: colorSoldierGroups[];
     size: number;
-    // onDrop: (target: string, targetId: number, action: string) => void;
+    exhaustedSoldiers: Id[];
     onClick: (target: string, targetId: number) => void;
 }
 interface colorSoldierGroups {
@@ -19,7 +20,7 @@ interface SoldierDisp {
     type: SoldierType;
     color: string;
 }
-const Intersection: React.FC<IntersectionProps> = ({ id, coord, size, onClick, soldierGroups, colorSoldierGroups }) => {
+const Intersection: React.FC<IntersectionProps> = ({ exhaustedSoldiers, id, coord, size, onClick, soldierGroups, colorSoldierGroups }) => {
     const { x, y } = coord;
     const [soldierComps, setSoldierComps] = React.useState<SoldierDisp[]>([]);
 
