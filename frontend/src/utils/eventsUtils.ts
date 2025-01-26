@@ -18,7 +18,8 @@ export type UiEvent =
     | 'selectIntersect'
     | 'confirmedLineUp'
     | 'updateTrade'
-    | 'respondTrade';
+    | 'respondTrade'
+    | 'endTurn';
 
 export type UiEventPayload = buildSettlementPayload | buildRoadPayload | rollDicePayload;
 

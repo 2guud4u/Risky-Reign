@@ -34,6 +34,7 @@ import {
     handleConfirmedLineUp,
     handleUpdateTrade,
     handleRespondTrade,
+    handleEndTurn,
 } from '../logic/uiEvents';
 import { changePlayerResources } from '../services/update';
 import { SoldierObj, BattleState } from '../utils/soldierUtils';
@@ -43,7 +44,8 @@ import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
 import TradeHud from './TradeHud';
 import { tradeState } from '../utils/tradeUtils';
-
+import {TurnState} from '../utils/turnUtils';
+import EndTurnButton from './EndTurnButton';
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
@@ -57,6 +59,13 @@ const Game: React.FC = () => {
     const [settlements, setSettlements] = useState<SettlementObj[]>([]);
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
     const [battleState, setBattleState] = useState<BattleState | null>(null);
+    const [turnObj, setTurnObj] = useState<TurnState>({
+        phase: 'Dice',
+        player: 'jia',
+        playerOrder: ['jia', 'fel', 'idk'],
+        offset: 0,
+    });
+    
     const [tradeStates, setTradeStates] = useState<tradeState[]>([
         {
             id: '1',
@@ -303,6 +312,9 @@ const Game: React.FC = () => {
             case 'respondTrade':
                 error = handleRespondTrade(UiEventPayload as respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
                 break;
+            case 'endTurn':
+                handleEndTurn(setTurnObj);
+                break;
             default:
                 break;
         }
@@ -315,12 +327,14 @@ const Game: React.FC = () => {
 
     return (
         <>
-            <div>dice rolled</div>
-            {roll}
+            <h1>{turnObj.phase} for {turnObj.player}</h1>
             <div>playing as</div>
             {playerName}
             <button onClick={switchPlayer}>Switch Player</button>
             <button onClick={() => setPlayerName('idk')}>Switch to idk</button>
+            <Grid container direction="row">
+
+            
             <Grid container spacing={3}>
                 <Grid size={6}>
                     <Board
@@ -354,6 +368,10 @@ const Game: React.FC = () => {
                         <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
                     </Grid>
                 </Grid>
+            </Grid>
+            <Grid>
+                <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnObj} player={playerName} />
+            </Grid>
             </Grid>
         </>
     );

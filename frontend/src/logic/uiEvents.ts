@@ -22,6 +22,7 @@ import { changePlayerResources, updateSingleSoldier, priceMath } from '../servic
 import Road from '../components/Road';
 import { groupBy, zip } from '../utils/helperUtils';
 import { tradeState } from '../utils/tradeUtils';
+import { TurnState } from '../utils/turnUtils';
 
 export const checkHasPrice = (player: PlayerObj, price: Price): boolean => {
     const playerResources = player.resources;
@@ -483,7 +484,7 @@ export const handleUpdateTrade = (payload: updateTradePayload, setTradeStates: R
             return tradeState;
         })
     );
-    
+
     if (!replaced) {
         setTradeStates((prev) => [...prev, payload.tradeState]);
     }
@@ -535,5 +536,43 @@ export const handleRespondTrade = (
         return;
     }
 
+    return;
+};
+
+export const handleEndTurn = (setTurnObj: React.Dispatch<React.SetStateAction<TurnState>>) => {
+    setTurnObj((prev) => {
+        let playerIndex = prev.playerOrder.indexOf(prev.player);
+        if (prev === null) {
+            return prev;
+        }
+        if (prev.phase === 'Dice') {
+            return { ...prev, phase: 'Trade' };
+        }
+        if (prev.phase === 'Trade') {
+            return { ...prev, phase: 'Build' };
+        }
+        if (prev.phase === 'Build') {
+            if (prev.offset === prev.playerOrder.length - 1) {
+                return { ...prev, player: prev.playerOrder[playerIndex-prev.offset] ,phase: 'Action', offset: 0 };
+            } else {
+                return { ...prev, 
+                    player: (prev.playerOrder[playerIndex + 1] || prev.playerOrder[0]),
+                    offset: prev.offset + 1 };
+            }
+        }
+        if (prev.phase === 'Action') {
+            if (prev.offset === prev.playerOrder.length - 1) {
+                return { ...prev, phase: 'Dice', offset: 0 };
+            } else {
+                return { ...prev, 
+                    player: (prev.playerOrder[playerIndex + 1] || prev.playerOrder[0]),
+                    offset: prev.offset + 1 };
+            }
+        }
+        
+        return {
+            ...prev
+        };
+    });
     return;
 };
