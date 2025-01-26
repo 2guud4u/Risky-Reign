@@ -386,7 +386,7 @@ const Game: React.FC = () => {
     return (
         <>
             <Grid container direction="row">
-                <Grid container direction="column" size={6}>
+                <Grid container direction="column" size={7}>
                     <Grid>
                         <h1>
                             {turnObj.phase} for {turnObj.player}
@@ -419,7 +419,7 @@ const Game: React.FC = () => {
                     </Grid>
                 </Grid>
 
-                <Grid container size={6} direction="column">
+                <Grid container size={5} direction="column">
                     <Grid size={12}>
                         <PlayersList players={Array.from(playerMap.values())} />
                     </Grid>
@@ -434,14 +434,17 @@ const Game: React.FC = () => {
                                 exhaustedSoldiers={exhaustedSoldiers}
                             />
                         </Grid>
-                        <Grid size={8}>
-                            <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
+                        <Grid container direction="column" size={8}>
+                            <Grid >
+                                <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
+                            </Grid>
+                            <Grid>
+                                <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
+                            </Grid>
                         </Grid>
                     </Grid>
 
-                    <Grid size={12}>
-                        <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
-                    </Grid>
+                    
                 </Grid>
             </Grid>
         </>
