@@ -241,7 +241,7 @@ export const handleMoveSoldier = (
     if (movingSoldiers === undefined || movingSoldiers.length === 0) {
         return 'No soldiers to move';
     }
-    
+
     if (player.name !== movingSoldiers[0].owner) {
         return 'Cannot move soldier, not your soldier';
     }
@@ -497,9 +497,8 @@ export const handleRespondTrade = (
     payload: respondTradePayload,
     tradeStates: tradeState[],
     setTradeStates: React.Dispatch<React.SetStateAction<tradeState[]>>,
-    setPlayerMap:React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>,
+    setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>,
     playerMap: Map<string, PlayerObj>
-
 ) => {
     const { tradeId, response, playerName } = payload;
     const tradeState = tradeStates.find((tradeState) => tradeState.id === tradeId);
@@ -521,18 +520,17 @@ export const handleRespondTrade = (
             setTradeStates(tradeStates.filter((tradeState) => tradeState.id !== tradeId));
         } else {
             // handle trade go though
-            const traderPrice = priceMath(tradeState.tradee.offer, tradeState.trader.offer, "-");
-            const tradeePrice = priceMath(tradeState.trader.offer,tradeState.tradee.offer, "-");
+            const traderPrice = priceMath(tradeState.tradee.offer, tradeState.trader.offer, '-');
+            const tradeePrice = priceMath(tradeState.trader.offer, tradeState.tradee.offer, '-');
             const trader = playerMap.get(tradeState.trader.name);
             const tradee = playerMap.get(tradeState.tradee.name);
-            
+
             if (trader === undefined || tradee === undefined) {
                 return;
             }
             changePlayerResources(trader, traderPrice, playerMap, setPlayerMap);
             changePlayerResources(tradee, tradeePrice, playerMap, setPlayerMap);
             setTradeStates(tradeStates.filter((tradeState) => tradeState.id !== tradeId));
-
         }
         return;
     }
@@ -540,7 +538,8 @@ export const handleRespondTrade = (
     return;
 };
 
-export const handleEndTurn = (setTurnObj: React.Dispatch<React.SetStateAction<TurnState>>, 
+export const handleEndTurn = (
+    setTurnObj: React.Dispatch<React.SetStateAction<TurnState>>,
     setExhaustedSoldiers: React.Dispatch<React.SetStateAction<string[]>>
 ) => {
     setTurnObj((prev) => {
@@ -556,26 +555,22 @@ export const handleEndTurn = (setTurnObj: React.Dispatch<React.SetStateAction<Tu
         }
         if (prev.phase === 'Build') {
             if (prev.offset === prev.playerOrder.length - 1) {
-                return { ...prev, player: prev.playerOrder[playerIndex-prev.offset] ,phase: 'Action', offset: 0 };
+                return { ...prev, player: prev.playerOrder[playerIndex - prev.offset], phase: 'Action', offset: 0 };
             } else {
-                return { ...prev, 
-                    player: (prev.playerOrder[playerIndex + 1] || prev.playerOrder[0]),
-                    offset: prev.offset + 1 };
+                return { ...prev, player: prev.playerOrder[playerIndex + 1] || prev.playerOrder[0], offset: prev.offset + 1 };
             }
         }
         if (prev.phase === 'Action') {
             if (prev.offset === prev.playerOrder.length - 1) {
-                setExhaustedSoldiers([])
+                setExhaustedSoldiers([]);
                 return { ...prev, phase: 'Dice', offset: 0 };
             } else {
-                return { ...prev, 
-                    player: (prev.playerOrder[playerIndex + 1] || prev.playerOrder[0]),
-                    offset: prev.offset + 1 };
+                return { ...prev, player: prev.playerOrder[playerIndex + 1] || prev.playerOrder[0], offset: prev.offset + 1 };
             }
         }
-        
+
         return {
-            ...prev
+            ...prev,
         };
     });
     return;

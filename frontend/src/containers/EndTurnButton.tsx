@@ -6,11 +6,9 @@ interface EndTurnButtonProps {
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
     turnObj: TurnState;
     player: string;
-
 }
 
-
-const EndTurnButton: React.FC<EndTurnButtonProps> = ({UiEventCaller, turnObj, player}) => {
+const EndTurnButton: React.FC<EndTurnButtonProps> = ({ UiEventCaller, turnObj, player }) => {
     const [phaseText, setPhaseText] = useState<string>('');
     useEffect(() => {
         switch (turnObj.phase) {
@@ -18,7 +16,7 @@ const EndTurnButton: React.FC<EndTurnButtonProps> = ({UiEventCaller, turnObj, pl
                 setPhaseText('End SetUp');
                 break;
             case 'Dice':
-                setPhaseText('Roll Dice')
+                setPhaseText('Roll Dice');
                 break;
             case 'Trade':
                 setPhaseText('End Trade Phase');
@@ -37,19 +35,10 @@ const EndTurnButton: React.FC<EndTurnButtonProps> = ({UiEventCaller, turnObj, pl
         if (turnObj.phase === 'Dice') {
             UiEventCaller('rollDice', {});
         }
-        
-        UiEventCaller('endTurn', {});  
-    }
-    return (
-        <>
-            {turnObj.player === player && (
-                <button onClick={handleClick}>
-                    {phaseText}
-                </button>
-            )}
-        </>
-        
-    );
-}
+
+        UiEventCaller('endTurn', {});
+    };
+    return <>{turnObj.player === player && <button onClick={handleClick}>{phaseText}</button>}</>;
+};
 
 export default EndTurnButton;

@@ -15,15 +15,14 @@ interface IntersectViewerProps {
     exhaustedSoldiers: Id[];
 }
 
-const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedSoldiers,soldiersMap, UiEventCaller, playerName, settlements }) => {
+const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedSoldiers, soldiersMap, UiEventCaller, playerName, settlements }) => {
     const [settlement, setSettlement] = useState<SettlementObj | undefined>(undefined);
     const [action, setAction] = useState<string>('');
     const [selectedSoldiers, setSelectedSoldiers] = useState<string[]>([]);
     const [selectedEnemy, setSelectedEnemy] = useState<string>('');
     const [viewIntersect, setViewIntersect] = useState<IntersectNode | undefined>(undefined);
     const [soldierGroups, setSoldierGroups] = useState<Record<string, SoldierObj[]>>({});
-    
-    
+
     //new intersect selected
     useEffect(() => {
         if (intersect === undefined) {
@@ -123,7 +122,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedS
         setSelectedEnemy('');
     };
     const handleSelectAll = () => {
-        setSelectedSoldiers(soldierGroups[playerName].map((s) => s.id).filter((id)=>!exhaustedSoldiers.includes(id)));
+        setSelectedSoldiers(soldierGroups[playerName].map((s) => s.id).filter((id) => !exhaustedSoldiers.includes(id)));
     };
     const handleOnClickEnemy = (owner: string) => {
         if (selectedEnemy !== owner) {
@@ -215,9 +214,12 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect, exhaustedS
                                                             {selectedSoldiers.includes(soldier.id) ? (
                                                                 <button onClick={() => handleUnselectSoldier(soldier.id)}>Deselect</button>
                                                             ) : (
-                                                                <button onClick={() => handleSelectSoldier(soldier.id)} 
-                                                                disabled={exhaustedSoldiers.includes(soldier.id)}
-                                                                >Select</button>
+                                                                <button
+                                                                    onClick={() => handleSelectSoldier(soldier.id)}
+                                                                    disabled={exhaustedSoldiers.includes(soldier.id)}
+                                                                >
+                                                                    Select
+                                                                </button>
                                                             )}
                                                         </>
                                                     ) : (

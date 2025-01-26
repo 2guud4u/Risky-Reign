@@ -44,8 +44,9 @@ import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
 import TradeHud from './TradeHud';
 import { tradeState } from '../utils/tradeUtils';
-import {TurnState} from '../utils/turnUtils';
+import { TurnState } from '../utils/turnUtils';
 import EndTurnButton from './EndTurnButton';
+import Inventory from './Inventory';
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
@@ -66,7 +67,7 @@ const Game: React.FC = () => {
         playerOrder: ['jia', 'fel', 'idk'],
         offset: 0,
     });
-    
+
     const [tradeStates, setTradeStates] = useState<tradeState[]>([
         {
             id: '1',
@@ -261,10 +262,10 @@ const Game: React.FC = () => {
 
             case 'selectIntersect':
                 setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
-                
+
                 break;
             case 'buildSettlement':
-                if(turnObj.phase !== 'Build' || turnObj.player !== playerName){
+                if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
                     error = 'Not your build turn';
                     break;
                 }
@@ -282,13 +283,13 @@ const Game: React.FC = () => {
 
                 break;
             case 'upgradeSettlement':
-                if(turnObj.phase !== 'Build' || turnObj.player !== playerName){
+                if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
                     error = 'Not your build turn';
                     break;
                 }
                 break;
             case 'buildRoad':
-                if(turnObj.phase !== 'Build' || turnObj.player !== playerName){
+                if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
                     error = 'Not your build turn';
                     break;
                 }
@@ -298,9 +299,9 @@ const Game: React.FC = () => {
                 }
 
                 break;
-            
+
             case 'buildSoldier':
-                if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
+                if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
                     error = 'Not your Action turn';
                     break;
                 }
@@ -310,9 +311,8 @@ const Game: React.FC = () => {
                 }
                 break;
 
-            
             case 'moveSoldier':
-                if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
+                if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
                     error = 'Not your Action turn';
                     break;
                 }
@@ -327,7 +327,7 @@ const Game: React.FC = () => {
                 }
                 break;
             case 'initiateBattle':
-                if(turnObj.phase !== 'Action' || turnObj.player !== playerName){
+                if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
                     error = 'Not your Action turn';
                     break;
                 }
@@ -340,6 +340,7 @@ const Game: React.FC = () => {
                     setExhaustedSoldiers([...exhaustedSoldiers, ...initiateBattlePayload.friendlyIds]);
                 }
                 break;
+
             case 'rolledSoldierScore':
                 error = handleRolledSoldierScore(UiEventPayload as rolledSoldierScorePayload, playerName, setBattleState);
                 break;
@@ -360,11 +361,12 @@ const Game: React.FC = () => {
                 if (targetTrade === undefined) {
                     return;
                 }
-                if(respondTradePayload.response === false){
+                if (respondTradePayload.response === false) {
+                    //can cancel whenever
                     error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
                 } else if (turnObj.phase === 'Trade' && (turnObj.player === targetTrade.tradee.name || turnObj.player === targetTrade.trader.name)) {
-                        error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
-                } else{
+                    error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
+                } else {
                     error = 'Not in trade phase';
                 }
                 break;
@@ -383,53 +385,65 @@ const Game: React.FC = () => {
 
     return (
         <>
-            <h1>{turnObj.phase} for {turnObj.player}</h1>
+            <h1>
+                {turnObj.phase} for {turnObj.player}
+            </h1>
             <div>playing as</div>
             {playerName}
             <button onClick={switchPlayer}>Switch Player</button>
             <button onClick={() => setPlayerName('idk')}>Switch to idk</button>
             <Grid container direction="row">
-
-            
-            <Grid container spacing={3}>
-                <Grid size={6}>
-                    <Board
-                        exhaustedSoldiers={exhaustedSoldiers}
-                        hexes={Array.from(hexMap.values())}
-                        intersects={Array.from(intersectMap.values())}
-                        players={Array.from(playerMap.values())}
-                        roads={roads}
-                        diceRoll={roll}
-                        settlements={settlements}
-                        UiEventCaller={handleUiEvent}
-                        soldiersMap={soldiersMap}
-                    />
-                </Grid>
-                <Grid container size={6}>
+                <Grid container spacing={3}>
                     <Grid size={6}>
-                        <IntersectViewer
-                            soldiersMap={soldiersMap}
-                            intersect={selectedIntersect}
-                            UiEventCaller={handleUiEvent}
-                            playerName={playerName}
-                            settlements={settlements}
+                        <Board
                             exhaustedSoldiers={exhaustedSoldiers}
+                            hexes={Array.from(hexMap.values())}
+                            intersects={Array.from(intersectMap.values())}
+                            players={Array.from(playerMap.values())}
+                            roads={roads}
+                            diceRoll={roll}
+                            settlements={settlements}
+                            UiEventCaller={handleUiEvent}
+                            soldiersMap={soldiersMap}
                         />
                     </Grid>
-                    <Grid size={6}>
-                        <PlayersList players={Array.from(playerMap.values())} />
-                    </Grid>
-                    <Grid size={12}>
-                        <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
-                    </Grid>
-                    <Grid size={12}>
-                        <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
+                    <Grid container size={6}>
+                        <Grid size={6}>
+                            <IntersectViewer
+                                soldiersMap={soldiersMap}
+                                intersect={selectedIntersect}
+                                UiEventCaller={handleUiEvent}
+                                playerName={playerName}
+                                settlements={settlements}
+                                exhaustedSoldiers={exhaustedSoldiers}
+                            />
+                        </Grid>
+                        <Grid size={6}>
+                            <PlayersList players={Array.from(playerMap.values())} />
+                        </Grid>
+                        <Grid size={12}>
+                            <BattleHud
+                                playerName={playerName}
+                                BattleState={battleState}
+                                UiEventCaller={handleUiEvent}
+                                setBattleState={setBattleState}
+                            />
+                        </Grid>
+                        <Grid size={12}>
+                            <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
+                        </Grid>
                     </Grid>
                 </Grid>
-            </Grid>
-            <Grid>
-                <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnObj} player={playerName} />
-            </Grid>
+                
+                <Grid container direction="row">
+                    <Grid size={2}>
+                        <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnObj} player={playerName} />
+
+                    </Grid>
+                    <Grid size={10}>
+                        <Inventory />
+                </Grid>
+                </Grid>
             </Grid>
         </>
     );

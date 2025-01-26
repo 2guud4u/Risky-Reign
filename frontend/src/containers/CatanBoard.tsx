@@ -30,7 +30,17 @@ interface BoardProps {
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
 }
 
-const CatanBoard: React.FC<BoardProps> = ({ exhaustedSoldiers, hexes, settlements, players, diceRoll, roads, intersects, soldiersMap, UiEventCaller }) => {
+const CatanBoard: React.FC<BoardProps> = ({
+    exhaustedSoldiers,
+    hexes,
+    settlements,
+    players,
+    diceRoll,
+    roads,
+    intersects,
+    soldiersMap,
+    UiEventCaller,
+}) => {
     const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
 
     const handleClick = (target: string, targetId: number) => {
@@ -86,7 +96,6 @@ const CatanBoard: React.FC<BoardProps> = ({ exhaustedSoldiers, hexes, settlement
                     </svg>
                 </Grid>
             </Grid>
-
         </div>
     );
 };
