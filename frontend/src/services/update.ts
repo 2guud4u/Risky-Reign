@@ -63,3 +63,15 @@ export const updateSingleSoldier = (
         return newMap;
     });
 };
+
+//edit roll
+// edit hexMap
+// edit intersectMap
+// edit playerMap
+// edit road
+//edit settlement
+// edit battleState
+// edit exhaust
+// edit turnObj
+//edit trade state
+// edit player map

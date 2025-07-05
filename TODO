@@ -1,6 +1,10 @@
-- phase stuff
-    - action counting
+- create socket logic
+- create the lobby code
+- move all game logic to server
+- setup logic
+    - inventory 
 - make all updates to board in updates
+- figure out web sockets stuff
 
 
 

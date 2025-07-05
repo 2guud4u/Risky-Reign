@@ -38,7 +38,7 @@ const EndTurnButton: React.FC<EndTurnButtonProps> = ({ UiEventCaller, turnObj, p
 
         UiEventCaller('endTurn', {});
     };
-    return <>{turnObj.player === player && <button onClick={handleClick}>{phaseText}</button>}</>;
+    return <>{turnObj.player === player?  <button onClick={handleClick}>{phaseText}</button> : <button disabled>Waiting on {turnObj.player}</button>}</>;
 };
 
 export default EndTurnButton;

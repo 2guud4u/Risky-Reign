@@ -391,10 +391,10 @@ const Game: React.FC = () => {
                         <h1>
                             {turnObj.phase} for {turnObj.player}
                         </h1>
-                        <div>playing as</div>
                         {playerName}
-                        <button onClick={switchPlayer}>Switch Player</button>
-                        <button onClick={() => setPlayerName('idk')}>Switch to idk</button>
+                        <button onClick={()=>setPlayerName("jia")}>jia</button>
+                        <button onClick={()=>setPlayerName("fel")}>fel</button>
+                        <button onClick={()=>setPlayerName("idk")}>idk</button>
                     </Grid>
                     <Grid>
                         <Board

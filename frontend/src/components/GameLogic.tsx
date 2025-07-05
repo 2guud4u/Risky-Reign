@@ -1,0 +1,105 @@
+import React, { useEffect, useState } from 'react';
+import { useSocket } from './SocketProvider';
+import LobbyPage from '../pages/Lobby';
+import GamePage from '../pages/Game';
+interface Player {
+  id: string;
+  name: string;
+  symbol: 'X' | 'O';
+}
+interface GameRoom {
+  id: string;
+  players: Player[];
+  board: (string | null)[];
+  currentPlayer: 'X' | 'O';
+  gameStatus: 'waiting' | 'playing' | 'finished';
+  winner: string | null;
+}
+
+const GameLogic: React.FC = () => {
+  const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentRoomId, setCurrentRoomId] = useState<string>('');
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('roomUpdate', (room: GameRoom) => {
+      setGameRoom(room);
+      const player = room.players.find(p => p.id === socket.id);
+      setCurrentPlayer(player || null);
+      setError(null);
+    });
+
+    socket.on('gameUpdate', (room: GameRoom) => {
+      setGameRoom(room);
+      setError(null);
+    });
+
+    socket.on('error', (errorData: { message: string }) => {
+      setError(errorData.message);
+    });
+
+    return () => {
+      socket.off('roomUpdate');
+      socket.off('gameUpdate');
+      socket.off('error');
+    };
+  }, [socket]);
+
+  const joinRoom = (playerName: string, roomId: string) => {
+    if (!socket) return;
+    
+    setCurrentRoomId(roomId);
+    socket.emit('joinRoom', { roomId, playerName });
+  };
+
+  const makeMove = (position: number) => {
+    if (!socket || !currentRoomId) return;
+    
+    socket.emit('makeMove', { roomId: currentRoomId, position });
+  };
+
+  const resetGame = () => {
+    if (!socket || !currentRoomId) return;
+    
+    socket.emit('resetGame', { roomId: currentRoomId });
+  };
+
+  const leaveRoom = () => {
+    setGameRoom(null);
+    setCurrentPlayer(null);
+    setCurrentRoomId('');
+    setError(null);
+    // Disconnect and reconnect to clean up server state
+    if (socket) {
+      socket.disconnect();
+      socket.connect();
+    }
+  };
+
+  return (
+    <div className="app">
+      {!gameRoom ? (
+        <LobbyPage 
+          onJoinRoom={joinRoom}
+          error={error}
+        />
+      ) : (<>
+      <GamePage
+          gameRoom={gameRoom}
+          currentPlayer={currentPlayer}
+          onMakeMove={makeMove}
+          onResetGame={resetGame}
+          onLeaveRoom={leaveRoom}
+          error={error}
+        />
+        </>
+      )}
+    </div>
+  );
+};
+
+export default GameLogic;
