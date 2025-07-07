@@ -42,6 +42,7 @@ const GameLogic: React.FC = () => {
       setError(errorData.message);
     });
 
+
     return () => {
       socket.off('roomUpdate');
       socket.off('gameUpdate');
@@ -60,6 +61,12 @@ const GameLogic: React.FC = () => {
     if (!socket || !currentRoomId) return;
     
     socket.emit('makeMove', { roomId: currentRoomId, position });
+  };
+
+  const startGame = () => {
+    if (!socket || !currentRoomId) return;
+    console.log('Starting game in room:', currentRoomId);
+    socket.emit('startGame', { roomId: currentRoomId });
   };
 
   const resetGame = () => {
@@ -93,6 +100,7 @@ const GameLogic: React.FC = () => {
           currentPlayer={currentPlayer}
           onMakeMove={makeMove}
           onResetGame={resetGame}
+          onStartGame={startGame}
           onLeaveRoom={leaveRoom}
           error={error}
         />

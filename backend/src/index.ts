@@ -1,5 +1,5 @@
-import { getHexagonCoords, createCoordsMapAndTokenMap } from './Services/Game';
-import { addPlayer } from './Controller/Game';
+// import { getHexagonCoords, createCoordsMapAndTokenMap } from '../../archive/Game';
+// import { addPlayer } from '../../archive/Controller/Game';
 import connectDB from './config/db';
 import http from 'http';
 
@@ -29,7 +29,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-
+import {GameRoom} from './types/Room'; // Assuming you have a GameRoom type defined in types/GameRoom.ts
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -49,14 +49,7 @@ interface Player {
   symbol: 'X' | 'O';
 }
 
-interface GameRoom {
-  id: string;
-  players: Player[];
-  board: (string | null)[];
-  currentPlayer: 'X' | 'O';
-  gameStatus: 'waiting' | 'playing' | 'finished';
-  winner: string | null;
-}
+
 
 // Store active games
 const gameRooms = new Map<string, GameRoom>();
@@ -67,7 +60,12 @@ function createGameRoom(roomId: string): GameRoom {
     id: roomId,
     players: [],
     board: Array(9).fill(null),
-    currentPlayer: 'X',
+    turnState: {
+      phase:"SetUp",
+      player: '',
+      playerOrder: [],
+      offset: 0
+    },
     gameStatus: 'waiting',
     winner: null
   };
@@ -75,28 +73,9 @@ function createGameRoom(roomId: string): GameRoom {
   return room;
 }
 
-// Check for winner
-function checkWinner(board: (string | null)[]): string | null {
-  const winPatterns = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-    [0, 4, 8], [2, 4, 6] // diagonals
-  ];
 
-  for (const pattern of winPatterns) {
-    const [a, b, c] = pattern;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return board[a];
-    }
-  }
 
-  return null;
-}
 
-// Check for draw
-function checkDraw(board: (string | null)[]): boolean {
-  return board.every(cell => cell !== null);
-}
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -128,14 +107,23 @@ io.on('connection', (socket) => {
     socket.join(roomId);
 
     // Start game if we have 2 players
-    if (room.players.length === 2) {
-      room.gameStatus = 'playing';
-    }
+
 
     // Send updated room state to all players
     io.to(roomId).emit('roomUpdate', room);
     
     console.log(`Player ${playerName} joined room ${roomId}`);
+  });
+
+  socket.on('startGame', (data: { roomId: string }) => {
+    const { roomId } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    room.gameStatus = 'playing';
+    io.to(roomId).emit('roomUpdate', room);
   });
 
   // Handle game moves
@@ -155,38 +143,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Validate move
-    if (room.gameStatus !== 'playing') {
-      socket.emit('error', { message: 'Game is not active' });
-      return;
-    }
-
-    if (player.symbol !== room.currentPlayer) {
-      socket.emit('error', { message: 'Not your turn' });
-      return;
-    }
-
-    if (room.board[position] !== null) {
-      socket.emit('error', { message: 'Position already taken' });
-      return;
-    }
-
-    // Make the move
-    room.board[position] = player.symbol;
-
-    // Check for winner
-    const winner = checkWinner(room.board);
-    if (winner) {
-      room.gameStatus = 'finished';
-      room.winner = player.name;
-    } else if (checkDraw(room.board)) {
-      room.gameStatus = 'finished';
-      room.winner = 'draw';
-    } else {
-      // Switch turns
-      room.currentPlayer = room.currentPlayer === 'X' ? 'O' : 'X';
-    }
-
     // Send updated game state to all players in room
     io.to(roomId).emit('gameUpdate', room);
   });
@@ -203,7 +159,7 @@ io.on('connection', (socket) => {
 
     // Reset game state
     room.board = Array(9).fill(null);
-    room.currentPlayer = 'X';
+    room.turnState.player = 'X';
     room.gameStatus = room.players.length === 2 ? 'playing' : 'waiting';
     room.winner = null;
 
@@ -227,7 +183,7 @@ io.on('connection', (socket) => {
         } else {
           // Reset game if a player leaves
           room.board = Array(9).fill(null);
-          room.currentPlayer = 'X';
+          room.turnState.player = 'X';
           room.gameStatus = 'waiting';
           room.winner = null;
           

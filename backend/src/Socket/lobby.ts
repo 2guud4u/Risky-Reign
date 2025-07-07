@@ -1,5 +1,5 @@
 import { Socket ,Server } from 'socket.io';
-import { addPlayer, removePlayer, getPlayers } from '../Controller/Game';
+import { addPlayer, removePlayer, getPlayers } from '../../../archive/Controller/Game';
 import { get } from 'node:http';
 
 export default (io: Server) => {

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import PlayerInt from "../types/player";
+import PlayerInt from "../types/Player";
 import { devCardSchema } from "./DevCard";
 
 

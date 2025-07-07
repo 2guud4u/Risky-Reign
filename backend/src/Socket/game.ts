@@ -1,9 +1,9 @@
 import { Server } from 'socket.io';
-import {generateBoardAndSave} from '../Controller/Game';
+import {generateBoardAndSave} from '../../../archive/Controller/Game';
 import {rollDice} from '../utils/utils';
-import {handleDiceRollPhase} from '../Controller/Phases/DiceRoll';
+import {handleDiceRollPhase} from '../../../archive/Controller/Phases/DiceRoll';
 import { isBuildType } from '../types/Pieces';
-import { handleBuild } from '../Controller/Phases/Build';
+import { handleBuild } from '../../../archive/Controller/Phases/Build';
 
 export default (io: Server) => {
     io.on('connection', (socket) => {

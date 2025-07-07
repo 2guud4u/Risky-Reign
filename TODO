@@ -1,6 +1,6 @@
-- create socket logic
-- create the lobby code
+
 - move all game logic to server
+  - game states
 - setup logic
     - inventory 
 - make all updates to board in updates
