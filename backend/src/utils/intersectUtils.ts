@@ -1,5 +1,4 @@
 import { cubeToPixel, PixelCoord, calcEuclideanDistance } from './helperUtils';
-import { IntersectionProps } from '../components/Intersection';
 import { HexNode } from './hexUtils';
 import { SoldierObj } from './soldierUtils';
 

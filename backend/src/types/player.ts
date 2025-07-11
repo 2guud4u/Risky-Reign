@@ -1,4 +1,5 @@
-// import { Resource } from './Board';
+import {ResourceCount} from "./Logic"
+
 import { DevCard } from './Pieces';
 // export default interface Player {
 //     name: string;
@@ -9,6 +10,7 @@ import { DevCard } from './Pieces';
 export interface Player {
   id: string;
   name: string;
-  symbol: 'X' | 'O';
+  color:string;
+  resources: ResourceCount;
 }
 

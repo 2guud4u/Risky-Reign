@@ -4,6 +4,27 @@ export interface Settlement {
     owner: string;
     upgraded: boolean;
 }
+export type SoldierType = 'infantry' | 'cannon';
+
+export interface SoldierObj {
+    id: string;
+    owner: string;
+    injured: boolean;
+    intersect: number;
+    type: SoldierType;
+    stationed: boolean;
+}
+
+export interface SoldierBattleState {
+    soldier: SoldierObj;
+    rollNum: number;
+    dead: boolean;
+}
+export interface BattleState {
+    states: Map<string, { soldiers: SoldierBattleState[]; submitted: boolean }>;
+
+    intersectId: number;
+}
 
 export class SettlementImpl implements Settlement {
     owner: string;
@@ -60,4 +81,24 @@ export type buildType = typeof buildTypes[number];
 
 export const isBuildType = (arg: any): arg is buildType => {
     return buildTypes.includes(arg);
+}
+
+
+import { PixelCoord } from '../utils/helperUtils';
+
+export interface RoadObj {
+    id: number;
+    intersect1: number;
+    intersect2: number;
+    owner: string;
+    coord1: PixelCoord;
+    coord2: PixelCoord;
+    upgraded: boolean;
+}
+
+export interface SettlementObj {
+    id: number;
+    owner: string;
+    upgraded: boolean;
+    coord: PixelCoord;
 }

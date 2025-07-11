@@ -29,7 +29,11 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import {GameRoom} from './types/Room'; // Assuming you have a GameRoom type defined in types/GameRoom.ts
+import {GameRoom} from './types/Room'; 
+import { Player } from './types/Player'; 
+import {generateGameBoard} from './types/Logic'
+import { getRollMap } from './types/Hex';
+import {Board} from './types/Board'
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -43,23 +47,31 @@ app.use(cors());
 app.use(express.json());
 
 // Game state interfaces
-interface Player {
-  id: string;
-  name: string;
-  symbol: 'X' | 'O';
-}
-
-
 
 // Store active games
 const gameRooms = new Map<string, GameRoom>();
-
+const hexSize = 100;
+const boardRadius = 2;
+const intersectSize = hexSize / 4;
+const roadSize = intersectSize / 2;
 // Create a new game room
 function createGameRoom(roomId: string): GameRoom {
+  //create board
+  let { hexMap, intersectMap } = generateGameBoard(boardRadius, hexSize);
+
+  const gameBoard: Board= {
+    HexMap: hexMap,
+    IntersectionMap: intersectMap,
+    Settlements: [],
+    Roads: [],
+    Soldiers: [],
+    Roll: "",
+    RollMap: getRollMap(Array.from(hexMap.values())),
+  }
   const room: GameRoom = {
     id: roomId,
     players: [],
-    board: Array(9).fill(null),
+    board: gameBoard, // Initialize with no board
     turnState: {
       phase:"SetUp",
       player: '',
@@ -72,10 +84,6 @@ function createGameRoom(roomId: string): GameRoom {
   gameRooms.set(roomId, room);
   return room;
 }
-
-
-
-
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -95,19 +103,22 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Add player to room
-    const symbol: 'X' | 'O' = room.players.length === 0 ? 'X' : 'O';
+
     const player: Player = {
       id: socket.id,
       name: playerName,
-      symbol
+      color: '',
+      resources: {
+        Wood: 0,
+        Brick: 0,
+        Sheep: 0,
+        Wheat: 0,
+        Ore: 0
+      }
     };
 
     room.players.push(player);
     socket.join(roomId);
-
-    // Start game if we have 2 players
-
 
     // Send updated room state to all players
     io.to(roomId).emit('roomUpdate', room);
@@ -158,7 +169,6 @@ io.on('connection', (socket) => {
     }
 
     // Reset game state
-    room.board = Array(9).fill(null);
     room.turnState.player = 'X';
     room.gameStatus = room.players.length === 2 ? 'playing' : 'waiting';
     room.winner = null;
@@ -182,7 +192,6 @@ io.on('connection', (socket) => {
           gameRooms.delete(roomId);
         } else {
           // Reset game if a player leaves
-          room.board = Array(9).fill(null);
           room.turnState.player = 'X';
           room.gameStatus = 'waiting';
           room.winner = null;
