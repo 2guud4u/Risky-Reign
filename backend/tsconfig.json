@@ -9,6 +9,10 @@
     "skipLibCheck": true,                   // Skip type checking of declaration files
     "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references
     "moduleResolution": "node",
+    "baseUrl": ".", // enables absolute imports
+    "paths": {
+        "@shared/*": ["../shared/*"]
+    }
   },
   "tsc-alias": {
     "resolveFullPaths": true,

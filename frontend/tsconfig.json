@@ -14,7 +14,11 @@
         "resolveJsonModule": true,
         "isolatedModules": true,
         "noEmit": true,
-        "jsx": "react-jsx"
+        "jsx": "react-jsx",
+        "baseUrl": ".", // enables absolute imports
+        "paths": {
+            "@shared/*": ["../shared/*"]
+        }
     },
     "include": ["src"]
 }
