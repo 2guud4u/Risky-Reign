@@ -1,5 +1,5 @@
-import { CubeCoord } from '../utils/helperUtils';
-import { shuffleArray, flattenAndFillObject } from '../utils/helperUtils';
+import { CubeCoord } from './Board';
+import { shuffleArray, flattenAndFillObject } from '../utils/data';
 export type Resource = 'Wheat' | 'Sheep' | 'Ore' | 'Brick' | 'Wood' | 'Nothing';
 export type Terrain = Resource | ('Water' | 'Desert');
 

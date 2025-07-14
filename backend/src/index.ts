@@ -29,11 +29,9 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import {GameRoom} from './types/Room'; 
-import { Player } from './types/Player'; 
-import {generateGameBoard} from './types/Logic'
-import { getRollMap } from './types/Hex';
-import {Board} from './types/Board'
+
+import { GameRoom, Player, generateGameBoard, getRollMap, Board } from 'common';
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {

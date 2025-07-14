@@ -8,7 +8,6 @@ export interface TurnState {
 import { generateHexes, HexNode, HexId } from './Hex';
 import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './Board';
 import { Player } from './Player';
-import { BattleState, SoldierObj, SoldierBattleState } from '../utils/soldierUtils';
 export interface GameState {
     GameBoard: GameBoard;
     players: Player[];

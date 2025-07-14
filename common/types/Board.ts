@@ -1,7 +1,7 @@
 import { Road, SettlementObj, SoldierObj, RoadObj } from "./Pieces";
 // import Player  from "./Player";
 import { HexNode } from "./Hex";
-import { cubeToPixel, PixelCoord, calcEuclideanDistance } from '../utils/helperUtils';
+import { cubeToPixel, calcEuclideanDistance } from '../utils/data';
 
 export interface Board{
     HexMap: Map<number, HexNode>;
@@ -13,7 +13,16 @@ export interface Board{
     RollMap: Map<string, number[]>; 
 }
 
+export interface CubeCoord {
+    q: number;
+    r: number;
+    s: number;
+}
 
+export interface PixelCoord {
+    x: number;
+    y: number;
+}
 
 export interface Intersect extends PixelCoord {}
 export type IntersectId = number;

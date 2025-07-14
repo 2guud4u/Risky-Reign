@@ -75,7 +75,7 @@ export interface DevCard {
     used: boolean;
 }
 
-const buildTypes = ["Settlement", "Road", "City", "Soldier"] as const;
+const buildTypes = ["Settlement", "Road", "City", "Soldier"];
 
 export type buildType = typeof buildTypes[number];
 
@@ -84,7 +84,7 @@ export const isBuildType = (arg: any): arg is buildType => {
 }
 
 
-import { PixelCoord } from '../utils/helperUtils';
+import { PixelCoord } from './Board';
 
 export interface RoadObj {
     id: number;

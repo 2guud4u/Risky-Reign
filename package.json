@@ -2,9 +2,10 @@
   "name": "riskofcatan",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev-backend": "npm run build --workspace common && npm run dev --workspace backend"
   },
   "repository": {
     "type": "git",
@@ -15,6 +16,9 @@
   "bugs": {
     "url": "https://github.com/2guud4u/RiskOfCatan/issues"
   },
-  "homepage": "https://github.com/2guud4u/RiskOfCatan#readme"
-
+  "homepage": "https://github.com/2guud4u/RiskOfCatan#readme",
+  "workspaces": [
+    "common",
+    "backend"
+  ]
 }
