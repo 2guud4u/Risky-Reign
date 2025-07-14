@@ -251,7 +251,9 @@ socket.on('endTurn', (data: { roomId: string }) => {
   
   switch (turnState.phase) {
     case 'SetUp':
-      if (turnState.offset === playerCount - 1) {
+      const totalSetupTurns = playerCount * 2; // Each player does setup twice
+      
+      if (turnState.offset === totalSetupTurns - 1) {
         // Setup complete, start dice phase with first player
         room.turnState = { 
           ...turnState, 
@@ -261,11 +263,23 @@ socket.on('endTurn', (data: { roomId: string }) => {
         };
         turnState.dicePlayerIndex = 0;
       } else {
-        // Continue setup with next player
+        // Determine next player based on setup round
+        let nextPlayerIndex;
+        const nextOffset = turnState.offset + 1;
+        
+        if (nextOffset < playerCount) {
+          // First round: clockwise (A→B→C)
+          nextPlayerIndex = nextOffset;
+        } else {
+          // Second round: counterclockwise (C→B→A)
+          const positionInSecondRound = nextOffset - playerCount;
+          nextPlayerIndex = playerCount - 1 - positionInSecondRound;
+        }
+        
         room.turnState = { 
           ...turnState, 
-          player: turnState.playerOrder[turnState.offset + 1], 
-          offset: turnState.offset + 1 
+          player: turnState.playerOrder[nextPlayerIndex], 
+          offset: nextOffset 
         };
       }
       break;
@@ -328,7 +342,6 @@ socket.on('endTurn', (data: { roomId: string }) => {
   }
   
   // Notify all players in the room about the turn end
-  console.log(room.turnState);
   io.to(roomId).emit('gameUpdate', room);
 });
 
