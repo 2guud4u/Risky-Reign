@@ -84,7 +84,6 @@ const CatanBoard: React.FC<BoardProps> = ({
                             return (
                                 <Intersection
                                     exhaustedSoldiers={exhaustedSoldiers}
-                                    key={intersect.id}
                                     {...intersect}
                                     size={intersectSize}
                                     onClick={handleClick}

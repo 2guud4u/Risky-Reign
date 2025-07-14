@@ -10,7 +10,7 @@ const PlayersList: React.FC<PlayerListProps> = ({ players }) => {
         <Grid container direction={'row'}>
             {players.map((player, index) => (
                 <Grid>
-                    <Player key={index} {...player} />
+                    <Player {...player} />
                 </Grid>
             ))}
         </Grid>

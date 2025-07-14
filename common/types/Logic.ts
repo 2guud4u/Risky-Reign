@@ -4,6 +4,7 @@ export interface TurnState {
     player: string;
     playerOrder: string[];
     offset: number;
+    dicePlayerIndex: number
 }
 
 export interface TradeState {

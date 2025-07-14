@@ -409,8 +409,8 @@ export const handleRollDice = (
     rollNum: string,
     playerMap: Map<string, PlayerObj>,
     setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>,
-    hexMap: Map<number, HexNode>,
-    intersectMap: Map<number, IntersectNode>,
+    hexList: HexNode[],
+    intersectList: IntersectNode[],
     rollMap: Map<string, number[]>,
     settlements: SettlementObj[]
 ): void | string => {
@@ -421,7 +421,7 @@ export const handleRollDice = (
     }
 
     for (let hexId of hexes) {
-        let hex = hexMap.get(hexId);
+        let hex = hexList[hexId];
         if (hex === undefined) {
             continue;
         }
@@ -435,7 +435,7 @@ export const handleRollDice = (
             }
 
             for (let intersectId of Array.from(intersects)) {
-                let intersect = intersectMap.get(intersectId);
+                let intersect = intersectList[intersectId];
                 if (intersect === undefined) {
                     continue;
                 }

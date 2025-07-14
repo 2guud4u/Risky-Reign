@@ -16,8 +16,8 @@ const GameLogic: React.FC = () => {
 
     socket.on('roomUpdate', (room: GameRoom) => {
       setGameRoom(room);
-      // const player = room.players.find(p => p.id === socket.id);
-      // setCurrentPlayer(player || null);
+      const player = room.players.find(p => p.id === socket.id);
+      setCurrentPlayer(player || null);
       setError(null);
       console.log("Game updated:", room);
 
@@ -72,6 +72,19 @@ const GameLogic: React.FC = () => {
     socket.emit('refreshMap', { roomId: currentRoomId });
   };
 
+  // game play funcs
+  const rollDice = () => {
+    if (!socket || !currentRoomId) return;
+    socket.emit('rollDice', { roomId: currentRoomId});
+  };
+
+  const endTurn = () => {
+    if (!socket || !currentRoomId) return;
+    console.log('Ending turn for player:', currentPlayer?.name);
+    socket.emit('endTurn', { roomId: currentRoomId });
+  };
+
+
   const leaveRoom = () => {
     setGameRoom(null);
     setCurrentPlayer(null);
@@ -100,6 +113,8 @@ const GameLogic: React.FC = () => {
           onStartGame={startGame}
           onLeaveRoom={leaveRoom}
           onRefreshMap={refreshMap}
+          onRollDice={rollDice}
+          onEndTurn={endTurn}
           error={error}
         />
         </>

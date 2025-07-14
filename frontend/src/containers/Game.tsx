@@ -15,9 +15,7 @@ import {
     updateTradePayload,
     respondTradePayload,
 } from '../utils/eventsUtils';
-import { getRollMap, HexNode, HexId } from '../utils/hexUtils';
 import { IntersectNode, IntersectId } from '../utils/intersectUtils';
-import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import CatanBoard from './CatanBoard';
@@ -43,13 +41,14 @@ import BattleHud from './BattleHud';
 import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
 import TradeHud from './TradeHud';
-import { tradeState } from '../utils/tradeUtils';
-import { TurnState } from '../utils/turnUtils';
+
 import EndTurnButton from './EndTurnButton';
 import Inventory from './Inventory';
 
 import { GameRoom } from 'common/types/Room';
-import { Board } from 'common';
+import { Board, getRollMap, Player } from 'common';
+import { useSocket } from '../components/SocketProvider';
+
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
@@ -58,14 +57,16 @@ type Id = string;
 
 interface GameProps {
     gameRoom: GameRoom;
+    currentPlayer: Player | null;
+    onEndTurn: () => void;
 }
-const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
-
+const Game: React.FC<GameProps> = ({gameRoom: GameRoom, currentPlayer, onEndTurn}) => {
+    const { socket } = useSocket();
+    
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
   
 
 
-    const [rollMap, setRollMap] = useState<Map<string, number[]>>(new Map());
 
 
     //new 
@@ -77,9 +78,13 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     const battleState = GameRoom.battleState;
     const tradeStates = GameRoom.tradeStates;
     const turnState = GameRoom.turnState;
-    const playerList: PlayerObj[] = GameRoom.players;
+    const playerList: Player[] = GameRoom.players;
     const playerMap = new Map(playerList.map((player) => [player.name, player]));
-    const playerName = ""
+    if (currentPlayer === null) {
+        return <div>No current player selected.</div>;
+    }
+    const playerName = currentPlayer.name;
+    const rollMap = getRollMap(Hexes);
 
     const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
         const intersect = Intersections[intersectId];
@@ -105,19 +110,20 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
         return Roads.filter((road) => roadIds.has(road.id)) || null;
     };
 
-    // const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
-    //     console.log('handling', UiEvent, UiEventPayload);
-    //     let player = playerMap.get(playerName);
-    //     if (player === undefined) {
-    //         return;
-    //     }
-    //     let error: void | string = undefined;
-    //     switch (UiEvent) {
-    //         case 'rollDice':
-    //             let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
-    //             setRoll(rollNum);
-    //             error = handleRollDice(rollNum, playerMap, setPlayerMap, hexMap, intersectMap, rollMap, settlements);
-    //             break;
+    
+    const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
+        console.log('handling', UiEvent, UiEventPayload);
+        let player = playerMap.get(playerName);
+        if (player === undefined) {
+            return;
+        }
+        let error: void | string = undefined;
+        switch (UiEvent) {
+            case 'rollDice':
+                let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+
+
+                break;
 
     //         case 'selectIntersect':
     //             setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
@@ -232,14 +238,11 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     //         case 'endTurn':
     //             handleEndTurn(setturnState, setExhaustedSoldiers);
     //             break;
-    //         default:
-    //             break;
-    //     }
-    //     console.log(error);
-    // };
-    const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
-        console.log('handling', UiEvent, UiEventPayload);
-    }
+            default:
+                break;
+        }
+        console.log(error);
+    };
 
     return (
         <>
@@ -266,7 +269,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
                     </Grid>
                     <Grid container direction="row">
                         <Grid size={2}>
-                            <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnState} player={playerName} />
+                            <EndTurnButton onEndTurn={onEndTurn} turnState={turnState} player={playerName}/>
                         </Grid>
                         <Grid size={10}>
                             <Inventory />

@@ -31,7 +31,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 
 import { GameRoom, Player, generateGameBoard, getRollMap, Board } from 'common';
-
+import { handleRollDice } from './Logic/actions';
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -64,7 +64,7 @@ function createBoard(): Board {
   };
 }
 
-function createGameRoom(roomId: string): GameRoom {
+function createGameRoom(roomId: string, firstPlayerName: string): GameRoom {
   //create board
   const gameBoard = createBoard();
   const room: GameRoom = {
@@ -73,9 +73,10 @@ function createGameRoom(roomId: string): GameRoom {
     board: gameBoard,
     turnState: {
       phase:"SetUp",
-      player: '',
-      playerOrder: [],
-      offset: 0
+      player: firstPlayerName,
+      playerOrder: [firstPlayerName],
+      offset: 0,
+      dicePlayerIndex: 0
     },
     gameStatus: 'waiting',
     winner: null,
@@ -96,11 +97,11 @@ io.on('connection', (socket) => {
     
     let room = gameRooms.get(roomId);
     if (!room) {
-      room = createGameRoom(roomId);
+      room = createGameRoom(roomId, playerName);
     }
 
     // Check if room is full
-    if (room.players.length >= 2) {
+    if (room.players.length >= 10) {
       socket.emit('error', { message: 'Room is full' });
       return;
     }
@@ -111,15 +112,16 @@ io.on('connection', (socket) => {
       name: playerName,
       color: '',
       resources: {
-        Wood: 0,
-        Brick: 0,
-        Sheep: 0,
-        Wheat: 0,
-        Ore: 0
+        Wood: 100,
+        Brick: 100,
+        Sheep: 100,
+        Wheat: 100,
+        Ore: 100
       }
     };
 
     room.players.push(player);
+    room.turnState.playerOrder = room.players.map(p => p.name);
     socket.join(roomId);
 
     // Send updated room state to all players
@@ -220,7 +222,162 @@ io.on('connection', (socket) => {
       }
     }
   });
+
+  // Handle Game Logic
+socket.on('endTurn', (data: { roomId: string }) => {
+  const { roomId } = data;
+  let room = gameRooms.get(roomId);
+  if (!room) {
+    socket.emit('error', { message: 'Room not found' });
+    return;
+  }
+  
+  const board = room.board;
+  if (!board) {
+    socket.emit('error', { message: 'Game board is not available' });
+    return;
+  }
+  
+  const playerIndex = room.turnState.playerOrder.indexOf(room.turnState.player);
+  const turnState = room.turnState;
+  const playerCount = turnState.playerOrder.length;
+  
+  console.log(`Ending turn for player: ${room.turnState.player}`);
+  
+  // Initialize dicePlayerIndex if not exists
+  if (!turnState.dicePlayerIndex && turnState.dicePlayerIndex !== 0) {
+    turnState.dicePlayerIndex = 0;
+  }
+  
+  switch (turnState.phase) {
+    case 'SetUp':
+      if (turnState.offset === playerCount - 1) {
+        // Setup complete, start dice phase with first player
+        room.turnState = { 
+          ...turnState, 
+          player: turnState.playerOrder[0],
+          phase: 'Dice', 
+          offset: 0 
+        };
+        turnState.dicePlayerIndex = 0;
+      } else {
+        // Continue setup with next player
+        room.turnState = { 
+          ...turnState, 
+          player: turnState.playerOrder[turnState.offset + 1], 
+          offset: turnState.offset + 1 
+        };
+      }
+      break;
+      
+    case 'Dice':
+      // Same player continues to Trade phase
+      room.turnState = { ...turnState, phase: 'Trade' };
+      console.log("Dice rolled, moving to Trade phase");
+      break;
+      
+    case 'Trade':
+      // Same player continues to Build phase, reset offset for all players to participate
+      room.turnState = { ...turnState, phase: 'Build', offset: 0 };
+      break;
+      
+    case 'Build':
+      if (turnState.offset === playerCount - 1) {
+        // All players have built, move to Action phase with dice player
+        room.turnState = { 
+          ...turnState, 
+          player: turnState.playerOrder[turnState.dicePlayerIndex], 
+          phase: 'Action', 
+          offset: 0 
+        };
+      } else {
+        // Next player's turn to build
+        const nextPlayerIndex = (playerIndex + 1) % playerCount;
+        room.turnState = { 
+          ...turnState, 
+          player: turnState.playerOrder[nextPlayerIndex], 
+          offset: turnState.offset + 1 
+        };
+      }
+      break;
+      
+    case 'Action':
+      if (turnState.offset === playerCount - 1) {
+        // All players have acted, move to next player's Dice phase
+        turnState.dicePlayerIndex = (turnState.dicePlayerIndex + 1) % playerCount;
+        room.turnState = { 
+          ...turnState, 
+          player: turnState.playerOrder[turnState.dicePlayerIndex], 
+          phase: 'Dice', 
+          offset: 0 
+        };
+      } else {
+        // Next player's turn for action
+        const nextPlayerIndex = (playerIndex + 1) % playerCount;
+        room.turnState = { 
+          ...turnState, 
+          player: turnState.playerOrder[nextPlayerIndex], 
+          offset: turnState.offset + 1 
+        };
+      }
+      break;
+      
+    default:
+      socket.emit('error', { message: 'Invalid turn phase' });
+      return;
+  }
+  
+  // Notify all players in the room about the turn end
+  console.log(room.turnState);
+  io.to(roomId).emit('gameUpdate', room);
 });
+
+  socket.on('rollDice', (data: { roomId: string}) => {
+    const { roomId } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    const board = room.board;
+    if (!board) {
+      socket.emit('error', { message: 'Game board is not available' });
+      return;
+    }
+    // Simulate dice roll
+    let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+
+
+    // Update roll and notify players
+    room.roll = String(rollNum);
+    handleRollDice(rollNum, room.players, board.Hexes, board.Intersections, board.Settlements);
+    
+
+    
+    io.to(roomId).emit('gameUpdate', { ...room});
+  })
+  socket.on("buildSettlement", (data: { roomId: string, playerId: string, intersectId: number }) => {
+      const { roomId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board) {
+        socket.emit('error', { message: 'Game board is not available' });
+        return;
+      }
+      const { playerId, intersectId } = data;
+      const turnState = room.turnState;
+      if (turnState.phase === 'SetUp' ) {
+
+      }
+
+  })
+});
+
+
 
 const PORT = process.env.PORT || 3001;
 console.log("Server is starting...");

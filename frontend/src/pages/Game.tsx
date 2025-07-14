@@ -10,8 +10,10 @@ const GamePage: React.FC<{
     onStartGame: () => void;
     onLeaveRoom: () => void;
     onRefreshMap: () => void;
+    onRollDice: () => void;
+    onEndTurn: () => void;
     error: string | null;
-}> = ({ gameRoom, currentPlayer, onMakeMove, onResetGame, onStartGame,onLeaveRoom, onRefreshMap, error }) => {
+}> = ({ gameRoom, currentPlayer, onMakeMove, onResetGame, onStartGame,onLeaveRoom, onRefreshMap,onEndTurn, error }) => {
     const renderWaitingRoom = () => {
         const gameBoard = gameRoom.board;
         if (!gameBoard) {
@@ -61,6 +63,7 @@ const GamePage: React.FC<{
             </button>
         );
     };
+    
     return (
         <>
             <h1 className="text-2xl font-bold text-center mb-6">Game Page</h1>
@@ -71,7 +74,7 @@ const GamePage: React.FC<{
                 </>
                 
             ) : (
-                <Game gameRoom={gameRoom}/>
+                <Game gameRoom={gameRoom} currentPlayer={currentPlayer} onEndTurn={onEndTurn}/>
             )}
             
         </>
