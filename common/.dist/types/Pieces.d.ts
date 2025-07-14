@@ -12,18 +12,6 @@ export interface SoldierObj {
     type: SoldierType;
     stationed: boolean;
 }
-export interface SoldierBattleState {
-    soldier: SoldierObj;
-    rollNum: number;
-    dead: boolean;
-}
-export interface BattleState {
-    states: Map<string, {
-        soldiers: SoldierBattleState[];
-        submitted: boolean;
-    }>;
-    intersectId: number;
-}
 export declare class SettlementImpl implements Settlement {
     owner: string;
     upgraded: boolean;

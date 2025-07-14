@@ -80,6 +80,7 @@ function createGameRoom(roomId: string): GameRoom {
     gameStatus: 'waiting',
     winner: null,
     tradeStates: [],
+    battleState: null,
     roll: ''
   };
   gameRooms.set(roomId, room);

@@ -60,122 +60,11 @@ interface GameProps {
     gameRoom: GameRoom;
 }
 const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
-    const [roll, setRoll] = useState('0');
-    const [hexMap, setHexMap] = useState<Map<HexId, HexNode>>(new Map());
-    const [intersectMap, setIntersectMap] = useState<Map<IntersectId, IntersectNode>>(new Map());
-    const [roads, setRoads] = useState<RoadObj[]>([]);
-    const [settlements, setSettlements] = useState<SettlementObj[]>([]);
-    const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
-    const [battleState, setBattleState] = useState<BattleState | null>(null);
-    const [exhaustedSoldiers, setExhaustedSoldiers] = useState<string[]>([]);
-    const [turnObj, setTurnObj] = useState<TurnState>({
-        phase: 'Dice',
-        player: 'jia',
-        playerOrder: ['jia', 'fel', 'idk'],
-        offset: 0,
-    });
 
-    const [tradeStates, setTradeStates] = useState<tradeState[]>([
-        {
-            id: '1',
-            trader: {
-                name: 'jia',
-                offer: {
-                    Wood: 1,
-                    Brick: 1,
-                    Sheep: 1,
-                    Wheat: 1,
-                    Ore: 1,
-                },
-                accept: true,
-            },
-            tradee: {
-                name: 'fel',
-                offer: {
-                    Wood: 1,
-                    Brick: 1,
-                    Sheep: 1,
-                    Wheat: 1,
-                    Ore: 1,
-                },
-                accept: null,
-            },
-        },
-        {
-            id: '2',
-            trader: {
-                name: 'fel',
-                offer: {
-                    Wood: 1,
-                    Brick: 4,
-                    Sheep: 1,
-                    Wheat: 1,
-                    Ore: 1,
-                },
-                accept: true,
-            },
-            tradee: {
-                name: 'jia',
-                offer: {
-                    Wood: 1,
-                    Brick: 1,
-                    Sheep: 1,
-                    Wheat: 1,
-                    Ore: 1,
-                },
-                accept: null,
-            },
-        },
-    ]);
-    const [soldiersMap, setSoldiersMap] = useState<Map<IntersectId, SoldierObj[]>>(
-        new Map([
-            [
-                1,
-                [
-                    {
-                        id: '0',
-                        owner: 'jia',
-                        intersect: 1,
-                        type: 'infantry',
-                        injured: false,
-                        stationed: false,
-                    },
-                    {
-                        id: '1',
-                        owner: 'fel',
-                        intersect: 1,
-                        type: 'infantry',
-                        injured: false,
-                        stationed: false,
-                    },
-                    {
-                        id: '2',
-                        owner: 'jia',
-                        intersect: 1,
-                        type: 'infantry',
-                        injured: false,
-                        stationed: false,
-                    },
-                    {
-                        id: '3',
-                        owner: 'jia',
-                        intersect: 1,
-                        type: 'infantry',
-                        injured: false,
-                        stationed: false,
-                    },
-                    {
-                        id: '4',
-                        owner: 'fel',
-                        intersect: 1,
-                        type: 'infantry',
-                        injured: false,
-                        stationed: false,
-                    },
-                ],
-            ],
-        ])
-    );
+    const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
+  
+
+
     const [rollMap, setRollMap] = useState<Map<string, number[]>>(new Map());
 
 
@@ -185,12 +74,15 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
         return <div>Loading...</div>;
     }
     const { Hexes, Intersections, Settlements, Roads, Soldiers } = gameBoard;
+    const battleState = GameRoom.battleState;
+    const tradeStates = GameRoom.tradeStates;
+    const turnState = GameRoom.turnState;
     const playerList: PlayerObj[] = GameRoom.players;
     const playerMap = new Map(playerList.map((player) => [player.name, player]));
     const playerName = ""
 
     const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
-        const intersect = intersectMap.get(intersectId);
+        const intersect = Intersections[intersectId];
         if (intersect === undefined) {
             return null;
         }
@@ -198,11 +90,11 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
         if (settlementId === undefined) {
             return null;
         }
-        return settlements.find((settlement) => settlement.id === settlementId) || null;
+        return Settlements.find((settlement) => settlement.id === settlementId) || null;
     };
 
     const getRoadsByIntersect = (intersectId: IntersectId): RoadObj[] | null => {
-        const intersect = intersectMap.get(intersectId);
+        const intersect = Intersections[intersectId];
         if (intersect === undefined) {
             return null;
         }
@@ -210,7 +102,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
         if (roadIds === undefined) {
             return null;
         }
-        return roads.filter((road) => roadIds.has(road.id)) || null;
+        return Roads.filter((road) => roadIds.has(road.id)) || null;
     };
 
     // const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
@@ -232,7 +124,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
 
     //             break;
     //         case 'buildSettlement':
-    //             if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
+    //             if (turnState.phase !== 'Build' || turnState.player !== playerName) {
     //                 error = 'Not your build turn';
     //                 break;
     //             }
@@ -250,13 +142,13 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
 
     //             break;
     //         case 'upgradeSettlement':
-    //             if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
+    //             if (turnState.phase !== 'Build' || turnState.player !== playerName) {
     //                 error = 'Not your build turn';
     //                 break;
     //             }
     //             break;
     //         case 'buildRoad':
-    //             if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
+    //             if (turnState.phase !== 'Build' || turnState.player !== playerName) {
     //                 error = 'Not your build turn';
     //                 break;
     //             }
@@ -268,7 +160,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     //             break;
 
     //         case 'buildSoldier':
-    //             if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
+    //             if (turnState.phase !== 'Action' || turnState.player !== playerName) {
     //                 error = 'Not your Action turn';
     //                 break;
     //             }
@@ -279,7 +171,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     //             break;
 
     //         case 'moveSoldier':
-    //             if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
+    //             if (turnState.phase !== 'Action' || turnState.player !== playerName) {
     //                 error = 'Not your Action turn';
     //                 break;
     //             }
@@ -294,7 +186,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     //             }
     //             break;
     //         case 'initiateBattle':
-    //             if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
+    //             if (turnState.phase !== 'Action' || turnState.player !== playerName) {
     //                 error = 'Not your Action turn';
     //                 break;
     //             }
@@ -331,14 +223,14 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     //             if (respondTradePayload.response === false) {
     //                 //can cancel whenever
     //                 error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
-    //             } else if (turnObj.phase === 'Trade' && (turnObj.player === targetTrade.tradee.name || turnObj.player === targetTrade.trader.name)) {
+    //             } else if (turnState.phase === 'Trade' && (turnState.player === targetTrade.tradee.name || turnState.player === targetTrade.trader.name)) {
     //                 error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
     //             } else {
     //                 error = 'Not in trade phase';
     //             }
     //             break;
     //         case 'endTurn':
-    //             handleEndTurn(setTurnObj, setExhaustedSoldiers);
+    //             handleEndTurn(setturnState, setExhaustedSoldiers);
     //             break;
     //         default:
     //             break;
@@ -355,26 +247,26 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
                 <Grid container direction="column" size={7}>
                     <Grid>
                         <h1>
-                            {turnObj.phase} for {turnObj.player}
+                            {turnState.phase} for {turnState.player}
                         </h1>
                         {playerName}
                     </Grid>
                     <Grid>
                         <CatanBoard
-                            exhaustedSoldiers={exhaustedSoldiers}
+                            exhaustedSoldiers={[]}
                             hexes={Hexes}
                             intersects={Intersections}
                             players={Array.from(playerMap.values())}
-                            roads={roads}
-                            settlements={settlements}
+                            roads={Roads}
+                            settlements={Settlements}
                             UiEventCaller={handleUiEvent}
-                            soldiersMap={soldiersMap}
+                            soldiersMap={new Map<number, SoldierObj[]>()}
                             hexSize={GAME_HEX_SIZE}
                         />
                     </Grid>
                     <Grid container direction="row">
                         <Grid size={2}>
-                            <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnObj} player={playerName} />
+                            <EndTurnButton UiEventCaller={handleUiEvent} turnObj={turnState} player={playerName} />
                         </Grid>
                         <Grid size={10}>
                             <Inventory />
@@ -389,12 +281,12 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
                     <Grid container direction="row">
                         <Grid size={4}>
                             <IntersectViewer
-                                soldiersMap={soldiersMap}
+                                soldiersMap={new Map<number, SoldierObj[]>()}
                                 intersect={selectedIntersect}
                                 UiEventCaller={handleUiEvent}
                                 playerName={playerName}
-                                settlements={settlements}
-                                exhaustedSoldiers={exhaustedSoldiers}
+                                settlements={Settlements}
+                                exhaustedSoldiers={[]}
                             />
                         </Grid>
                         <Grid container direction="column" size={8}>
@@ -402,7 +294,7 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
                                 <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
                             </Grid>
                             <Grid>
-                                <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} />
+                                {/* <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} /> */}
                             </Grid>
                         </Grid>
                     </Grid>

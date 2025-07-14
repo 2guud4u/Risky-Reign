@@ -1,3 +1,4 @@
+import { SoldierObj } from './Pieces';
 export interface TurnState {
     phase: 'SetUp' | 'Dice' | 'Trade' | 'Build' | 'Action';
     player: string;
@@ -16,7 +17,16 @@ export interface TradeParty {
     offer: Price;
     accept: boolean | null;
 }
+export interface BattleState {
+    states: Map<string, { soldiers: SoldierBattleState[]; submitted: boolean }>;
 
+    intersectId: number;
+}
+export interface SoldierBattleState {
+    soldier: SoldierObj;
+    rollNum: number;
+    dead: boolean;
+}
 
 import { generateHexes, HexNode, HexId } from './Hex';
 import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './Board';

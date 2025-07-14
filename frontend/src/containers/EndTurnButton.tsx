@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
-import { TurnState } from '../utils/turnUtils';
+import { TurnState } from 'common';
 interface EndTurnButtonProps {
     // TODO
     UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
