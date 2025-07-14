@@ -1,13 +1,11 @@
 import { SettlementObj, SoldierObj, RoadObj } from "./Pieces";
 import { HexNode } from "./Hex";
 export interface Board {
-    HexMap: Map<number, HexNode>;
-    IntersectionMap: Map<number, IntersectNode>;
+    Hexes: Array<HexNode>;
+    Intersections: Array<IntersectNode>;
     Settlements: SettlementObj[];
     Roads: RoadObj[];
     Soldiers: SoldierObj[];
-    Roll: string;
-    RollMap: Map<string, number[]>;
 }
 export interface CubeCoord {
     q: number;

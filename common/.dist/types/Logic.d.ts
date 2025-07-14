@@ -4,18 +4,22 @@ export interface TurnState {
     playerOrder: string[];
     offset: number;
 }
-import { HexNode, HexId } from './Hex';
-import { IntersectNode, IntersectId } from './Board';
-import { Player } from './Player';
-export interface GameState {
-    GameBoard: GameBoard;
-    players: Player[];
+export interface TradeState {
+    id: string;
+    trader: TradeParty;
+    tradee: TradeParty;
 }
-export interface GameBoard {
-    hexMap: Map<HexId, HexNode>;
-    intersectMap: Map<IntersectId, IntersectNode>;
+export interface TradeParty {
+    name: string;
+    offer: Price;
+    accept: boolean | null;
 }
-export declare const generateGameBoard: (boardRadius: number, hexSize: number) => GameBoard;
+import { HexNode } from './Hex';
+import { IntersectNode } from './Board';
+export declare const generateGameBoard: (boardRadius: number, hexSize: number) => {
+    hexes: Array<HexNode>;
+    intersections: Array<IntersectNode>;
+};
 export interface ResourceCount {
     Wood: number;
     Brick: number;

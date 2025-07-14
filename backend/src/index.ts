@@ -53,23 +53,24 @@ const boardRadius = 2;
 const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
 // Create a new game room
-function createGameRoom(roomId: string): GameRoom {
-  //create board
-  let { hexMap, intersectMap } = generateGameBoard(boardRadius, hexSize);
-
-  const gameBoard: Board= {
-    HexMap: hexMap,
-    IntersectionMap: intersectMap,
+function createBoard(): Board {
+  let {hexes, intersections}  = generateGameBoard(boardRadius, hexSize);
+  return {
+    Hexes: hexes,
+    Intersections: intersections,
     Settlements: [],
     Roads: [],
     Soldiers: [],
-    Roll: "",
-    RollMap: getRollMap(Array.from(hexMap.values())),
-  }
+  };
+}
+
+function createGameRoom(roomId: string): GameRoom {
+  //create board
+  const gameBoard = createBoard();
   const room: GameRoom = {
     id: roomId,
     players: [],
-    board: gameBoard, // Initialize with no board
+    board: gameBoard,
     turnState: {
       phase:"SetUp",
       player: '',
@@ -77,7 +78,9 @@ function createGameRoom(roomId: string): GameRoom {
       offset: 0
     },
     gameStatus: 'waiting',
-    winner: null
+    winner: null,
+    tradeStates: [],
+    roll: ''
   };
   gameRooms.set(roomId, room);
   return room;
@@ -120,8 +123,23 @@ io.on('connection', (socket) => {
 
     // Send updated room state to all players
     io.to(roomId).emit('roomUpdate', room);
-    
     console.log(`Player ${playerName} joined room ${roomId}`);
+  });
+
+  socket.on("refreshMap", (data: { roomId: string }) => {
+    const { roomId } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+
+    // Regenerate the game board
+    room.board = createBoard();
+    //save the updated room state
+    gameRooms.set(roomId, room);
+    // Send updated room state to all players
+    io.to(roomId).emit('roomUpdate', room);
   });
 
   socket.on('startGame', (data: { roomId: string }) => {

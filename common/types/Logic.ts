@@ -5,31 +5,30 @@ export interface TurnState {
     offset: number;
 }
 
+export interface TradeState {
+    id: string;
+    trader: TradeParty;
+    tradee: TradeParty;
+}
+
+export interface TradeParty {
+    name: string;
+    offer: Price;
+    accept: boolean | null;
+}
+
+
 import { generateHexes, HexNode, HexId } from './Hex';
 import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './Board';
 import { Player } from './Player';
-export interface GameState {
-    GameBoard: GameBoard;
-    players: Player[];
-}
 
-export interface GameBoard {
-    hexMap: Map<HexId, HexNode>;
-    intersectMap: Map<IntersectId, IntersectNode>;
-}
-export const generateGameBoard = (boardRadius: number, hexSize: number): GameBoard => {
+
+
+export const generateGameBoard = (boardRadius: number, hexSize: number): {hexes: Array<HexNode>, intersections: Array<IntersectNode>} => {
     let hexes = generateHexes(boardRadius);
     let intersections = generateIntersections(hexes, hexSize);
     intersections = connectIntersections(intersections, hexSize);
-    let hexMap: Map<number, HexNode> = hexes.reduce((map, hex) => {
-        map.set(hex.id, hex);
-        return map;
-    }, new Map<number, HexNode>());
-    let intersectMap: Map<number, IntersectNode> = intersections.reduce((map, intersect) => {
-        map.set(intersect.id, intersect);
-        return map;
-    }, new Map<number, IntersectNode>());
-    return { hexMap, intersectMap };
+    return {hexes, intersections} ;
 };
 
 export interface ResourceCount {

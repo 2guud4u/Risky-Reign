@@ -4,13 +4,11 @@ import { HexNode } from "./Hex";
 import { cubeToPixel, calcEuclideanDistance } from '../utils/data';
 
 export interface Board{
-    HexMap: Map<number, HexNode>;
-    IntersectionMap: Map<number, IntersectNode>;
+    Hexes: Array<HexNode>;
+    Intersections: Array<IntersectNode>;
     Settlements: SettlementObj[];
     Roads: RoadObj[];
     Soldiers: SoldierObj[];
-    Roll: string;
-    RollMap: Map<string, number[]>; 
 }
 
 export interface CubeCoord {

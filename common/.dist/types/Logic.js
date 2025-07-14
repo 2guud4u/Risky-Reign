@@ -7,15 +7,7 @@ var generateGameBoard = function (boardRadius, hexSize) {
     var hexes = (0, Hex_1.generateHexes)(boardRadius);
     var intersections = (0, Board_1.generateIntersections)(hexes, hexSize);
     intersections = (0, Board_1.connectIntersections)(intersections, hexSize);
-    var hexMap = hexes.reduce(function (map, hex) {
-        map.set(hex.id, hex);
-        return map;
-    }, new Map());
-    var intersectMap = intersections.reduce(function (map, intersect) {
-        map.set(intersect.id, intersect);
-        return map;
-    }, new Map());
-    return { hexMap: hexMap, intersectMap: intersectMap };
+    return { hexes: hexes, intersections: intersections };
 };
 exports.generateGameBoard = generateGameBoard;
 exports.SettlementPrice = {

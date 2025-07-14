@@ -13,16 +13,13 @@ import { SettlementObj } from '../utils/settlementUtils';
 
 import Grid from '@mui/material/Grid2';
 import { SoldierObj } from '../utils/soldierUtils';
-const hexSize = 100;
-const boardRadius = 2;
-const intersectSize = hexSize / 4;
-const roadSize = intersectSize / 2;
+
 type Id = string;
 interface BoardProps {
+    hexSize: number;
     hexes: HexNode[];
     settlements: SettlementObj[];
     players: PlayerObj[];
-    diceRoll: string;
     roads: RoadObj[];
     intersects: IntersectNode[];
     soldiersMap: Map<number, SoldierObj[]>;
@@ -31,18 +28,21 @@ interface BoardProps {
 }
 
 const CatanBoard: React.FC<BoardProps> = ({
+    hexSize,
     exhaustedSoldiers,
     hexes,
     settlements,
     players,
-    diceRoll,
     roads,
     intersects,
     soldiersMap,
     UiEventCaller,
 }) => {
+    const boardRadius = 2;
+    const intersectSize = hexSize / 4;
+    const roadSize = intersectSize / 2;
     const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
-
+    
     const handleClick = (target: string, targetId: number) => {
         console.log(`Clicked on ${target} ${targetId}`);
         switch (target) {

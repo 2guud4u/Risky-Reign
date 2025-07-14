@@ -2,19 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSocket } from './SocketProvider';
 import LobbyPage from '../pages/Lobby';
 import GamePage from '../pages/Game';
-interface Player {
-  id: string;
-  name: string;
-  symbol: 'X' | 'O';
-}
-interface GameRoom {
-  id: string;
-  players: Player[];
-  board: (string | null)[];
-  currentPlayer: 'X' | 'O';
-  gameStatus: 'waiting' | 'playing' | 'finished';
-  winner: string | null;
-}
+import { GameRoom, Player } from 'common';
 
 const GameLogic: React.FC = () => {
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
@@ -28,9 +16,11 @@ const GameLogic: React.FC = () => {
 
     socket.on('roomUpdate', (room: GameRoom) => {
       setGameRoom(room);
-      const player = room.players.find(p => p.id === socket.id);
-      setCurrentPlayer(player || null);
+      // const player = room.players.find(p => p.id === socket.id);
+      // setCurrentPlayer(player || null);
       setError(null);
+      console.log("Game updated:", room);
+
     });
 
     socket.on('gameUpdate', (room: GameRoom) => {
@@ -67,12 +57,19 @@ const GameLogic: React.FC = () => {
     if (!socket || !currentRoomId) return;
     console.log('Starting game in room:', currentRoomId);
     socket.emit('startGame', { roomId: currentRoomId });
+    console.log("board is ", gameRoom?.board);
   };
 
   const resetGame = () => {
     if (!socket || !currentRoomId) return;
     
     socket.emit('resetGame', { roomId: currentRoomId });
+  };
+
+  const refreshMap = () => {
+    if (!socket || !currentRoomId) return;
+
+    socket.emit('refreshMap', { roomId: currentRoomId });
   };
 
   const leaveRoom = () => {
@@ -102,6 +99,7 @@ const GameLogic: React.FC = () => {
           onResetGame={resetGame}
           onStartGame={startGame}
           onLeaveRoom={leaveRoom}
+          onRefreshMap={refreshMap}
           error={error}
         />
         </>

@@ -20,3 +20,4 @@ __exportStar(require("./types/Board"), exports);
 __exportStar(require("./types/Hex"), exports);
 __exportStar(require("./types/Logic"), exports);
 __exportStar(require("./types/Pieces"), exports);
+__exportStar(require("./Constant"), exports);

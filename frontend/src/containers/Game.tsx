@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RoadPrice, SettlementPrice, SoldierPrice, generateGameBoard } from '../utils/gameUtils';
-
+import { GAME_HEX_SIZE } from 'common';
 import {
     buildRoadPayload,
     buildSettlementPayload,
@@ -20,7 +20,7 @@ import { IntersectNode, IntersectId } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
-import Board from './CatanBoard';
+import CatanBoard from './CatanBoard';
 
 import Grid from '@mui/material/Grid2';
 import {
@@ -47,12 +47,19 @@ import { tradeState } from '../utils/tradeUtils';
 import { TurnState } from '../utils/turnUtils';
 import EndTurnButton from './EndTurnButton';
 import Inventory from './Inventory';
+
+import { GameRoom } from 'common/types/Room';
+import { Board } from 'common';
 const hexSize = 100;
 const boardRadius = 2;
 const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
 type Id = string;
-const Game: React.FC = () => {
+
+interface GameProps {
+    gameRoom: GameRoom;
+}
+const Game: React.FC<GameProps> = ({gameRoom: GameRoom}) => {
     const [roll, setRoll] = useState('0');
     const [hexMap, setHexMap] = useState<Map<HexId, HexNode>>(new Map());
     const [intersectMap, setIntersectMap] = useState<Map<IntersectId, IntersectNode>>(new Map());
@@ -169,58 +176,18 @@ const Game: React.FC = () => {
             ],
         ])
     );
-    const [playerMap, setPlayerMap] = useState<Map<string, PlayerObj>>(new Map());
-    const [playerName, setPlayerName] = useState('jia');
     const [rollMap, setRollMap] = useState<Map<string, number[]>>(new Map());
 
-    useEffect(() => {
-        let { hexMap, intersectMap } = generateGameBoard(boardRadius, hexSize);
-        const playerList: PlayerObj[] = [
-            {
-                name: 'jia',
-                color: 'red',
-                resources: {
-                    Wood: 100,
-                    Brick: 100,
-                    Sheep: 100,
-                    Wheat: 100,
-                    Ore: 100,
-                },
-            },
 
-            {
-                name: 'fel',
-                color: 'green',
-                resources: {
-                    Wood: 50,
-                    Brick: 50,
-                    Sheep: 50,
-                    Wheat: 50,
-                    Ore: 50,
-                },
-            },
-            {
-                name: 'idk',
-                color: 'blue',
-                resources: {
-                    Wood: 50,
-                    Brick: 50,
-                    Sheep: 50,
-                    Wheat: 50,
-                    Ore: 50,
-                },
-            },
-        ];
-
-        if (playerList.length === 0) {
-            return;
-        }
-        const playerMap = new Map(playerList.map((player) => [player.name, player]));
-        setPlayerMap(playerMap);
-        setHexMap(hexMap);
-        setIntersectMap(intersectMap);
-        setRollMap(getRollMap(Array.from(hexMap.values())));
-    }, []);
+    //new 
+    const gameBoard = GameRoom.board;
+    if (!gameBoard) {
+        return <div>Loading...</div>;
+    }
+    const { Hexes, Intersections, Settlements, Roads, Soldiers } = gameBoard;
+    const playerList: PlayerObj[] = GameRoom.players;
+    const playerMap = new Map(playerList.map((player) => [player.name, player]));
+    const playerName = ""
 
     const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
         const intersect = intersectMap.get(intersectId);
@@ -246,142 +213,141 @@ const Game: React.FC = () => {
         return roads.filter((road) => roadIds.has(road.id)) || null;
     };
 
+    // const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
+    //     console.log('handling', UiEvent, UiEventPayload);
+    //     let player = playerMap.get(playerName);
+    //     if (player === undefined) {
+    //         return;
+    //     }
+    //     let error: void | string = undefined;
+    //     switch (UiEvent) {
+    //         case 'rollDice':
+    //             let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+    //             setRoll(rollNum);
+    //             error = handleRollDice(rollNum, playerMap, setPlayerMap, hexMap, intersectMap, rollMap, settlements);
+    //             break;
+
+    //         case 'selectIntersect':
+    //             setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
+
+    //             break;
+    //         case 'buildSettlement':
+    //             if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
+    //                 error = 'Not your build turn';
+    //                 break;
+    //             }
+    //             error = handleBuildSettlement(
+    //                 UiEventPayload as buildSettlementPayload,
+    //                 player,
+    //                 intersectMap,
+    //                 setSettlements,
+    //                 setIntersectMap,
+    //                 settlements
+    //             );
+    //             if (error === undefined) {
+    //                 changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap);
+    //             }
+
+    //             break;
+    //         case 'upgradeSettlement':
+    //             if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
+    //                 error = 'Not your build turn';
+    //                 break;
+    //             }
+    //             break;
+    //         case 'buildRoad':
+    //             if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
+    //                 error = 'Not your build turn';
+    //                 break;
+    //             }
+    //             error = handleBuildRoad(UiEventPayload as buildRoadPayload, setIntersectMap, intersectMap, player, roads, setRoads, settlements);
+    //             if (error === undefined) {
+    //                 changePlayerResources(player, RoadPrice, playerMap, setPlayerMap);
+    //             }
+
+    //             break;
+
+    //         case 'buildSoldier':
+    //             if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
+    //                 error = 'Not your Action turn';
+    //                 break;
+    //             }
+    //             error = handleBuildSoldier(UiEventPayload as buildSoldierPayload, player, soldiersMap, setSoldiersMap, settlements, intersectMap);
+    //             if (error === undefined) {
+    //                 changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap);
+    //             }
+    //             break;
+
+    //         case 'moveSoldier':
+    //             if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
+    //                 error = 'Not your Action turn';
+    //                 break;
+    //             }
+    //             //check if soldier all have actions
+    //             let movePayload = UiEventPayload as moveSoldierPayload;
+    //             movePayload.soldierIds = movePayload.soldierIds.filter((soldierId) => {
+    //                 return !exhaustedSoldiers.includes(soldierId);
+    //             });
+    //             error = handleMoveSoldier(movePayload, roads, player, soldiersMap, setSoldiersMap);
+    //             if (error === undefined) {
+    //                 setExhaustedSoldiers([...exhaustedSoldiers, ...movePayload.soldierIds]);
+    //             }
+    //             break;
+    //         case 'initiateBattle':
+    //             if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
+    //                 error = 'Not your Action turn';
+    //                 break;
+    //             }
+    //             let initiateBattlePayload = UiEventPayload as initiateBattlePayload;
+    //             initiateBattlePayload.friendlyIds = initiateBattlePayload.friendlyIds.filter((soldierId) => {
+    //                 return !exhaustedSoldiers.includes(soldierId);
+    //             });
+    //             error = handleInitiateBattle(initiateBattlePayload, playerName, setBattleState, soldiersMap);
+    //             if (error === undefined) {
+    //                 setExhaustedSoldiers([...exhaustedSoldiers, ...initiateBattlePayload.friendlyIds]);
+    //             }
+    //             break;
+
+    //         case 'rolledSoldierScore':
+    //             error = handleRolledSoldierScore(UiEventPayload as rolledSoldierScorePayload, playerName, setBattleState);
+    //             break;
+    //         case 'confirmedLineUp':
+    //             let payload = UiEventPayload as confirmedLineUpPayload;
+    //             error = handleConfirmedLineUp(payload, setBattleState, setSoldiersMap, getSettlementByIntersect, getRoadsByIntersect);
+    //             if (battleState === null) {
+    //                 return;
+    //             }
+    //             break;
+
+    //         case 'updateTrade':
+    //             error = handleUpdateTrade(UiEventPayload as updateTradePayload, setTradeStates);
+    //             break;
+    //         case 'respondTrade':
+    //             let respondTradePayload = UiEventPayload as respondTradePayload;
+    //             let targetTrade = tradeStates.find((trade) => trade.id === respondTradePayload.tradeId);
+    //             if (targetTrade === undefined) {
+    //                 return;
+    //             }
+    //             if (respondTradePayload.response === false) {
+    //                 //can cancel whenever
+    //                 error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
+    //             } else if (turnObj.phase === 'Trade' && (turnObj.player === targetTrade.tradee.name || turnObj.player === targetTrade.trader.name)) {
+    //                 error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
+    //             } else {
+    //                 error = 'Not in trade phase';
+    //             }
+    //             break;
+    //         case 'endTurn':
+    //             handleEndTurn(setTurnObj, setExhaustedSoldiers);
+    //             break;
+    //         default:
+    //             break;
+    //     }
+    //     console.log(error);
+    // };
     const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
         console.log('handling', UiEvent, UiEventPayload);
-        let player = playerMap.get(playerName);
-        if (player === undefined) {
-            return;
-        }
-        let error: void | string = undefined;
-        switch (UiEvent) {
-            case 'rollDice':
-                let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
-                setRoll(rollNum);
-                error = handleRollDice(rollNum, playerMap, setPlayerMap, hexMap, intersectMap, rollMap, settlements);
-                break;
-
-            case 'selectIntersect':
-                setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
-
-                break;
-            case 'buildSettlement':
-                if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
-                    error = 'Not your build turn';
-                    break;
-                }
-                error = handleBuildSettlement(
-                    UiEventPayload as buildSettlementPayload,
-                    player,
-                    intersectMap,
-                    setSettlements,
-                    setIntersectMap,
-                    settlements
-                );
-                if (error === undefined) {
-                    changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap);
-                }
-
-                break;
-            case 'upgradeSettlement':
-                if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
-                    error = 'Not your build turn';
-                    break;
-                }
-                break;
-            case 'buildRoad':
-                if (turnObj.phase !== 'Build' || turnObj.player !== playerName) {
-                    error = 'Not your build turn';
-                    break;
-                }
-                error = handleBuildRoad(UiEventPayload as buildRoadPayload, setIntersectMap, intersectMap, player, roads, setRoads, settlements);
-                if (error === undefined) {
-                    changePlayerResources(player, RoadPrice, playerMap, setPlayerMap);
-                }
-
-                break;
-
-            case 'buildSoldier':
-                if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
-                    error = 'Not your Action turn';
-                    break;
-                }
-                error = handleBuildSoldier(UiEventPayload as buildSoldierPayload, player, soldiersMap, setSoldiersMap, settlements, intersectMap);
-                if (error === undefined) {
-                    changePlayerResources(player, SoldierPrice, playerMap, setPlayerMap);
-                }
-                break;
-
-            case 'moveSoldier':
-                if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
-                    error = 'Not your Action turn';
-                    break;
-                }
-                //check if soldier all have actions
-                let movePayload = UiEventPayload as moveSoldierPayload;
-                movePayload.soldierIds = movePayload.soldierIds.filter((soldierId) => {
-                    return !exhaustedSoldiers.includes(soldierId);
-                });
-                error = handleMoveSoldier(movePayload, roads, player, soldiersMap, setSoldiersMap);
-                if (error === undefined) {
-                    setExhaustedSoldiers([...exhaustedSoldiers, ...movePayload.soldierIds]);
-                }
-                break;
-            case 'initiateBattle':
-                if (turnObj.phase !== 'Action' || turnObj.player !== playerName) {
-                    error = 'Not your Action turn';
-                    break;
-                }
-                let initiateBattlePayload = UiEventPayload as initiateBattlePayload;
-                initiateBattlePayload.friendlyIds = initiateBattlePayload.friendlyIds.filter((soldierId) => {
-                    return !exhaustedSoldiers.includes(soldierId);
-                });
-                error = handleInitiateBattle(initiateBattlePayload, playerName, setBattleState, soldiersMap);
-                if (error === undefined) {
-                    setExhaustedSoldiers([...exhaustedSoldiers, ...initiateBattlePayload.friendlyIds]);
-                }
-                break;
-
-            case 'rolledSoldierScore':
-                error = handleRolledSoldierScore(UiEventPayload as rolledSoldierScorePayload, playerName, setBattleState);
-                break;
-            case 'confirmedLineUp':
-                let payload = UiEventPayload as confirmedLineUpPayload;
-                error = handleConfirmedLineUp(payload, setBattleState, setSoldiersMap, getSettlementByIntersect, getRoadsByIntersect);
-                if (battleState === null) {
-                    return;
-                }
-                break;
-
-            case 'updateTrade':
-                error = handleUpdateTrade(UiEventPayload as updateTradePayload, setTradeStates);
-                break;
-            case 'respondTrade':
-                let respondTradePayload = UiEventPayload as respondTradePayload;
-                let targetTrade = tradeStates.find((trade) => trade.id === respondTradePayload.tradeId);
-                if (targetTrade === undefined) {
-                    return;
-                }
-                if (respondTradePayload.response === false) {
-                    //can cancel whenever
-                    error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
-                } else if (turnObj.phase === 'Trade' && (turnObj.player === targetTrade.tradee.name || turnObj.player === targetTrade.trader.name)) {
-                    error = handleRespondTrade(respondTradePayload, tradeStates, setTradeStates, setPlayerMap, playerMap);
-                } else {
-                    error = 'Not in trade phase';
-                }
-                break;
-            case 'endTurn':
-                handleEndTurn(setTurnObj, setExhaustedSoldiers);
-                break;
-            default:
-                break;
-        }
-        console.log(error);
-    };
-
-    const switchPlayer = () => {
-        setPlayerName(playerName === 'jia' ? 'fel' : 'jia');
-    };
+    }
 
     return (
         <>
@@ -392,21 +358,18 @@ const Game: React.FC = () => {
                             {turnObj.phase} for {turnObj.player}
                         </h1>
                         {playerName}
-                        <button onClick={()=>setPlayerName("jia")}>jia</button>
-                        <button onClick={()=>setPlayerName("fel")}>fel</button>
-                        <button onClick={()=>setPlayerName("idk")}>idk</button>
                     </Grid>
                     <Grid>
-                        <Board
+                        <CatanBoard
                             exhaustedSoldiers={exhaustedSoldiers}
-                            hexes={Array.from(hexMap.values())}
-                            intersects={Array.from(intersectMap.values())}
+                            hexes={Hexes}
+                            intersects={Intersections}
                             players={Array.from(playerMap.values())}
                             roads={roads}
-                            diceRoll={roll}
                             settlements={settlements}
                             UiEventCaller={handleUiEvent}
                             soldiersMap={soldiersMap}
+                            hexSize={GAME_HEX_SIZE}
                         />
                     </Grid>
                     <Grid container direction="row">
