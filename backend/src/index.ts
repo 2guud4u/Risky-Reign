@@ -370,6 +370,7 @@ socket.on('endTurn', (data: { roomId: string }) => {
     io.to(roomId).emit('gameUpdate', { ...room});
   })
   socket.on("buildSettlement", (data: { roomId: string, playerId: string, intersectId: number }) => {
+    console.log("building settlement");
       const { roomId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {

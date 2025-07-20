@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
 import { TurnState } from 'common';
+import { useGameRoom } from '../contexts/GameContext';
+import { useSocket } from 'src/contexts/SocketContext';
 interface EndTurnButtonProps {
-    // TODO
-    onEndTurn: () => void;
-    turnState: TurnState;
-    player: string;
 }
 
-const EndTurnButton: React.FC<EndTurnButtonProps> = ({ onEndTurn, turnState,player }) => {
+const EndTurnButton: React.FC<EndTurnButtonProps> = () => {
     const [phaseText, setPhaseText] = useState<string>('');
+    const { gameRoom, currentPlayer } = useGameRoom();
+    const { socket, endTurn: onEndTurn } = useSocket();
     useEffect(() => {
-        switch (turnState.phase) {
+        if (!gameRoom || !gameRoom.turnState) return;
+        switch (gameRoom.turnState.phase) {
             case 'SetUp':
                 setPhaseText('End SetUp');
                 break;
@@ -30,17 +31,16 @@ const EndTurnButton: React.FC<EndTurnButtonProps> = ({ onEndTurn, turnState,play
             default:
                 break;
         }
-    }, [turnState]);
+    }, [gameRoom]);
     const handleClick = () => {
-        if (turnState.phase === 'Dice') {
-            onEndTurn();
-        } else{
-            onEndTurn();
+        if (gameRoom && currentPlayer) {
+            console.log(`Ending turn for player: ${currentPlayer.name}`);
+            onEndTurn(currentPlayer.id, gameRoom.id);
         }
 
         
     };
-    return <>{turnState.player === player?  <button onClick={handleClick}>{phaseText}</button> : <button disabled>Waiting on {turnState.player}</button>}</>;
+    return <>{(gameRoom != null && gameRoom.turnState != null && currentPlayer != null) &&(gameRoom.turnState.player === currentPlayer.name?  <button onClick={handleClick}>{phaseText}</button> : <button disabled>Waiting on {gameRoom.turnState.player}</button>)}</>;
 };
 
 export default EndTurnButton;

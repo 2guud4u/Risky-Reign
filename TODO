@@ -1,6 +1,6 @@
 
-- move all game logic to server
-  - game states
+- move socket game logics to socket context
+- move game state to contextify
 - setup logic
     - inventory 
 - make all updates to board in updates

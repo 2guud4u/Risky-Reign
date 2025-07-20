@@ -2,19 +2,15 @@ import React from 'react';
 import { GameRoom, Player, SoldierObj, LOBBY_HEX_SIZE } from 'common';
 import Game from '../containers/Game';
 import GameBoard from '../containers/CatanBoard';
+import { useGameRoom } from '../contexts/GameContext';
+import { useSocket } from '../contexts/SocketContext';
 const GamePage: React.FC<{
-    gameRoom: GameRoom;
-    currentPlayer: Player | null;
-    onMakeMove: (position: number) => void;
-    onResetGame: () => void;
-    onStartGame: () => void;
-    onLeaveRoom: () => void;
-    onRefreshMap: () => void;
-    onRollDice: () => void;
-    onEndTurn: () => void;
+
     error: string | null;
-}> = ({ gameRoom, currentPlayer, onMakeMove, onResetGame, onStartGame,onLeaveRoom, onRefreshMap,onEndTurn, error }) => {
-    const renderWaitingRoom = () => {
+}> = ({ error }) => {
+    const { gameRoom, currentPlayer} = useGameRoom();
+    const { startGame: onStartGame, refreshMap: onRefreshMap} = useSocket();
+    const renderWaitingRoom = (gameRoom: GameRoom) => {
         const gameBoard = gameRoom.board;
         if (!gameBoard) {
             return <p className="text-center text-gray-600">Game board is not available
@@ -40,7 +36,7 @@ const GamePage: React.FC<{
                     <p className="text-center text-gray-600">Players: {gameRoom.players.map(p => p.name).join(', ')}</p>
                     {error && <p className="text-red-500 text-center mt-4">{error}</p>}
                     <button
-                        onClick={onStartGame}
+                        onClick={()=>onStartGame(gameRoom.id)}
                         className="mt-4 w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
                         disabled={gameRoom.players.length < 2}
                     >
@@ -56,7 +52,7 @@ const GamePage: React.FC<{
     const renderRefreshButton = () => {
         return (
             <button
-                onClick={() => onRefreshMap()}
+                onClick={() => {if(gameRoom) onRefreshMap(gameRoom.id)}}
                 className="mt-4 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
             >
                 Refresh Map
@@ -65,19 +61,25 @@ const GamePage: React.FC<{
     };
     
     return (
-        <>
+            <>
             <h1 className="text-2xl font-bold text-center mb-6">Game Page</h1>
-            {gameRoom.gameStatus === 'waiting' ? (
+
+            {gameRoom && currentPlayer ? (
+                gameRoom.gameStatus === 'waiting' ? (
                 <>
-                {renderWaitingRoom()}
-                {renderRefreshButton()}
+                    {renderWaitingRoom(gameRoom)}
+                    {renderRefreshButton()}
                 </>
-                
+                ) : (
+                <Game
+
+                />
+                )
             ) : (
-                <Game gameRoom={gameRoom} currentPlayer={currentPlayer} onEndTurn={onEndTurn}/>
+                <p className="text-center text-gray-600">Loading game...</p>
             )}
-            
-        </>
+            </>
+
     );
     }
 

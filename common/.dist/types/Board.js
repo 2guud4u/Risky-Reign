@@ -5,29 +5,30 @@ var data_1 = require("../utils/data");
 var generateIntersections = function (hexes, size) {
     var intersects = [];
     var id = 0;
-    hexes.forEach(function (hex, index) {
+    hexes.forEach(function (hex) {
         var _a = hex.coord, q = _a.q, r = _a.r, s = _a.s;
         var hexagonVertices = calculateHexagonVertices(q, r, s, size);
         hexagonVertices.forEach(function (vertex) {
+            // Find existing intersection close to the vertex
             var intersect = intersects.find(function (_a) {
                 var coord = _a.coord;
                 return (0, data_1.calcEuclideanDistance)(vertex, coord) < 1;
             });
             if (!intersect) {
+                // Create new intersection
                 intersect = {
-                    id: id,
+                    id: id++,
                     coord: vertex,
                     intersections: new Set(),
                     settlement: null,
                     soldiers: [],
                     roads: new Set()
                 };
-                id++;
+                intersects.push(intersect); // Only push if new
             }
+            // Link hex to intersection
             hex.intersections.add(intersect.id);
-            intersects.push(intersect);
         });
-        //add intersections to hex
     });
     return intersects;
 };

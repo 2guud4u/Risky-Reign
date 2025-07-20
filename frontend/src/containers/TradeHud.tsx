@@ -5,19 +5,22 @@ import { PlayerObj } from '../utils/playerUtils';
 import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
 import { v4 as uuidv4 } from 'uuid';
 import { TurnState } from '../utils/turnUtils';
+
+import { useGameRoom } from '../contexts/GameContext';
+import { useSocket } from '../contexts/SocketContext';
 interface TradeHudProps {
-    tradeStates: tradeState[];
-    playerName: string;
-    playerMap: Map<string, PlayerObj>;
-    UiEventCaller: (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => void;
+
     // turnObj: TurnState;
 }
 
-const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap, UiEventCaller }) => {
+const TradeHud: React.FC<TradeHudProps> = ({  }) => {
+    const { gameRoom, currentPlayer } = useGameRoom();
+    const { socket } = useSocket();
     const [selectedTrade, setSelectedTrade] = React.useState<tradeState | null>(null);
 
     const handleTradeSelect = (id: string) => {
-        setSelectedTrade(tradeStates.find((trade) => trade.id === id) || null);
+        if (!gameRoom) return;
+        setSelectedTrade(gameRoom.tradeStates.find((trade) => trade.id === id) || null);
     };
     const handleSubmit = (player: string | null, tradeState: tradeState) => {
         if (!player) {
@@ -32,19 +35,23 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                 tradee: tradeState.trader,
             };
         }
-        UiEventCaller('updateTrade', { tradeState: tradeState });
+        // UiEventCaller('updateTrade', { tradeState: tradeState });
         setSelectedTrade(null);
     };
     const handleResponse = (response: boolean) => {
-        UiEventCaller('respondTrade', { tradeId: selectedTrade?.id || '', playerName: playerName, response: response });
+        // UiEventCaller('respondTrade', { tradeId: selectedTrade?.id || '', playerName: playerName, response: response });
         setSelectedTrade(null);
     };
 
     const handleCreate = (tradee: string) => {
+        if (!currentPlayer) {
+            console.error('No current player found');
+            return;
+        }
         const newTrade: tradeState = {
             id: uuidv4(),
             trader: {
-                name: playerName,
+                name: currentPlayer.name,
                 offer: {
                     Brick: 0,
                     Wood: 0,
@@ -81,12 +88,12 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                             <h1>Detail View</h1>
                         </Grid>
                         <Grid>
-                            {selectedTrade ? (
+                            {(selectedTrade && currentPlayer != null) ? (
                                 <TradeView
                                     tradeState={selectedTrade}
                                     handleSubmit={handleSubmit}
                                     handleResponse={handleResponse}
-                                    player={playerMap.get(playerName)}
+                                    player={currentPlayer}
                                 />
                             ) : null}
                         </Grid>
@@ -98,7 +105,7 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                         </Grid>
                         <Grid>
                             <div>Select who trade</div>
-                            {Array.from(playerMap.keys()).map((name) => (
+                            {/* {Array.from(playerMap.keys()).map((name) => (
                                 <>
                                     {playerName !== name && (
                                         <button key={name} onClick={() => handleCreate(name)}>
@@ -106,7 +113,7 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                                         </button>
                                     )}
                                 </>
-                            ))}
+                            ))} */}
                         </Grid>
                     </Grid>
                 )}
@@ -116,7 +123,7 @@ const TradeHud: React.FC<TradeHudProps> = ({ tradeStates, playerName, playerMap,
                     <h1>Ongoing</h1>
                 </Grid>
                 <Grid container alignItems="flex-start" direction={'row'}>
-                    {tradeStates.map((trade, index) => (
+                    {gameRoom?.tradeStates.map((trade, index) => (
                         <MiniTradeView key={index} trade={trade} handleTradeSelect={handleTradeSelect} />
                     ))}
                 </Grid>

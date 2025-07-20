@@ -1,30 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { useSocket } from './SocketProvider';
+import { useSocket } from '../contexts/SocketContext';
 import LobbyPage from '../pages/Lobby';
 import GamePage from '../pages/Game';
 import { GameRoom, Player } from 'common';
-
+import { useGameRoom } from '../contexts/GameContext';
 const GameLogic: React.FC = () => {
-  const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [currentRoomId, setCurrentRoomId] = useState<string>('');
   const { socket } = useSocket();
-
+  const { setGameRoom: setContextGameRoom, setCurrentPlayer: setContextCurrentPlayer, gameRoom } = useGameRoom();
   useEffect(() => {
     if (!socket) return;
 
     socket.on('roomUpdate', (room: GameRoom) => {
-      setGameRoom(room);
+      setContextGameRoom(room);
       const player = room.players.find(p => p.id === socket.id);
-      setCurrentPlayer(player || null);
+      setContextCurrentPlayer(player || null);
       setError(null);
       console.log("Game updated:", room);
 
     });
 
     socket.on('gameUpdate', (room: GameRoom) => {
-      setGameRoom(room);
+      setContextGameRoom(room);
       setError(null);
     });
 
@@ -38,57 +37,18 @@ const GameLogic: React.FC = () => {
       socket.off('gameUpdate');
       socket.off('error');
     };
-  }, [socket]);
+  }, [socket, setContextGameRoom, setContextCurrentPlayer]);
 
-  const joinRoom = (playerName: string, roomId: string) => {
-    if (!socket) return;
-    
-    setCurrentRoomId(roomId);
-    socket.emit('joinRoom', { roomId, playerName });
-  };
 
-  const makeMove = (position: number) => {
-    if (!socket || !currentRoomId) return;
-    
-    socket.emit('makeMove', { roomId: currentRoomId, position });
-  };
 
-  const startGame = () => {
-    if (!socket || !currentRoomId) return;
-    console.log('Starting game in room:', currentRoomId);
-    socket.emit('startGame', { roomId: currentRoomId });
-    console.log("board is ", gameRoom?.board);
-  };
 
-  const resetGame = () => {
-    if (!socket || !currentRoomId) return;
-    
-    socket.emit('resetGame', { roomId: currentRoomId });
-  };
 
-  const refreshMap = () => {
-    if (!socket || !currentRoomId) return;
 
-    socket.emit('refreshMap', { roomId: currentRoomId });
-  };
-
-  // game play funcs
-  const rollDice = () => {
-    if (!socket || !currentRoomId) return;
-    socket.emit('rollDice', { roomId: currentRoomId});
-  };
-
-  const endTurn = () => {
-    if (!socket || !currentRoomId) return;
-    console.log('Ending turn for player:', currentPlayer?.name);
-    socket.emit('endTurn', { roomId: currentRoomId });
-  };
 
 
   const leaveRoom = () => {
-    setGameRoom(null);
-    setCurrentPlayer(null);
-    setCurrentRoomId('');
+    setContextGameRoom(null);
+    setContextCurrentPlayer(null);
     setError(null);
     // Disconnect and reconnect to clean up server state
     if (socket) {
@@ -101,20 +61,12 @@ const GameLogic: React.FC = () => {
     <div className="app">
       {!gameRoom ? (
         <LobbyPage 
-          onJoinRoom={joinRoom}
+
           error={error}
         />
       ) : (<>
       <GamePage
-          gameRoom={gameRoom}
-          currentPlayer={currentPlayer}
-          onMakeMove={makeMove}
-          onResetGame={resetGame}
-          onStartGame={startGame}
-          onLeaveRoom={leaveRoom}
-          onRefreshMap={refreshMap}
-          onRollDice={rollDice}
-          onEndTurn={endTurn}
+
           error={error}
         />
         </>

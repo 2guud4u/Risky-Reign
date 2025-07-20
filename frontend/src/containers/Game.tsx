@@ -15,7 +15,7 @@ import {
     updateTradePayload,
     respondTradePayload,
 } from '../utils/eventsUtils';
-import { IntersectNode, IntersectId } from '../utils/intersectUtils';
+import { IntersectNode, IntersectId } from 'common/types/Board';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import CatanBoard from './CatanBoard';
@@ -47,7 +47,9 @@ import Inventory from './Inventory';
 
 import { GameRoom } from 'common/types/Room';
 import { Board, getRollMap, Player } from 'common';
-import { useSocket } from '../components/SocketProvider';
+import { useSocket } from '../contexts/SocketContext';
+import { useGameRoom } from 'src/contexts/GameContext';
+
 
 const hexSize = 100;
 const boardRadius = 2;
@@ -55,98 +57,98 @@ const intersectSize = hexSize / 4;
 const roadSize = intersectSize / 2;
 type Id = string;
 
-interface GameProps {
-    gameRoom: GameRoom;
-    currentPlayer: Player | null;
-    onEndTurn: () => void;
-}
-const Game: React.FC<GameProps> = ({gameRoom: GameRoom, currentPlayer, onEndTurn}) => {
-    const { socket } = useSocket();
-    
+
+const Game: React.FC = () => {
+    const { socket, buildSettlement, endTurn: onEndTurn  } = useSocket();
+    const { gameRoom: curGameRoom, currentPlayer } = useGameRoom();
     const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
   
-
-
-
-
     //new 
-    const gameBoard = GameRoom.board;
-    if (!gameBoard) {
-        return <div>Loading...</div>;
-    }
-    const { Hexes, Intersections, Settlements, Roads, Soldiers } = gameBoard;
-    const battleState = GameRoom.battleState;
-    const tradeStates = GameRoom.tradeStates;
-    const turnState = GameRoom.turnState;
-    const playerList: Player[] = GameRoom.players;
-    const playerMap = new Map(playerList.map((player) => [player.name, player]));
-    if (currentPlayer === null) {
-        return <div>No current player selected.</div>;
-    }
-    const playerName = currentPlayer.name;
-    const rollMap = getRollMap(Hexes);
+    // useEffect(() => {
+    //     if (!curGameRoom || !currentPlayer) {
+    //         return;
+    //     }
+    //     const gameBoard = curGameRoom.board;
 
-    const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
-        const intersect = Intersections[intersectId];
-        if (intersect === undefined) {
-            return null;
-        }
-        const settlementId = intersect.settlement;
-        if (settlementId === undefined) {
-            return null;
-        }
-        return Settlements.find((settlement) => settlement.id === settlementId) || null;
-    };
+    //     if (!gameBoard) {
+    //         return <div>Loading...</div>;
+    //     }
+    //     const { Hexes, Intersections, Settlements, Roads, Soldiers } = gameBoard;
+    //     const battleState = curGameRoom.battleState;
+    //     const tradeStates = curGameRoom.tradeStates;
+    //     const turnState = curGameRoom.turnState;
+    //     const playerList: Player[] = curGameRoom.players;
+    //     const playerMap = new Map(playerList.map((player) => [player.name, player]));
+    //     if (currentPlayer === null) {
+    //         return <div>No current player selected.</div>;
+    //     }
+    //     const playerName = currentPlayer.name;
+    //     const rollMap = getRollMap(Hexes);
+    // }, [curGameRoom, currentPlayer]);
 
-    const getRoadsByIntersect = (intersectId: IntersectId): RoadObj[] | null => {
-        const intersect = Intersections[intersectId];
-        if (intersect === undefined) {
-            return null;
-        }
-        const roadIds = intersect.roads;
-        if (roadIds === undefined) {
-            return null;
-        }
-        return Roads.filter((road) => roadIds.has(road.id)) || null;
-    };
+    // const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
+    //     const intersect = Intersections[intersectId];
+    //     if (intersect === undefined) {
+    //         return null;
+    //     }
+    //     const settlementId = intersect.settlement;
+    //     if (settlementId === undefined) {
+    //         return null;
+    //     }
+    //     return Settlements.find((settlement) => settlement.id === settlementId) || null;
+    // };
+
+    // const getRoadsByIntersect = (intersectId: IntersectId): RoadObj[] | null => {
+    //     const intersect = Intersections[intersectId];
+    //     if (intersect === undefined) {
+    //         return null;
+    //     }
+    //     const roadIds = intersect.roads;
+    //     if (roadIds === undefined) {
+    //         return null;
+    //     }
+    //     return Roads.filter((road) => roadIds.has(road.id)) || null;
+    // };
 
     
-    const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
-        console.log('handling', UiEvent, UiEventPayload);
-        let player = playerMap.get(playerName);
-        if (player === undefined) {
-            return;
-        }
-        let error: void | string = undefined;
-        switch (UiEvent) {
-            case 'rollDice':
-                let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+    // const handleUiEvent = (UiEvent: UiEvent, UiEventPayload: UiEventPayload) => {
+    //     console.log('handling', UiEvent, UiEventPayload);
+    //     let player = playerMap.get(playerName);
+    //     if (player === undefined) {
+    //         return;
+    //     }
+    //     let error: void | string = undefined;
+    //     switch (UiEvent) {
+    //         case 'rollDice':
+    //             let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
 
 
-                break;
+    //             break;
 
     //         case 'selectIntersect':
-    //             setSelectedIntersect(intersectMap.get((UiEventPayload as selectIntersectPayload).intersectId));
-
+    //             let intersect = Intersections[(UiEventPayload as selectIntersectPayload).intersectId];
+    //             setSelectedIntersect(intersect);
+                
     //             break;
     //         case 'buildSettlement':
-    //             if (turnState.phase !== 'Build' || turnState.player !== playerName) {
-    //                 error = 'Not your build turn';
-    //                 break;
-    //             }
-    //             error = handleBuildSettlement(
-    //                 UiEventPayload as buildSettlementPayload,
-    //                 player,
-    //                 intersectMap,
-    //                 setSettlements,
-    //                 setIntersectMap,
-    //                 settlements
-    //             );
-    //             if (error === undefined) {
-    //                 changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap);
-    //             }
-
-    //             break;
+                // if (turnState.phase !== 'Build' || turnState.player !== playerName) {
+                //     error = 'Not your build turn';
+                //     break;
+                // }
+                // error = handleBuildSettlement(
+                //     UiEventPayload as buildSettlementPayload,
+                //     player,
+                //     intersectMap,
+                //     setSettlements,
+                //     setIntersectMap,
+                //     settlements
+                // );
+                // if (error === undefined) {
+                //     changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap);
+                // }
+                // onBuildSettlement((UiEventPayload as buildSettlementPayload).intersectId);
+                // buildSettlement(,(UiEventPayload as buildSettlementPayload).intersectId);
+                // break;
     //         case 'upgradeSettlement':
     //             if (turnState.phase !== 'Build' || turnState.player !== playerName) {
     //                 error = 'Not your build turn';
@@ -238,38 +240,40 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom, currentPlayer, onEndTurn
     //         case 'endTurn':
     //             handleEndTurn(setturnState, setExhaustedSoldiers);
     //             break;
-            default:
-                break;
-        }
-        console.log(error);
-    };
-
+        //     default:
+        //         break;
+        // }
+        // console.log(error);
+    
     return (
-        <>
+        <> {curGameRoom && currentPlayer ? (
             <Grid container direction="row">
                 <Grid container direction="column" size={7}>
                     <Grid>
                         <h1>
-                            {turnState.phase} for {turnState.player}
+                            {curGameRoom.turnState.phase} for {curGameRoom.turnState.player}
                         </h1>
-                        {playerName}
+                        {currentPlayer.name}
                     </Grid>
                     <Grid>
+                    {curGameRoom.board != null && (
                         <CatanBoard
-                            exhaustedSoldiers={[]}
-                            hexes={Hexes}
-                            intersects={Intersections}
-                            players={Array.from(playerMap.values())}
-                            roads={Roads}
-                            settlements={Settlements}
-                            UiEventCaller={handleUiEvent}
-                            soldiersMap={new Map<number, SoldierObj[]>()}
-                            hexSize={GAME_HEX_SIZE}
+                        exhaustedSoldiers={[]}
+                        hexes={curGameRoom.board.Hexes}
+                        intersects={curGameRoom.board.Intersections}
+                        players={curGameRoom.players}
+                        roads={curGameRoom.board.Roads}
+                        settlements={curGameRoom.board.Settlements}
+                        UiEventCaller={()=>{}}
+                        soldiersMap={new Map<number, SoldierObj[]>()}
+                        hexSize={GAME_HEX_SIZE}
                         />
+                    )}
                     </Grid>
+
                     <Grid container direction="row">
                         <Grid size={2}>
-                            <EndTurnButton onEndTurn={onEndTurn} turnState={turnState} player={playerName}/>
+                            <EndTurnButton/>
                         </Grid>
                         <Grid size={10}>
                             <Inventory />
@@ -279,22 +283,17 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom, currentPlayer, onEndTurn
 
                 <Grid container size={5} direction="column">
                     <Grid size={12}>
-                        <PlayersList players={Array.from(playerMap.values())} />
+                        <PlayersList players={curGameRoom.players} />
                     </Grid>
                     <Grid container direction="row">
                         <Grid size={4}>
-                            <IntersectViewer
-                                soldiersMap={new Map<number, SoldierObj[]>()}
-                                intersect={selectedIntersect}
-                                UiEventCaller={handleUiEvent}
-                                playerName={playerName}
-                                settlements={Settlements}
-                                exhaustedSoldiers={[]}
-                            />
+                            {/* <IntersectViewer
+
+                            /> */}
                         </Grid>
                         <Grid container direction="column" size={8}>
                             <Grid >
-                                <TradeHud tradeStates={tradeStates} playerName={playerName} playerMap={playerMap} UiEventCaller={handleUiEvent} />
+                                <TradeHud  />
                             </Grid>
                             <Grid>
                                 {/* <BattleHud playerName={playerName} BattleState={battleState} UiEventCaller={handleUiEvent} setBattleState={setBattleState} /> */}
@@ -304,9 +303,11 @@ const Game: React.FC<GameProps> = ({gameRoom: GameRoom, currentPlayer, onEndTurn
 
                     
                 </Grid>
-            </Grid>
+            </Grid>) : (
+                <>No Game</>)}
         </>
-    );
+    )
+    
 };
 
 export default Game;

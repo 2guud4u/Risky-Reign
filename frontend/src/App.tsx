@@ -3,13 +3,16 @@ import logo from './logo.svg';
 import './App.css';
 import Board from './containers/CatanBoard';
 import Game from './containers/Game';
-import {SocketProvider} from './components/SocketProvider';
+import {SocketProvider} from './contexts/SocketContext';
+import { GameRoomProvider } from './contexts/GameContext';
 import GameLogic from './components/GameLogic';
 function App() {
     return (
-        <SocketProvider>
-            <GameLogic/>
-        </SocketProvider>
+        <GameRoomProvider>
+            <SocketProvider>
+                <GameLogic/>
+            </SocketProvider>
+        </GameRoomProvider>
 );
 }
 

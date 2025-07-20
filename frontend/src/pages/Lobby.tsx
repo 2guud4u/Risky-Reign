@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useSocket } from '../components/SocketProvider';
+import { useSocket } from '../contexts/SocketContext';
 
 const LobbyPage: React.FC<{ 
-  onJoinRoom: (playerName: string, roomId: string) => void;
   error: string | null;
-}> = ({ onJoinRoom, error }) => {
+}> = ({ error }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
-  const { isConnected } = useSocket();
+  const { isConnected, joinRoom: onJoinRoom } = useSocket();
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();

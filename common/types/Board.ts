@@ -37,29 +37,36 @@ export interface IntersectNode {
 export const generateIntersections = (hexes: HexNode[], size: number): IntersectNode[] => {
     const intersects: IntersectNode[] = [];
     let id = 0;
-    hexes.forEach((hex, index) => {
+
+    hexes.forEach((hex) => {
         const { q, r, s } = hex.coord;
         const hexagonVertices = calculateHexagonVertices(q, r, s, size);
+
         hexagonVertices.forEach((vertex) => {
+            // Find existing intersection close to the vertex
             let intersect = intersects.find(({ coord }) => calcEuclideanDistance(vertex, coord) < 1);
+
             if (!intersect) {
+                // Create new intersection
                 intersect = {
-                    id: id,
+                    id: id++,
                     coord: vertex,
                     intersections: new Set(),
                     settlement: null,
                     soldiers: [],
                     roads: new Set(),
                 };
-                id++;
+                intersects.push(intersect); // Only push if new
             }
+
+            // Link hex to intersection
             hex.intersections.add(intersect.id);
-            intersects.push(intersect);
         });
-        //add intersections to hex
     });
+
     return intersects;
 };
+
 
 export function connectIntersections(intersections: IntersectNode[], hexSize: number): IntersectNode[] {
     let connectedIntersections: IntersectNode[] = [];
