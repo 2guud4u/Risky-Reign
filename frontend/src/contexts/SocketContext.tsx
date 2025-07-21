@@ -38,7 +38,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     if (!socket) return;
     socket.emit('rollDice');
   };
-  const buildSettlement = (playerId: string,intersectId: number, currentRoomId: string) => {
+  const buildSettlement = (playerId: string, intersectId: number, currentRoomId: string) => {
     if (!socket || !currentRoomId) return;
     console.log('Building settlement at intersect:', intersectId);
     if (!playerId) {

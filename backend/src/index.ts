@@ -30,8 +30,9 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
-import { GameRoom, Player, generateGameBoard, getRollMap, Board } from 'common';
-import { handleRollDice } from './Logic/actions';
+import { GameRoom, Player, generateGameBoard, getRollMap, Board, SettlementPrice } from 'common';
+import { handleRollDice, handleBuildSettlement } from './Logic/actions';
+import { changePlayerResources } from './Logic/player';
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -76,7 +77,9 @@ function createGameRoom(roomId: string, firstPlayerName: string): GameRoom {
       player: firstPlayerName,
       playerOrder: [firstPlayerName],
       offset: 0,
-      dicePlayerIndex: 0
+      dicePlayerIndex: 0,
+      placedSettlement: false,
+      placedRoad: false,
     },
     gameStatus: 'waiting',
     winner: null,
@@ -259,7 +262,9 @@ socket.on('endTurn', (data: { roomId: string }) => {
           ...turnState, 
           player: turnState.playerOrder[0],
           phase: 'Dice', 
-          offset: 0 
+          offset: 0,
+          placedSettlement: null,
+          placedRoad: null
         };
         turnState.dicePlayerIndex = 0;
       } else {
@@ -279,7 +284,9 @@ socket.on('endTurn', (data: { roomId: string }) => {
         room.turnState = { 
           ...turnState, 
           player: turnState.playerOrder[nextPlayerIndex], 
-          offset: nextOffset 
+          offset: nextOffset,
+          placedSettlement: false,
+          placedRoad: false
         };
       }
       break;
@@ -371,7 +378,7 @@ socket.on('endTurn', (data: { roomId: string }) => {
   })
   socket.on("buildSettlement", (data: { roomId: string, playerId: string, intersectId: number }) => {
     console.log("building settlement");
-      const { roomId } = data;
+      const { roomId, playerId, intersectId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -382,11 +389,35 @@ socket.on('endTurn', (data: { roomId: string }) => {
         socket.emit('error', { message: 'Game board is not available' });
         return;
       }
-      const { playerId, intersectId } = data;
-      const turnState = room.turnState;
-      if (turnState.phase === 'SetUp' ) {
 
+      const turnState = room.turnState;
+      if (turnState.placedSettlement === true) {
+        socket.emit('error', { message: 'You have already placed a settlement this turn' });
+        return;
       }
+      const currentPlayer = room.players.find(p => p.id === playerId);
+      if (!currentPlayer) {
+        socket.emit('error', { message: 'Player not found' });
+        return;
+      }
+      if (turnState.player !== currentPlayer.name) {
+        socket.emit('error', { message: 'It is not your turn' });
+        return;
+      }
+      
+      if (turnState.phase === 'SetUp' ) {
+        handleBuildSettlement(intersectId, currentPlayer, board.Intersections, board.Settlements, true);
+      } else if (turnState.phase == 'Build') {
+        handleBuildSettlement(intersectId, currentPlayer, board.Intersections, board.Settlements, false);
+        changePlayerResources(currentPlayer, SettlementPrice, room.players);
+      }
+      else {
+        socket.emit('error', { message: 'You can only build settlements during SetUp or Build phase' });
+        return;
+      }
+      // Update the game state
+      turnState.placedSettlement = true;
+      io.to(roomId).emit('gameUpdate', { ...room });
 
   })
 });

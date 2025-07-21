@@ -1,10 +1,7 @@
 
 - move socket game logics to socket context
 - move game state to contextify
-- setup logic
-    - inventory 
-- make all updates to board in updates
-- figure out web sockets stuff
+- undo logic
 
 
 

@@ -4,7 +4,9 @@ export interface TurnState {
     player: string;
     playerOrder: string[];
     offset: number;
-    dicePlayerIndex: number
+    dicePlayerIndex: number;
+    placedSettlement: boolean | null;
+    placedRoad: boolean | null;
 }
 
 export interface TradeState {

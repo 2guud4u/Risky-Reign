@@ -20,8 +20,8 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
     const [viewIntersect, setViewIntersect] = useState<IntersectNode | undefined>(undefined);
     const [soldierGroups, setSoldierGroups] = useState<Record<string, SoldierObj[]>>({});
 
-    const { gameRoom, currentPlayer, selectedIntersectId } = useGameRoom();
-    const { socket } = useSocket();
+    const { gameRoom, currentPlayer, selectedIntersectId, } = useGameRoom();
+    const { socket, buildSettlement } = useSocket();
 
     //new intersect selected
     useEffect(() => {
@@ -45,7 +45,11 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
     // }, [viewIntersect, soldiersMap, settlements]);
 
     const handleBuildSettlement = () => {
-        // UiEventCaller('buildSettlement', { intersectId: intersect?.id });
+        if (selectedIntersectId === null || currentPlayer === null || gameRoom === null) {
+            return;
+        }
+        buildSettlement(currentPlayer.id, selectedIntersectId, gameRoom.id);
+        console.log("client build settlement at intersect:", selectedIntersectId);
     };
     const handleBuildRoad = () => {
         if (selectedIntersectId === undefined) {
@@ -54,7 +58,11 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
         setAction('buildRoad');
     };
     const handleUpgradeSettlement = () => {
-        // UiEventCaller('upgradeSettlement', { intersectId: intersect?.id });
+        if (selectedIntersectId === null || currentPlayer === null || gameRoom === null) {
+            return;
+        }
+        buildSettlement(currentPlayer.id, selectedIntersectId, gameRoom.id);
+
     };
     const handleBuildSoldier = () => {
         // UiEventCaller('buildSoldier', { intersectId: intersect?.id });
