@@ -258,15 +258,7 @@ const Game: React.FC = () => {
                     <Grid>
                     {curGameRoom.board != null && (
                         <CatanBoard
-                        exhaustedSoldiers={[]}
-                        hexes={curGameRoom.board.Hexes}
-                        intersects={curGameRoom.board.Intersections}
-                        players={curGameRoom.players}
-                        roads={curGameRoom.board.Roads}
-                        settlements={curGameRoom.board.Settlements}
-                        UiEventCaller={()=>{}}
-                        soldiersMap={new Map<number, SoldierObj[]>()}
-                        hexSize={GAME_HEX_SIZE}
+                            hexSize={GAME_HEX_SIZE}
                         />
                     )}
                     </Grid>
@@ -287,9 +279,7 @@ const Game: React.FC = () => {
                     </Grid>
                     <Grid container direction="row">
                         <Grid size={4}>
-                            {/* <IntersectViewer
-
-                            /> */}
+                            <IntersectViewer/>
                         </Grid>
                         <Grid container direction="column" size={8}>
                             <Grid >

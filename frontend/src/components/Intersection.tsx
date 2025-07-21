@@ -7,7 +7,7 @@ export interface IntersectionProps extends IntersectNode {
     colorSoldierGroups: colorSoldierGroups[];
     size: number;
     exhaustedSoldiers: Id[];
-    onClick: (target: string, targetId: number) => void;
+    onClick: (targetId: number) => void;
 }
 interface colorSoldierGroups {
     color: string;
@@ -36,7 +36,7 @@ const Intersection: React.FC<IntersectionProps> = ({ exhaustedSoldiers, id, coor
     // };
     const handleClick = (e: React.MouseEvent) => {
         // onClick(id);
-        onClick('intersection', id);
+        onClick(id);
     };
     // create soldier circles
     React.useEffect(() => {

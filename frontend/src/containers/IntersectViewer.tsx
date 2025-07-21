@@ -9,11 +9,10 @@ import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 type Id = string;
 interface IntersectViewerProps {
-    intersect: IntersectNode | undefined;
 
 }
 
-const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
+const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
     const [settlement, setSettlement] = useState<SettlementObj | undefined>(undefined);
     const [action, setAction] = useState<string>('');
     const [selectedSoldiers, setSelectedSoldiers] = useState<string[]>([]);
@@ -21,18 +20,21 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
     const [viewIntersect, setViewIntersect] = useState<IntersectNode | undefined>(undefined);
     const [soldierGroups, setSoldierGroups] = useState<Record<string, SoldierObj[]>>({});
 
-    const { gameRoom, currentPlayer } = useGameRoom();
+    const { gameRoom, currentPlayer, selectedIntersectId } = useGameRoom();
     const { socket } = useSocket();
 
     //new intersect selected
     useEffect(() => {
-        if (intersect === undefined) {
+        if (selectedIntersectId === undefined) {
+            return;
+        }
+        if (gameRoom === null || gameRoom.board === null || gameRoom.board.Intersections === undefined) {
             return;
         }
         if (action === '') {
-            setViewIntersect(intersect);
+            setViewIntersect(gameRoom.board.Intersections.find((intersect) => intersect.id === selectedIntersectId));
         }
-    }, [intersect, action]);
+    }, [gameRoom, action,selectedIntersectId]);
 
     // useEffect(() => {
     //     if (viewIntersect === undefined) {
@@ -46,7 +48,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
         // UiEventCaller('buildSettlement', { intersectId: intersect?.id });
     };
     const handleBuildRoad = () => {
-        if (intersect === undefined) {
+        if (selectedIntersectId === undefined) {
             return;
         }
         setAction('buildRoad');
@@ -95,7 +97,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
                     console.log('no soldiers selected');
                     return;
                 }
-                if (intersect === undefined || viewIntersect === undefined) {
+                if (selectedIntersectId === undefined || viewIntersect === undefined) {
                     return;
                 }
                 // UiEventCaller('moveSoldier', {
@@ -106,7 +108,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
 
                 break;
             case 'buildRoad':
-                if (intersect === undefined || viewIntersect === undefined) {
+                if (selectedIntersectId === undefined || viewIntersect === undefined) {
                     return;
                 }
                 // UiEventCaller('buildRoad', {
@@ -123,7 +125,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
         setSelectedEnemy('');
     };
     const handleSelectAll = () => {
-        // setSelectedSoldiers(soldierGroups[playerName].map((s) => s.id).filter((id) => !exhaustedSoldiers.includes(id)));
+        // setSelectedSoldiers(soldierGroups[currentPlayer.name].map((s) => s.id).filter((id) => !exhaustedSoldiers.includes(id)));
     };
     const handleOnClickEnemy = (owner: string) => {
         if (selectedEnemy !== owner) {
@@ -133,135 +135,136 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({ intersect }) => {
         }
     };
     return (
-        // <Grid container>
-        //     {viewIntersect === undefined ? (
-        //         <div>No intersection selected</div>
-        //     ) : (
-        //         {gameRoom && currentPlayer (
-        //         <Grid container>
-        //             <Grid style={{ border: '2px solid black', padding: '16px' }}>
-        //                 <h1>Intersection {viewIntersect.id}</h1>
+        <Grid container>
+            {viewIntersect === undefined ? (
+                <div>No intersection selected</div>
+            ) : gameRoom && currentPlayer ? (
+                <Grid container>
+                    <Grid style={{ border: '2px solid black', padding: '16px' }}>
+                        <h1>Intersection {viewIntersect.id}</h1>
 
-        //                 {settlement ? (
-        //                     <>
-        //                         <p>Settlement: {settlement.id}</p>
-        //                         {settlement.owner === playerName ? (
-        //                             <>
-        //                                 <button onClick={handleUpgradeSettlement}>Upgrade Settlement</button>
-        //                                 <button onClick={handleBuildSoldier}>Buy Soldier</button>
-        //                             </>
-        //                         ) : (
-        //                             <></>
-        //                         )}
-        //                     </>
-        //                 ) : (
-        //                     <>
-        //                         <p>No settlement</p>
-        //                         <button onClick={handleBuildSettlement}>Build Settlement</button>
-        //                     </>
-        //                 )}
-        //                 <button onClick={handleBuildRoad}>Build Road</button>
+                        {settlement ? (
+                            <>
+                                <p>Settlement: {settlement.id}</p>
+                                {settlement.owner === currentPlayer.name ? (
+                                    <>
+                                        <button onClick={handleUpgradeSettlement}>Upgrade Settlement</button>
+                                        <button onClick={handleBuildSoldier}>Buy Soldier</button>
+                                    </>
+                                ) : (
+                                    <></>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <p>No settlement</p>
+                                <button onClick={handleBuildSettlement}>Build Settlement</button>
+                            </>
+                        )}
+                        <button onClick={handleBuildRoad}>Build Road</button>
 
-        //                 <h2>Armies</h2>
-        //                 <Grid container>
-        //                     <Grid container size={12}>
-        //                         <Grid size={12}>
-        //                             <h2>Enemy</h2>
-        //                         </Grid>
+                        <h2>Armies</h2>
+                        <Grid container>
+                            <Grid container size={12}>
+                                <Grid size={12}>
+                                    <h2>Enemy</h2>
+                                </Grid>
 
-        //                         {soldierGroups ? (
-        //                             <>
-        //                                 {Object.entries(soldierGroups).map(([owner, soldiers]) =>
-        //                                     owner !== playerName ? (
-        //                                         <Grid
-        //                                             style={{
-        //                                                 backgroundColor: selectedEnemy !== owner ? 'white' : 'grey',
-        //                                                 border: '2px solid black',
-        //                                                 padding: '16px',
-        //                                             }}
-        //                                             container
-        //                                             key={owner}
-        //                                             size={4}
-        //                                             onClick={() => handleOnClickEnemy(owner)}
-        //                                         >
-        //                                             <Grid size={12}>{owner}</Grid>
-        //                                             <Grid container>
-        //                                                 {soldiers.map((soldier) => (
-        //                                                     <Grid key={soldier.id}>{soldier.type}</Grid>
-        //                                                 ))}
-        //                                             </Grid>
-        //                                         </Grid>
-        //                                     ) : (
-        //                                         <></>
-        //                                     )
-        //                                 )}
-        //                             </>
-        //                         ) : (
-        //                             <>No enemy soldiers here</>
-        //                         )}
-        //                     </Grid>
-        //                     <Grid container size={12}>
-        //                         <Grid size={12}>
-        //                             <h2>You</h2>
-        //                         </Grid>
-        //                         <Grid container spacing={4}>
-        //                             {soldierGroups[playerName] ? (
-        //                                 <>
-        //                                     {soldierGroups[playerName].map((soldier) => (
-        //                                         <Grid key={soldier.id}>
-        //                                             {soldier.type}
+                                {soldierGroups ? (
+                                    <>
+                                        {Object.entries(soldierGroups).map(([owner, soldiers]) =>
+                                            owner !== currentPlayer.name ? (
+                                                <Grid
+                                                    style={{
+                                                        backgroundColor: selectedEnemy !== owner ? 'white' : 'grey',
+                                                        border: '2px solid black',
+                                                        padding: '16px',
+                                                    }}
+                                                    container
+                                                    key={owner}
+                                                    size={4}
+                                                    onClick={() => handleOnClickEnemy(owner)}
+                                                >
+                                                    <Grid size={12}>{owner}</Grid>
+                                                    <Grid container>
+                                                        {soldiers.map((soldier) => (
+                                                            <Grid key={soldier.id}>{soldier.type}</Grid>
+                                                        ))}
+                                                    </Grid>
+                                                </Grid>
+                                            ) : (
+                                                <></>
+                                            )
+                                        )}
+                                    </>
+                                ) : (
+                                    <>No enemy soldiers here</>
+                                )}
+                            </Grid>
+                            <Grid container size={12}>
+                                <Grid size={12}>
+                                    <h2>You</h2>
+                                </Grid>
+                                <Grid container spacing={4}>
+                                    {soldierGroups[currentPlayer.name] ? (
+                                        <>
+                                            {soldierGroups[currentPlayer.name].map((soldier) => (
+                                                <Grid key={soldier.id}>
+                                                    {soldier.type}
 
-        //                                             {['move', 'battle'].includes(action) ? (
-        //                                                 <>
-        //                                                     {selectedSoldiers.includes(soldier.id) ? (
-        //                                                         <button onClick={() => handleUnselectSoldier(soldier.id)}>Deselect</button>
-        //                                                     ) : (
-        //                                                         <button
-        //                                                             onClick={() => handleSelectSoldier(soldier.id)}
-        //                                                             disabled={exhaustedSoldiers.includes(soldier.id)}
-        //                                                         >
-        //                                                             Select
-        //                                                         </button>
-        //                                                     )}
-        //                                                 </>
-        //                                             ) : (
-        //                                                 <></>
-        //                                             )}
-        //                                         </Grid>
-        //                                     ))}
-        //                                 </>
-        //                             ) : (
-        //                                 <>You have no soldiers here</>
-        //                             )}
-        //                         </Grid>
-        //                     </Grid>
-        //                 </Grid>
-        //             </Grid>
+                                                    {['move', 'battle'].includes(action) ? (
+                                                        <>
+                                                            {selectedSoldiers.includes(soldier.id) ? (
+                                                                <button onClick={() => handleUnselectSoldier(soldier.id)}>Deselect</button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleSelectSoldier(soldier.id)}
+                                                                    // disabled={[].includes(soldier.id)}
+                                                                >
+                                                                    Select
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <></>
+                                                    )}
+                                                </Grid>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <>You have no soldiers here</>
+                                    )}
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
 
-        //             <Grid style={{ border: '2px solid black', padding: '16px' }}>
-        //                 {action !== '' ? (
-        //                     <>
-        //                         {['move', 'battle'].includes(action) && (
-        //                             <>
-        //                                 <button onClick={handleSelectAll}>Select All</button>
-        //                                 <button onClick={() => setSelectedSoldiers([])}>Deselect All</button>
-        //                             </>
-        //                         )}
-        //                         <button onClick={handleConfirm}>Confirm Select</button>
-        //                         <button onClick={handleCancel}>Cancel</button>
-        //                     </>
-        //                 ) : (
-        //                     <>
-        //                         <button onClick={() => setAction('battle')}>Battle</button>
-        //                         <button onClick={() => setAction('move')}>Move</button>
-        //                     </>
-        //                 )}
-        //             </Grid>
-        //         </Grid>
-        //     )}
-        //     )}
-        // </Grid>
-        <></>
+                    <Grid style={{ border: '2px solid black', padding: '16px' }}>
+                        {action !== '' ? (
+                            <>
+                                {['move', 'battle'].includes(action) && (
+                                    <>
+                                        <button onClick={handleSelectAll}>Select All</button>
+                                        <button onClick={() => setSelectedSoldiers([])}>Deselect All</button>
+                                    </>
+                                )}
+                                <button onClick={handleConfirm}>Confirm Select</button>
+                                <button onClick={handleCancel}>Cancel</button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => setAction('battle')}>Battle</button>
+                                <button onClick={() => setAction('move')}>Move</button>
+                            </>
+                        )}
+                    </Grid>
+                </Grid>
+            ) : (
+                <div>Loading...</div>
+            )}
+            
+        </Grid>
+        
     );
 };
 

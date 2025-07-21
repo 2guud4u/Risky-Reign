@@ -42,9 +42,7 @@ const GamePage: React.FC<{
                     >
                         Start Game
                     </button>
-                    <GameBoard exhaustedSoldiers={exhaustedSoldiers} hexes={hexes} 
-                    intersects={intersections} settlements={settlements} roads={roads} players={players}
-                    soldiersMap={soldiersMap} UiEventCaller={UiEventCaller} hexSize={LOBBY_HEX_SIZE}/>
+                    <GameBoard hexSize={LOBBY_HEX_SIZE}/>
                 </div>
             </div>
         );
