@@ -7,8 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev-backend": "nodemon --watch backend/src --watch common/ --ext ts --exec \"npm run build --workspace common && npm run build-run --workspace backend\"",
     "dev-frontend": "nodemon --watch frontend/src --ext tsx --exec \"npm run build --workspace frontend && npm run start --workspace frontend\"",
-    "dev": "concurrently \"npm run dev-backend\" \"npm run dev-frontend\""
-
+    "dev": "concurrently \"yarn run dev-backend\" \"yarn run dev-frontend\""
   },
   "repository": {
     "type": "git",
@@ -24,5 +23,8 @@
     "common",
     "backend",
     "frontend"
-  ]
+  ],
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
 }

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "declaration": true,
-    "outDir": "./.dist",
+    "outDir": "./dist",
   },
   "include": [
     "**/*.ts"
