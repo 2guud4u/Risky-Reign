@@ -77,9 +77,9 @@ export const isBuildType = (arg: any): arg is buildType => {
 import { PixelCoord } from './Board';
 
 export interface RoadObj {
-    id: number;
-    intersect1: number;
-    intersect2: number;
+    id: string;
+    intersect1: string;
+    intersect2: string;
     owner: string;
     coord1: PixelCoord;
     coord2: PixelCoord;
@@ -87,7 +87,7 @@ export interface RoadObj {
 }
 
 export interface SettlementObj {
-    id: number;
+    id: string;
     owner: string;
     upgraded: boolean;
     coord: PixelCoord;

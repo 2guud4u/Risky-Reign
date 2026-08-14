@@ -5,17 +5,17 @@ import { SoldierObj } from './soldierUtils';
 export interface Intersect extends PixelCoord {}
 export type IntersectId = number;
 
-export interface IntersectNode {
+export interface VertexNode {
     coord: PixelCoord;
-    intersections: Set<number>;
+    vertices: Set<number>;
     id: number;
     settlement: number | null;
     soldiers: SoldierObj[];
     roads: Set<number>;
 }
 
-export const generateIntersections = (hexes: HexNode[], size: number): IntersectNode[] => {
-    const intersects: IntersectNode[] = [];
+export const generateVertices = (hexes: HexNode[], size: number): VertexNode[] => {
+    const intersects: VertexNode[] = [];
     let id = 0;
     hexes.forEach((hex, index) => {
         const { q, r, s } = hex.coord;
@@ -26,33 +26,33 @@ export const generateIntersections = (hexes: HexNode[], size: number): Intersect
                 intersect = {
                     id: id,
                     coord: vertex,
-                    intersections: new Set(),
+                    vertices: new Set(),
                     settlement: null,
                     soldiers: [],
                     roads: new Set(),
                 };
                 id++;
             }
-            hex.intersections.add(intersect.id);
+            hex.vertices.add(intersect.id);
             intersects.push(intersect);
         });
-        //add intersections to hex
+        //add vertices to hex
     });
     return intersects;
 };
 
-export function connectIntersections(intersections: IntersectNode[], hexSize: number): IntersectNode[] {
-    let connectedIntersections: IntersectNode[] = [];
-    intersections.forEach((intersect) => {
+export function connectVertices(vertices: VertexNode[], hexSize: number): VertexNode[] {
+    let connectedVertices: VertexNode[] = [];
+    vertices.forEach((intersect) => {
         const { coord } = intersect;
-        intersections.forEach((otherIntersect) => {
+        vertices.forEach((otherIntersect) => {
             if (intersect.id !== otherIntersect.id && calcEuclideanDistance(coord, otherIntersect.coord) < hexSize * 1.1) {
-                intersect.intersections.add(otherIntersect.id);
+                intersect.vertices.add(otherIntersect.id);
             }
         });
-        connectedIntersections.push(intersect);
+        connectedVertices.push(intersect);
     });
-    return connectedIntersections;
+    return connectedVertices;
 }
 
 export function calculateHexagonVertices(q: number, r: number, s: number, size: number): PixelCoord[] {

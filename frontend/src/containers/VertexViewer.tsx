@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IntersectNode } from 'common';
+import { VertexNode } from 'common';
 import { UiEvent, UiEventPayload, buildRoadPayload, moveSoldierPayload } from '../utils/eventsUtils';
 import { SoldierObj } from '../utils/soldierUtils';
 import { SettlementObj } from '../utils/settlementUtils';
@@ -8,64 +8,64 @@ import { groupBy } from '../utils/helperUtils';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 type Id = string;
-interface IntersectViewerProps {
+interface VertexViewerProps {
 
 }
 
-const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
+const VertexViewer: React.FC<VertexViewerProps> = ({  }) => {
     const [settlement, setSettlement] = useState<SettlementObj | undefined>(undefined);
     const [action, setAction] = useState<string>('');
     const [selectedSoldiers, setSelectedSoldiers] = useState<string[]>([]);
     const [selectedEnemy, setSelectedEnemy] = useState<string>('');
-    const [viewIntersect, setViewIntersect] = useState<IntersectNode | undefined>(undefined);
+    const [viewVertex, setViewVertex] = useState<VertexNode | undefined>(undefined);
     const [soldierGroups, setSoldierGroups] = useState<Record<string, SoldierObj[]>>({});
 
-    const { gameRoom, currentPlayer, selectedIntersectId, } = useGameRoom();
-    const { socket, buildSettlement } = useSocket();
+    const { gameRoom, currentPlayer, selectedVertexId, } = useGameRoom();
+    const { socket, buildSettlement, buildRoad } = useSocket();
 
-    //new intersect selected
+    //new vertex selected
     useEffect(() => {
-        if (selectedIntersectId === undefined) {
+        if (selectedVertexId === undefined) {
             return;
         }
-        if (gameRoom === null || gameRoom.board === null || gameRoom.board.Intersections === undefined) {
+        if (gameRoom === null || gameRoom.board === null || gameRoom.board.Vertexs === undefined) {
             return;
         }
         if (action === '') {
-            setViewIntersect(gameRoom.board.Intersections.find((intersect) => intersect.id === selectedIntersectId));
+            setViewVertex(gameRoom.board.Vertexs.find((vertex) => vertex.id === selectedVertexId));
         }
-    }, [gameRoom, action,selectedIntersectId]);
+    }, [gameRoom, action,selectedVertexId]);
 
     // useEffect(() => {
-    //     if (viewIntersect === undefined) {
+    //     if (viewVertex === undefined) {
     //         return;
     //     }
-    //     setSoldierGroups(groupBy(soldiersMap.get(viewIntersect.id) || [], 'owner'));
-    //     setSettlement(settlements.find((s) => (viewIntersect.settlement !== null ? s.id === viewIntersect.settlement : false)));
-    // }, [viewIntersect, soldiersMap, settlements]);
+    //     setSoldierGroups(groupBy(soldiersMap.get(viewVertex.id) || [], 'owner'));
+    //     setSettlement(settlements.find((s) => (viewVertex.settlement !== null ? s.id === viewVertex.settlement : false)));
+    // }, [viewVertex, soldiersMap, settlements]);
 
     const handleBuildSettlement = () => {
-        if (selectedIntersectId === null || currentPlayer === null || gameRoom === null) {
+        if (selectedVertexId === null || currentPlayer === null || gameRoom === null) {
             return;
         }
-        buildSettlement(currentPlayer.id, selectedIntersectId, gameRoom.id);
-        console.log("client build settlement at intersect:", selectedIntersectId);
+        buildSettlement(currentPlayer.id, selectedVertexId, gameRoom.id);
+        console.log("client build settlement at vertex:", selectedVertexId);
     };
     const handleBuildRoad = () => {
-        if (selectedIntersectId === undefined) {
+        if (selectedVertexId === undefined) {
             return;
         }
         setAction('buildRoad');
     };
     const handleUpgradeSettlement = () => {
-        if (selectedIntersectId === null || currentPlayer === null || gameRoom === null) {
+        if (selectedVertexId === null || currentPlayer === null || gameRoom === null) {
             return;
         }
-        buildSettlement(currentPlayer.id, selectedIntersectId, gameRoom.id);
+        buildSettlement(currentPlayer.id, selectedVertexId, gameRoom.id);
 
     };
     const handleBuildSoldier = () => {
-        // UiEventCaller('buildSoldier', { intersectId: intersect?.id });
+        // UiEventCaller('buildSoldier', { vertexId: vertex?.id });
     };
 
     const handleUnselectSoldier = (soldierId: string) => {
@@ -94,7 +94,7 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
                     return;
                 }
                 // UiEventCaller('initiateBattle', {
-                //     intersectId: intersect?.id,
+                //     vertexId: vertex?.id,
                 //     friendlyIds: selectedSoldiers,
                 //     enemyIds: soldierGroups[selectedEnemy].map((s) => s.id),
                 //     enemyName: selectedEnemy,
@@ -105,24 +105,23 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
                     console.log('no soldiers selected');
                     return;
                 }
-                if (selectedIntersectId === undefined || viewIntersect === undefined) {
+                if (selectedVertexId === undefined || viewVertex === undefined) {
                     return;
                 }
                 // UiEventCaller('moveSoldier', {
                 //     soldierIds: selectedSoldiers,
-                //     endIntersectId: intersect.id,
-                //     startIntersectId: viewIntersect.id,
+                //     endVertexId: vertex.id,
+                //     startVertexId: viewVertex.id,
                 // } as moveSoldierPayload);
 
                 break;
             case 'buildRoad':
-                if (selectedIntersectId === undefined || viewIntersect === undefined) {
+                if (selectedVertexId === undefined || viewVertex === undefined || currentPlayer === null || gameRoom === null) {
                     return;
                 }
-                // UiEventCaller('buildRoad', {
-                //     startIntersectId: viewIntersect.id,
-                //     endIntersectId: intersect.id,
-                // } as buildRoadPayload);
+                // When building road, selectedVertexId is the target vertexion
+                const targetId = selectedVertexId as number;
+                buildRoad(currentPlayer.id, viewVertex.id, targetId, gameRoom.id);
 
                 break;
             default:
@@ -144,12 +143,12 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
     };
     return (
         <Grid container>
-            {viewIntersect === undefined ? (
-                <div>No intersection selected</div>
+            {viewVertex === undefined ? (
+                <div>No vertexion selected</div>
             ) : gameRoom && currentPlayer ? (
                 <Grid container>
                     <Grid style={{ border: '2px solid black', padding: '16px' }}>
-                        <h1>Intersection {viewIntersect.id}</h1>
+                        <h1>Vertex {viewVertex.id}</h1>
 
                         {settlement ? (
                             <>
@@ -276,4 +275,4 @@ const IntersectViewer: React.FC<IntersectViewerProps> = ({  }) => {
     );
 };
 
-export default IntersectViewer;
+export default VertexViewer;

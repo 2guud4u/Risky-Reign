@@ -23,7 +23,7 @@ export interface TradeParty {
 export interface BattleState {
     states: Map<string, { soldiers: SoldierBattleState[]; submitted: boolean }>;
 
-    intersectId: number;
+    vertexId: number;
 }
 export interface SoldierBattleState {
     soldier: SoldierObj;
@@ -32,16 +32,16 @@ export interface SoldierBattleState {
 }
 
 import { generateHexes, HexNode, HexId } from './Hex';
-import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './Board';
+import { connectVertices, generateVertices, VertexNode, IntersectId } from './Board';
 import { Player } from './Player';
 
 
 
-export const generateGameBoard = (boardRadius: number, hexSize: number): {hexes: Array<HexNode>, intersections: Array<IntersectNode>} => {
+export const generateGameBoard = (boardRadius: number, hexSize: number): {hexes: Array<HexNode>, vertices: Array<VertexNode>} => {
     let hexes = generateHexes(boardRadius);
-    let intersections = generateIntersections(hexes, hexSize);
-    intersections = connectIntersections(intersections, hexSize);
-    return {hexes, intersections} ;
+    let vertices = generateVertices(hexes, hexSize);
+    vertices = connectVertices(vertices, hexSize);
+    return {hexes, vertices} ;
 };
 
 export interface ResourceCount {

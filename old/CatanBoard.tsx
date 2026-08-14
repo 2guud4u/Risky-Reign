@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Hexagon from '../components/Hexagon';
-import Intersection from '../components/Intersection';
+import Vertex from '../components/Vertex';
 import Road from '../components/Road';
 import Settlement from '../components/Settlement';
 import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
 import { groupBy } from '../utils/helperUtils';
 import { HexNode } from '../utils/hexUtils';
-import { IntersectNode } from '../utils/intersectUtils';
+import { VertexNode } from '../utils/intersectUtils';
 import { PlayerObj } from '../utils/playerUtils';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
@@ -29,11 +29,11 @@ const CatanBoard: React.FC<BoardProps> = ({ hexSize
     const roadSize = intersectSize / 2;
     const svgSize = 1.1 * hexSize * (boardRadius * 2 + 1) * Math.sqrt(3);
     
-    const { gameRoom, setSelectedIntersectId } = useGameRoom();
+    const { gameRoom, setSelectedVertexId } = useGameRoom();
 
     const selectIntersect = (id: number) => {
         console.log(`Selected intersect with id: ${id}`);
-        setSelectedIntersectId(id);
+        setSelectedVertexId(id);
     };
     return gameRoom && gameRoom.board && gameRoom.players ? (
         <div className="mb-4">
@@ -69,7 +69,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexSize
                     />
                     );
                 })}
-                {gameRoom.board.Intersections.map((intersect) => {
+                {gameRoom.board.Vertexs.map((intersect) => {
                     const soldiers = gameRoom.board?.Soldiers.filter(x => x.intersect === intersect.id) || [];
                     const soldierGroups = groupBy(soldiers, 'owner');
                     const colorSoldierGroups = Object.entries(soldierGroups).map(([key, value]) => ({
@@ -78,7 +78,7 @@ const CatanBoard: React.FC<BoardProps> = ({ hexSize
                     }));
 
                     return (
-                    <Intersection
+                    <Vertex
                         exhaustedSoldiers={[]}
                         {...intersect}
                         size={intersectSize}

@@ -41,33 +41,33 @@ export interface rolledSoldierScorePayload {
     rollNum: number;
 }
 export interface selectIntersectPayload {
-    intersectId: number;
+    vertexId: number;
 }
 export interface initiateBattlePayload {
-    intersectId: number;
+    vertexId: number;
     friendlyIds: string[];
     enemyIds: string[];
     enemyName: string;
 }
 export interface buildSettlementPayload {
-    intersectId: number;
+    vertexId: number;
 }
 
 export interface upgradeSettlementPayload extends buildSettlementPayload {}
 
 export interface buildSoldierPayload {
-    intersectId: number;
+    vertexId: number;
 }
 
 export interface buildRoadPayload {
-    startIntersectId: number;
-    endIntersectId: number;
+    startVertexId: number;
+    endVertexId: number;
 }
 
 export interface rollDicePayload {}
 
 export interface moveSoldierPayload {
     soldierIds: string[];
-    startIntersectId: number;
-    endIntersectId: number;
+    startVertexId: number;
+    endVertexId: number;
 }

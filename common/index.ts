@@ -4,4 +4,5 @@ export * from './types/Logic';
 export * from './types/Pieces';
 export * from './types/Player';
 export * from './types/Room';
+export * from './types/BoardUI';
 export * from './Constant';

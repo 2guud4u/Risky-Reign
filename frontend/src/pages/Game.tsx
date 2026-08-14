@@ -18,7 +18,7 @@ const GamePage: React.FC<{
         }
         const exhaustedSoldiers = [] as string[];
         const hexes = gameBoard.Hexes;
-        const intersections = gameBoard.Intersections;
+        const vertices = gameBoard.Vertexs;
         const settlements = gameBoard.Settlements;
         const roads = gameBoard.Roads;
         const players = gameRoom.players;

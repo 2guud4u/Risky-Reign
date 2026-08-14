@@ -1,5 +1,5 @@
 import { generateHexes, HexNode, HexId } from './hexUtils';
-import { connectIntersections, generateIntersections, IntersectNode, IntersectId } from './intersectUtils';
+import { connectVertexs, generateVertexs, VertexNode, VertexId } from './vertexUtils';
 import { PlayerObj } from './playerUtils';
 import { BattleState, SoldierObj, SoldierBattleState } from '../utils/soldierUtils';
 export interface GameState {
@@ -9,21 +9,21 @@ export interface GameState {
 
 export interface GameBoard {
     hexMap: Map<HexId, HexNode>;
-    intersectMap: Map<IntersectId, IntersectNode>;
+    vertexMap: Map<VertexId, VertexNode>;
 }
 export const generateGameBoard = (boardRadius: number, hexSize: number): GameBoard => {
     let hexes = generateHexes(boardRadius);
-    let intersections = generateIntersections(hexes, hexSize);
-    intersections = connectIntersections(intersections, hexSize);
+    let vertexions = generateVertexs(hexes, hexSize);
+    vertexions = connectVertexs(vertexions, hexSize);
     let hexMap: Map<number, HexNode> = hexes.reduce((map, hex) => {
         map.set(hex.id, hex);
         return map;
     }, new Map<number, HexNode>());
-    let intersectMap: Map<number, IntersectNode> = intersections.reduce((map, intersect) => {
-        map.set(intersect.id, intersect);
+    let vertexMap: Map<number, VertexNode> = vertexions.reduce((map, vertex) => {
+        map.set(vertex.id, vertex);
         return map;
-    }, new Map<number, IntersectNode>());
-    return { hexMap, intersectMap };
+    }, new Map<number, VertexNode>());
+    return { hexMap, vertexMap };
 };
 
 export interface ResourceCount {

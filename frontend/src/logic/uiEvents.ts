@@ -11,7 +11,7 @@ import {
     respondTradePayload,
 } from '../utils/eventsUtils';
 import { PlayerObj } from '../utils/playerUtils';
-import { IntersectNode, IntersectId } from '../utils/intersectUtils';
+import { VertexNode, VertexId } from '../utils/intersectUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import { RoadObj } from '../utils/roadUtils';
 import { SoldierObj, SoldierType, BattleState } from '../utils/soldierUtils';
@@ -39,9 +39,9 @@ export const checkHasPrice = (player: PlayerObj, price: Price): boolean => {
 export const handleBuildSettlement = (
     payload: buildSettlementPayload,
     player: PlayerObj,
-    intersectMap: Map<number, IntersectNode>,
+    intersectMap: Map<number, VertexNode>,
     setSettlements: React.Dispatch<React.SetStateAction<SettlementObj[]>>,
-    setIntersectMap: React.Dispatch<React.SetStateAction<Map<number, IntersectNode>>>,
+    setIntersectMap: React.Dispatch<React.SetStateAction<Map<number, VertexNode>>>,
     settlements: SettlementObj[]
 ): void | string => {
     //check if has enough resources
@@ -49,7 +49,7 @@ export const handleBuildSettlement = (
         return 'Not enough resources';
     }
 
-    const intersect = intersectMap.get(payload.intersectId);
+    const intersect = intersectMap.get(payload.vertexId);
     if (intersect === undefined) {
         return 'Invalid intersection';
     }
@@ -58,10 +58,10 @@ export const handleBuildSettlement = (
         return 'Cannot build here, building already exists';
     }
 
-    if (intersect.intersections.size === 0) {
+    if (intersect.vertices.size === 0) {
         return;
     }
-    const intersectNeighbors = Array.from(intersect.intersections).map((id) => intersectMap.get(id));
+    const intersectNeighbors = Array.from(intersect.vertices).map((id) => intersectMap.get(id));
     if (intersectNeighbors.some((neighbor) => neighbor !== undefined && neighbor.settlement !== null)) {
         return 'Cannot build here, settlement too close to other settlement';
     }
@@ -75,7 +75,7 @@ export const handleBuildSettlement = (
     setSettlements([...settlements, newSettlement]);
     setIntersectMap(
         new Map(
-            intersectMap.set(payload.intersectId, {
+            intersectMap.set(payload.vertexId, {
                 ...intersect,
                 settlement: settlementId,
             })
@@ -84,14 +84,14 @@ export const handleBuildSettlement = (
 };
 
 const checkRoadValid = (
-    intersect1: IntersectNode,
-    intersect2: IntersectNode,
+    intersect1: VertexNode,
+    intersect2: VertexNode,
     owner: string,
     roads: RoadObj[],
     settlements: SettlementObj[]
 ): boolean => {
     //check if not two far away
-    if (!intersect1.intersections.has(intersect2.id)) {
+    if (!intersect1.vertices.has(intersect2.id)) {
         return false;
     }
     if (intersect1.settlement !== null) {
@@ -121,8 +121,8 @@ const checkRoadValid = (
 
 export const handleBuildRoad = (
     payload: buildRoadPayload,
-    setIntersectMap: React.Dispatch<React.SetStateAction<Map<number, IntersectNode>>>,
-    intersectMap: Map<number, IntersectNode>,
+    setIntersectMap: React.Dispatch<React.SetStateAction<Map<number, VertexNode>>>,
+    intersectMap: Map<number, VertexNode>,
     player: PlayerObj,
     roads: RoadObj[],
     setRoads: React.Dispatch<React.SetStateAction<RoadObj[]>>,
@@ -131,13 +131,13 @@ export const handleBuildRoad = (
     if (!checkHasPrice(player, RoadPrice)) {
         return 'Not enough resources';
     }
-    const intersect1 = intersectMap.get(payload.startIntersectId);
-    const intersect2 = intersectMap.get(payload.endIntersectId);
+    const intersect1 = intersectMap.get(payload.startVertexId);
+    const intersect2 = intersectMap.get(payload.endVertexId);
     if (intersect1 === undefined || intersect2 === undefined) {
         return 'Invalid intersection';
     }
     //check if building here is valid
-    if (roads.some((road) => road.intersect1 === payload.startIntersectId && road.intersect2 === payload.endIntersectId)) {
+    if (roads.some((road) => road.intersect1 === payload.startVertexId && road.intersect2 === payload.endVertexId)) {
         return 'Cannot build here, road already exists';
     }
     //check if has building on either end or if road is connected to another road
@@ -149,19 +149,19 @@ export const handleBuildRoad = (
         ...roads,
         {
             id: roadId,
-            intersect1: payload.startIntersectId,
-            intersect2: payload.endIntersectId,
+            intersect1: payload.startVertexId,
+            intersect2: payload.endVertexId,
             owner: player.name,
             coord1: intersect1.coord,
             coord2: intersect2.coord,
             upgraded: false,
         },
     ]);
-    let newIntersectMap = intersectMap.set(payload.startIntersectId, {
+    let newIntersectMap = intersectMap.set(payload.startVertexId, {
         ...intersect1,
         roads: intersect1.roads.add(roadId),
     });
-    newIntersectMap = newIntersectMap.set(payload.endIntersectId, {
+    newIntersectMap = newIntersectMap.set(payload.endVertexId, {
         ...intersect2,
         roads: intersect2.roads.add(roadId),
     });
@@ -177,12 +177,12 @@ export const handleBuildSoldier = (
     soldiersMap: Map<number, SoldierObj[]>,
     setSoldiersMap: React.Dispatch<React.SetStateAction<Map<number, SoldierObj[]>>>,
     settlements: SettlementObj[],
-    intersectMap: Map<number, IntersectNode>
+    intersectMap: Map<number, VertexNode>
 ): void | string => {
     if (!checkHasPrice(player, SoldierPrice)) {
         return 'Not enough resources';
     }
-    const intersect = intersectMap.get(payload.intersectId);
+    const intersect = intersectMap.get(payload.vertexId);
     if (intersect === undefined) {
         return 'Invalid intersection';
     }
@@ -198,7 +198,7 @@ export const handleBuildSoldier = (
     const newSoldier = {
         id: soldierId,
         owner: player.name,
-        intersect: payload.intersectId,
+        intersect: payload.vertexId,
         type: 'infantry' as SoldierType,
         injured: false,
         stationed: false,
@@ -218,20 +218,20 @@ export const handleMoveSoldier = (
     soldiersMap: Map<number, SoldierObj[]>,
     setSoldiersMap: React.Dispatch<React.SetStateAction<Map<number, SoldierObj[]>>>
 ): void | string => {
-    if (payload.startIntersectId === payload.endIntersectId) {
+    if (payload.startVertexId === payload.endVertexId) {
         return 'Soldier is moving to the same location';
     }
     //check if road exists
     if (
         roads.find(
             (road) =>
-                (road.intersect1 === payload.startIntersectId && road.intersect2 === payload.endIntersectId) ||
-                (road.intersect1 === payload.endIntersectId && road.intersect2 === payload.startIntersectId)
+                (road.intersect1 === payload.startVertexId && road.intersect2 === payload.endVertexId) ||
+                (road.intersect1 === payload.endVertexId && road.intersect2 === payload.startVertexId)
         ) === undefined
     ) {
         return 'Cannot move soldier, no road';
     }
-    const soldiers = soldiersMap.get(payload.startIntersectId);
+    const soldiers = soldiersMap.get(payload.startVertexId);
     if (soldiers === undefined) {
         return 'No soldiers to move';
     }
@@ -249,22 +249,22 @@ export const handleMoveSoldier = (
     setSoldiersMap(
         new Map(
             soldiersMap.set(
-                payload.startIntersectId,
+                payload.startVertexId,
                 soldiers.filter((s) => !payload.soldierIds.includes(s.id))
             )
         )
     );
 
-    setSoldiersMap(new Map(soldiersMap.set(payload.endIntersectId, [...(soldiersMap.get(payload.endIntersectId) ?? []), ...movingSoldiers])));
+    setSoldiersMap(new Map(soldiersMap.set(payload.endVertexId, [...(soldiersMap.get(payload.endVertexId) ?? []), ...movingSoldiers])));
 };
 export const handleInitiateBattle = (
     payload: initiateBattlePayload,
     friendlyName: string,
     setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>,
-    soldiersMap: Map<IntersectId, SoldierObj[]>
+    soldiersMap: Map<VertexId, SoldierObj[]>
 ): void | string => {
-    const { intersectId, friendlyIds, enemyIds, enemyName } = payload;
-    const soldiers = soldiersMap.get(intersectId);
+    const { vertexId, friendlyIds, enemyIds, enemyName } = payload;
+    const soldiers = soldiersMap.get(vertexId);
     if (soldiers === undefined) {
         return 'No soldiers to battle';
     }
@@ -284,7 +284,7 @@ export const handleInitiateBattle = (
     const states = new Map<string, { soldiers: { soldier: SoldierObj; rollNum: number; dead: boolean }[]; submitted: boolean }>();
     states.set(friendlyName, { soldiers: friendlySoldiers.map((soldier) => ({ soldier, rollNum: 0, dead: false })), submitted: false });
     states.set(enemyName, { soldiers: enemySoldiers.map((soldier) => ({ soldier, rollNum: 0, dead: false })), submitted: false });
-    setBattleState({ states, intersectId });
+    setBattleState({ states, vertexId });
 };
 export const handleRolledSoldierScore = (
     payload: rolledSoldierScorePayload,
@@ -368,9 +368,9 @@ const handleBattleSubmitted = (newBattleState: BattleState, roads: RoadObj[] | n
 export const handleConfirmedLineUp = (
     payload: confirmedLineUpPayload,
     setBattleState: React.Dispatch<React.SetStateAction<BattleState | null>>,
-    setSoldiersMap: React.Dispatch<React.SetStateAction<Map<IntersectId, SoldierObj[]>>>,
-    getSettlementByIntersect: (intersectId: number) => SettlementObj | null,
-    getRoadsByIntersect: (intersectId: number) => RoadObj[] | null
+    setSoldiersMap: React.Dispatch<React.SetStateAction<Map<VertexId, SoldierObj[]>>>,
+    getSettlementByIntersect: (vertexId: number) => SettlementObj | null,
+    getRoadsByIntersect: (vertexId: number) => RoadObj[] | null
 ): void | string => {
     let error: void | string = undefined;
     setBattleState((prev) => {
@@ -392,8 +392,8 @@ export const handleConfirmedLineUp = (
         if (Array.from(newBattleState.states.values()).every((state) => state.submitted)) {
             //also update soldier map
             //todo
-            const settlement = getSettlementByIntersect(newBattleState.intersectId);
-            const roads = getRoadsByIntersect(newBattleState.intersectId);
+            const settlement = getSettlementByIntersect(newBattleState.vertexId);
+            const roads = getRoadsByIntersect(newBattleState.vertexId);
             const soldierUpdates = handleBattleSubmitted(newBattleState, roads, settlement);
 
             soldierUpdates.forEach((soldierState) => {
@@ -410,7 +410,7 @@ export const handleRollDice = (
     playerMap: Map<string, PlayerObj>,
     setPlayerMap: React.Dispatch<React.SetStateAction<Map<string, PlayerObj>>>,
     hexList: HexNode[],
-    intersectList: IntersectNode[],
+    intersectList: VertexNode[],
     rollMap: Map<string, number[]>,
     settlements: SettlementObj[]
 ): void | string => {
@@ -429,13 +429,13 @@ export const handleRollDice = (
             continue;
         }
         if (hex.terrain !== 'Desert') {
-            let intersects = hex.intersections;
+            let intersects = hex.vertices;
             if (intersects === undefined) {
                 continue;
             }
 
-            for (let intersectId of Array.from(intersects)) {
-                let intersect = intersectList[intersectId];
+            for (let vertexId of Array.from(intersects)) {
+                let intersect = intersectList[vertexId];
                 if (intersect === undefined) {
                     continue;
                 }

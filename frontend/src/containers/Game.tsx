@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RoadPrice, SettlementPrice, SoldierPrice, generateGameBoard } from '../utils/gameUtils';
+import BoardView from './BoardView';
 import { GAME_HEX_SIZE } from 'common';
 import {
     buildRoadPayload,
@@ -15,10 +16,11 @@ import {
     updateTradePayload,
     respondTradePayload,
 } from '../utils/eventsUtils';
-import { IntersectNode, IntersectId } from 'common';
+import { VertexNode, VertexId } from 'common';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import CatanBoard from './CatanBoard';
+// BoardView will replace CatanBoard
 
 import Grid from '@mui/material/Grid2';
 import {
@@ -38,7 +40,6 @@ import { changePlayerResources } from '../services/update';
 import { SoldierObj, BattleState } from '../utils/soldierUtils';
 import PlayersList from './PlayersList';
 import BattleHud from './BattleHud';
-import IntersectViewer from './IntersectViewer';
 import { groupBy, zip } from '../utils/helperUtils';
 import TradeHud from './TradeHud';
 
@@ -60,7 +61,7 @@ type Id = string;
 const Game: React.FC = () => {
     const { socket, buildSettlement, endTurn: onEndTurn  } = useSocket();
     const { gameRoom: curGameRoom, currentPlayer } = useGameRoom();
-    const [selectedIntersect, setSelectedIntersect] = useState<IntersectNode | undefined>(undefined);
+    const [selectedIntersect, setSelectedIntersect] = useState<VertexNode | undefined>(undefined);
   
     //new 
     // useEffect(() => {
@@ -72,7 +73,7 @@ const Game: React.FC = () => {
     //     if (!gameBoard) {
     //         return <div>Loading...</div>;
     //     }
-    //     const { Hexes, Intersections, Settlements, Roads, Soldiers } = gameBoard;
+    //     const { Hexes, Vertexs, Settlements, Roads, Soldiers } = gameBoard;
     //     const battleState = curGameRoom.battleState;
     //     const tradeStates = curGameRoom.tradeStates;
     //     const turnState = curGameRoom.turnState;
@@ -85,8 +86,8 @@ const Game: React.FC = () => {
     //     const rollMap = getRollMap(Hexes);
     // }, [curGameRoom, currentPlayer]);
 
-    // const getSettlementByIntersect = (intersectId: IntersectId): SettlementObj | null => {
-    //     const intersect = Intersections[intersectId];
+    // const getSettlementByIntersect = (vertexId: VertexId): SettlementObj | null => {
+    //     const intersect = Vertexs[vertexId];
     //     if (intersect === undefined) {
     //         return null;
     //     }
@@ -97,8 +98,8 @@ const Game: React.FC = () => {
     //     return Settlements.find((settlement) => settlement.id === settlementId) || null;
     // };
 
-    // const getRoadsByIntersect = (intersectId: IntersectId): RoadObj[] | null => {
-    //     const intersect = Intersections[intersectId];
+    // const getRoadsByIntersect = (vertexId: VertexId): RoadObj[] | null => {
+    //     const intersect = Vertexs[vertexId];
     //     if (intersect === undefined) {
     //         return null;
     //     }
@@ -125,7 +126,7 @@ const Game: React.FC = () => {
     //             break;
 
     //         case 'selectIntersect':
-    //             let intersect = Intersections[(UiEventPayload as selectIntersectPayload).intersectId];
+    //             let intersect = Vertexs[(UiEventPayload as selectIntersectPayload).vertexId];
     //             setSelectedIntersect(intersect);
                 
     //             break;
@@ -145,8 +146,8 @@ const Game: React.FC = () => {
                 // if (error === undefined) {
                 //     changePlayerResources(player, SettlementPrice, playerMap, setPlayerMap);
                 // }
-                // onBuildSettlement((UiEventPayload as buildSettlementPayload).intersectId);
-                // buildSettlement(,(UiEventPayload as buildSettlementPayload).intersectId);
+                // onBuildSettlement((UiEventPayload as buildSettlementPayload).vertexId);
+                // buildSettlement(,(UiEventPayload as buildSettlementPayload).vertexId);
                 // break;
     //         case 'upgradeSettlement':
     //             if (turnState.phase !== 'Build' || turnState.player !== playerName) {
@@ -256,7 +257,7 @@ const Game: React.FC = () => {
                     </Grid>
                     <Grid>
                     {curGameRoom.board != null && (
-                        <CatanBoard
+                        <BoardView
                             hexSize={GAME_HEX_SIZE}
                         />
                     )}
@@ -278,7 +279,6 @@ const Game: React.FC = () => {
                     </Grid>
                     <Grid container direction="row">
                         <Grid size={4}>
-                            <IntersectViewer/>
                         </Grid>
                         <Grid container direction="column" size={8}>
                             <Grid >

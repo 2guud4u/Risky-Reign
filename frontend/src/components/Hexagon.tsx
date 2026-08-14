@@ -2,7 +2,10 @@ import React from 'react';
 import { HexNode, terrainColors } from '../utils/hexUtils';
 import { cubeToPixel } from '../utils/helperUtils';
 
-interface HexagonProps extends HexNode {
+interface HexagonProps {
+    id: string;
+    coord: { q: number; r: number; s: number };
+    terrain: string;
     size: number;
     rollNumber: number | null;
 }

@@ -6,7 +6,8 @@ const SOCKET_URL = 'http://localhost:3001';
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
-  buildSettlement: (playerId: string, intersectId: number, currentRoomId: string) => void;
+  buildSettlement: (playerId: string, vertexId: number, currentRoomId: string) => void;
+  buildRoad: (playerId: string, startVertexId: number, endVertexId: number, currentRoomId: string) => void;
   rollDice: () => void;
   joinRoom: (playerName: string, roomId: string) => void;
   makeMove: (position: number, currentRoomId: string) => void;
@@ -19,14 +20,15 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
-  buildSettlement: () => {},
-  rollDice: () => {},
-  joinRoom: () => {},
-  makeMove: () => {},
-  startGame: () => {},
-  resetGame: () => {},
-  refreshMap: () => {},
-  endTurn: () => {},
+  buildSettlement: () => { },
+  buildRoad: () => { },
+  rollDice: () => { },
+  joinRoom: () => { },
+  makeMove: () => { },
+  startGame: () => { },
+  resetGame: () => { },
+  refreshMap: () => { },
+  endTurn: () => { },
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -38,14 +40,23 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     if (!socket) return;
     socket.emit('rollDice');
   };
-  const buildSettlement = (playerId: string, intersectId: number, currentRoomId: string) => {
+  const buildSettlement = (playerId: string, vertexId: number, currentRoomId: string) => {
     if (!socket || !currentRoomId) return;
-    console.log('Building settlement at intersect:', intersectId);
+    console.log('Building settlement at intersect:', vertexId);
     if (!playerId) {
       console.error('No current player found');
       return;
     }
-    socket.emit('buildSettlement', { roomId: currentRoomId, playerId: playerId, intersectId });
+    socket.emit('buildSettlement', { roomId: currentRoomId, playerId: playerId, vertexId });
+  };
+
+  const buildRoad = (playerId: string, startVertexId: number, endVertexId: number, currentRoomId: string) => {
+    if (!socket || !currentRoomId) return;
+    if (!playerId) {
+      console.error('No current player found');
+      return;
+    }
+    socket.emit('buildRoad', { roomId: currentRoomId, playerId: playerId, startVertexId, endVertexId });
   };
 
   const endTurn = (playerId: string | undefined, currentRoomId: string | undefined) => {
@@ -60,11 +71,11 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const makeMove = (position: number, currentRoomId: string) => {
     if (!socket || !currentRoomId) return;
-    
+
     socket.emit('makeMove', { roomId: currentRoomId, position });
   };
 
-  const startGame = ( currentRoomId: string) => {
+  const startGame = (currentRoomId: string) => {
     if (!socket || !currentRoomId) return;
     socket.emit('startGame', { roomId: currentRoomId });
 
@@ -72,7 +83,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const resetGame = (currentRoomId: string) => {
     if (!socket || !currentRoomId) return;
-    
+
     socket.emit('resetGame', { roomId: currentRoomId });
   };
 
@@ -102,11 +113,10 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, buildSettlement, rollDice, joinRoom, makeMove, startGame, resetGame, refreshMap, endTurn }}>
+    <SocketContext.Provider value={{ socket, isConnected, buildSettlement, buildRoad, rollDice, joinRoom, makeMove, startGame, resetGame, refreshMap, endTurn }}>
       {children}
     </SocketContext.Provider>
   );
 };
 const useSocket = () => useContext(SocketContext);
-export 
-{ SocketProvider, useSocket };
+export { SocketProvider, useSocket };

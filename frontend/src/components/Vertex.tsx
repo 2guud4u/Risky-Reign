@@ -1,8 +1,8 @@
 import React from 'react';
-import { IntersectNode } from '../utils/intersectUtils';
+import { VertexNode } from '../utils/vertexUtils';
 import { SoldierObj, SoldierType } from '../utils/soldierUtils';
 type Id = string;
-export interface IntersectionProps extends IntersectNode {
+export interface VertexProps extends VertexNode {
     soldierGroups: Record<string, SoldierObj[]>;
     colorSoldierGroups: colorSoldierGroups[];
     size: number;
@@ -20,7 +20,7 @@ interface SoldierDisp {
     type: SoldierType;
     color: string;
 }
-const Intersection: React.FC<IntersectionProps> = ({ exhaustedSoldiers, id, coord, size, onClick, soldierGroups, colorSoldierGroups }) => {
+const Vertex: React.FC<VertexProps> = ({ exhaustedSoldiers, id, coord, size, onClick, soldierGroups, colorSoldierGroups }) => {
     const { x, y } = coord;
     const [soldierComps, setSoldierComps] = React.useState<SoldierDisp[]>([]);
 
@@ -32,7 +32,7 @@ const Intersection: React.FC<IntersectionProps> = ({ exhaustedSoldiers, id, coor
     //     e.preventDefault();
 
     //     let action = e.dataTransfer.getData('action');
-    //     onDrop('intersection', id, action);
+    //     onDrop('vertexion', id, action);
     // };
     const handleClick = (e: React.MouseEvent) => {
         // onClick(id);
@@ -42,7 +42,7 @@ const Intersection: React.FC<IntersectionProps> = ({ exhaustedSoldiers, id, coor
     React.useEffect(() => {
         const groupedSoldiersList = Object.values(colorSoldierGroups);
         const orbitRadius = size; // Radius of the circle on which the other circles will surround
-        const numGroups = groupedSoldiersList.length; // Number of intersection points to surround the center
+        const numGroups = groupedSoldiersList.length; // Number of vertexion points to surround the center
         const multiEnemySize = size / 3;
         const enemySize = size / 2;
 
@@ -94,4 +94,4 @@ const Intersection: React.FC<IntersectionProps> = ({ exhaustedSoldiers, id, coor
     );
 };
 
-export default Intersection;
+export default Vertex;

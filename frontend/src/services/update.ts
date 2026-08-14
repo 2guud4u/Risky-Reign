@@ -1,7 +1,7 @@
 import { PlayerObj } from '../utils/playerUtils';
 import { Price, ResourceCount } from '../utils/gameUtils';
 import { SoldierObj } from '../utils/soldierUtils';
-import { IntersectId } from '../utils/intersectUtils';
+import { VertexId } from '../utils/intersectUtils';
 
 export const changePlayerResources = (
     player: PlayerObj,
@@ -42,7 +42,7 @@ export const priceMath = (price1: Price, price2: Price, operator: '-' | '+'): Pr
 };
 
 export const updateSingleSoldier = (
-    setSoldiersMap: React.Dispatch<React.SetStateAction<Map<IntersectId, SoldierObj[]>>>,
+    setSoldiersMap: React.Dispatch<React.SetStateAction<Map<VertexId, SoldierObj[]>>>,
     soldier: SoldierObj,
     currentIntersect: number,
     remove: boolean
@@ -50,14 +50,14 @@ export const updateSingleSoldier = (
     setSoldiersMap((prev) => {
         const newMap = new Map(prev);
 
-        let soldiers = newMap.get(currentIntersect as IntersectId);
+        let soldiers = newMap.get(currentIntersect as VertexId);
         if (soldiers) {
             soldiers = soldiers.filter((s) => s.id !== soldier.id);
             console.log(soldier, 'removed target soldier', soldiers);
             if (!remove) {
                 soldiers.push(soldier);
             }
-            newMap.set(currentIntersect as IntersectId, soldiers);
+            newMap.set(currentIntersect as VertexId, soldiers);
         }
 
         return newMap;

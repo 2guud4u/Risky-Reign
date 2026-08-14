@@ -46,9 +46,9 @@ export interface HexProps {
 }
 
 export interface HexNode {
-    id: number;
+    id: string;
     coord: CubeCoord;
-    intersections: Set<number>;
+    vertices: Set<string>;
     terrain: Terrain;
     robber: boolean;
     rollNumber: number | null;
@@ -92,8 +92,8 @@ export const generateHexes = (boardRadius: number): HexNode[] => {
             }
             if (terrain === 'Desert') {
                 hexes.push({
-                    id: id,
-                    intersections: new Set(),
+                    id: `h_${q}_${r}_${s}`,
+                    vertices: new Set<string>(),
                     coord: { q, r, s },
                     terrain: terrain,
                     robber: true,
@@ -103,7 +103,7 @@ export const generateHexes = (boardRadius: number): HexNode[] => {
                 const token = tokenList.pop() as number;
                 hexes.push({
                     id: id,
-                    intersections: new Set(),
+                    vertices: new Set(),
                     coord: { q, r, s },
                     terrain: terrain,
                     robber: false,

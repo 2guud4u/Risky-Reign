@@ -7,8 +7,8 @@ interface GameRoomContextValue {
   setGameRoom: React.Dispatch<React.SetStateAction<GameRoom | null>>;
   currentPlayer: Player | null;
   setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
-  selectedIntersectId: number | null;
-  setSelectedIntersectId: React.Dispatch<React.SetStateAction<number | null>>;
+  selectedVertexId: number | null;
+  setSelectedVertexId: React.Dispatch<React.SetStateAction<number | null>>;
 }
 
 const GameRoomContext = createContext<GameRoomContextValue | undefined>(undefined);
@@ -16,10 +16,10 @@ const GameRoomContext = createContext<GameRoomContextValue | undefined>(undefine
 export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-  const [selectedIntersectId, setSelectedIntersectId] = useState<number | null>(null);
+  const [selectedVertexId, setSelectedVertexId] = useState<number | null>(null);
 
   return (
-    <GameRoomContext.Provider value={{ gameRoom, setGameRoom, currentPlayer, setCurrentPlayer, selectedIntersectId, setSelectedIntersectId }}>
+    <GameRoomContext.Provider value={{ gameRoom, setGameRoom, currentPlayer, setCurrentPlayer, selectedVertexId, setSelectedVertexId }}>
       {children}
     </GameRoomContext.Provider>
   ); 
