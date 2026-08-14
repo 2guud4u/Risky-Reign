@@ -136,3 +136,19 @@ dump.rdb
 .$Design_Doc.drawio.bkp
 resources
 
+# Monorepo specific
+**/node_modules/
+**/dist/
+**/.dist/
+**/*.tsbuildinfo
+**/coverage/
+**/yarn.lock
+!frontend/yarn.lock
+
+# IDE and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
