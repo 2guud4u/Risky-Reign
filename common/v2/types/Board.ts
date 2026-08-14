@@ -1,5 +1,11 @@
 import { CubeCoord, PixelCoord } from './Coordinates';
 
+/**
+ * Domain layer. Shape-agnostic: works for ANY hex layout, not just the
+ * standard 19-hex board. All ids are strings derived from coordinates
+ * (see Coordinates.ts for the canonicalization spec).
+ */
+
 export type HexId = string;
 export type VertexId = string;
 export type EdgeId = string;
@@ -17,7 +23,8 @@ export interface HexNode {
 export interface VertexNode {
   id: VertexId;
   position: PixelCoord;
-  hexIds: string[]; // 2-3 hexes adjacent to this vertex
+  /** 1-3 hexes that meet at this vertex (1 = board boundary). */
+  hexIds: HexId[];
   settlementId: SettlementId | null;
   roadIds: EdgeId[];
 }
@@ -26,7 +33,8 @@ export interface EdgeNode {
   id: EdgeId;
   vertexAId: VertexId;
   vertexBId: VertexId;
-  hexIds: string[]; // 1-2 hexes adjacent to this edge
+  /** 1-2 hexes on either side (1 = board boundary). */
+  hexIds: HexId[];
   roadId: RoadId | null;
 }
 

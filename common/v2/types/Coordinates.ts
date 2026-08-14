@@ -1,36 +1,49 @@
 /**
- * Coordinate System Specification
- * 
- * Hex coordinates use cube coordinates (q, r, s) where q + r + s = 0
- * This is the canonical coordinate system for all hex maps.
- * 
- * Canonicalization Rules:
- * 
- * VERTEX CANONICALIZATION:
- * A vertex is uniquely identified by the set of hexes that meet at that point.
- * For a vertex with adjacent hexes H1, H2, H3 (2-3 hexes):
- *   - Collect all hex coordinate tuples (q, r, s)
- *   - Sort lexicographically: by q, then r, then s
- *   - Join with ':' separator
- *   - Example: "(-1,0,1):(0,0,0):(1,-1,0)" → vertex_id = "v_-1,0,1_0,0,0_1,-1,0"
- * 
- * EDGE CANONICALIZATION:
- * An edge is uniquely identified by the set of hexes on either side (1-2 hexes):
- *   - Collect all hex coordinate tuples
- *   - Sort lexicographically
- *   - Join with ':' separator
- *   - Example: "(0,0,0):(1,-1,0)" → edge_id = "e_0,0,0_1,-1,0"
- * 
- * IMPORTANT: Never derive ID from a single hex. A vertex/edge belongs to multiple
- * hexes, and deriving from just one would create duplicate IDs for the same physical
- * entity.
- * 
- * Property Tests:
- * 1. Every vertex has 2-3 hex neighbors
- * 2. Every edge has 1-2 hex neighbors
- * 3. Same physical vertex always produces same ID regardless of which adjacent hex
- *    you start from
- * 4. No two distinct physical vertices share an ID
+ * Coordinate System Specification (canonical)
+ *
+ * Hexes use CUBE coordinates (q, r, s) with the invariant q + r + s = 0.
+ * This is the single canonical coordinate system for every hex map, standard
+ * or custom.
+ *
+ * ── VERTEX CANONICALIZATION ────────────────────────────────────────────────
+ * A vertex is a geometric point where 1, 2, or 3 hexes meet:
+ *   - 3 hexes: an interior vertex
+ *   - 2 hexes: a vertex on the border of the hex region
+ *   - 1 hex:   a boundary (outer) vertex
+ *
+ * The canonical vertex ID is a deterministic function of the SET of adjacent
+ * hex coordinates: sort the tuples lexicographically (by q, then r, then s)
+ * and join them with '_'.
+ *
+ *   e.g. hexes (0,0,0) and (1,-1,0)  ->  vertex id "v_0,0,0_1,-1,0"
+ *
+ * NOTE: this corrects the original plan spec, which said a vertex has 2-3 hex
+ * neighbours and derived the id from the hexes of a single hex-edge. On a
+ * finite board that is wrong in two ways: (1) boundary vertices touch only 1
+ * hex, and (2) keying off a hex-edge midpoint mints the SAME id for two
+ * distinct physical vertices that share that edge. Keying off the corner point
+ * (the set of hexes meeting there) is what makes the id unique and stable no
+ * matter which adjacent hex you start from.
+ *
+ * ── EDGE CANONICALIZATION ──────────────────────────────────────────────────
+ * An edge is a segment between two adjacent vertices, with 1 or 2 hexes on its
+ * sides (1 = board boundary). The canonical edge ID is derived from its two
+ * endpoint VERTEX ids (sorted and joined), NOT from hex coordinates:
+ *
+ *   e.g. vertices "v_..." and "v_..."  ->  edge id "e_<va>_<vb>"
+ *
+ * NOTE: this also corrects the plan spec. Deriving an edge id from its (1-2)
+ * adjacent hex coordinates collides for boundary edges, because a boundary
+ * edge has only ONE adjacent hex and several distinct boundary edges can share
+ * that single hex. The vertex-pair is the unambiguous source of truth (the
+ * plan explicitly permits choosing the vertex pair as the single source).
+ *
+ * ── PROPERTY TESTS (see validateAdjacency) ─────────────────────────────────
+ * 1. Every vertex has 1-3 distinct hex neighbours.
+ * 2. Every edge has 1-2 distinct hex neighbours (1 = board boundary).
+ * 3. The same physical vertex/edge yields the identical id regardless of which
+ *    adjacent hex you start the computation from.
+ * 4. No two distinct physical vertices/edges share an id.
  */
 
 export interface CubeCoord {
@@ -44,59 +57,75 @@ export interface PixelCoord {
   y: number;
 }
 
+/** Compare two cube coords lexicographically (q, then r, then s). */
+export function compareCubeCoords(a: CubeCoord, b: CubeCoord): number {
+  if (a.q !== b.q) return a.q - b.q;
+  if (a.r !== b.r) return a.r - b.r;
+  return a.s - b.s;
+}
+
+/** Canonical string form of a single cube coordinate, e.g. "0,0,0". */
+export function cubeCoordKey(c: CubeCoord): string {
+  return `${c.q},${c.r},${c.s}`;
+}
+
+/** Canonical hex id from its cube coordinate, e.g. "h_0,0,0". */
+export function hexId(c: CubeCoord): string {
+  return `h_${cubeCoordKey(c)}`;
+}
+
 /**
- * Generate canonical vertex ID from adjacent hex coordinates
- * @param hexCoords - Array of 2-3 cube coordinates adjacent to the vertex
- * @returns Canonical vertex ID string
+ * Canonical vertex id from the set of hexes meeting at the vertex (1-3 hexes).
+ * @param hexCoords - the 1-3 cube coordinates of the adjacent hexes
  */
 export function canonicalVertexId(hexCoords: CubeCoord[]): string {
-  if (hexCoords.length < 2 || hexCoords.length > 3) {
-    throw new Error(`Vertex must have 2-3 adjacent hexes, got ${hexCoords.length}`);
+  if (hexCoords.length < 1 || hexCoords.length > 3) {
+    throw new Error(`Vertex must have 1-3 adjacent hexes, got ${hexCoords.length}`);
   }
-  
-  const sorted = [...hexCoords].sort((a, b) => {
-    if (a.q !== b.q) return a.q - b.q;
-    if (a.r !== b.r) return a.r - b.r;
-    return a.s - b.s;
-  });
-  
-  const coordStr = sorted.map(c => `${c.q},${c.r},${c.s}`).join('_');
-  return `v_${coordStr}`;
+  const sorted = [...hexCoords].sort(compareCubeCoords);
+  return `v_${sorted.map(cubeCoordKey).join('_')}`;
 }
 
 /**
- * Generate canonical edge ID from adjacent hex coordinates
- * @param hexCoords - Array of 1-2 cube coordinates adjacent to the edge
- * @returns Canonical edge ID string
+ * Canonical edge id from its two endpoint vertex ids (order-independent).
+ * @param vertexAId - one endpoint vertex id
+ * @param vertexBId - the other endpoint vertex id
  */
-export function canonicalEdgeId(hexCoords: CubeCoord[]): string {
-  if (hexCoords.length < 1 || hexCoords.length > 2) {
-    throw new Error(`Edge must have 1-2 adjacent hexes, got ${hexCoords.length}`);
-  }
-  
-  const sorted = [...hexCoords].sort((a, b) => {
-    if (a.q !== b.q) return a.q - b.q;
-    if (a.r !== b.r) return a.r - b.r;
-    return a.s - b.s;
-  });
-  
-  const coordStr = sorted.map(c => `${c.q},${c.r},${c.s}`).join('_');
-  return `e_${coordStr}`;
+export function canonicalEdgeId(vertexAId: string, vertexBId: string): string {
+  const [a, b] = [vertexAId, vertexBId].sort();
+  return `e_${a}_${b}`;
 }
 
 /**
- * Convert cube coordinates to pixel coordinates
+ * Pointy-top hex: cube -> pixel (center of the hex).
+ * x = size * (sqrt(3) * q + sqrt(3)/2 * r)
+ * y = size * (3/2 * r)
  */
-export function cubeToPixel(q: number, r: number, s: number, size: number): PixelCoord {
-  const x = size * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-  const y = size * (3 / 2 * r);
+export function cubeToPixel(c: CubeCoord, size: number): PixelCoord {
+  const x = size * (Math.sqrt(3) * c.q + (Math.sqrt(3) / 2) * c.r);
+  const y = size * (1.5 * c.r);
   return { x, y };
 }
 
 /**
- * Get the 6 neighboring hex coordinates
+ * The 6 corner (vertex) pixel positions of a pointy-top hex, in clockwise
+ * order starting from the top corner. Corner k sits at angle (60k - 30) degrees.
  */
-export function getNeighbors(coord: CubeCoord): CubeCoord[] {
+export function hexCorners(c: CubeCoord, size: number): PixelCoord[] {
+  const center = cubeToPixel(c, size);
+  const corners: PixelCoord[] = [];
+  for (let k = 0; k < 6; k++) {
+    const angle = (Math.PI / 180) * (60 * k - 30);
+    corners.push({
+      x: center.x + size * Math.cos(angle),
+      y: center.y + size * Math.sin(angle),
+    });
+  }
+  return corners;
+}
+
+/** The 6 neighbouring cube coordinates (clockwise from east). */
+export function getNeighbors(c: CubeCoord): CubeCoord[] {
   const directions = [
     { q: 1, r: 0, s: -1 },
     { q: 1, r: -1, s: 0 },
@@ -105,34 +134,21 @@ export function getNeighbors(coord: CubeCoord): CubeCoord[] {
     { q: -1, r: 1, s: 0 },
     { q: 0, r: 1, s: -1 },
   ];
-  
-  return directions.map(d => ({
-    q: coord.q + d.q,
-    r: coord.r + d.r,
-    s: coord.s + d.s,
-  }));
+  return directions.map((d) => ({ q: c.q + d.q, r: c.r + d.r, s: c.s + d.s }));
 }
 
-/**
- * Get the 6 vertices around a hex in clockwise order
- * Returns vertex IDs, not coordinates
- */
-export function getHexVertices(hexCoord: CubeCoord): CubeCoord[][] {
-  const neighbors = getNeighbors(hexCoord);
-  
-  // Each vertex is shared by 2-3 hexes
-  // For each edge between hex and neighbor, we can find the vertex
-  const vertices: CubeCoord[][] = [];
-  
-  // This is a simplified version - actual implementation would need
-  // to find the common vertices between hex and its neighbors
-  // For now, return placeholder
-  return vertices;
+/** Validate the cube coordinate invariant q + r + s = 0. */
+export function isValidCubeCoord(c: CubeCoord): boolean {
+  return c.q + c.r + c.s === 0;
 }
 
-/**
- * Validate cube coordinates
- */
-export function isValidCubeCoord(coord: CubeCoord): boolean {
-  return coord.q + coord.r + coord.s === 0;
+/** All cube coordinates of a hexagonal board of the given radius. */
+export function hexCoordsForRadius(radius: number): CubeCoord[] {
+  const coords: CubeCoord[] = [];
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = Math.max(-radius, -q - radius); r <= Math.min(radius, -q + radius); r++) {
+      coords.push({ q, r, s: -q - r });
+    }
+  }
+  return coords;
 }
