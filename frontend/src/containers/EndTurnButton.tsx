@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { UiEvent, UiEventPayload } from '../utils/eventsUtils';
-import { TurnState } from 'common';
+import { TurnState } from '../common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from 'src/contexts/SocketContext';
 interface EndTurnButtonProps {

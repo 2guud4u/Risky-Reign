@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameRoom, Player, SoldierObj, LOBBY_HEX_SIZE } from 'common';
+import { GameRoom, Player, SoldierObj, LOBBY_HEX_SIZE } from '../common';
 import Game from '../containers/Game';
 import GameBoard from '../containers/CatanBoard';
 import { useGameRoom } from '../contexts/GameContext';

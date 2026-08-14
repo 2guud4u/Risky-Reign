@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IntersectNode } from 'common';
+import { IntersectNode } from '../common';
 import { UiEvent, UiEventPayload, buildRoadPayload, moveSoldierPayload } from '../utils/eventsUtils';
 import { SoldierObj } from '../utils/soldierUtils';
 import { SettlementObj } from '../utils/settlementUtils';

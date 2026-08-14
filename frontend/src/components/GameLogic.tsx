@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import LobbyPage from '../pages/Lobby';
 import GamePage from '../pages/Game';
-import { GameRoom, Player } from 'common';
+import { GameRoom, Player } from '../common';
 import { useGameRoom } from '../contexts/GameContext';
 const GameLogic: React.FC = () => {
 

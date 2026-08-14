@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RoadPrice, SettlementPrice, SoldierPrice, generateGameBoard } from '../utils/gameUtils';
-import { GAME_HEX_SIZE } from 'common';
+import { GAME_HEX_SIZE } from '../common';
 import {
     buildRoadPayload,
     buildSettlementPayload,
@@ -15,7 +15,7 @@ import {
     updateTradePayload,
     respondTradePayload,
 } from '../utils/eventsUtils';
-import { IntersectNode, IntersectId } from 'common/types/Board';
+import { IntersectNode, IntersectId } from '../common';
 import { RoadObj } from '../utils/roadUtils';
 import { SettlementObj } from '../utils/settlementUtils';
 import CatanBoard from './CatanBoard';
@@ -45,8 +45,7 @@ import TradeHud from './TradeHud';
 import EndTurnButton from './EndTurnButton';
 import Inventory from './Inventory';
 
-import { GameRoom } from 'common/types/Room';
-import { Board, getRollMap, Player } from 'common';
+import { GameRoom, Board, getRollMap, Player } from '../common';
 import { useSocket } from '../contexts/SocketContext';
 import { useGameRoom } from 'src/contexts/GameContext';
 

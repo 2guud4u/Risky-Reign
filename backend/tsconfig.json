@@ -9,6 +9,9 @@
     "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references
     "moduleResolution": "node",
     "baseUrl": ".", // enables absolute imports,
+    "paths": {
+      "@shared/*": ["../common/*"]
+    },
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
   },

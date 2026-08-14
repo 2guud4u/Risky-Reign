@@ -17,7 +17,7 @@
         "jsx": "react-jsx",
         "baseUrl": ".", // enables absolute imports
         "paths": {
-            "@shared/*": ["../shared/*"]
+            "@shared/*": ["common/*"]
         }
     },
     "include": ["src"]

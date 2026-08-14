@@ -3,16 +3,17 @@
     "experimentalDecorators": true,
     "declaration": true,
     "outDir": "./dist",
+    "target": "es2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "lib": ["es2020"]
   },
   "include": [
     "**/*.ts"
   ],
   "exclude": [
     "node_modules"
-  ],
-  "target": "es2017",
-  "module": "commonjs",
-  "lib": [
-    "es2017"
   ]
 }

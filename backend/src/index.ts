@@ -31,9 +31,8 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 
 import { GameRoom, Player, generateGameBoard, getRollMap, Board, SettlementPrice } from 'common';
-// TODO: These imports need to be defined
-// import { handleRollDice, handleBuildSettlement } from './utils/gameUtils';
-// import { changePlayerResources } from './utils/playerUtils';
+// TODO: Implement backend logic for handleRollDice, handleBuildSettlement, changePlayerResources
+// For now, comment out usage until implementations exist
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -371,7 +370,8 @@ socket.on('endTurn', (data: { roomId: string }) => {
 
     // Update roll and notify players
     room.roll = String(rollNum);
-    handleRollDice(rollNum, room.players, board.Hexes, board.Intersections, board.Settlements);
+    // TODO: Implement handleRollDice logic for backend
+    // handleRollDice(rollNum, room.players, board.Hexes, board.Intersections, board.Settlements);
     
 
     
@@ -407,10 +407,13 @@ socket.on('endTurn', (data: { roomId: string }) => {
       }
       
       if (turnState.phase === 'SetUp' ) {
-        handleBuildSettlement(intersectId, currentPlayer, board.Intersections, board.Settlements, true);
+        // TODO: Implement handleBuildSettlement logic for backend
+        // handleBuildSettlement(intersectId, currentPlayer, board.Intersections, board.Settlements, true);
       } else if (turnState.phase == 'Build') {
-        handleBuildSettlement(intersectId, currentPlayer, board.Intersections, board.Settlements, false);
-        changePlayerResources(currentPlayer, SettlementPrice, room.players);
+        // TODO: Implement handleBuildSettlement logic for backend
+        // handleBuildSettlement(intersectId, currentPlayer, board.Intersections, board.Settlements, false);
+        // TODO: Implement changePlayerResources logic for backend
+        // changePlayerResources(currentPlayer, SettlementPrice, room.players);
       }
       else {
         socket.emit('error', { message: 'You can only build settlements during SetUp or Build phase' });
