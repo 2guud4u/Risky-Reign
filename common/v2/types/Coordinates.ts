@@ -75,15 +75,22 @@ export function hexId(c: CubeCoord): string {
 }
 
 /**
- * Canonical vertex id from the set of hexes meeting at the vertex (1-3 hexes).
- * @param hexCoords - the 1-3 cube coordinates of the adjacent hexes
+ * Canonical vertex id from the EXACT corner position (Xb, Ya).
+ *
+ * This is the correct canonical form: a physical vertex is a geometric point,
+ * and (Xb, Ya) uniquely identifies it. It is deterministic and independent of
+ * hex order or which adjacent hex you start from.
+ *
+ * NOTE: a vertex id derived from the *set of adjacent hexes* (the original
+ * plan spec) is WRONG for boundary vertices — several outer corners of the
+ * same boundary hex each have hex-set {that hex} and would collide to one id.
+ * Position-based ids are the only scheme that satisfies "no two distinct
+ * vertices share an id".
+ * @param Xb - exact x coefficient (x = size * Xb * √3 / 2)
+ * @param Ya - exact y coefficient (y = size * Ya / 2)
  */
-export function canonicalVertexId(hexCoords: CubeCoord[]): string {
-  if (hexCoords.length < 1 || hexCoords.length > 3) {
-    throw new Error(`Vertex must have 1-3 adjacent hexes, got ${hexCoords.length}`);
-  }
-  const sorted = [...hexCoords].sort(compareCubeCoords);
-  return `v_${sorted.map(cubeCoordKey).join('_')}`;
+export function exactVertexId(Xb: number, Ya: number): string {
+  return `v_${Xb}_${Ya}`;
 }
 
 /**
@@ -122,6 +129,45 @@ export function hexCorners(c: CubeCoord, size: number): PixelCoord[] {
     });
   }
   return corners;
+}
+
+/**
+ * Exact (floating-point-free) identity for the 6 corner points of a hex.
+ *
+ * A pointy-top hex corner k sits at center + size*(cos(60k-30), sin(60k-30)).
+ * Those trig values are always one of {0, ±1/2, ±√3/2}, so the corner
+ * position is EXACTLY:
+ *   x = size * Xb * √3 / 2
+ *   y = size * Ya / 2
+ * where Xb = 2q + r + bx[k] and Ya = 3r + by[k] are INTEGERS:
+ *   bx = [ 1,  1, 0, -1, -1, 0]
+ *   by = [-1,  1, 2,  1, -1, -2]
+ *
+ * Two corners are the same physical point IFF their (Xb, Ya) pairs are equal.
+ * This is immune to the ~1e-13 floating-point noise that makes independent
+ * cube->pixel conversions of adjacent hexes disagree and would otherwise
+ * split one physical vertex into two.
+ *
+ * @returns the 6 corners as exact [Xb, Ya] integer pairs, k = 0..5.
+ */
+export function hexCornersExact(c: CubeCoord): [number, number][] {
+  const bx = [1, 1, 0, -1, -1, 0];
+  const by = [-1, 1, 2, 1, -1, -2];
+  const out: [number, number][] = [];
+  for (let k = 0; k < 6; k++) {
+    out.push([2 * c.q + c.r + bx[k], 3 * c.r + by[k]]);
+  }
+  return out;
+}
+
+/** Stable string key for an exact corner (Xb, Ya). */
+export function exactCornerKey(Xb: number, Ya: number): string {
+  return `${Xb},${Ya}`;
+}
+
+/** Pixel position of an exact corner. */
+export function exactCornerToPixel(Xb: number, Ya: number, size: number): PixelCoord {
+  return { x: (size * Xb * Math.sqrt(3)) / 2, y: (size * Ya) / 2 };
 }
 
 /** The 6 neighbouring cube coordinates (clockwise from east). */

@@ -14,9 +14,6 @@
     "resolveJsonModule": true,
     "lib": ["es2020"]
   },
-  "references": [
-    { "path": "../common" }
-  ],
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }

@@ -23,4 +23,3 @@ export * from './utils/adjacency';
 export * from './utils/boardGenerator';
 export * from './utils/placement';
 export * from './adapters/boardAdapter';
-export * from './adapters/wireAdapter';

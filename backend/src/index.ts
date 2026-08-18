@@ -30,7 +30,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
-import { GameRoom, Player, generateGameBoard, getRollMap, Board, SettlementPrice } from 'common';
+import { GameRoom, Player, Board, generateStandardBoard } from 'common/v2';
 // TODO: Implement backend logic for handleRollDice, handleBuildSettlement, changePlayerResources
 // For now, comment out usage until implementations exist
 const app = express();
@@ -50,19 +50,9 @@ app.use(express.json());
 // Store active games
 const gameRooms = new Map<string, GameRoom>();
 const hexSize = 100;
-const boardRadius = 2;
-const intersectSize = hexSize / 4;
-const roadSize = intersectSize / 2;
 // Create a new game room
 function createBoard(): Board {
-  let {hexes, vertices}  = generateGameBoard(boardRadius, hexSize);
-  return {
-    Hexes: hexes,
-    Vertices: vertices,
-    Settlements: [],
-    Roads: [],
-    Soldiers: [],
-  };
+  return generateStandardBoard(hexSize);
 }
 
 function createGameRoom(roomId: string, firstPlayerName: string): GameRoom {
@@ -377,7 +367,7 @@ socket.on('endTurn', (data: { roomId: string }) => {
     
     io.to(roomId).emit('gameUpdate', { ...room});
   })
-  socket.on("buildSettlement", (data: { roomId: string, playerId: string, vertexId: number }) => {
+  socket.on("buildSettlement", (data: { roomId: string, playerId: string, vertexId: string }) => {
     console.log("building settlement");
     const { roomId, playerId, vertexId } = data;
     const room = gameRooms.get(roomId);
@@ -411,34 +401,34 @@ socket.on('endTurn', (data: { roomId: string }) => {
       return;
     }
 
-    const intersect = board.Vertices.find(i => i.id === vertexId);
-    if (!intersect) {
-      socket.emit('error', { message: 'Intersection not found' });
+    const vertex = board.vertices[vertexId];
+    if (!vertex) {
+      socket.emit('error', { message: 'Vertex not found' });
       return;
     }
-    if (intersect.settlement !== null) {
-      socket.emit('error', { message: 'Intersection already occupied' });
+    if (vertex.settlementId !== null) {
+      socket.emit('error', { message: 'Vertex already occupied' });
       return;
     }
     // adjacency check skipped for minimal implementation
-    const newSettlementId = board.Settlements.length;
-    const settlement: import('common').SettlementObj = {
+    const newSettlementId = `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    board.settlements[newSettlementId] = {
       id: newSettlementId,
-      owner: currentPlayer.name,
-      upgraded: false,
-      coord: intersect.coord,
+      vertexId,
+      ownerId: currentPlayer.name,
+      level: 'settlement',
+      builtAt: Date.now(),
     };
-    board.Settlements.push(settlement);
-    intersect.settlement = newSettlementId;
+    vertex.settlementId = newSettlementId;
 
     // Update the game state
     turnState.placedSettlement = true;
     io.to(roomId).emit('gameUpdate', { ...room });
   })
 
-  socket.on("buildRoad", (data: { roomId: string, playerId: string, startIntersectId: number, endIntersectId: number }) => {
+  socket.on("buildRoad", (data: { roomId: string, playerId: string, edgeId: string }) => {
     console.log("building road");
-    const { roomId, playerId, startIntersectId, endIntersectId } = data;
+    const { roomId, playerId, edgeId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -470,36 +460,26 @@ socket.on('endTurn', (data: { roomId: string }) => {
       return;
     }
 
-    const start = board.Vertices.find(i => i.id === startIntersectId);
-    const end = board.Vertices.find(i => i.id === endIntersectId);
-    if (!start || !end) {
-      socket.emit('error', { message: 'Intersection not found' });
+    const edge = board.edges[edgeId];
+    if (!edge) {
+      socket.emit('error', { message: 'Edge not found' });
       return;
     }
-    if (!start.vertices.has(endIntersectId)) {
-      socket.emit('error', { message: 'Vertices are not adjacent' });
-      return;
-    }
-    // Check if road already exists
-    const existingRoad = board.Roads.find(r => (r.intersect1 === startIntersectId && r.intersect2 === endIntersectId) || (r.intersect1 === endIntersectId && r.intersect2 === startIntersectId));
-    if (existingRoad) {
+    if (edge.roadId !== null) {
       socket.emit('error', { message: 'Road already exists' });
       return;
     }
-
-    const newRoadId = board.Roads.length;
-    const road: import('common').RoadObj = {
+    // adjacency check skipped for minimal implementation
+    const newRoadId = `r_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    board.roads[newRoadId] = {
       id: newRoadId,
-      intersect1: startIntersectId,
-      intersect2: endIntersectId,
-      owner: currentPlayer.name,
-      coord1: start.coord,
-      coord2: end.coord,
-      upgraded: false,
+      edgeId,
+      ownerId: currentPlayer.name,
+      builtAt: Date.now(),
     };
-    board.Roads.push(road);
-    start.roads.add(newRoadId);
-    end.roads.add(newRoadId);
+    edge.roadId = newRoadId;
+    board.vertices[edge.vertexAId].roadIds.push(edgeId);
+    board.vertices[edge.vertexBId].roadIds.push(edgeId);
 
     turnState.placedRoad = true;
     io.to(roomId).emit('gameUpdate', { ...room });

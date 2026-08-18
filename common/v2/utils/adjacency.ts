@@ -8,8 +8,8 @@
  *  - An edge is the segment between two adjacent vertices (1-2 hexes on its
  *    sides).
  *
- * Corner points are matched by rounded pixel position so that floating point
- * error from independent cube->pixel conversions never splits one physical
+ * Corner identity is EXACT (integer (Xb, Ya) coefficients, see
+ * hexCornersExact) so floating-point noise can never split one physical
  * vertex into two.
  */
 
@@ -17,8 +17,10 @@ import {
   CubeCoord,
   PixelCoord,
   canonicalEdgeId,
-  canonicalVertexId,
-  hexCorners,
+  exactCornerKey,
+  exactCornerToPixel,
+  exactVertexId,
+  hexCornersExact,
   hexId,
 } from '../types/Coordinates';
 
@@ -46,41 +48,33 @@ export interface AdjacencyGraph {
   vertexEdges: Map<string, Set<string>>;
 }
 
-/** Round to a stable key so FP noise never splits a physical point. */
-function pointKey(p: PixelCoord): string {
-  return `${Math.round(p.x * 1e4) / 1e4},${Math.round(p.y * 1e4) / 1e4}`;
-}
-
 /**
  * Compute the full vertex/edge graph for an arbitrary hex layout.
  * @param coords - cube coordinates of every hex on the board
  * @param size   - hex size used for pixel projection (ids are size-independent)
  */
 export function computeAdjacency(coords: CubeCoord[], size: number = 50): AdjacencyGraph {
-  // Pass 1: collect every corner point and the hexes meeting there.
+  // Pass 1: collect every corner point (exact key) and the hexes meeting there.
   const pointToHexes = new Map<string, { position: PixelCoord; hexIds: string[] }>();
-  const pointToCoord = new Map<string, CubeCoord[]>();
 
   for (const c of coords) {
     const hid = hexId(c);
-    const corners = hexCorners(c, size);
-    corners.forEach((p) => {
-      const k = pointKey(p);
+    const corners = hexCornersExact(c);
+    for (const [Xb, Ya] of corners) {
+      const k = exactCornerKey(Xb, Ya);
       if (!pointToHexes.has(k)) {
-        pointToHexes.set(k, { position: p, hexIds: [] });
-        pointToCoord.set(k, []);
+        pointToHexes.set(k, { position: exactCornerToPixel(Xb, Ya, size), hexIds: [] });
       }
       const entry = pointToHexes.get(k)!;
       if (!entry.hexIds.includes(hid)) entry.hexIds.push(hid);
-      pointToCoord.get(k)!.push(c);
-    });
+    }
   }
 
-  // Build canonical vertices.
+  // Build canonical vertices (id = exact position, unique per physical point).
   const vertices = new Map<string, VertexInfo>();
-  const vertexByPoint = new Map<string, string>(); // pointKey -> vertexId
+  const vertexByPoint = new Map<string, string>(); // exact corner key -> vertexId
   for (const [k, entry] of pointToHexes) {
-    const id = canonicalVertexId(pointToCoord.get(k)!);
+    const id = exactVertexId(parseInt(k.split(',')[0], 10), parseInt(k.split(',')[1], 10));
     vertices.set(id, { id, position: entry.position, hexIds: entry.hexIds });
     vertexByPoint.set(k, id);
   }
@@ -90,13 +84,18 @@ export function computeAdjacency(coords: CubeCoord[], size: number = 50): Adjace
   const edgeHexes = new Map<string, string[]>();
   for (const c of coords) {
     const hid = hexId(c);
-    const corners = hexCorners(c, size);
+    const corners = hexCornersExact(c);
     for (let i = 0; i < 6; i++) {
-      const a = vertexByPoint.get(pointKey(corners[i]))!;
-      const b = vertexByPoint.get(pointKey(corners[(i + 1) % 6]))!;
+      const aKey = exactCornerKey(corners[i][0], corners[i][1]);
+      const bKey = exactCornerKey(corners[(i + 1) % 6][0], corners[(i + 1) % 6][1]);
+      const a = vertexByPoint.get(aKey)!;
+      const b = vertexByPoint.get(bKey)!;
       const id = canonicalEdgeId(a, b);
       if (!edges.has(id)) {
-        edges.set(id, { id, vertexAId: a, vertexBId: b, hexIds: [] });
+        // Store endpoints in the same (sorted) order the id uses, so the
+        // representation is deterministic regardless of hex iteration order.
+        const [va, vb] = [a, b].sort();
+        edges.set(id, { id, vertexAId: va, vertexBId: vb, hexIds: [] });
         edgeHexes.set(id, []);
       }
       const list = edgeHexes.get(id)!;
