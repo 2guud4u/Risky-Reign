@@ -39,7 +39,7 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
     >
       <div className="board-frame" style={{ width: '100%', maxWidth: 420 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, textAlign: 'center', marginBottom: 24 }}>
-          Catan Lobby
+          Risky Catan Lobby
         </h1>
 
         <form onSubmit={handleJoinRoom} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -13,40 +13,16 @@
  * vertex into two.
  */
 
+import { CubeCoord, PixelCoord } from '../types/Coordinates';
+import { VertexInfo, EdgeInfo, AdjacencyGraph } from '../types/Adjacency';
 import {
-  CubeCoord,
-  PixelCoord,
   canonicalEdgeId,
   exactCornerKey,
   exactCornerToPixel,
   exactVertexId,
   hexCornersExact,
   hexId,
-} from '../types/Coordinates';
-
-export interface VertexInfo {
-  id: string;
-  position: PixelCoord;
-  /** 1-3 distinct hexes meeting at this vertex. */
-  hexIds: string[];
-}
-
-export interface EdgeInfo {
-  id: string;
-  vertexAId: string;
-  vertexBId: string;
-  /** 1-2 distinct hexes on either side. */
-  hexIds: string[];
-}
-
-export interface AdjacencyGraph {
-  vertices: Map<string, VertexInfo>;
-  edges: Map<string, EdgeInfo>;
-  /** vertex id -> set of adjacent vertex ids */
-  vertexNeighbors: Map<string, Set<string>>;
-  /** vertex id -> set of incident edge ids */
-  vertexEdges: Map<string, Set<string>>;
-}
+} from './coordinates';
 
 /**
  * Compute the full vertex/edge graph for an arbitrary hex layout.

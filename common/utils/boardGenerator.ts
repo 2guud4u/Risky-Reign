@@ -17,15 +17,13 @@ import {
   VertexId,
   VertexNode,
 } from '../types/Board';
-import { CubeCoord, hexId as toHexId } from '../types/Coordinates';
-import { assignStandardHexes } from '../types/Hex';
+import { CubeCoord } from '../types/Coordinates';
+import { HexLayout } from '../types/BoardGenerator';
+import { hexId as toHexId } from './coordinates';
+import { assignStandardHexes } from './hex';
 import { computeAdjacency } from './adjacency';
 
-export interface HexLayout {
-  coord: CubeCoord;
-  terrain: string;
-  rollNumber: number | null;
-}
+export { HexLayout };
 
 /**
  * Build a domain Board from an arbitrary hex layout.

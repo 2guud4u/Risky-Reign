@@ -1,5 +1,10 @@
 import { EdgeId, SettlementId, VertexId } from './Board';
 
+/**
+ * Piece / placement types. Types only — the `isBuildType` guard lives in
+ * `utils/pieces.ts`.
+ */
+
 export type SoldierType = 'infantry' | 'cannon';
 
 export interface SoldierObj {
@@ -18,11 +23,7 @@ export interface DevCard {
   used: boolean;
 }
 
-const buildTypes = ['Settlement', 'Road', 'City', 'Soldier'] as const;
-export type BuildType = (typeof buildTypes)[number];
-
-export const isBuildType = (arg: unknown): arg is BuildType =>
-  (buildTypes as readonly string[]).includes(arg as string);
+export type BuildType = 'Settlement' | 'Road' | 'City' | 'Soldier';
 
 /** A settlement placement request (wire-friendly, string ids). */
 export interface SettlementPlacement {

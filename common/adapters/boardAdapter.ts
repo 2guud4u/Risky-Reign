@@ -11,7 +11,7 @@ import {
   BoardUIState,
   BoardVertex,
 } from '../types/BoardUI';
-import { cubeToPixel } from '../types/Coordinates';
+import { cubeToPixel } from '../utils/coordinates';
 
 /**
  * Convert a domain Board into a fresh (non-interacted) presentation state.
