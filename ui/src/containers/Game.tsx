@@ -3,6 +3,7 @@ import { GAME_HEX_SIZE } from 'common/v2';
 import BoardView from './BoardView';
 import EndTurnButton from './EndTurnButton';
 import PlayersList from './PlayersList';
+import VertexSidebar from './VertexSidebar';
 import { useGameRoom } from '../contexts/GameContext';
 
 /**
@@ -29,8 +30,9 @@ const Game: React.FC = () => {
           <BoardView hexSize={GAME_HEX_SIZE} />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: 260 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: 280 }}>
           <EndTurnButton />
+          <VertexSidebar />
           <PlayersList players={gameRoom.players} currentPlayerId={currentPlayer.id} />
         </div>
       </div>

@@ -34,12 +34,11 @@ type BuildMode = 'settlement' | 'road' | 'none';
  * to the requested render size.
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer, selectedVertexId, setSelectedVertexId } = useGameRoom();
   const { buildSettlement, buildRoad } = useSocket();
 
   const [buildMode, setBuildMode] = useState<BuildMode>('none');
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
-  const [selectedVertexId, setSelectedVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
