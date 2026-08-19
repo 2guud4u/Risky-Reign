@@ -103,9 +103,10 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
           cy={position.y}
           r={size * 2.5}
           fill="none"
-          stroke="#FFD700"
+          stroke="#eb1010"
           strokeWidth={3}
           strokeDasharray="5,5"
+          className="blink-circle"
         />
       )}
     </g>

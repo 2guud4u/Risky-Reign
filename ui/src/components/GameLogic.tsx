@@ -42,7 +42,7 @@ const GameLogic: React.FC = () => {
   }, [socket, setGameRoom, setCurrentPlayer]);
 
   return (
-    <div className="app-shell">
+    <div className="min-h-screen flex flex-col items-center p-4">
       {!gameRoom ? <LobbyPage error={error} /> : <GamePage error={error} />}
     </div>
   );

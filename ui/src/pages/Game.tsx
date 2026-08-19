@@ -10,65 +10,37 @@ const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
   const { startGame: onStartGame, refreshMap: onRefreshMap } = useSocket();
 
   if (!gameRoom || !currentPlayer) {
-    return <p style={{ textAlign: 'center', color: '#666' }}>Loading game...</p>;
+    return <p className="text-center text-gray-500">Loading game...</p>;
   }
 
   // Waiting room: players gather, then the host starts the game.
   if (gameRoom.gameStatus === 'waiting') {
+    const canStart = gameRoom.players.length >= 2;
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          background: '#f0f0f0',
-        }}
-      >
-        <div className="board-frame" style={{ maxWidth: 520, width: '100%' }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, textAlign: 'center', marginBottom: 16 }}>
-            Waiting for Players
-          </h1>
-          <p style={{ textAlign: 'center', color: '#555' }}>Current Room ID: {gameRoom.id}</p>
-          <p style={{ textAlign: 'center', color: '#555' }}>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="bg-white rounded-lg shadow p-4 max-w-[520px] w-full">
+          <h1 className="text-2xl font-bold text-center mb-4">Waiting for Players</h1>
+          <p className="text-center text-gray-600">Current Room ID: {gameRoom.id}</p>
+          <p className="text-center text-gray-600">
             Players: {gameRoom.players.map((p) => p.name).join(', ')}
           </p>
-          {error && <p style={{ color: '#dc2626', textAlign: 'center', marginTop: 8 }}>{error}</p>}
+          {error && <p className="text-red-600 text-center mt-2">{error}</p>}
           <button
             onClick={() => onStartGame(gameRoom.id)}
-            disabled={gameRoom.players.length < 2}
-            style={{
-              marginTop: 16,
-              width: '100%',
-              padding: '10px 16px',
-              background: gameRoom.players.length < 2 ? '#9ca3af' : '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: gameRoom.players.length < 2 ? 'not-allowed' : 'pointer',
-              fontSize: 15,
-              fontWeight: 600,
-            }}
+            disabled={!canStart}
+            className={`mt-4 w-full py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white ${
+              canStart ? 'bg-blue-500 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'
+            }`}
           >
             Start Game
           </button>
           <button
             onClick={() => onRefreshMap(gameRoom.id)}
-            style={{
-              marginTop: 8,
-              width: '100%',
-              padding: '10px 16px',
-              background: '#22c55e',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
+            className="mt-2 w-full py-2.5 px-4 bg-green-500 text-white border-0 rounded-md cursor-pointer text-sm"
           >
             Refresh Map
           </button>
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}>
+          <div className="mt-4 flex justify-center">
             <BoardView hexSize={LOBBY_HEX_SIZE} />
           </div>
         </div>

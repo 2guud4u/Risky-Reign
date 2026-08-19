@@ -44,25 +44,19 @@ const EndTurnButton: React.FC = () => {
 
   const isMyTurn = !!(gameRoom && currentPlayer && gameRoom.turnState.player === currentPlayer.name);
 
-  const buttonStyle: React.CSSProperties = {
-    padding: '8px 16px',
-    fontSize: 14,
-    borderRadius: 6,
-    border: '1px solid #ccc',
-    background: isMyTurn ? '#2563eb' : '#e5e7eb',
-    color: isMyTurn ? '#fff' : '#6b7280',
-    cursor: isMyTurn ? 'pointer' : 'not-allowed',
-  };
+  const buttonClass = `px-4 py-2 text-sm rounded-md border border-gray-300 ${
+    isMyTurn ? 'bg-blue-600 text-white cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+  }`;
 
   return (
     <>
       {gameRoom && gameRoom.turnState && currentPlayer ? (
         isMyTurn ? (
-          <button onClick={handleClick} style={buttonStyle}>
+          <button onClick={handleClick} className={buttonClass}>
             {phaseText}
           </button>
         ) : (
-          <button disabled style={buttonStyle}>
+          <button disabled className={buttonClass}>
             Waiting on {gameRoom.turnState.player}
           </button>
         )

@@ -8,22 +8,19 @@ interface PlayersListProps {
 
 const PlayersList: React.FC<PlayersListProps> = ({ players, currentPlayerId }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {players.map((player) => (
         <div
           key={player.id}
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: 6,
-            padding: 8,
-            background: player.id === currentPlayerId ? '#eff6ff' : '#fff',
-          }}
+          className={`border border-gray-300 rounded-md p-2 ${
+            player.id === currentPlayerId ? 'bg-blue-50' : 'bg-white'
+          }`}
         >
           <strong>{player.name}</strong>
           {player.id === currentPlayerId && <span> (you)</span>}
-          <div style={{ fontSize: 12, color: '#555', marginTop: 4 }}>
+          <div className="text-xs text-gray-600 mt-1">
             {Object.entries(player.resources).map(([resource, value]) => (
-              <span key={resource} style={{ marginRight: 10 }}>
+              <span key={resource} className="mr-2.5">
                 {resource}: {value}
               </span>
             ))}

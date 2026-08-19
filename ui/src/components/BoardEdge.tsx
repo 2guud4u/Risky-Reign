@@ -38,12 +38,12 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
     if (isHovered) return '#FFA500';
     if (hasRoad) return '#8B4513';
     if (!isSelectable) return '#999';
-    return '#CCC';
+    return '#383636';
   };
 
   const getStrokeWidth = () => {
     if (hasRoad) return 8;
-    return 2;
+    return 4;
   };
 
   return (
@@ -72,10 +72,11 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
           y1={start.y}
           x2={end.x}
           y2={end.y}
-          stroke="#FFD700"
+          stroke="#eb1010"
           strokeWidth={getStrokeWidth() + 4}
           strokeLinecap="round"
           opacity={0.3}
+          className="blink-road"
         />
       )}
 

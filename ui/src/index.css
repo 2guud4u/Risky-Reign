@@ -1,63 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     background: #f5f5f5;
     color: #222;
 }
 
-code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-        monospace;
+/* SVG selection blink animations (used by BoardVertex / BoardEdge). */
+@layer utilities {
+    .blink-circle {
+        animation: blink 1.5s ease-in-out infinite;
+    }
+
+    .blink-road {
+        animation: blink-road 1.5s ease-in-out infinite;
+    }
 }
 
-.app-shell {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px;
-    box-sizing: border-box;
+@keyframes blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.2;
+    }
 }
 
-.app-header {
-    font-size: 24px;
-    font-weight: 700;
-    margin: 8px 0 16px;
-}
-
-.board-frame {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-    padding: 16px;
-}
-
-.build-bar {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.build-bar button {
-    padding: 8px 14px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #fff;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.build-bar button.active {
-    background: #2563eb;
-    color: #fff;
-    border-color: #2563eb;
-}
-
-.build-bar button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+@keyframes blink-road {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.2;
+    }
 }

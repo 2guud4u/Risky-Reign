@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 
+const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
+
 const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
@@ -18,133 +20,86 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
     setRoomId(randomId);
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '8px 12px',
-    border: '1px solid #ccc',
-    borderRadius: 6,
-    boxSizing: 'border-box',
-    fontSize: 14,
-  };
+  const canJoin = isConnected && !!playerName.trim() && !!roomId.trim();
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div className="board-frame" style={{ width: '100%', maxWidth: 420 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, textAlign: 'center', marginBottom: 24 }}>
-          Risky Catan Lobby
-        </h1>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow p-4 w-full max-w-[420px]">
+        <h1 className="text-[28px] font-bold text-center mb-6">Risky Catan Lobby</h1>
 
-        <form onSubmit={handleJoinRoom} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-              Your Name
-            </label>
+            <label className="block text-[13px] font-semibold mb-1.5">Your Name</label>
             <input
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="Enter your name"
               required
-              style={inputStyle}
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-              Room ID
-            </label>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <label className="block text-[13px] font-semibold mb-1.5">Room ID</label>
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value.toUpperCase())}
                 placeholder="Enter room ID"
                 required
-                style={{ ...inputStyle, flex: 1 }}
+                className={`${inputClass} flex-1`}
               />
               <button
                 type="button"
                 onClick={generateRoomId}
                 title="Generate random room ID"
-                style={{ padding: '8px 12px', border: '1px solid #ccc', borderRadius: 6, background: '#f0f0f0', cursor: 'pointer' }}
+                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-pointer"
               >
                 🎲
               </button>
             </div>
-            <p style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+            <p className="text-xs text-gray-400 mt-1">
               Share this room ID with a friend to play together
             </p>
           </div>
 
           <button
             type="submit"
-            disabled={!isConnected || !playerName.trim() || !roomId.trim()}
-            style={{
-              padding: '10px 16px',
-              background: isConnected ? '#2563eb' : '#9ca3af',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: isConnected ? 'pointer' : 'not-allowed',
-              fontSize: 15,
-              fontWeight: 600,
-            }}
+            disabled={!canJoin}
+            className={`py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white ${
+              isConnected ? 'bg-blue-600 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'
+            }`}
           >
             {isConnected ? 'Join Game' : 'Connecting...'}
           </button>
         </form>
 
         {error && (
-          <div
-            style={{
-              marginTop: 16,
-              padding: 12,
-              background: '#fee2e2',
-              border: '1px solid #f87171',
-              color: '#b91c1c',
-              borderRadius: 6,
-            }}
-          >
+          <div className="mt-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
             {error}
           </div>
         )}
 
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
+        <div className="mt-5 text-center">
           <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '4px 12px',
-              borderRadius: 999,
-              fontSize: 13,
-              background: isConnected ? '#dcfce7' : '#fee2e2',
-              color: isConnected ? '#166534' : '#b91c1c',
-            }}
+            className={`inline-flex items-center px-3 py-1 rounded-full text-[13px] ${
+              isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'
+            }`}
           >
             <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                marginRight: 8,
-                background: isConnected ? '#22c55e' : '#ef4444',
-              }}
+              className={`w-2 h-2 rounded-full mr-2 ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
             />
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
 
-        <div style={{ marginTop: 24, padding: 16, background: '#eff6ff', borderRadius: 8 }}>
-          <h3 style={{ fontWeight: 600, color: '#1e40af', marginBottom: 8 }}>How to Play:</h3>
-          <ul style={{ fontSize: 13, color: '#1e3a8a', paddingLeft: 18, margin: 0 }}>
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <h3 className="font-semibold text-blue-900 mb-2">How to Play:</h3>
+          <ul className="text-[13px] text-blue-950 pl-[18px] m-0">
             <li>Enter your name and create/join a room</li>
             <li>Share the room ID with a friend</li>
             <li>Take turns placing settlements and roads</li>

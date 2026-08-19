@@ -25,6 +25,11 @@ const PROJ_SIZE = GAME_HEX_SIZE;
 
 type BuildMode = 'settlement' | 'road' | 'none';
 
+const buildButtonClass = (active: boolean) =>
+  `px-3.5 py-2 border rounded-md cursor-pointer text-sm ${
+    active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'
+  }`;
+
 /**
  * Renders the board as an SVG of hexes / edges / vertices.
  *
@@ -34,13 +39,12 @@ type BuildMode = 'settlement' | 'road' | 'none';
  * to the requested render size.
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
-  const { gameRoom, currentPlayer, selectedVertexId, setSelectedVertexId } = useGameRoom();
+  const { gameRoom, currentPlayer, selectedObject, setSelectedObject } = useGameRoom();
   const { buildSettlement, buildRoad } = useSocket();
 
   const [buildMode, setBuildMode] = useState<BuildMode>('none');
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
   const board = gameRoom?.board ?? null;
 
@@ -73,18 +77,18 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   }, [board, buildMode, currentPlayer]);
 
   if (!base || !gameRoom) {
-    return <div style={{ textAlign: 'center', color: '#666' }}>Loading board...</div>;
+    return <div className="text-center text-gray-500">Loading board...</div>;
   }
 
   // Layer ephemeral interaction state (hover/select) onto the presentation.
   const vertices = Object.values(base.state.vertices).map((v) => ({
     ...v,
-    isSelected: v.id === selectedVertexId,
+    isSelected: v.id === (selectedObject?.type === 'vertex' ? selectedObject.id : null),
     isHovered: v.id === hoveredVertexId,
   }));
   const edges = Object.values(base.state.edges).map((e) => ({
     ...e,
-    isSelected: e.id === selectedEdgeId,
+    isSelected: e.id === (selectedObject?.type === 'edge' ? selectedObject.id : null),
     isHovered: e.id === hoveredEdgeId,
   }));
   const hexes = Object.values(base.state.hexes);
@@ -93,20 +97,20 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     if (buildMode === 'settlement' && base.validVertexIds.includes(vertexId) && currentPlayer) {
       buildSettlement(currentPlayer.id, vertexId, gameRoom.id);
       setBuildMode('none');
-      setSelectedVertexId(null);
+      setSelectedObject(null);
       return;
     }
-    setSelectedVertexId((prev) => (prev === vertexId ? null : vertexId));
+    setSelectedObject({ type: 'vertex', id: vertexId });
   };
 
   const handleEdgeClick = (edgeId: string) => {
     if (buildMode === 'road' && base.validEdgeIds.includes(edgeId) && currentPlayer) {
       buildRoad(currentPlayer.id, edgeId, gameRoom.id);
       setBuildMode('none');
-      setSelectedEdgeId(null);
+      setSelectedObject(null);
       return;
     }
-    setSelectedEdgeId((prev) => (prev === edgeId ? null : edgeId));
+    setSelectedObject({ type: 'edge', id: edgeId });
   };
 
   const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
@@ -116,20 +120,25 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   return (
     <div>
       {buildMode !== 'none' && (
-        <div className="build-bar">
+        <div className="flex gap-2 mt-3">
           <button
-            className={buildMode === 'settlement' ? 'active' : ''}
+            className={buildButtonClass(buildMode === 'settlement')}
             onClick={() => setBuildMode('settlement')}
           >
             Build Settlement
           </button>
           <button
-            className={buildMode === 'road' ? 'active' : ''}
+            className={buildButtonClass(buildMode === 'road')}
             onClick={() => setBuildMode('road')}
           >
             Build Road
           </button>
-          <button onClick={() => setBuildMode('none')}>Cancel</button>
+          <button
+            className={buildButtonClass(false)}
+            onClick={() => setBuildMode('none')}
+          >
+            Cancel
+          </button>
         </div>
       )}
 
@@ -137,7 +146,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         width={renderSize}
         height={renderSize}
         viewBox={`${-viewBoxSize / 2} ${-viewBoxSize / 2} ${viewBoxSize} ${viewBoxSize}`}
-        style={{ display: 'block', margin: '0 auto' }}
+        className="block mx-auto"
       >
         {/* Hex tiles layer */}
         {hexes.map((hex) => (

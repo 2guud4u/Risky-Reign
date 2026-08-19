@@ -1,34 +1,15 @@
 import React from 'react';
 import { playerSettlementVertexIds } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
-import { useSocket } from '../contexts/SocketContext';
+import { useGameRoom } from '../../contexts/GameContext';
+import { useSocket } from '../../contexts/SocketContext';
 
-const cardStyle: React.CSSProperties = {
-  width: 280,
-  border: '1px solid #ccc',
-  borderRadius: 8,
-  padding: 14,
-  background: '#fff',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
-};
+const cardClass =
+  'w-[280px] border border-gray-300 rounded-lg p-3.5 bg-white flex flex-col gap-3';
 
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  fontSize: 14,
-  borderRadius: 6,
-  border: '1px solid #ccc',
-  background: '#2563eb',
-  color: '#fff',
-  cursor: 'pointer',
-};
-
-const disabledButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: '#9ca3af',
-  cursor: 'not-allowed',
-};
+const buildButtonClass = (enabled: boolean) =>
+  `px-3 py-2 text-sm rounded-md border border-gray-300 ${
+    enabled ? 'bg-blue-600 text-white cursor-pointer' : 'bg-gray-400 cursor-not-allowed'
+  }`;
 
 /**
  * Sidebar panel for the currently selected vertex: shows its settlement,
@@ -36,8 +17,8 @@ const disabledButtonStyle: React.CSSProperties = {
  * the vertex, road on each adjacent edge) with the same eligibility rules the
  * backend enforces.
  */
-const VertexSidebar: React.FC = () => {
-  const { gameRoom, currentPlayer, selectedVertexId } = useGameRoom();
+const Sidebar: React.FC = () => {
+  const { gameRoom, currentPlayer, selectedObject } = useGameRoom();
   const { buildSettlement, buildRoad } = useSocket();
 
   const board = gameRoom?.board ?? null;
@@ -46,14 +27,14 @@ const VertexSidebar: React.FC = () => {
     return null;
   }
 
-  const vertex = selectedVertexId ? board.vertices[selectedVertexId] : null;
+  const vertex = selectedObject?.type === 'vertex' ? board.vertices[selectedObject.id] : null;
 
   if (!vertex) {
     return (
-      <div style={cardStyle}>
-        <h3 style={{ margin: 0, fontSize: 16 }}>Vertex Info</h3>
-        <p style={{ fontSize: 13, color: '#666', margin: 0 }}>
-          Click a vertex on the board to see its details and build options.
+      <div className={cardClass}>
+        <h3 className="m-0 text-base">Vertex Info</h3>
+        <p className="text-[13px] text-gray-500 m-0">
+          Click a Vertex or Edge on the board to see its options.
         </p>
       </div>
     );
@@ -110,38 +91,23 @@ const VertexSidebar: React.FC = () => {
     : 'None';
 
   return (
-    <div style={cardStyle}>
-      <h3 style={{ margin: 0, fontSize: 16 }}>Vertex {vertex.id}</h3>
+    <div className={cardClass}>
+      <h3 className="m-0 text-base">Vertex {vertex.id}</h3>
 
-      <div style={{ fontSize: 13 }}>
+      <div className="text-[13px]">
         <strong>Settlement:</strong> {settlementLabel}
         {owner && (
           <span
-            style={{
-              display: 'inline-block',
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              marginLeft: 8,
-              background: owner.color || '#999',
-            }}
+            className="inline-block w-2.5 h-2.5 rounded-full ml-2"
+            style={{ background: owner.color || '#999' }}
           />
         )}
       </div>
 
-      <div style={{ fontSize: 13 }}>
+      <div className="text-[13px]">
         <strong>Hexes:</strong>{' '}
         {hexes.map((h) => (
-          <span
-            key={h.id}
-            style={{
-              display: 'inline-block',
-              marginRight: 8,
-              padding: '2px 6px',
-              borderRadius: 4,
-              background: '#f0f0f0',
-            }}
-          >
+          <span key={h.id} className="inline-block mr-2 px-1.5 py-0.5 rounded bg-gray-100">
             {h.terrain}
             {h.rollNumber !== null ? ` (${h.rollNumber})` : ''}
           </span>
@@ -149,8 +115,8 @@ const VertexSidebar: React.FC = () => {
       </div>
 
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Adjacent Edges</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="text-[13px] font-semibold mb-1.5">Adjacent Edges</div>
+        <div className="flex flex-col gap-1.5">
           {adjacent.map(({ edge, otherId }) => {
             if (!edge || otherId === null) return null;
             const road = edge.roadId ? board.roads[edge.roadId] : null;
@@ -160,30 +126,22 @@ const VertexSidebar: React.FC = () => {
             return (
               <div
                 key={edge.id}
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 6,
-                  padding: 8,
-                  fontSize: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
+                className="border border-gray-200 rounded-md p-2 text-xs flex flex-col gap-1"
               >
                 <div>
-                  <span style={{ color: '#555' }}>→ vertex </span>
+                  <span className="text-gray-600">→ vertex </span>
                   <strong>{otherId}</strong>
                   {otherSettlement && (
-                    <span style={{ color: '#8B4513' }}> ({otherSettlement.ownerId})</span>
+                    <span className="text-[#8B4513]"> ({otherSettlement.ownerId})</span>
                   )}
                 </div>
-                <div style={{ color: '#555' }}>
+                <div className="text-gray-600">
                   Road: {road ? `owned by ${road.ownerId}` : 'none'}
                 </div>
                 <button
                   onClick={() => handleBuildRoad(edge.id)}
                   disabled={!edgeEnabled}
-                  style={edgeEnabled ? buttonStyle : disabledButtonStyle}
+                  className={buildButtonClass(edgeEnabled)}
                   title={
                     edgeEnabled
                       ? 'Build road on this edge'
@@ -207,7 +165,7 @@ const VertexSidebar: React.FC = () => {
       <button
         onClick={handleBuildSettlement}
         disabled={!canBuildSettlement}
-        style={canBuildSettlement ? buttonStyle : disabledButtonStyle}
+        className={buildButtonClass(canBuildSettlement)}
         title={
           canBuildSettlement
             ? 'Build settlement on this vertex'
@@ -228,4 +186,4 @@ const VertexSidebar: React.FC = () => {
   );
 };
 
-export default VertexSidebar;
+export default Sidebar;
