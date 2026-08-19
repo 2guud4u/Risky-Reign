@@ -1,5 +1,5 @@
 import React from 'react';
-import { LOBBY_HEX_SIZE } from 'common/v2';
+import { LOBBY_HEX_SIZE } from 'common';
 import Game from '../containers/Game';
 import BoardView from '../containers/BoardView';
 import { useGameRoom } from '../contexts/GameContext';

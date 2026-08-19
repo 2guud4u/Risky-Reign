@@ -1,10 +1,25 @@
-import { Board, HexNode, VertexNode, EdgeNode, HexId, VertexId, EdgeId } from '../types/Board';
-import { CubeCoord, canonicalVertexId, canonicalEdgeId, cubeToPixel } from '../types/Coordinates';
-
 /**
- * Generate a standard Catan board with 19 hexes
- * Uses coordinate-derived IDs for vertices and edges
+ * Board generation. Pure: given a hex layout (coords + terrain + tokens) it
+ * produces a complete domain Board with canonical string ids.
+ *
+ * Golden reference (standard radius-2 board):
+ *   19 hexes, 54 vertices, 72 edges.
+ * Vertex hex-neighbour distribution: 18x1-hex (boundary), 12x2-hex, 24x3-hex.
+ * Edge hex-neighbour distribution:   30x1-hex (boundary), 42x2-hex.
  */
+
+import {
+  Board,
+  EdgeId,
+  EdgeNode,
+  HexId,
+  HexNode,
+  VertexId,
+  VertexNode,
+} from '../types/Board';
+import { CubeCoord, hexId as toHexId } from '../types/Coordinates';
+import { assignStandardHexes } from '../types/Hex';
+import { computeAdjacency } from './adjacency';
 
 export interface HexLayout {
   coord: CubeCoord;
@@ -12,47 +27,53 @@ export interface HexLayout {
   rollNumber: number | null;
 }
 
-export function generateStandardBoard(): Board {
-  const hexLayouts: HexLayout[] = [
-    { coord: { q: 0, r: -2, s: 2 }, terrain: 'forest', rollNumber: 9 },
-    { coord: { q: 1, r: -2, s: 1 }, terrain: 'pasture', rollNumber: 4 },
-    { coord: { q: 2, r: -2, s: 0 }, terrain: 'hills', rollNumber: 10 },
-    { coord: { q: -1, r: -1, s: 2 }, terrain: 'mountains', rollNumber: 10 },
-    { coord: { q: 0, r: -1, s: 1 }, terrain: 'fields', rollNumber: 11 },
-    { coord: { q: 1, r: -1, s: 0 }, terrain: 'forest', rollNumber: 6 },
-    { coord: { q: 2, r: -1, s: -1 }, terrain: 'pasture', rollNumber: 9 },
-    { coord: { q: -2, r: 0, s: 2 }, terrain: 'hills', rollNumber: 9 },
-    { coord: { q: -1, r: 0, s: 1 }, terrain: 'pasture', rollNumber: 3 },
-    { coord: { q: 0, r: 0, s: 0 }, terrain: 'desert', rollNumber: null },
-    { coord: { q: 1, r: 0, s: -1 }, terrain: 'mountains', rollNumber: 8 },
-    { coord: { q: 2, r: 0, s: -2 }, terrain: 'hills', rollNumber: 8 },
-    { coord: { q: -2, r: 1, s: 1 }, terrain: 'forest', rollNumber: 8 },
-    { coord: { q: -1, r: 1, s: 0 }, terrain: 'pasture', rollNumber: 5 },
-    { coord: { q: 0, r: 1, s: -1 }, terrain: 'fields', rollNumber: 6 },
-    { coord: { q: 1, r: 1, s: -2 }, terrain: 'mountains', rollNumber: 4 },
-    { coord: { q: -1, r: 2, s: -1 }, terrain: 'fields', rollNumber: 5 },
-    { coord: { q: 0, r: 2, s: -2 }, terrain: 'forest', rollNumber: 11 },
-    { coord: { q: 1, r: 2, s: -3 }, terrain: 'pasture', rollNumber: 12 },
-  ];
+/**
+ * Build a domain Board from an arbitrary hex layout.
+ * @param layouts - one entry per hex (coord + terrain + token)
+ * @param options - hex size for pixel projection and metadata
+ */
+export function generateBoard(
+  layouts: HexLayout[],
+  options: { id?: string; generator?: string; hexSize?: number } = {}
+): Board {
+  const hexSize = options.hexSize ?? 50;
+  const coords = layouts.map((l) => l.coord);
 
   const hexes: Record<HexId, HexNode> = {};
-  const hexCoords = hexLayouts.map(h => h.coord);
-  
-  // Create hexes
-  hexLayouts.forEach((layout, idx) => {
-    const id = `h_${layout.coord.q},${layout.coord.r},${layout.coord.s}`;
+  for (const l of layouts) {
+    const id = toHexId(l.coord);
     hexes[id] = {
       id,
-      coord: layout.coord,
-      terrain: layout.terrain,
-      rollNumber: layout.rollNumber,
-      robber: false,
+      coord: l.coord,
+      terrain: l.terrain,
+      rollNumber: l.rollNumber,
+      robber: l.terrain === 'Desert',
     };
-  });
+  }
 
-  // Generate vertices and edges
-  const vertices = generateVertices(hexCoords);
-  const edges = generateEdges(hexCoords, vertices);
+  const g = computeAdjacency(coords, hexSize);
+
+  const vertices: Record<VertexId, VertexNode> = {};
+  for (const v of g.vertices.values()) {
+    vertices[v.id] = {
+      id: v.id,
+      position: v.position,
+      hexIds: v.hexIds,
+      settlementId: null,
+      roadIds: Array.from(g.vertexEdges.get(v.id) ?? []),
+    };
+  }
+
+  const edges: Record<EdgeId, EdgeNode> = {};
+  for (const e of g.edges.values()) {
+    edges[e.id] = {
+      id: e.id,
+      vertexAId: e.vertexAId,
+      vertexBId: e.vertexBId,
+      hexIds: e.hexIds,
+      roadId: null,
+    };
+  }
 
   return {
     hexes,
@@ -61,134 +82,38 @@ export function generateStandardBoard(): Board {
     settlements: {},
     roads: {},
     metadata: {
-      id: 'board-' + Date.now(),
+      id: options.id ?? `board-${Date.now()}`,
       version: 1,
       lastUpdated: Date.now(),
-      generator: 'standard',
-    }
+      generator: options.generator ?? 'custom',
+    },
   };
 }
 
-function generateVertices(hexCoords: CubeCoord[]): Record<VertexId, VertexNode> {
-  const vertexMap = new Map<VertexId, { hexIds: string[], position: { x: number, y: number } }>();
-  
-  // For each hex, find its 6 vertices
-  hexCoords.forEach(hex => {
-    const hexId = `h_${hex.q},${hex.r},${hex.s}`;
-    
-    // Get neighboring hexes
-    const neighbors = getNeighbors(hex).filter(n => 
-      hexCoords.some(h => h.q === n.q && h.r === n.r && h.s === n.s)
-    );
-    
-    // Create vertices for each edge between hex and neighbor
-    neighbors.forEach((neighbor, idx) => {
-      const neighborId = `h_${neighbor.q},${neighbor.r},${neighbor.s}`;
-      
-      // Find the vertex shared by these two hexes
-      // For simplicity, we'll use the midpoint of the edge
-      const vertexHexIds = [hex, neighbor];
-      const vertexId = canonicalVertexId(vertexHexIds);
-      
-      if (!vertexMap.has(vertexId)) {
-        // Compute position as average of hex centers
-        const pos1 = cubeToPixel(hex.q, hex.r, hex.s, 50);
-        const pos2 = cubeToPixel(neighbor.q, neighbor.r, neighbor.s, 50);
-        const position = {
-          x: (pos1.x + pos2.x) / 2,
-          y: (pos1.y + pos2.y) / 2,
-        };
-        
-        vertexMap.set(vertexId, {
-          hexIds: [hexId, neighborId],
-          position,
-        });
-      } else {
-        // Add this hex to existing vertex
-        const existing = vertexMap.get(vertexId)!;
-        if (!existing.hexIds.includes(hexId)) {
-          existing.hexIds.push(hexId);
-        }
-      }
-    });
-  });
-
-  // Convert to VertexNode format
-  const result: Record<VertexId, VertexNode> = {};
-  vertexMap.forEach((data, id) => {
-    result[id] = {
-      id,
-      position: { x: data.position.x, y: data.position.y },
-      hexIds: data.hexIds,
-      settlementId: null,
-      roadIds: [],
-    };
-  });
-  
-  return result;
-}
-
-function generateEdges(
-  hexCoords: CubeCoord[], 
-  vertices: Record<VertexId, VertexNode>
-): Record<EdgeId, EdgeNode> {
-  const edgeMap = new Map<EdgeId, { vertexAId: VertexId, vertexBId: VertexId, hexIds: string[] }>();
-  
-  hexCoords.forEach(hex => {
-    const hexId = `h_${hex.q},${hex.r},${hex.s}`;
-    const neighbors = getNeighbors(hex).filter(n => 
-      hexCoords.some(h => h.q === n.q && h.r === n.r && h.s === n.s)
-    );
-    
-    neighbors.forEach(neighbor => {
-      const neighborId = `h_${neighbor.q},${neighbor.r},${neighbor.s}`;
-      
-      // Find vertices for this edge
-      const edgeHexIds = [hex, neighbor];
-      const edgeId = canonicalEdgeId(edgeHexIds);
-      
-      if (!edgeMap.has(edgeId)) {
-        // Find the two vertices that define this edge
-        // This is simplified - actual implementation would need proper vertex finding
-        const vertexId1 = `v_${hex.q},${hex.r},${hex.s}_${neighbor.q},${neighbor.r},${neighbor.s}`;
-        const vertexId2 = `v_${hex.q},${hex.r},${hex.s}_${neighbor.q},${neighbor.r},${neighbor.s}`;
-        
-        edgeMap.set(edgeId, {
-          vertexAId: vertexId1,
-          vertexBId: vertexId2,
-          hexIds: [hexId, neighborId],
-        });
-      }
-    });
-  });
-  
-  const result: Record<EdgeId, EdgeNode> = {};
-  edgeMap.forEach((data, id) => {
-    result[id] = {
-      id,
-      vertexAId: data.vertexAId,
-      vertexBId: data.vertexBId,
-      hexIds: data.hexIds,
-      roadId: null,
-    };
-  });
-  
-  return result;
-}
-
-function getNeighbors(coord: CubeCoord): CubeCoord[] {
-  const directions = [
-    { q: 1, r: 0, s: -1 },
-    { q: 1, r: -1, s: 0 },
-    { q: 0, r: -1, s: 1 },
-    { q: -1, r: 0, s: 1 },
-    { q: -1, r: 1, s: 0 },
-    { q: 0, r: 1, s: -1 },
-  ];
-  
-  return directions.map(d => ({
-    q: coord.q + d.q,
-    r: coord.r + d.r,
-    s: coord.s + d.s,
+/**
+ * Standard 19-hex Catan board (radius 2) with shuffled terrain/tokens.
+ * The desert is always the center hex.
+ */
+export function generateStandardBoard(hexSize: number = 50): Board {
+  const layouts: HexLayout[] = assignStandardHexes(2).map((h) => ({
+    coord: h.coord,
+    terrain: h.terrain,
+    rollNumber: h.rollNumber,
   }));
+  return generateBoard(layouts, { generator: 'standard', hexSize });
+}
+
+/**
+ * Small non-standard (L-shaped, 5-hex) layout used as the custom-map fixture
+ * in the rebuild plan.
+ */
+export function generateCustomBoard(hexSize: number = 50): Board {
+  const layouts: HexLayout[] = [
+    { coord: { q: 0, r: 0, s: 0 }, terrain: 'Wood', rollNumber: 4 },
+    { coord: { q: 1, r: 0, s: -1 }, terrain: 'Brick', rollNumber: 5 },
+    { coord: { q: 0, r: 1, s: -1 }, terrain: 'Sheep', rollNumber: 6 },
+    { coord: { q: 1, r: 1, s: -2 }, terrain: 'Wheat', rollNumber: 8 },
+    { coord: { q: 2, r: 0, s: -2 }, terrain: 'Ore', rollNumber: 9 },
+  ];
+  return generateBoard(layouts, { generator: 'custom-l5', hexSize });
 }

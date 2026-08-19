@@ -1,5 +1,5 @@
 import React from 'react';
-import { GAME_HEX_SIZE } from 'common/v2';
+import { GAME_HEX_SIZE } from 'common';
 import BoardView from './BoardView';
 import EndTurnButton from './EndTurnButton';
 import PlayersList from './PlayersList';

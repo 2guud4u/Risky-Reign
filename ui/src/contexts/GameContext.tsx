@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { GameRoom, Player } from 'common/v2';
+import { GameRoom, Player } from 'common';
 
 interface GameRoomContextValue {
   gameRoom: GameRoom | null;

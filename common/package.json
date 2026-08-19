@@ -4,14 +4,7 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "type": "commonjs",
   "scripts": {
-    "build": "tsc -b"
-  },
-  "dependencies": {
-    "class-validator": "^0.13.2"
-  },
-  "devDependencies": {
-    "@types/node": "^18.11.18"
+    "build": "tsc -p tsconfig.json"
   }
 }

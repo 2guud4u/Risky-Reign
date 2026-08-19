@@ -1,5 +1,5 @@
 import React from 'react';
-import { BoardEdge as BoardEdgeType } from 'common/v2';
+import { BoardEdge as BoardEdgeType } from 'common';
 
 interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;

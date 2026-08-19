@@ -6,7 +6,7 @@ import {
   validRoadEdges,
   playerSettlementVertexIds,
   BoardUIState,
-} from 'common/v2';
+} from 'common';
 import { BoardVertex } from '../components/BoardVertex';
 import { BoardEdge } from '../components/BoardEdge';
 import Hexagon from '../components/Hexagon';

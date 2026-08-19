@@ -1,5 +1,5 @@
 import React from 'react';
-import { BoardHex, terrainColors } from 'common/v2';
+import { BoardHex, terrainColors } from 'common';
 
 interface HexagonProps {
   hex: BoardHex;

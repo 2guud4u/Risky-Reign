@@ -3,7 +3,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { useGameRoom } from '../contexts/GameContext';
 import LobbyPage from '../pages/Lobby';
 import GamePage from '../pages/Game';
-import { GameRoom } from 'common/v2';
+import { GameRoom } from 'common';
 
 /**
  * Top-level router. Subscribes to the server's roomUpdate / gameUpdate /

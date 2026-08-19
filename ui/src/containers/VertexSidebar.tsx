@@ -1,5 +1,5 @@
 import React from 'react';
-import { playerSettlementVertexIds } from 'common/v2';
+import { playerSettlementVertexIds } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 

@@ -1,84 +1,118 @@
-import { Board } from '../types/Board';
-import { BoardUIState, BoardVertex, BoardEdge, BoardHex } from '../types/BoardUI';
-import { CubeCoord, PixelCoord } from '../types/Coordinates';
-
 /**
- * Adapter Layer: Convert domain Board to presentation BoardUIState
- * Single conversion point - no domain types leak to UI
+ * Adapter layer: the single conversion point between the domain Board and the
+ * presentation BoardUIState. No domain types leak into UI components beyond
+ * the BoardUI* shapes.
  */
 
-export function domainToPresentation(board: Board): BoardUIState {
-  // Compute adjacency maps for quick lookups
-  const vertexMap = new Map<string, BoardVertex>();
-  const edgeMap = new Map<string, BoardEdge>();
-  const hexMap = new Map<string, BoardHex>();
-  
-  // Convert hexes
-  Object.entries(board.hexes).forEach(([id, hex]) => {
-    const position = cubeToPixel(hex.coord.q, hex.coord.r, hex.coord.s, 50);
-    hexMap.set(id, {
-      id,
-      position,
+import { Board, EdgeId, HexId, VertexId } from '../types/Board';
+import {
+  BoardEdge,
+  BoardHex,
+  BoardUIState,
+  BoardVertex,
+} from '../types/BoardUI';
+import { cubeToPixel } from '../types/Coordinates';
+
+/**
+ * Convert a domain Board into a fresh (non-interacted) presentation state.
+ * @param board   - domain board
+ * @param hexSize - pixel size used to project hex centers (vertex/edge
+ *                  positions come pre-projected from the domain board)
+ */
+export function domainToPresentation(board: Board, hexSize: number = 50): BoardUIState {
+  const vertices: Record<VertexId, BoardVertex> = {};
+  const edges: Record<EdgeId, BoardEdge> = {};
+  const hexes: Record<HexId, BoardHex> = {};
+
+  // Hexes
+  for (const hex of Object.values(board.hexes)) {
+    hexes[hex.id] = {
+      id: hex.id,
+      position: cubeToPixel(hex.coord, hexSize),
       terrain: hex.terrain,
       rollNumber: hex.rollNumber,
       hasRobber: hex.robber,
-      vertexIds: [], // Would compute from adjacency
+      vertexIds: [],
       edgeIds: [],
-    });
-  });
-  
-  // Convert vertices
-  Object.entries(board.vertices).forEach(([id, vertex]) => {
-    vertexMap.set(id, {
-      id,
-      position: vertex.position,
-      isSelectable: true, // Computed based on build rules
-      hasSettlement: vertex.settlementId !== null,
-      settlementLevel: vertex.settlementId ? 
-        board.settlements[vertex.settlementId]?.level || 'settlement' : 'none',
-      settlementOwnerId: vertex.settlementId ? 
-        board.settlements[vertex.settlementId]?.ownerId || null : null,
-      adjacentEdgeIds: vertex.roadIds,
-      adjacentVertexIds: [], // Would compute from adjacency
+    };
+  }
+
+  // Vertices
+  for (const v of Object.values(board.vertices)) {
+    const settlement = v.settlementId ? board.settlements[v.settlementId] : null;
+    const adjacentVertexIds: VertexId[] = [];
+    const adjacentEdgeIds: EdgeId[] = [];
+    for (const edgeId of v.roadIds) {
+      const edge = board.edges[edgeId];
+      if (!edge) continue;
+      adjacentEdgeIds.push(edge.id);
+      const other = edge.vertexAId === v.id ? edge.vertexBId : edge.vertexAId;
+      if (other !== v.id) adjacentVertexIds.push(other);
+    }
+    vertices[v.id] = {
+      id: v.id,
+      position: v.position,
+      isSelectable: true,
+      hasSettlement: settlement !== null,
+      settlementLevel: settlement ? settlement.level : 'none',
+      settlementOwnerId: settlement ? settlement.ownerId : null,
+      adjacentEdgeIds,
+      adjacentVertexIds: Array.from(new Set(adjacentVertexIds)),
       isHovered: false,
       isSelected: false,
-    });
-  });
-  
-  // Convert edges
-  Object.entries(board.edges).forEach(([id, edge]) => {
-    const startVertex = board.vertices[edge.vertexAId];
-    const endVertex = board.vertices[edge.vertexBId];
-    
-    edgeMap.set(id, {
-      id,
-      start: startVertex?.position || { x: 0, y: 0 },
-      end: endVertex?.position || { x: 0, y: 0 },
-      hasRoad: edge.roadId !== null,
-      roadOwnerId: edge.roadId ? 
-        board.roads[edge.roadId]?.ownerId || null : null,
+    };
+  }
+
+  // Edges
+  for (const e of Object.values(board.edges)) {
+    const a = board.vertices[e.vertexAId];
+    const b = board.vertices[e.vertexBId];
+    const road = e.roadId ? board.roads[e.roadId] : null;
+    edges[e.id] = {
+      id: e.id,
+      start: a ? a.position : { x: 0, y: 0 },
+      end: b ? b.position : { x: 0, y: 0 },
+      hasRoad: road !== null,
+      roadOwnerId: road ? road.ownerId : null,
       isSelectable: true,
       isHovered: false,
       isSelected: false,
-    });
-  });
-  
+    };
+  }
+
+  // Back-fill hex vertex/edge ids
+  for (const v of Object.values(board.vertices)) {
+    for (const hid of v.hexIds) {
+      const h = hexes[hid];
+      if (h && !h.vertexIds.includes(v.id)) h.vertexIds.push(v.id);
+    }
+  }
+  for (const e of Object.values(board.edges)) {
+    for (const hid of e.hexIds) {
+      const h = hexes[hid];
+      if (h && !h.edgeIds.includes(e.id)) h.edgeIds.push(e.id);
+    }
+  }
+
   return {
-    vertices: Object.fromEntries(vertexMap),
-    edges: Object.fromEntries(edgeMap),
-    hexes: Object.fromEntries(hexMap),
+    vertices,
+    edges,
+    hexes,
     selectedVertexId: null,
     selectedEdgeId: null,
     hoveredVertexId: null,
     hoveredEdgeId: null,
     buildMode: 'none',
+    roadStartVertexId: null,
+    validVertexIds: [],
+    validEdgeIds: [],
     canBuildSettlement: false,
     canBuildRoad: false,
   };
 }
 
 /**
- * Update presentation state with interaction changes
+ * Merge partial interaction updates into a presentation state immutably.
  */
 export function updatePresentationState(
   state: BoardUIState,
@@ -87,34 +121,21 @@ export function updatePresentationState(
   return {
     ...state,
     ...updates,
-    vertices: {
-      ...state.vertices,
-      ...Object.fromEntries(
-        Object.entries(updates.vertices || {}).map(([id, v]) => [id, { ...state.vertices[id], ...v }])
-      )
-    },
-    edges: {
-      ...state.edges,
-      ...Object.fromEntries(
-        Object.entries(updates.edges || {}).map(([id, e]) => [id, { ...state.edges[id], ...e }])
-      )
-    }
+    vertices: { ...state.vertices, ...(updates.vertices ?? {}) },
+    edges: { ...state.edges, ...(updates.edges ?? {}) },
+    hexes: { ...state.hexes, ...(updates.hexes ?? {}) },
   };
 }
 
-function cubeToPixel(q: number, r: number, s: number, size: number): PixelCoord {
-  const x = size * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-  const y = size * (3 / 2 * r);
-  return { x, y };
-}
-
-/**
- * Presentation to domain: Extract build actions
- */
-export function extractBuildActions(state: BoardUIState) {
+/** Extract the build action implied by the current interaction state. */
+export function extractBuildActions(state: BoardUIState): {
+  settlementVertexId: VertexId | null;
+  roadEdgeId: EdgeId | null;
+  buildMode: BoardUIState['buildMode'];
+} {
   return {
-    settlementVertexId: state.selectedVertexId,
-    roadEdgeId: state.selectedEdgeId,
+    settlementVertexId: state.buildMode === 'settlement' ? state.selectedVertexId : null,
+    roadEdgeId: state.buildMode === 'road' ? state.selectedEdgeId : null,
     buildMode: state.buildMode,
   };
 }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { BoardUIState, BoardVertex, BoardEdge } from 'common/v2';
+import { BoardUIState, BoardVertex, BoardEdge } from 'common';
 
 type BoardAction =
   | { type: 'SELECT_VERTEX'; vertexId: string | null }

@@ -4,14 +4,13 @@
   "private": true,
   "workspaces": [
     "common",
-    "common/v2",
     "backend",
     "frontend",
     "ui"
   ],
   "scripts": {
-    "build:common": "npm run build -w common/v2",
-    "watch:common": "npm run build -w common/v2 -- -w",
+    "build:common": "npm run build -w common",
+    "watch:common": "npm run build -w common -- -w",
     "dev:backend": "npm run build:common && npm run dev -w backend",
     "dev:frontend": "npm run build:common && npm run start -w frontend",
     "dev:ui": "npm run build:common && npm run start -w ui",

@@ -1,94 +1,39 @@
-import { Coords } from "./Board";
+import { EdgeId, SettlementId, VertexId } from './Board';
 
-export interface Settlement {
-    owner: string;
-    upgraded: boolean;
-}
 export type SoldierType = 'infantry' | 'cannon';
 
 export interface SoldierObj {
-    id: string;
-    owner: string;
-    injured: boolean;
-    intersect: number;
-    type: SoldierType;
-    stationed: boolean;
+  id: string;
+  owner: string;
+  injured: boolean;
+  vertexId: VertexId;
+  type: SoldierType;
+  stationed: boolean;
 }
 
-
-export class SettlementImpl implements Settlement {
-    owner: string;
-    upgraded: boolean;
-    constructor(owner: string, upgraded: boolean) {
-        this.owner = owner;
-        this.upgraded = upgraded;
-    }
-}
-
-export interface Road {
-    start: Coords;
-    end: Coords;
-    owner: string;
-}
-
-export class RoadImpl implements Road {
-    start: Coords;
-    end: Coords;
-    owner: string;
-    constructor(start: Coords, end: Coords, owner: string) {
-        this.start = start;
-        this.end = end;
-        this.owner = owner;
-    }
-
-}
-
-export interface Soldier{
-    injured: boolean;
-    owner: string;
-}
-
-export class SoldierImpl implements Soldier {
-    injured: boolean;
-    owner: string;
-    constructor(injured: boolean, owner: string) {
-        this.owner = owner
-        this.injured = injured;
-    }
-}
-
-
-export type DevCardType = "Knight" | "VictoryPoint" | "RoadBuilding" | "YearOfPlenty" | "Monopoly";
+export type DevCardType = 'Knight' | 'VictoryPoint' | 'RoadBuilding' | 'YearOfPlenty' | 'Monopoly';
 
 export interface DevCard {
-    type: DevCardType;
-    used: boolean;
+  type: DevCardType;
+  used: boolean;
 }
 
-const buildTypes = ["Settlement", "Road", "City", "Soldier"];
+const buildTypes = ['Settlement', 'Road', 'City', 'Soldier'] as const;
+export type BuildType = (typeof buildTypes)[number];
 
-export type buildType = typeof buildTypes[number];
+export const isBuildType = (arg: unknown): arg is BuildType =>
+  (buildTypes as readonly string[]).includes(arg as string);
 
-export const isBuildType = (arg: any): arg is buildType => {
-    return buildTypes.includes(arg);
+/** A settlement placement request (wire-friendly, string ids). */
+export interface SettlementPlacement {
+  settlementId: SettlementId;
+  vertexId: VertexId;
+  ownerId: string;
 }
 
-
-import { PixelCoord } from './Board';
-
-export interface RoadObj {
-    id: string;
-    intersect1: string;
-    intersect2: string;
-    owner: string;
-    coord1: PixelCoord;
-    coord2: PixelCoord;
-    upgraded: boolean;
-}
-
-export interface SettlementObj {
-    id: string;
-    owner: string;
-    upgraded: boolean;
-    coord: PixelCoord;
+/** A road placement request (wire-friendly, string ids). */
+export interface RoadPlacement {
+  roadId: string;
+  edgeId: EdgeId;
+  ownerId: string;
 }

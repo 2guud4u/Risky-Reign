@@ -1,5 +1,5 @@
 import React from 'react';
-import { BoardVertex as BoardVertexType } from 'common/v2';
+import { BoardVertex as BoardVertexType } from 'common';
 
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;

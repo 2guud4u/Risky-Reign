@@ -1,8 +1,9 @@
-import { ResourceCount } from './Logic';
+import {ResourceCount} from "./Logic"
 
 export interface Player {
   id: string;
   name: string;
-  color: string;
+  color:string;
   resources: ResourceCount;
 }
+

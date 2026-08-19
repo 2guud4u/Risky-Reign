@@ -30,7 +30,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
-import { GameRoom, Player, Board, generateStandardBoard } from 'common/v2';
+import { GameRoom, Player, Board, generateStandardBoard } from 'common';
 // TODO: Implement backend logic for handleRollDice, handleBuildSettlement, changePlayerResources
 // For now, comment out usage until implementations exist
 const app = express();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from 'common/v2';
+import { SOCKET_URL } from 'common';
 
 // Socket Context (clean v2 wire protocol: string vertex/edge ids, single edgeId roads)
 interface SocketContextType {

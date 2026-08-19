@@ -1,10 +1,4 @@
-import { EdgeId, HexId, VertexId } from './Board';
-import { PixelCoord } from './Coordinates';
-
-/**
- * Presentation layer (UI-optimized). Produced by the adapter from the domain
- * Board; no domain types leak into the components beyond these.
- */
+import { PixelCoord, VertexId, EdgeId, SettlementId, RoadId } from './Board';
 
 export interface BoardVertex {
   id: VertexId;
@@ -31,7 +25,7 @@ export interface BoardEdge {
 }
 
 export interface BoardHex {
-  id: HexId;
+  id: string;
   position: PixelCoord;
   terrain: string;
   rollNumber: number | null;
@@ -40,20 +34,28 @@ export interface BoardHex {
   edgeIds: EdgeId[];
 }
 
-export type BuildMode = 'settlement' | 'road' | 'none';
-
 export interface BoardUIState {
   vertices: Record<VertexId, BoardVertex>;
   edges: Record<EdgeId, BoardEdge>;
-  hexes: Record<HexId, BoardHex>;
+  hexes: Record<string, BoardHex>;
   selectedVertexId: VertexId | null;
   selectedEdgeId: EdgeId | null;
   hoveredVertexId: VertexId | null;
   hoveredEdgeId: EdgeId | null;
-  buildMode: BuildMode;
-  roadStartVertexId: VertexId | null;
-  validVertexIds: VertexId[];
-  validEdgeIds: EdgeId[];
+  buildMode: 'settlement' | 'road' | 'none';
   canBuildSettlement: boolean;
   canBuildRoad: boolean;
+}
+
+export interface BoardUIProps {
+  board: BoardUIState;
+  onVertexClick: (vertexId: VertexId) => void;
+  onEdgeClick: (edgeId: EdgeId) => void;
+  onVertexHover: (vertexId: VertexId | null) => void;
+  onEdgeHover: (edgeId: EdgeId | null) => void;
+  players: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
 }

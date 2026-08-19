@@ -1,197 +1,196 @@
-// Pure adjacency computation for board graph
-// Works with any hex layout, not just standard board
+/**
+ * Pure adjacency computation for a board graph.
+ * Shape-agnostic: works with any set of hex coordinates, not just the
+ * standard 19-hex board.
+ *
+ * Canonicalization (see types/Coordinates.ts):
+ *  - A vertex is the set of 1-3 hexes meeting at one corner point.
+ *  - An edge is the segment between two adjacent vertices (1-2 hexes on its
+ *    sides).
+ *
+ * Corner identity is EXACT (integer (Xb, Ya) coefficients, see
+ * hexCornersExact) so floating-point noise can never split one physical
+ * vertex into two.
+ */
 
-import { VertexNode } from '../types/Board'
-import { HexNode } from '../types/Hex'
-import { CubeCoord } from '../types/Coordinates'
-import { calcEuclideanDistance } from './data'
-
-export interface AdjacencyGraph {
-  vertices: Map<string, Set<string>>
-  edges: Map<string, [string, string]>
-  vertexEdges: Map<string, Set<string>>
-}
+import {
+  CubeCoord,
+  PixelCoord,
+  canonicalEdgeId,
+  exactCornerKey,
+  exactCornerToPixel,
+  exactVertexId,
+  hexCornersExact,
+  hexId,
+} from '../types/Coordinates';
 
 export interface VertexInfo {
-  id: string
-  coord: { x: number; y: number }
-  hexes: CubeCoord[]
-  corner: number
+  id: string;
+  position: PixelCoord;
+  /** 1-3 distinct hexes meeting at this vertex. */
+  hexIds: string[];
+}
+
+export interface EdgeInfo {
+  id: string;
+  vertexAId: string;
+  vertexBId: string;
+  /** 1-2 distinct hexes on either side. */
+  hexIds: string[];
+}
+
+export interface AdjacencyGraph {
+  vertices: Map<string, VertexInfo>;
+  edges: Map<string, EdgeInfo>;
+  /** vertex id -> set of adjacent vertex ids */
+  vertexNeighbors: Map<string, Set<string>>;
+  /** vertex id -> set of incident edge ids */
+  vertexEdges: Map<string, Set<string>>;
 }
 
 /**
- * Pure function to compute adjacency from hex layout
- * No assumptions about board shape or size
+ * Compute the full vertex/edge graph for an arbitrary hex layout.
+ * @param coords - cube coordinates of every hex on the board
+ * @param size   - hex size used for pixel projection (ids are size-independent)
  */
-export function computeAdjacency(
-  hexes: HexNode[]
-): AdjacencyGraph {
-  const vertices = new Map<string, Set<string>>()
-  const edges = new Map<string, [string, string]>()
-  const vertexEdges = new Map<string, Set<string>>()
-  
-  // Map from vertex position to vertex info
-  const vertexMap = new Map<string, VertexInfo>()
-  
-  // First pass: collect all vertices with their hex associations
-  hexes.forEach(hex => {
-    const { q, r, s } = hex.coord
-    
-    // Get 6 corners of hex
-    for (let corner = 0; corner < 6; corner++) {
-      // Calculate vertex position
-      const vertexPos = getHexCornerPosition(q, r, s, corner)
-      const key = `${vertexPos.x},${vertexPos.y}`
-      
-      if (!vertexMap.has(key)) {
-        vertexMap.set(key, {
-          id: `v_${q}_${r}_${s}_${corner}`,
-          coord: vertexPos,
-          hexes: [{ q, r, s }],
-          corner
-        })
-      } else {
-        // Vertex shared by multiple hexes
-        const existing = vertexMap.get(key)!
-        existing.hexes.push({ q, r, s })
+export function computeAdjacency(coords: CubeCoord[], size: number = 50): AdjacencyGraph {
+  // Pass 1: collect every corner point (exact key) and the hexes meeting there.
+  const pointToHexes = new Map<string, { position: PixelCoord; hexIds: string[] }>();
+
+  for (const c of coords) {
+    const hid = hexId(c);
+    const corners = hexCornersExact(c);
+    for (const [Xb, Ya] of corners) {
+      const k = exactCornerKey(Xb, Ya);
+      if (!pointToHexes.has(k)) {
+        pointToHexes.set(k, { position: exactCornerToPixel(Xb, Ya, size), hexIds: [] });
+      }
+      const entry = pointToHexes.get(k)!;
+      if (!entry.hexIds.includes(hid)) entry.hexIds.push(hid);
+    }
+  }
+
+  // Build canonical vertices (id = exact position, unique per physical point).
+  const vertices = new Map<string, VertexInfo>();
+  const vertexByPoint = new Map<string, string>(); // exact corner key -> vertexId
+  for (const [k, entry] of pointToHexes) {
+    const id = exactVertexId(parseInt(k.split(',')[0], 10), parseInt(k.split(',')[1], 10));
+    vertices.set(id, { id, position: entry.position, hexIds: entry.hexIds });
+    vertexByPoint.set(k, id);
+  }
+
+  // Pass 2: edges = consecutive corner pairs of each hex, deduped by vertex pair.
+  const edges = new Map<string, EdgeInfo>();
+  const edgeHexes = new Map<string, string[]>();
+  for (const c of coords) {
+    const hid = hexId(c);
+    const corners = hexCornersExact(c);
+    for (let i = 0; i < 6; i++) {
+      const aKey = exactCornerKey(corners[i][0], corners[i][1]);
+      const bKey = exactCornerKey(corners[(i + 1) % 6][0], corners[(i + 1) % 6][1]);
+      const a = vertexByPoint.get(aKey)!;
+      const b = vertexByPoint.get(bKey)!;
+      const id = canonicalEdgeId(a, b);
+      if (!edges.has(id)) {
+        // Store endpoints in the same (sorted) order the id uses, so the
+        // representation is deterministic regardless of hex iteration order.
+        const [va, vb] = [a, b].sort();
+        edges.set(id, { id, vertexAId: va, vertexBId: vb, hexIds: [] });
+        edgeHexes.set(id, []);
+      }
+      const list = edgeHexes.get(id)!;
+      if (!list.includes(hid)) list.push(hid);
+    }
+  }
+  for (const [id, info] of edges) {
+    info.hexIds = edgeHexes.get(id)!;
+  }
+
+  // Pass 3: adjacency maps.
+  const vertexNeighbors = new Map<string, Set<string>>();
+  const vertexEdges = new Map<string, Set<string>>();
+  for (const v of vertices.keys()) {
+    vertexNeighbors.set(v, new Set());
+    vertexEdges.set(v, new Set());
+  }
+  for (const e of edges.values()) {
+    vertexNeighbors.get(e.vertexAId)!.add(e.vertexBId);
+    vertexNeighbors.get(e.vertexBId)!.add(e.vertexAId);
+    vertexEdges.get(e.vertexAId)!.add(e.id);
+    vertexEdges.get(e.vertexBId)!.add(e.id);
+  }
+
+  return { vertices, edges, vertexNeighbors, vertexEdges };
+}
+
+/**
+ * Property-test assertions for the canonicalization spec.
+ * Returns a list of human-readable failures (empty = all pass).
+ */
+export function validateAdjacency(coords: CubeCoord[], size: number = 50): string[] {
+  const g = computeAdjacency(coords, size);
+  const failures: string[] = [];
+
+  for (const v of g.vertices.values()) {
+    const n = v.hexIds.length;
+    if (n < 1 || n > 3) failures.push(`vertex ${v.id} has ${n} hex neighbours (expected 1-3)`);
+    if (new Set(v.hexIds).size !== v.hexIds.length) {
+      failures.push(`vertex ${v.id} lists duplicate hexes`);
+    }
+  }
+  for (const e of g.edges.values()) {
+    const n = e.hexIds.length;
+    if (n < 1 || n > 2) failures.push(`edge ${e.id} has ${n} hex neighbours (expected 1-2)`);
+    if (e.vertexAId === e.vertexBId) failures.push(`edge ${e.id} is a self-loop`);
+    if (!g.vertices.has(e.vertexAId) || !g.vertices.has(e.vertexBId)) {
+      failures.push(`edge ${e.id} references unknown vertex`);
+    }
+  }
+
+  // Every vertex must be incident to 2-3 edges.
+  for (const [id, es] of g.vertexEdges) {
+    if (es.size < 2 || es.size > 3) {
+      failures.push(`vertex ${id} incident to ${es.size} edges (expected 2-3)`);
+    }
+  }
+
+  // Determinism: recompute from a reversed hex order, ids must be identical.
+  const reversed = [...coords].reverse();
+  const g2 = computeAdjacency(reversed, size);
+  if (g2.vertices.size !== g.vertices.size || g2.edges.size !== g.edges.size) {
+    failures.push(`recompute from reversed order changed sizes (${g2.vertices.size}/${g2.edges.size})`);
+  } else {
+    for (const [id, v] of g.vertices) {
+      const v2 = g2.vertices.get(id);
+      if (!v2) {
+        failures.push(`vertex ${id} missing on recompute`);
+        continue;
+      }
+      if (
+        Math.abs(v2.position.x - v.position.x) > 1e-9 ||
+        Math.abs(v2.position.y - v.position.y) > 1e-9
+      ) {
+        failures.push(`vertex ${id} position differs on recompute`);
+      }
+      if (v2.hexIds.slice().sort().join() !== v.hexIds.slice().sort().join()) {
+        failures.push(`vertex ${id} hex set differs on recompute`);
       }
     }
-  })
-  
-  // Second pass: build adjacency from shared vertices
-  const vertexList = Array.from(vertexMap.values())
-  
-  vertexList.forEach(vertex => {
-    vertices.set(vertex.id, new Set<string>())
-    vertexEdges.set(vertex.id, new Set<string>())
-  })
-  
-  // Find edges by checking neighboring vertices
-  for (let i = 0; i < vertexList.length; i++) {
-    for (let j = i + 1; j < vertexList.length; j++) {
-      const v1 = vertexList[i]
-      const v2 = vertexList[j]
-      
-      // Check if vertices share a hex edge
-      if (areVerticesAdjacent(v1, v2, hexes)) {
-        const edgeId = `e_${v1.id}_${v2.id}`
-        
-        // Store edge
-        edges.set(edgeId, [v1.id, v2.id])
-        
-        // Update vertex adjacency
-        vertices.get(v1.id)!.add(v2.id)
-        vertices.get(v2.id)!.add(v1.id)
-        
-        // Update vertex-edge mapping
-        vertexEdges.get(v1.id)!.add(edgeId)
-        vertexEdges.get(v2.id)!.add(edgeId)
+    for (const [id, e] of g.edges) {
+      const e2 = g2.edges.get(id);
+      if (!e2) {
+        failures.push(`edge ${id} missing on recompute`);
+        continue;
+      }
+      if (
+        e2.vertexAId !== e.vertexAId ||
+        e2.vertexBId !== e.vertexBId ||
+        e2.hexIds.slice().sort().join() !== e.hexIds.slice().sort().join()
+      ) {
+        failures.push(`edge ${id} differs on recompute`);
       }
     }
   }
-  
-  return { vertices, edges, vertexEdges }
-}
 
-/**
- * Check if two vertices are adjacent (share an edge)
- */
-function areVerticesAdjacent(
-  v1: VertexInfo,
-  v2: VertexInfo,
-  hexes: HexNode[]
-): boolean {
-  // Vertices are adjacent if they belong to the same hex
-  // and are consecutive corners
-  const sharedHexes = v1.hexes.filter(h1 => 
-    v2.hexes.some(h2 => h1.q === h2.q && h1.r === h2.r && h1.s === h2.s)
-  )
-  
-  if (sharedHexes.length === 0) return false
-  
-  // Check if corners are consecutive (difference of 1 mod 6)
-  const cornerDiff = Math.abs(v1.corner - v2.corner)
-  return cornerDiff === 1 || cornerDiff === 5
-}
-
-/**
- * Calculate hex corner position
- */
-function getHexCornerPosition(
-  q: number,
-  r: number,
-  s: number,
-  corner: number,
-  size: number = 50
-): { x: number; y: number } {
-  // Cube to pixel conversion
-  const x = size * Math.sqrt(3) * (q + r / 2)
-  const y = size * 1.5 * r
-  
-  // Corner offset
-  const angle = Math.PI / 3 * corner
-  const cornerX = size * Math.cos(angle)
-  const cornerY = size * Math.sin(angle)
-  
-  return {
-    x: x + cornerX,
-    y: y + cornerY
-  }
-}
-
-/**
- * Legacy compatibility: convert adjacency to VertexNode format
- */
-export function buildVerticesFromAdjacency(
-  hexes: HexNode[],
-  adjacency: AdjacencyGraph
-): VertexNode[] {
-  const vertices: VertexNode[] = []
-  const vertexMap = new Map<string, { x: number; y: number }>()
-  
-  // Build vertex positions
-  hexes.forEach(hex => {
-    const { q, r, s } = hex.coord
-    for (let corner = 0; corner < 6; corner++) {
-      const pos = getHexCornerPosition(q, r, s, corner)
-      const id = `v_${q}_${r}_${s}_${corner}`
-      vertexMap.set(id, pos)
-    }
-  })
-  
-  // Create VertexNodes
-  for (const [id, neighbors] of adjacency.vertices) {
-    const pos = vertexMap.get(id)
-    if (!pos) continue
-    
-    vertices.push({
-      id,
-      coord: pos,
-      vertices: neighbors,
-      settlement: null,
-      soldiers: [],
-      roads: new Set()
-    })
-  }
-  
-  return vertices
-}
-
-/**
- * Test adjacency with irregular layouts
- */
-export function testIrregularLayout(): AdjacencyGraph {
-  // L-shaped 5 hex layout
-  const hexes: HexNode[] = [
-    { id: 'h1', coord: { q: 0, r: 0, s: 0 }, vertices: new Set(), terrain: 'Wood', robber: false, rollNumber: 4 },
-    { id: 'h2', coord: { q: 1, r: 0, s: -1 }, vertices: new Set(), terrain: 'Brick', robber: false, rollNumber: 5 },
-    { id: 'h3', coord: { q: 0, r: 1, s: -1 }, vertices: new Set(), terrain: 'Sheep', robber: false, rollNumber: 6 },
-    { id: 'h4', coord: { q: 1, r: 1, s: -2 }, vertices: new Set(), terrain: 'Wheat', robber: false, rollNumber: 8 },
-    { id: 'h5', coord: { q: 2, r: 0, s: -2 }, vertices: new Set(), terrain: 'Ore', robber: false, rollNumber: 9 },
-  ]
-  
-  const adjacency = computeAdjacency(hexes)
-  
-  // Should work without assuming standard board
-  return adjacency
+  return failures;
 }

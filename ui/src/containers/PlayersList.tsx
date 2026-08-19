@@ -1,5 +1,5 @@
 import React from 'react';
-import { Player } from 'common/v2';
+import { Player } from 'common';
 
 interface PlayersListProps {
   players: Player[];
