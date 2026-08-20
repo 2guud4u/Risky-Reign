@@ -47,3 +47,9 @@ export interface ResourceCount {
 }
 
 export interface Price extends ResourceCount {}
+
+/** Result of a dice roll: each die is 1-6 once rolled, null before it is rolled. */
+export interface RollResult {
+  die1: number | null;
+  die2: number | null;
+}

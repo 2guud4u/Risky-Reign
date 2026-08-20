@@ -5,7 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 const EndTurnButton: React.FC = () => {
   const [phaseText, setPhaseText] = useState<string>('');
   const { gameRoom, currentPlayer } = useGameRoom();
-  const { endTurn: onEndTurn, rollDice: onRollDice } = useSocket();
+  const { endTurn: onEndTurn } = useSocket();
 
   useEffect(() => {
     if (!gameRoom || !gameRoom.turnState) return;
@@ -14,7 +14,7 @@ const EndTurnButton: React.FC = () => {
         setPhaseText('End SetUp');
         break;
       case 'Dice':
-        setPhaseText('Roll Dice');
+        setPhaseText('End Turn');
         break;
       case 'Trade':
         setPhaseText('End Trade Phase');
@@ -32,14 +32,9 @@ const EndTurnButton: React.FC = () => {
 
   const handleClick = () => {
     if (!gameRoom || !currentPlayer) return;
-    // In the Dice phase the meaningful action is rolling; roll then advance
-    // to the Trade phase in one click.
-    if (gameRoom.turnState.phase === 'Dice') {
-      onRollDice(gameRoom.id);
-      onEndTurn(currentPlayer.id, gameRoom.id);
-    } else {
-      onEndTurn(currentPlayer.id, gameRoom.id);
-    }
+    // Rolling the dice is done in DiceView (one die per click); this button
+    // only advances the phase.
+    onEndTurn(currentPlayer.id, gameRoom.id);
   };
 
   const isMyTurn = !!(gameRoom && currentPlayer && gameRoom.turnState.player === currentPlayer.name);

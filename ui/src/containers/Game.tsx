@@ -1,6 +1,7 @@
 import React from 'react';
 import { GAME_HEX_SIZE } from 'common';
 import BoardView from './BoardView';
+import DiceView from './DiceView';
 import EndTurnButton from './EndTurnButton';
 import PlayersList from './PlayersList';
 import { useGameRoom } from '../contexts/GameContext';
@@ -32,6 +33,7 @@ const Game: React.FC = () => {
 
         <div className="flex flex-col gap-4 w-[280px]">
           <EndTurnButton />
+          <DiceView />
           <Sidebar />
           <PlayersList players={gameRoom.players} currentPlayerId={currentPlayer.id} />
         </div>

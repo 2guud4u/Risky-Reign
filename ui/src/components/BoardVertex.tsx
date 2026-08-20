@@ -5,6 +5,8 @@ interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
   onHover: (vertexId: string | null) => void;
   size?: number;
+  /** Owner's chosen color, used to tint the settlement. */
+  ownerColor?: string;
 }
 
 export const BoardVertex: React.FC<BoardVertexProps> = ({
@@ -18,6 +20,7 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
   onClick,
   onHover,
   size = 8,
+  ownerColor,
 }) => {
   const handleClick = () => {
     if (isSelectable) {
@@ -43,6 +46,7 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
   };
 
   const getSettlementColor = () => {
+    if (ownerColor) return ownerColor;
     switch (settlementLevel) {
       case 'city':
         return '#FFD700';

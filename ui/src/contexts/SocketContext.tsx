@@ -9,7 +9,7 @@ interface SocketContextType {
   buildSettlement: (playerId: string, vertexId: string, roomId: string) => void;
   buildRoad: (playerId: string, edgeId: string, roomId: string) => void;
   rollDice: (roomId: string) => void;
-  joinRoom: (playerName: string, roomId: string) => void;
+  joinRoom: (playerName: string, roomId: string, color?: string) => void;
   makeMove: (position: number, roomId: string) => void;
   startGame: (roomId: string) => void;
   resetGame: (roomId: string) => void;
@@ -63,9 +63,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     socket.emit('endTurn', { roomId });
   };
 
-  const joinRoom = (playerName: string, roomId: string) => {
+  const joinRoom = (playerName: string, roomId: string, color?: string) => {
     if (!socket) return;
-    socket.emit('joinRoom', { roomId, playerName });
+    socket.emit('joinRoom', { roomId, playerName, color });
   };
 
   const makeMove = (position: number, roomId: string) => {

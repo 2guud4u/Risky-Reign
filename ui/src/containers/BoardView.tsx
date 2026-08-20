@@ -48,6 +48,13 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   const board = gameRoom?.board ?? null;
 
+  // Map owner name -> chosen color so settlements/roads render in the
+  // player's color.
+  const colorOf = (ownerId: string | null): string | undefined => {
+    if (!ownerId || !gameRoom) return undefined;
+    return gameRoom.players.find((p) => p.name === ownerId)?.color;
+  };
+
   // Recompute the presentation state + valid placements whenever the board,
   // the acting player, or the build mode changes.
   const base = useMemo<{ state: BoardUIState; validVertexIds: string[]; validEdgeIds: string[] } | null>(() => {
@@ -80,16 +87,19 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     return <div className="text-center text-gray-500">Loading board...</div>;
   }
 
-  // Layer ephemeral interaction state (hover/select) onto the presentation.
+  // Layer ephemeral interaction state (hover/select) and owner colors onto
+  // the presentation.
   const vertices = Object.values(base.state.vertices).map((v) => ({
     ...v,
     isSelected: v.id === (selectedObject?.type === 'vertex' ? selectedObject.id : null),
     isHovered: v.id === hoveredVertexId,
+    ownerColor: colorOf(v.settlementOwnerId),
   }));
   const edges = Object.values(base.state.edges).map((e) => ({
     ...e,
     isSelected: e.id === (selectedObject?.type === 'edge' ? selectedObject.id : null),
     isHovered: e.id === hoveredEdgeId,
+    ownerColor: colorOf(e.roadOwnerId),
   }));
   const hexes = Object.values(base.state.hexes);
 

@@ -130,7 +130,7 @@ const MiniView: React.FC<MiniViewProps> = ({ board, type, id }) => {
 
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
-  const pad = 34;
+  const pad = 1;
   const minX = Math.min(...xs) - pad;
   const maxX = Math.max(...xs) + pad;
   const minY = Math.min(...ys) - pad;
@@ -141,8 +141,8 @@ const MiniView: React.FC<MiniViewProps> = ({ board, type, id }) => {
 
   return (
     <svg
-      width={140}
-      height={140}
+      width={250}
+      height={250}
       viewBox={`${cx - size / 2} ${cy - size / 2} ${size} ${size}`}
       className="mx-auto rounded-md bg-gray-50"
     >

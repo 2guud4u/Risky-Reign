@@ -30,7 +30,18 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
-import { GameRoom, Player, Board, generateStandardBoard } from 'common';
+import {
+  GameRoom,
+  Player,
+  Board,
+  generateStandardBoard,
+  PLAYER_COLORS,
+  canBuildSettlementAt,
+  canBuildRoadOn,
+  rollTotal,
+  computePayouts,
+  applyPayouts,
+} from 'common';
 // TODO: Implement backend logic for handleRollDice, handleBuildSettlement, changePlayerResources
 // For now, comment out usage until implementations exist
 const app = express();
@@ -75,7 +86,7 @@ function createGameRoom(roomId: string, firstPlayerName: string): GameRoom {
     winner: null,
     tradeStates: [],
     battleState: null,
-    roll: ''
+    roll: { die1: null, die2: null }
   };
   gameRooms.set(roomId, room);
   return room;
@@ -85,8 +96,8 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   // Join or create a game room
-  socket.on('joinRoom', (data: { roomId: string; playerName: string }) => {
-    const { roomId, playerName } = data;
+  socket.on('joinRoom', (data: { roomId: string; playerName: string; color?: string }) => {
+    const { roomId, playerName, color } = data;
     
     let room = gameRooms.get(roomId);
     if (!room) {
@@ -103,7 +114,7 @@ io.on('connection', (socket) => {
     const player: Player = {
       id: socket.id,
       name: playerName,
-      color: '',
+      color: color || PLAYER_COLORS[room.players.length % PLAYER_COLORS.length],
       resources: {
         Wood: 100,
         Brick: 100,
@@ -248,14 +259,15 @@ socket.on('endTurn', (data: { roomId: string }) => {
       
       if (turnState.offset === totalSetupTurns - 1) {
         // Setup complete, start dice phase with first player
-        room.turnState = { 
-          ...turnState, 
+        room.turnState = {
+          ...turnState,
           player: turnState.playerOrder[0],
-          phase: 'Dice', 
+          phase: 'Dice',
           offset: 0,
           placedSettlement: null,
           placedRoad: null
         };
+        room.roll = { die1: null, die2: null };
         turnState.dicePlayerIndex = 0;
       } else {
         // Determine next player based on setup round
@@ -316,12 +328,13 @@ socket.on('endTurn', (data: { roomId: string }) => {
       if (turnState.offset === playerCount - 1) {
         // All players have acted, move to next player's Dice phase
         turnState.dicePlayerIndex = (turnState.dicePlayerIndex + 1) % playerCount;
-        room.turnState = { 
-          ...turnState, 
-          player: turnState.playerOrder[turnState.dicePlayerIndex], 
-          phase: 'Dice', 
-          offset: 0 
+        room.turnState = {
+          ...turnState,
+          player: turnState.playerOrder[turnState.dicePlayerIndex],
+          phase: 'Dice',
+          offset: 0
         };
+        room.roll = { die1: null, die2: null };
       } else {
         // Next player's turn for action
         const nextPlayerIndex = (playerIndex + 1) % playerCount;
@@ -354,18 +367,38 @@ socket.on('endTurn', (data: { roomId: string }) => {
       socket.emit('error', { message: 'Game board is not available' });
       return;
     }
-    // Simulate dice roll
-    let rollNum = String(Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1);
+    // Only the dice player may roll, and only during the Dice phase.
+    if (room.turnState.phase !== 'Dice') {
+      socket.emit('error', { message: 'It is not the Dice phase' });
+      return;
+    }
+    const dicePlayer = room.turnState.player;
+    const socketPlayer = room.players.find((p) => p.id === socket.id);
+    if (!socketPlayer || socketPlayer.name !== dicePlayer) {
+      socket.emit('error', { message: 'It is not your turn to roll' });
+      return;
+    }
 
+    // One die per click: the first click rolls die 1, the second rolls die 2.
+    const roll = room.roll;
+    const value = Math.floor(Math.random() * 6) + 1;
+    if (roll.die1 === null) {
+      room.roll = { die1: value, die2: null };
+    } else if (roll.die2 === null) {
+      room.roll = { die1: roll.die1, die2: value };
+    } else {
+      // Both dice already rolled — start a fresh roll.
+      room.roll = { die1: value, die2: null };
+    }
 
-    // Update roll and notify players
-    room.roll = String(rollNum);
-    // TODO: Implement handleRollDice logic for backend
-    // handleRollDice(rollNum, room.players, board.Hexes, board.Vertices, board.Settlements);
-    
+    // When both dice are in, pass out resources for the total.
+    if (room.roll.die1 !== null && room.roll.die2 !== null) {
+      const payouts = computePayouts(board, rollTotal(room.roll.die1, room.roll.die2));
+      applyPayouts(room.players, payouts);
+      console.log(`Roll ${room.roll.die1}+${room.roll.die2} paid out ${payouts.length} resource(s)`);
+    }
 
-    
-    io.to(roomId).emit('gameUpdate', { ...room});
+    io.to(roomId).emit('gameUpdate', { ...room });
   })
   socket.on("buildSettlement", (data: { roomId: string, playerId: string, vertexId: string }) => {
     console.log("building settlement");
@@ -382,35 +415,19 @@ socket.on('endTurn', (data: { roomId: string }) => {
     }
 
     const turnState = room.turnState;
-    if (turnState.placedSettlement === true) {
-      socket.emit('error', { message: 'You have already placed a settlement this turn' });
-      return;
-    }
     const currentPlayer = room.players.find(p => p.id === playerId);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
     }
-    if (turnState.player !== currentPlayer.name) {
-      socket.emit('error', { message: 'It is not your turn' });
+
+    // Authoritative rules live in common (shared with the UI).
+    const check = canBuildSettlementAt(board, turnState, currentPlayer.name, vertexId);
+    if (!check.allowed) {
+      socket.emit('error', { message: check.reason ?? 'Cannot build settlement here' });
       return;
     }
-
-    if (turnState.phase !== 'SetUp' && turnState.phase !== 'Build') {
-      socket.emit('error', { message: 'You can only build settlements during SetUp or Build phase' });
-      return;
-    }
-
     const vertex = board.vertices[vertexId];
-    if (!vertex) {
-      socket.emit('error', { message: 'Vertex not found' });
-      return;
-    }
-    if (vertex.settlementId !== null) {
-      socket.emit('error', { message: 'Vertex already occupied' });
-      return;
-    }
-    // adjacency check skipped for minimal implementation
     const newSettlementId = `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     board.settlements[newSettlementId] = {
       id: newSettlementId,
@@ -441,35 +458,19 @@ socket.on('endTurn', (data: { roomId: string }) => {
     }
 
     const turnState = room.turnState;
-    if (turnState.placedRoad === true) {
-      socket.emit('error', { message: 'You have already placed a road this turn' });
-      return;
-    }
     const currentPlayer = room.players.find(p => p.id === playerId);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
     }
-    if (turnState.player !== currentPlayer.name) {
-      socket.emit('error', { message: 'It is not your turn' });
+
+    // Authoritative rules live in common (shared with the UI).
+    const check = canBuildRoadOn(board, turnState, currentPlayer.name, edgeId);
+    if (!check.allowed) {
+      socket.emit('error', { message: check.reason ?? 'Cannot build road here' });
       return;
     }
-
-    if (turnState.phase !== 'SetUp' && turnState.phase !== 'Build') {
-      socket.emit('error', { message: 'You can only build roads during SetUp or Build phase' });
-      return;
-    }
-
     const edge = board.edges[edgeId];
-    if (!edge) {
-      socket.emit('error', { message: 'Edge not found' });
-      return;
-    }
-    if (edge.roadId !== null) {
-      socket.emit('error', { message: 'Road already exists' });
-      return;
-    }
-    // adjacency check skipped for minimal implementation
     const newRoadId = `r_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     board.roads[newRoadId] = {
       id: newRoadId,

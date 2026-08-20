@@ -154,3 +154,5 @@ resources
 *.swo
 .DS_Store
 Thumbs.db
+
+.plans/*

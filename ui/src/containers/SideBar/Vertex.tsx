@@ -68,7 +68,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
           </span>
         ))}
       </div>
-
+      
       <button
         onClick={handleBuildSettlement}
         disabled={!canBuildSettlement}

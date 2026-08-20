@@ -1,12 +1,8 @@
-
-- move socket game logics to socket context
-- move game state to contextify
-- undo logic
+dice roll mechanic where you click on each dice to roll and it passes out resources
+colors for different players settlements and roads should use them. The colors could be picked with a color picker in the lobby.
 
 
+dont do this bottom part yet 
 
-Last
-- server connection
-
-https://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
-
+clean up validation rules, should they be within common
+clean up back end utils files, interfaces should be in types

@@ -4,6 +4,8 @@ import { BoardEdge as BoardEdgeType } from 'common';
 interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;
   onHover: (edgeId: string | null) => void;
+  /** Owner's chosen color, used to tint the road. */
+  ownerColor?: string;
 }
 
 export const BoardEdge: React.FC<BoardEdgeProps> = ({
@@ -16,6 +18,7 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
   isSelectable,
   onClick,
   onHover,
+  ownerColor,
 }) => {
   const handleClick = () => {
     if (isSelectable) {
@@ -36,7 +39,7 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
   const getStrokeColor = () => {
     if (isSelected) return '#FFD700';
     if (isHovered) return '#FFA500';
-    if (hasRoad) return '#8B4513';
+    if (hasRoad) return ownerColor ?? '#8B4513';
     if (!isSelectable) return '#999';
     return '#383636';
   };

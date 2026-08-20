@@ -16,8 +16,15 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, currentPlayerId }) =
             player.id === currentPlayerId ? 'bg-blue-50' : 'bg-white'
           }`}
         >
-          <strong>{player.name}</strong>
-          {player.id === currentPlayerId && <span> (you)</span>}
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block w-3 h-3 rounded-full border border-gray-300"
+              style={{ background: player.color || '#999' }}
+              title={player.color}
+            />
+            <strong>{player.name}</strong>
+            {player.id === currentPlayerId && <span>(you)</span>}
+          </div>
           <div className="text-xs text-gray-600 mt-1">
             {Object.entries(player.resources).map(([resource, value]) => (
               <span key={resource} className="mr-2.5">
