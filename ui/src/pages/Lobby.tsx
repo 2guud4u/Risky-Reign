@@ -44,6 +44,15 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
     e.preventDefault();
     if (playerName.trim() && roomId.trim()) {
       onJoinRoom(playerName.trim(), roomId.trim(), color);
+      // Persist the join so a reload auto-rejoins instead of returning to the lobby.
+      try {
+        sessionStorage.setItem(
+          'joinedRoom',
+          JSON.stringify({ roomId: roomId.trim(), playerName: playerName.trim(), color })
+        );
+      } catch {
+        // sessionStorage unavailable — ignore.
+      }
     }
   };
 

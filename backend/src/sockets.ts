@@ -28,6 +28,19 @@ export function setupSocketHandlers(io: Server): void {
         room = createGameRoom(roomId, playerName);
       }
 
+      // Re-attach: if a player with this name already exists (e.g., after a
+      // reload), point their socket id at the new connection and keep their
+      // existing progress — don't create a duplicate player.
+      const existing = room.players.find((p) => p.name === playerName);
+      if (existing) {
+        existing.id = socket.id;
+        if (color) existing.color = color;
+        socket.join(roomId);
+        io.to(roomId).emit('roomUpdate', room);
+        console.log(`Player ${playerName} re-attached to room ${roomId}`);
+        return;
+      }
+
       // Check if room is full.
       if (room.players.length >= 10) {
         socket.emit('error', { message: 'Room is full' });
@@ -112,24 +125,8 @@ export function setupSocketHandlers(io: Server): void {
     // Handle disconnect.
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
-      // Remove player from all rooms.
-      for (const [roomId, room] of gameRooms.entries()) {
-        const playerIndex = room.players.findIndex((p) => p.id === socket.id);
-        if (playerIndex !== -1) {
-          room.players.splice(playerIndex, 1);
-          // If room is empty, delete it.
-          if (room.players.length === 0) {
-            gameRooms.delete(roomId);
-          } else {
-            // Reset game if a player leaves.
-            room.turnState.player = 'X';
-            room.gameStatus = 'waiting';
-            room.winner = null;
-            io.to(roomId).emit('roomUpdate', room);
-          }
-          break;
-        }
-      }
+      // Keep the player in the room so a reload / reconnect can re-attach.
+      // The room and game state are intentionally NOT reset on disconnect.
     });
 
     // Handle game logic.
