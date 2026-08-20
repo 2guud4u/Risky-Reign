@@ -5,16 +5,14 @@
   "workspaces": [
     "common",
     "backend",
-    "frontend",
     "ui"
   ],
   "scripts": {
     "build:common": "npm run build -w common",
     "watch:common": "npm run build -w common -- -w",
     "dev:backend": "npm run build:common && npm run dev -w backend",
-    "dev:frontend": "npm run build:common && npm run start -w frontend",
     "dev:ui": "npm run build:common && npm run start -w ui",
-    "build": "npm run build:common && npm run build -w backend && npm run build -w frontend && npm run build -w ui",
+    "build": "npm run build:common && npm run build -w backend && npm run build -w ui",
     "pretty": "prettier --write \"**/src/**/*.{ts,tsx}\""
   },
   "devDependencies": {
