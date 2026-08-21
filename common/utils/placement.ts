@@ -5,7 +5,7 @@
  * rules the backend enforces authoritatively.
  */
 
-import { Board, VertexId } from '../types/Board';
+import { Board, VertexId, EdgeId } from '../types/Board';
 
 /**
  * Vertices where a settlement may be built:
@@ -49,4 +49,11 @@ export function playerSettlementVertexIds(board: Board, playerId: string): Verte
   return Object.values(board.settlements)
     .filter((s) => s.ownerId === playerId)
     .map((s) => s.vertexId);
+}
+
+/** The edge ids on which the given player has a road. */
+export function playerRoadEdgeIds(board: Board, playerId: string): EdgeId[] {
+  return Object.values(board.roads)
+    .filter((r) => r.ownerId === playerId)
+    .map((r) => r.edgeId);
 }

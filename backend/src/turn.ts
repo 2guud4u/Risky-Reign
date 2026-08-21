@@ -16,7 +16,9 @@ export function advanceTurn(room: GameRoom): void {
 
   switch (turnState.phase) {
     case 'SetUp': {
-      const totalSetupTurns = playerCount * 2; // Each player does setup twice
+      // Each player does setup twice (two setup turns, one settlement + one
+      // road per turn). First round clockwise, second round counterclockwise.
+      const totalSetupTurns = playerCount * 2;
 
       if (turnState.offset === totalSetupTurns - 1) {
         // Setup complete, start dice phase with first player.

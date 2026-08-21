@@ -1,54 +1,22 @@
 import React, { useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
-import { PLAYER_COLORS } from 'common';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
-
-/** Native color input + quick-pick swatches from the shared palette. */
-const ColorPicker: React.FC<{ value: string; onChange: (color: string) => void }> = ({
-  value,
-  onChange,
-}) => (
-  <div className="flex items-center gap-2">
-    <input
-      type="color"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-9 h-9 rounded cursor-pointer border border-gray-300 p-0.5"
-      title="Pick your color"
-    />
-    <div className="flex flex-wrap gap-1.5">
-      {PLAYER_COLORS.map((c) => (
-        <button
-          key={c}
-          type="button"
-          onClick={() => onChange(c)}
-          title={c}
-          className={`w-5 h-5 rounded-full cursor-pointer border-2 ${
-            value.toLowerCase() === c.toLowerCase() ? 'border-gray-800' : 'border-transparent'
-          }`}
-          style={{ background: c }}
-        />
-      ))}
-    </div>
-  </div>
-);
 
 const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
-  const [color, setColor] = useState('#e6194B');
   const { isConnected, joinRoom: onJoinRoom } = useSocket();
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (playerName.trim() && roomId.trim()) {
-      onJoinRoom(playerName.trim(), roomId.trim(), color);
+      onJoinRoom(playerName.trim(), roomId.trim());
       // Persist the join so a reload auto-rejoins instead of returning to the lobby.
       try {
         sessionStorage.setItem(
           'joinedRoom',
-          JSON.stringify({ roomId: roomId.trim(), playerName: playerName.trim(), color })
+          JSON.stringify({ roomId: roomId.trim(), playerName: playerName.trim() })
         );
       } catch {
         // sessionStorage unavailable — ignore.
@@ -106,14 +74,6 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
             </p>
           </div>
 
-          <div>
-            <label className="block text-[13px] font-semibold mb-1.5">Your Color</label>
-            <ColorPicker value={color} onChange={setColor} />
-            <p className="text-xs text-gray-400 mt-1">
-              Your settlements and roads on the board will use this color.
-            </p>
-          </div>
-
           <button
             type="submit"
             disabled={!canJoin}
@@ -149,7 +109,8 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <h3 className="font-semibold text-blue-900 mb-2">How to Play:</h3>
           <ul className="text-[13px] text-blue-950 pl-[18px] m-0">
-            <li>Enter your name, pick a color, and create/join a room</li>
+            <li>Enter your name and create/join a room</li>
+            <li>Pick your color in the waiting room</li>
             <li>Share the room ID with a friend</li>
             <li>Take turns placing settlements and roads</li>
             <li>Roll the dice, trade, and build each turn</li>

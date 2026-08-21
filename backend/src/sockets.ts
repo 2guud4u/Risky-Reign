@@ -41,6 +41,23 @@ export function setupSocketHandlers(io: Server): void {
         return;
       }
 
+      // Update this player's color (e.g., from the waiting-room picker).
+      socket.on('updatePlayerColor', (data: { roomId: string; color: string }) => {
+        const { roomId, color } = data;
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+        const player = room.players.find((p) => p.id === socket.id);
+        if (!player) {
+          socket.emit('error', { message: 'Player not found in room' });
+          return;
+        }
+        player.color = color;
+        io.to(roomId).emit('roomUpdate', room);
+      });
+
       // Check if room is full.
       if (room.players.length >= 10) {
         socket.emit('error', { message: 'Room is full' });
@@ -137,6 +154,22 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      // Setup cannot be skipped: the current player must place both a
+      // settlement and a road before their setup turn may end.
+      if (
+        room.turnState.phase === 'SetUp' &&
+        (!room.turnState.placedSettlement || !room.turnState.placedRoad)
+      ) {
+        socket.emit('error', {
+          message: 'Place a settlement and a road before ending setup',
+        });
+        return;
+      }
+      // The Dice phase advances automatically once both dice are rolled.
+      if (room.turnState.phase === 'Dice') {
+        socket.emit('error', { message: 'Roll both dice to end this phase' });
+        return;
+      }
       if (!room.board) {
         socket.emit('error', { message: 'Game board is not available' });
         return;
@@ -183,11 +216,13 @@ export function setupSocketHandlers(io: Server): void {
         room.roll = { die1: value, die2: null };
       }
 
-      // When both dice are in, pass out resources for the total.
+      // When both dice are in, pass out resources for the total and advance
+      // to the Trade phase automatically (no manual end-turn needed).
       if (room.roll.die1 !== null && room.roll.die2 !== null) {
         const payouts = computePayouts(board, rollTotal(room.roll.die1, room.roll.die2));
         applyPayouts(room.players, payouts);
         console.log(`Roll ${room.roll.die1}+${room.roll.die2} paid out ${payouts.length} resource(s)`);
+        advanceTurn(room);
       }
 
       io.to(roomId).emit('gameUpdate', { ...room });
@@ -232,6 +267,11 @@ export function setupSocketHandlers(io: Server): void {
 
       // Update the game state.
       turnState.placedSettlement = true;
+
+      // In SetUp, auto-advance once both a settlement and a road are placed.
+      if (room.turnState.phase === 'SetUp' && room.turnState.placedSettlement && room.turnState.placedRoad) {
+        advanceTurn(room);
+      }
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -274,6 +314,11 @@ export function setupSocketHandlers(io: Server): void {
       board.vertices[edge.vertexBId].roadIds.push(edgeId);
 
       turnState.placedRoad = true;
+
+      // In SetUp, auto-advance once both a settlement and a road are placed.
+      if (room.turnState.phase === 'SetUp' && room.turnState.placedSettlement && room.turnState.placedRoad) {
+        advanceTurn(room);
+      }
       io.to(roomId).emit('gameUpdate', { ...room });
     });
   });
