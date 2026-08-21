@@ -10,12 +10,13 @@ export function useBuildRules(board: Board) {
   const { gameRoom, currentPlayer } = useGameRoom();
   const turn = gameRoom?.turnState;
   const name = currentPlayer?.name ?? '';
+  const resources = currentPlayer?.resources;
 
   const settlementCheck = (vertexId: string) =>
-    turn ? checkSettlement(board, turn, name, vertexId) : { allowed: false, reason: 'No active turn' };
+    turn ? checkSettlement(board, turn, name, vertexId, resources) : { allowed: false, reason: 'No active turn' };
 
   const roadCheck = (edgeId: string) =>
-    turn ? checkRoad(board, turn, name, edgeId) : { allowed: false, reason: 'No active turn' };
+    turn ? checkRoad(board, turn, name, edgeId, resources) : { allowed: false, reason: 'No active turn' };
 
   const canBuildSettlementAt = (vertexId: string): boolean => settlementCheck(vertexId).allowed;
   const settlementReason = (vertexId: string): string =>

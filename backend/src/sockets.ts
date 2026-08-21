@@ -11,6 +11,9 @@ import {
   canCreateTradeOffer,
   canAcceptTradeOffer,
   applyTrade,
+  subtractPrice,
+  SettlementPrice,
+  RoadPrice,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -253,10 +256,15 @@ export function setupSocketHandlers(io: Server): void {
       }
 
       // Authoritative rules live in common (shared with the UI).
-      const check = canBuildSettlementAt(board, turnState, currentPlayer.name, vertexId);
+      const check = canBuildSettlementAt(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);
       if (!check.allowed) {
         socket.emit('error', { message: check.reason ?? 'Cannot build settlement here' });
         return;
+      }
+      
+      // Deduct resources in Build phase (after setup)
+      if (turnState.phase === 'Build') {
+        currentPlayer.resources = subtractPrice(currentPlayer.resources, SettlementPrice);
       }
       const vertex = board.vertices[vertexId];
       const newSettlementId = `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -300,10 +308,15 @@ export function setupSocketHandlers(io: Server): void {
       }
 
       // Authoritative rules live in common (shared with the UI).
-      const check = canBuildRoadOn(board, turnState, currentPlayer.name, edgeId);
+      const check = canBuildRoadOn(board, turnState, currentPlayer.name, edgeId, currentPlayer.resources);
       if (!check.allowed) {
         socket.emit('error', { message: check.reason ?? 'Cannot build road here' });
         return;
+      }
+      
+      // Deduct resources in Build phase (after setup)
+      if (turnState.phase === 'Build') {
+        currentPlayer.resources = subtractPrice(currentPlayer.resources, RoadPrice);
       }
       const edge = board.edges[edgeId];
       const newRoadId = `r_${Date.now()}_${Math.random().toString(36).slice(2)}`;
