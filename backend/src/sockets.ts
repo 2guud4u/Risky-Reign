@@ -7,6 +7,7 @@ import {
   applyPayouts,
   canBuildSettlementAt,
   canBuildRoadOn,
+  canUpgradeSettlementToCity,
   normalizePrice,
   canCreateTradeOffer,
   canAcceptTradeOffer,
@@ -14,6 +15,7 @@ import {
   subtractPrice,
   SettlementPrice,
   RoadPrice,
+  CityPrice,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -336,6 +338,46 @@ export function setupSocketHandlers(io: Server): void {
       if (room.turnState.phase === 'SetUp' && room.turnState.placedSettlement && room.turnState.placedRoad) {
         advanceTurn(room);
       }
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    socket.on('upgradeSettlementToCity', (data: { roomId: string; playerId: string; vertexId: string }) => {
+      console.log('upgrading settlement to city');
+      const { roomId, playerId, vertexId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board) {
+        socket.emit('error', { message: 'Game board is not available' });
+        return;
+      }
+      const turnState = room.turnState;
+      const currentPlayer = room.players.find((p) => p.id === playerId);
+      if (!currentPlayer) {
+        socket.emit('error', { message: 'Player not found' });
+        return;
+      }
+
+      // Authoritative rules live in common (shared with the UI).
+      const check = canUpgradeSettlementToCity(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Cannot upgrade settlement to city' });
+        return;
+      }
+
+      // Deduct resources and upgrade the settlement.
+      currentPlayer.resources = subtractPrice(currentPlayer.resources, CityPrice);
+      const vertex = board.vertices[vertexId];
+      if (vertex && vertex.settlementId) {
+        const settlement = board.settlements[vertex.settlementId];
+        if (settlement) {
+          settlement.level = 'city';
+        }
+      }
+
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 

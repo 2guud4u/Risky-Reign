@@ -8,6 +8,7 @@ interface SocketContextType {
   isConnected: boolean;
   buildSettlement: (playerId: string, vertexId: string, roomId: string) => void;
   buildRoad: (playerId: string, edgeId: string, roomId: string) => void;
+  upgradeSettlementToCity: (playerId: string, vertexId: string, roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string) => void;
   updatePlayerColor: (roomId: string, color: string) => void;
@@ -27,6 +28,7 @@ const SocketContext = createContext<SocketContextType>({
   isConnected: false,
   buildSettlement: () => { },
   buildRoad: () => { },
+  upgradeSettlementToCity: () => { },
   rollDice: () => { },
   joinRoom: () => { },
   updatePlayerColor: () => { },
@@ -66,6 +68,15 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
       return;
     }
     socket.emit('buildRoad', { roomId, playerId, edgeId });
+  };
+
+  const upgradeSettlementToCity = (playerId: string, vertexId: string, roomId: string) => {
+    if (!socket || !roomId) return;
+    if (!playerId) {
+      console.error('No current player found');
+      return;
+    }
+    socket.emit('upgradeSettlementToCity', { roomId, playerId, vertexId });
   };
 
   const endTurn = (playerId: string, roomId: string) => {
@@ -149,6 +160,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         isConnected,
         buildSettlement,
         buildRoad,
+        upgradeSettlementToCity,
         rollDice,
         joinRoom,
         updatePlayerColor,

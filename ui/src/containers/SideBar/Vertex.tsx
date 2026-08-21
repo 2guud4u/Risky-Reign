@@ -13,8 +13,8 @@ import { buildButtonClass, hexChipClass } from './styles';
  */
 const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex }) => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { buildSettlement, buildRoad } = useSocket();
-  const { canBuildSettlementAt, settlementReason, canBuildRoadOn, roadReason } =
+  const { buildSettlement, buildRoad, upgradeSettlementToCity } = useSocket();
+  const { canBuildSettlementAt, settlementReason, canBuildRoadOn, roadReason, canUpgradeToCityAt, upgradeReason } =
     useBuildRules(board);
 
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
@@ -33,6 +33,11 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
   const handleBuildSettlement = () => {
     if (!gameRoom || !currentPlayer) return;
     buildSettlement(currentPlayer.id, vertex.id, gameRoom.id);
+  };
+
+  const handleUpgradeToCity = () => {
+    if (!gameRoom || !currentPlayer) return;
+    upgradeSettlementToCity(currentPlayer.id, vertex.id, gameRoom.id);
   };
 
   const handleBuildRoad = (edgeId: string) => {
@@ -79,6 +84,21 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
       >
         Build Settlement
       </button>
+
+      {settlement && settlement.level === 'settlement' && (
+        <button
+          onClick={handleUpgradeToCity}
+          disabled={!canUpgradeToCityAt(vertex.id)}
+          className={buildButtonClass(canUpgradeToCityAt(vertex.id))}
+          title={
+            canUpgradeToCityAt(vertex.id)
+              ? 'Upgrade to city (2 Wheat, 3 Ore)'
+              : upgradeReason(vertex.id)
+          }
+        >
+          Upgrade to City
+        </button>
+      )}
 
       <div>
         <div className="text-[13px] font-semibold mb-1.5">Adjacent Edges</div>

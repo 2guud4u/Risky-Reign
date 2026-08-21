@@ -1,7 +1,7 @@
 import { Board, VertexId, EdgeId } from '../types/Board';
 import { TurnState, ResourceCount } from '../types/Logic';
 import { playerSettlementVertexIds, playerRoadEdgeIds } from './placement';
-import { SettlementPrice, RoadPrice, canAfford } from './logic';
+import { SettlementPrice, RoadPrice, CityPrice, canAfford } from './logic';
 
 /** Result of a build-eligibility check. */
 export interface BuildCheck {
@@ -112,5 +112,34 @@ export function canBuildRoadOn(
     }
   }
   
+  return { allowed: true, reason: null };
+}
+
+/**
+ * Authoritative city-upgrade check, shared by the UI and the backend:
+ * only during Build phase, on your turn, on one of your own settlements
+ * that is not yet a city, and you must afford the upgrade cost.
+ */
+export function canUpgradeSettlementToCity(
+  board: Board,
+  turn: TurnState,
+  playerName: string,
+  vertexId: VertexId,
+  playerResources?: ResourceCount
+): BuildCheck {
+  if (turn.player !== playerName) return { allowed: false, reason: 'Not your turn' };
+  if (turn.phase !== 'Build')
+    return { allowed: false, reason: 'Cities can only be built in the Build phase' };
+  const vertex = board.vertices[vertexId];
+  if (!vertex || !vertex.settlementId)
+    return { allowed: false, reason: 'No settlement on this vertex to upgrade' };
+  const settlement = board.settlements[vertex.settlementId];
+  if (!settlement) return { allowed: false, reason: 'Settlement not found' };
+  if (settlement.ownerId !== playerName)
+    return { allowed: false, reason: 'You can only upgrade your own settlements' };
+  if (settlement.level === 'city')
+    return { allowed: false, reason: 'Already a city' };
+  if (playerResources && !canAfford(playerResources, CityPrice))
+    return { allowed: false, reason: 'Not enough resources to upgrade to a city' };
   return { allowed: true, reason: null };
 }
