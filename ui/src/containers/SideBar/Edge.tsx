@@ -4,7 +4,7 @@ import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import MiniView from './MiniView';
 import { useBuildRules } from './useBuildRules';
-import { buildButtonClass, cardClass, hexChipClass } from './styles';
+import { buildButtonClass, hexChipClass } from './styles';
 
 /**
  * Sidebar panel for a selected edge: mini view of the edge and its
@@ -32,7 +32,7 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
   };
 
   return (
-    <div className={cardClass}>
+    <div className="flex flex-col gap-3">
       <h3 className="m-0 text-base">Edge {edge.id}</h3>
 
       <MiniView board={board} type="edge" id={edge.id} />

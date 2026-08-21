@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from 'common';
+import { Price, SOCKET_URL } from 'common';
 
 // Socket Context (clean v2 wire protocol: string vertex/edge ids, single edgeId roads)
 interface SocketContextType {
@@ -16,6 +16,10 @@ interface SocketContextType {
   resetGame: (roomId: string) => void;
   refreshMap: (roomId: string) => void;
   endTurn: (playerId: string, roomId: string) => void;
+  createTradeOffer: (roomId: string, to: string, give: Price, want: Price) => void;
+  acceptTrade: (roomId: string, tradeId: string) => void;
+  declineTrade: (roomId: string, tradeId: string) => void;
+  cancelTrade: (roomId: string, tradeId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -31,6 +35,10 @@ const SocketContext = createContext<SocketContextType>({
   resetGame: () => { },
   refreshMap: () => { },
   endTurn: () => { },
+  createTradeOffer: () => { },
+  acceptTrade: () => { },
+  declineTrade: () => { },
+  cancelTrade: () => { },
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -95,6 +103,26 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     socket.emit('refreshMap', { roomId });
   };
 
+  const createTradeOffer = (roomId: string, to: string, give: Price, want: Price) => {
+    if (!socket || !roomId) return;
+    socket.emit('createTradeOffer', { roomId, to, give, want });
+  };
+
+  const acceptTrade = (roomId: string, tradeId: string) => {
+    if (!socket || !roomId) return;
+    socket.emit('acceptTrade', { roomId, tradeId });
+  };
+
+  const declineTrade = (roomId: string, tradeId: string) => {
+    if (!socket || !roomId) return;
+    socket.emit('declineTrade', { roomId, tradeId });
+  };
+
+  const cancelTrade = (roomId: string, tradeId: string) => {
+    if (!socket || !roomId) return;
+    socket.emit('cancelTrade', { roomId, tradeId });
+  };
+
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
@@ -129,6 +157,10 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         resetGame,
         refreshMap,
         endTurn,
+        createTradeOffer,
+        acceptTrade,
+        declineTrade,
+        cancelTrade,
       }}
     >
       {children}

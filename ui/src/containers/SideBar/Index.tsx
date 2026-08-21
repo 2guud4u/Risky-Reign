@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameRoom } from '../../contexts/GameContext';
 import Vertex from './Vertex';
 import Edge from './Edge';
+import TradeTab from './TradeTab';
 import { cardClass } from './styles';
 
+type Tab = 'board' | 'trade';
+
 /**
- * Sidebar dispatcher: renders the panel for the currently selected board
- * object — a vertex (Build Settlement) or an edge (Build Road).
+ * Sidebar with two tabs: the Board tab (selected vertex/edge viewer) and the
+ * Trade tab (draft offers anytime, accept on your turn).
  */
 const Sidebar: React.FC = () => {
+  const [tab, setTab] = useState<Tab>('board');
   const { gameRoom, currentPlayer, selectedObject } = useGameRoom();
   const board = gameRoom?.board ?? null;
 
@@ -16,26 +20,53 @@ const Sidebar: React.FC = () => {
     return null;
   }
 
-  if (!selectedObject) {
-    return (
-      <div className={cardClass}>
-        <h3 className="m-0 text-base">Selection</h3>
+  const incomingCount = (gameRoom.tradeOffers ?? []).filter(
+    (o) => o.to === currentPlayer.name && o.status === 'pending'
+  ).length;
+
+  const tabClass = (active: boolean): string =>
+    `flex-1 py-1.5 text-[13px] font-semibold border-b-2 cursor-pointer ${
+      active ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+    }`;
+
+  const renderBoardTab = () => {
+    if (!selectedObject) {
+      return (
         <p className="text-[13px] text-gray-500 m-0">
           Click a vertex or edge on the board to see its details and build options.
         </p>
+      );
+    }
+
+    if (selectedObject.type === 'vertex') {
+      const vertex = board.vertices[selectedObject.id];
+      if (!vertex) return null;
+      return <Vertex board={board} vertex={vertex} />;
+    }
+
+    const edge = board.edges[selectedObject.id];
+    if (!edge) return null;
+    return <Edge board={board} edge={edge} />;
+  };
+
+  return (
+    <div className={cardClass}>
+      <div className="flex mb-3 -mb-1">
+        <button type="button" className={tabClass(tab === 'board')} onClick={() => setTab('board')}>
+          Board
+        </button>
+        <button type="button" className={tabClass(tab === 'trade')} onClick={() => setTab('trade')}>
+          Trade{incomingCount > 0 && (
+            <span className="ml-1.5 inline-block px-1.5 rounded-full bg-blue-600 text-white text-[11px]">
+              {incomingCount}
+            </span>
+          )}
+        </button>
       </div>
-    );
-  }
 
-  if (selectedObject.type === 'vertex') {
-    const vertex = board.vertices[selectedObject.id];
-    if (!vertex) return null;
-    return <Vertex board={board} vertex={vertex} />;
-  }
-
-  const edge = board.edges[selectedObject.id];
-  if (!edge) return null;
-  return <Edge board={board} edge={edge} />;
+      {tab === 'board' ? renderBoardTab() : <TradeTab />}
+    </div>
+  );
 };
 
 export default Sidebar;

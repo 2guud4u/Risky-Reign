@@ -4,7 +4,7 @@ import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import MiniView from './MiniView';
 import { useBuildRules } from './useBuildRules';
-import { buildButtonClass, cardClass, hexChipClass } from './styles';
+import { buildButtonClass, hexChipClass } from './styles';
 
 /**
  * Sidebar panel for a selected vertex: mini view of the vertex and its
@@ -41,7 +41,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
   };
 
   return (
-    <div className={cardClass}>
+    <div className="flex flex-col gap-3">
       <h3 className="m-0 text-base">Vertex {vertex.id}</h3>
 
       <MiniView board={board} type="vertex" id={vertex.id} />

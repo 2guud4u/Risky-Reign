@@ -28,7 +28,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     },
     gameStatus: 'waiting',
     winner: null,
-    tradeStates: [],
+    tradeOffers: [],
     battleState: null,
     roll: { die1: null, die2: null },
   };

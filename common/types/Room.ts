@@ -1,5 +1,5 @@
 import { Player } from './Player';
-import { BattleState, TradeState, TurnState, RollResult } from './Logic';
+import { BattleState, TradeOffer, TurnState, RollResult } from './Logic';
 import { Board } from './Board';
 
 /**
@@ -13,7 +13,7 @@ export interface GameRoom {
   players: Player[];
   board: Board | null;
   turnState: TurnState;
-  tradeStates: TradeState[];
+  tradeOffers: TradeOffer[];
   battleState: BattleState | null;
   gameStatus: 'waiting' | 'playing' | 'finished';
   winner: string | null;

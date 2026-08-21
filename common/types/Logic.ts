@@ -15,16 +15,14 @@ export interface TurnState {
   placedRoad: boolean | null;
 }
 
-export interface TradeParty {
-  name: string;
-  offer: Price;
-  accept: boolean | null;
-}
-
-export interface TradeState {
+/** A pending resource trade between two players. */
+export interface TradeOffer {
   id: string;
-  trader: TradeParty;
-  tradee: TradeParty;
+  from: string; // player who created the offer
+  to: string; // recipient of the offer
+  give: Price; // resources 'from' offers to hand over
+  want: Price; // resources 'from' requests in return
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
 }
 
 export interface SoldierBattleState {
