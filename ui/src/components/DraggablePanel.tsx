@@ -138,11 +138,25 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
     >
       {/* Grip handle */}
       <div
-        className="flex items-center justify-center py-1 cursor-move select-none text-gray-400 hover:text-gray-600"
+        className="relative flex items-center justify-center py-1 cursor-move select-none text-gray-400 hover:text-gray-600"
         onPointerDown={startDrag}
         title={title}
       >
         <span className="text-lg leading-none">⠿</span>
+        {(pos || size) && (
+          <button
+            type="button"
+            onClick={() => {
+              setPos(null);
+              setSize(null);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-400 hover:text-gray-700 cursor-pointer bg-transparent"
+            title="Reset position and size"
+          >
+            Reset
+          </button>
+        )}
       </div>
       {children}
       {/* Resize handle (top-left corner) */}

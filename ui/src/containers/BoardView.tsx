@@ -28,6 +28,10 @@ interface BoardViewProps {
 
 type BuildMode = 'settlement' | 'road' | 'none';
 
+/** Scale limits for responsive board sizing within its panel. */
+const BOARD_MIN_SCALE = 0.5;
+const BOARD_MAX_SCALE = 1.25;
+
 const buildButtonClass = (active: boolean) =>
   `px-3.5 py-2 border rounded-md cursor-pointer text-sm ${
     active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'
@@ -48,6 +52,23 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const [buildMode, setBuildMode] = useState<BuildMode>('none');
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+
+  // Responsive sizing: track the available container size so the board can
+  // scale with panel resizes (clamped to BOARD_MIN/MAX_SCALE).
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Soldier drag-and-drop state.
   const [drag, setDrag] = useState<{
@@ -227,10 +248,19 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
   const viewBoxSize = 1.1 * PROJ_SIZE * boardSpan;
-  const renderSize = 1.1 * hexSize * boardSpan;
+  const naturalSize = 1.1 * hexSize * boardSpan;
+
+  // Scale the board to fit its container, clamped so it never becomes too
+  // small or too large relative to its natural size.
+  let renderSize = naturalSize;
+  if (containerSize && containerSize.w > 0 && containerSize.h > 0) {
+    const scale = Math.min(containerSize.w / naturalSize, containerSize.h / naturalSize);
+    const clampedScale = Math.max(BOARD_MIN_SCALE, Math.min(scale, BOARD_MAX_SCALE));
+    renderSize = naturalSize * clampedScale;
+  }
 
   return (
-    <div>
+    <div className="w-full h-full flex flex-col">
       {buildMode !== 'none' && (
         <div className="flex gap-2 mt-3">
           <button
@@ -254,6 +284,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         </div>
       )}
 
+      <div ref={containerRef} className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
       <svg
         ref={svgRef}
         width={renderSize}
@@ -372,6 +403,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           />
         )}
       </svg>
+      </div>
     </div>
   );
 };
