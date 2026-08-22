@@ -8,6 +8,8 @@ import {
   canBuildSettlementAt,
   canBuildRoadOn,
   canUpgradeSettlementToCity,
+  canBuildSoldierAt,
+  canMoveSoldierTo,
   normalizePrice,
   canCreateTradeOffer,
   canAcceptTradeOffer,
@@ -16,6 +18,7 @@ import {
   SettlementPrice,
   RoadPrice,
   CityPrice,
+  SoldierPrice,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -376,6 +379,84 @@ export function setupSocketHandlers(io: Server): void {
         if (settlement) {
           settlement.level = 'city';
         }
+      }
+
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    socket.on('buildSoldier', (data: { roomId: string; playerId: string; vertexId: string }) => {
+      console.log('building soldier');
+      const { roomId, playerId, vertexId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board) {
+        socket.emit('error', { message: 'Game board is not available' });
+        return;
+      }
+      const turnState = room.turnState;
+      const currentPlayer = room.players.find((p) => p.id === playerId);
+      if (!currentPlayer) {
+        socket.emit('error', { message: 'Player not found' });
+        return;
+      }
+
+      // Authoritative rules live in common (shared with the UI).
+      const check = canBuildSoldierAt(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Cannot build soldier here' });
+        return;
+      }
+
+      // Deduct resources and garrison the soldier on the settlement.
+      currentPlayer.resources = subtractPrice(currentPlayer.resources, SoldierPrice);
+      const newSoldierId = `soldier_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      board.soldiers[newSoldierId] = {
+        id: newSoldierId,
+        owner: currentPlayer.name,
+        injured: false,
+        vertexId,
+        type: 'infantry',
+        stationed: true,
+      };
+
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    socket.on('moveSoldier', (data: { roomId: string; playerId: string; soldierId: string; targetVertexId: string }) => {
+      console.log('moving soldier');
+      const { roomId, playerId, soldierId, targetVertexId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board) {
+        socket.emit('error', { message: 'Game board is not available' });
+        return;
+      }
+      const turnState = room.turnState;
+      const currentPlayer = room.players.find((p) => p.id === playerId);
+      if (!currentPlayer) {
+        socket.emit('error', { message: 'Player not found' });
+        return;
+      }
+
+      // Authoritative rules live in common (shared with the UI).
+      const check = canMoveSoldierTo(board, turnState, currentPlayer.name, soldierId, targetVertexId);
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Cannot move soldier there' });
+        return;
+      }
+
+      // Move the soldier to the new vertex.
+      const soldier = board.soldiers[soldierId];
+      if (soldier) {
+        soldier.vertexId = targetVertexId;
       }
 
       io.to(roomId).emit('gameUpdate', { ...room });

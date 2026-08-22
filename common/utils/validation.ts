@@ -1,7 +1,7 @@
 import { Board, VertexId, EdgeId } from '../types/Board';
 import { TurnState, ResourceCount } from '../types/Logic';
 import { playerSettlementVertexIds, playerRoadEdgeIds } from './placement';
-import { SettlementPrice, RoadPrice, CityPrice, canAfford } from './logic';
+import { SettlementPrice, RoadPrice, CityPrice, SoldierPrice, canAfford } from './logic';
 
 /** Result of a build-eligibility check. */
 export interface BuildCheck {
@@ -141,5 +141,74 @@ export function canUpgradeSettlementToCity(
     return { allowed: false, reason: 'Already a city' };
   if (playerResources && !canAfford(playerResources, CityPrice))
     return { allowed: false, reason: 'Not enough resources to upgrade to a city' };
+  return { allowed: true, reason: null };
+}
+
+/**
+ * Authoritative soldier build check, shared by the UI and the backend:
+ * only during Build phase, on your turn, on one of your own settlements,
+ * and you must afford the soldier cost.
+ */
+export function canBuildSoldierAt(
+  board: Board,
+  turn: TurnState,
+  playerName: string,
+  vertexId: VertexId,
+  playerResources?: ResourceCount
+): BuildCheck {
+  if (turn.player !== playerName) return { allowed: false, reason: 'Not your turn' };
+  if (turn.phase !== 'Build')
+    return { allowed: false, reason: 'Soldiers can only be built in the Build phase' };
+
+  const vertex = board.vertices[vertexId];
+  if (!vertex || !vertex.settlementId)
+    return { allowed: false, reason: 'No settlement on this vertex to garrison a soldier' };
+
+  const settlement = board.settlements[vertex.settlementId];
+  if (!settlement) return { allowed: false, reason: 'Settlement not found' };
+  if (settlement.ownerId !== playerName)
+    return { allowed: false, reason: 'You can only build soldiers on your own settlements' };
+
+  if (playerResources && !canAfford(playerResources, SoldierPrice))
+    return { allowed: false, reason: 'Not enough resources for a soldier (1 Wheat, 1 Sheep)' };
+
+  return { allowed: true, reason: null };
+}
+
+/**
+ * Authoritative soldier movement check, shared by the UI and the backend:
+ * only during Action phase, on your turn, moving one of your own soldiers
+ * to an adjacent vertex connected by ANY existing road (regardless of owner).
+ */
+export function canMoveSoldierTo(
+  board: Board,
+  turn: TurnState,
+  playerName: string,
+  soldierId: string,
+  targetVertexId: VertexId
+): BuildCheck {
+  if (turn.player !== playerName) return { allowed: false, reason: 'Not your turn' };
+  if (turn.phase !== 'Action')
+    return { allowed: false, reason: 'Soldiers can only move in the Action phase' };
+
+  const soldier = board.soldiers[soldierId];
+  if (!soldier) return { allowed: false, reason: 'Soldier not found' };
+  if (soldier.owner !== playerName)
+    return { allowed: false, reason: 'You can only move your own soldiers' };
+
+  const targetVertex = board.vertices[targetVertexId];
+  if (!targetVertex) return { allowed: false, reason: 'Target vertex not found' };
+
+  // Check that the soldier is adjacent to the target via an existing road.
+  const isAdjacentViaRoad = targetVertex.roadIds.some((edgeId) => {
+    const edge = board.edges[edgeId];
+    if (!edge || edge.roadId === null) return false; // no road on this edge
+    const other = edge.vertexAId === soldier.vertexId ? edge.vertexBId : edge.vertexAId;
+    return other === targetVertexId;
+  });
+
+  if (!isAdjacentViaRoad)
+    return { allowed: false, reason: 'Must move along an existing road to an adjacent vertex' };
+
   return { allowed: true, reason: null };
 }

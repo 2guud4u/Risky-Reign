@@ -1,4 +1,5 @@
 import { CubeCoord, PixelCoord } from './Coordinates';
+import { SoldierObj } from './Pieces';
 
 /**
  * Domain layer. Shape-agnostic: works for ANY hex layout, not just the
@@ -59,6 +60,7 @@ export interface Board {
   edges: Record<EdgeId, EdgeNode>;
   settlements: Record<SettlementId, SettlementObj>;
   roads: Record<RoadId, RoadObj>;
+  soldiers: Record<string, SoldierObj>;
   metadata: {
     id: string;
     version: number;

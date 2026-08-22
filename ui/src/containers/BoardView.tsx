@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   GAME_HEX_SIZE,
   domainToPresentation,
@@ -40,11 +40,21 @@ const buildButtonClass = (active: boolean) =>
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const { gameRoom, currentPlayer, selectedObject, setSelectedObject } = useGameRoom();
-  const { buildSettlement, buildRoad } = useSocket();
+  const { buildSettlement, buildRoad, moveSoldier } = useSocket();
 
   const [buildMode, setBuildMode] = useState<BuildMode>('none');
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+
+  // Soldier drag-and-drop state.
+  const [drag, setDrag] = useState<{
+    soldierId: string;
+    ownerName: string;
+    fromVertexId: string;
+    validTargets: string[];
+  } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const board = gameRoom?.board ?? null;
 
@@ -83,7 +93,34 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     return { state, validVertexIds, validEdgeIds };
   }, [board, buildMode, currentPlayer]);
 
-  if (!base || !gameRoom) {
+  // Group soldiers by vertex, then by owner (for count badges).
+  const soldierGroups = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    if (!board) return map;
+    for (const s of Object.values(board.soldiers)) {
+      let byOwner = map.get(s.vertexId);
+      if (!byOwner) {
+        byOwner = new Map();
+        map.set(s.vertexId, byOwner);
+      }
+      byOwner.set(s.owner, (byOwner.get(s.owner) ?? 0) + 1);
+    }
+    return map;
+  }, [board]);
+
+  // First soldier id per (vertex, owner) pair — used as the drag handle.
+  const soldierDragId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!board) return map;
+    for (const s of Object.values(board.soldiers)) {
+      const key = `${s.vertexId}|${s.owner}`;
+      if (!map.has(key)) map.set(key, s.id);
+    }
+    return map;
+  }, [board]);
+
+  // `board` is non-null whenever `base` is (the memo derives from it).
+  if (!base || !gameRoom || !board) {
     return <div className="text-center text-gray-500">Loading board...</div>;
   }
 
@@ -123,6 +160,68 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     setSelectedObject({ type: 'edge', id: edgeId });
   };
 
+  const canDragSoldier = (ownerName: string): boolean =>
+    gameRoom.turnState.phase === 'Action' && currentPlayer?.name === ownerName;
+
+  const startDrag = (e: React.MouseEvent, soldierId: string, ownerName: string, vertexId: string) => {
+    if (!canDragSoldier(ownerName) || !board) return;
+    e.stopPropagation();
+    const validTargets: string[] = [];
+    const v = board.vertices[vertexId];
+    if (v) {
+      for (const edgeId of v.roadIds) {
+        const edge = board.edges[edgeId];
+        if (!edge || edge.roadId === null) continue; // no road on this edge
+        const other = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
+        validTargets.push(other);
+      }
+    }
+    setDrag({ soldierId, ownerName, fromVertexId: vertexId, validTargets });
+  };
+
+  const toSvgCoords = (e: React.MouseEvent): { x: number; y: number } | null => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!drag) return;
+    setMousePos(toSvgCoords(e));
+  };
+
+  const handleMouseUp = () => {
+    if (!drag || !mousePos || !board || !currentPlayer) {
+      setDrag(null);
+      setMousePos(null);
+      return;
+    }
+    // Drop on the nearest valid target vertex within reach.
+    let best: string | null = null;
+    let bestDist = Infinity;
+    for (const tid of drag.validTargets) {
+      const v = board.vertices[tid];
+      if (!v) continue;
+      const d = Math.hypot(v.position.x - mousePos.x, v.position.y - mousePos.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = tid;
+      }
+    }
+    const threshold = PROJ_SIZE * 0.45;
+    if (best && bestDist <= threshold) {
+      moveSoldier(currentPlayer.id, drag.soldierId, best, gameRoom.id);
+    }
+    setDrag(null);
+    setMousePos(null);
+  };
+
   const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
   const viewBoxSize = 1.1 * PROJ_SIZE * boardSpan;
   const renderSize = 1.1 * hexSize * boardSpan;
@@ -153,10 +252,17 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
       )}
 
       <svg
+        ref={svgRef}
         width={renderSize}
         height={renderSize}
         viewBox={`${-viewBoxSize / 2} ${-viewBoxSize / 2} ${viewBoxSize} ${viewBoxSize}`}
         className="block mx-auto"
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={() => {
+          setDrag(null);
+          setMousePos(null);
+        }}
       >
         {/* Hex tiles layer */}
         {hexes.map((hex) => (
@@ -183,6 +289,84 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             onHover={setHoveredVertexId}
           />
         ))}
+
+        {/* Soldiers layer: count badges around each vertex */}
+        {Array.from(soldierGroups.entries()).map(([vertexId, byOwner]) => {
+          const v = board.vertices[vertexId];
+          if (!v) return null;
+          const entries = Array.from(byOwner.entries());
+          return (entries as [string, number][]).map(([ownerName, count], i) => {
+            const angle = (i / entries.length) * Math.PI * 2 - Math.PI / 2;
+            const radius = PROJ_SIZE * 0.45;
+            const cx = v.position.x + Math.cos(angle) * radius;
+            const cy = v.position.y + Math.sin(angle) * radius;
+            const color = colorOf(ownerName);
+            const draggable = canDragSoldier(ownerName);
+            const dragId = soldierDragId.get(`${vertexId}|${ownerName}`);
+            return (
+              <g
+                key={`${vertexId}-${ownerName}`}
+                onMouseDown={(e) => {
+                  if (dragId) startDrag(e, dragId, ownerName, vertexId);
+                }}
+                style={{ cursor: draggable ? 'grab' : 'default' }}
+              >
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={10}
+                  fill={color ?? '#888'}
+                  stroke="#222"
+                  strokeWidth={1.5}
+                />
+                <text
+                  x={cx}
+                  y={cy + 4}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fontWeight="bold"
+                  fill="white"
+                  pointerEvents="none"
+                >
+                  {count}
+                </text>
+              </g>
+            );
+          });
+        })}
+
+        {/* Drag feedback: highlight valid drop targets */}
+        {drag &&
+          drag.validTargets.map((tid) => {
+            const v = board.vertices[tid];
+            if (!v) return null;
+            return (
+              <circle
+                key={tid}
+                cx={v.position.x}
+                cy={v.position.y}
+                r={16}
+                fill="none"
+                stroke="#22c55e"
+                strokeWidth={3}
+                strokeDasharray="4,3"
+              />
+            );
+          })}
+
+        {/* Drag ghost following the cursor */}
+        {drag && mousePos && (
+          <circle
+            cx={mousePos.x}
+            cy={mousePos.y}
+            r={10}
+            fill={colorOf(drag.ownerName) ?? '#888'}
+            opacity={0.6}
+            stroke="#222"
+            strokeWidth={1.5}
+            pointerEvents="none"
+          />
+        )}
       </svg>
     </div>
   );

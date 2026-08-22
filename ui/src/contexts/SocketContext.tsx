@@ -2,13 +2,14 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Price, SOCKET_URL } from 'common';
 
-// Socket Context (clean v2 wire protocol: string vertex/edge ids, single edgeId roads)
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   buildSettlement: (playerId: string, vertexId: string, roomId: string) => void;
   buildRoad: (playerId: string, edgeId: string, roomId: string) => void;
   upgradeSettlementToCity: (playerId: string, vertexId: string, roomId: string) => void;
+  buildSoldier: (playerId: string, vertexId: string, roomId: string) => void;
+  moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string) => void;
   updatePlayerColor: (roomId: string, color: string) => void;
@@ -29,6 +30,8 @@ const SocketContext = createContext<SocketContextType>({
   buildSettlement: () => { },
   buildRoad: () => { },
   upgradeSettlementToCity: () => { },
+  buildSoldier: () => { },
+  moveSoldier: () => { },
   rollDice: () => { },
   joinRoom: () => { },
   updatePlayerColor: () => { },
@@ -77,6 +80,24 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
       return;
     }
     socket.emit('upgradeSettlementToCity', { roomId, playerId, vertexId });
+  };
+
+  const buildSoldier = (playerId: string, vertexId: string, roomId: string) => {
+    if (!socket || !roomId) return;
+    if (!playerId) {
+      console.error('No current player found');
+      return;
+    }
+    socket.emit('buildSoldier', { roomId, playerId, vertexId });
+  };
+
+  const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => {
+    if (!socket || !roomId) return;
+    if (!playerId) {
+      console.error('No current player found');
+      return;
+    }
+    socket.emit('moveSoldier', { roomId, playerId, soldierId, targetVertexId });
   };
 
   const endTurn = (playerId: string, roomId: string) => {
@@ -161,6 +182,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         buildSettlement,
         buildRoad,
         upgradeSettlementToCity,
+        buildSoldier,
+        moveSoldier,
         rollDice,
         joinRoom,
         updatePlayerColor,

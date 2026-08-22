@@ -79,6 +79,7 @@ export function generateBoard(
     edges,
     settlements: {},
     roads: {},
+    soldiers: {},
     metadata: {
       id: options.id ?? `board-${Date.now()}`,
       version: 1,

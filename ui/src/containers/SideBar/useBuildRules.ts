@@ -3,6 +3,8 @@ import {
   canBuildSettlementAt as checkSettlement,
   canBuildRoadOn as checkRoad,
   canUpgradeSettlementToCity as checkCity,
+  canBuildSoldierAt as checkSoldier,
+  canMoveSoldierTo as checkMoveSoldier,
 } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 
@@ -26,6 +28,14 @@ export function useBuildRules(board: Board) {
   const cityCheck = (vertexId: string) =>
     turn ? checkCity(board, turn, name, vertexId, resources) : { allowed: false, reason: 'No active turn' };
 
+  const soldierCheck = (vertexId: string) =>
+    turn ? checkSoldier(board, turn, name, vertexId, resources) : { allowed: false, reason: 'No active turn' };
+
+  const moveSoldierCheck = (soldierId: string, targetVertexId: string) =>
+    turn
+      ? checkMoveSoldier(board, turn, name, soldierId, targetVertexId)
+      : { allowed: false, reason: 'No active turn' };
+
   const canBuildSettlementAt = (vertexId: string): boolean => settlementCheck(vertexId).allowed;
   const settlementReason = (vertexId: string): string =>
     settlementCheck(vertexId).reason ?? 'Cannot build settlement here';
@@ -33,6 +43,24 @@ export function useBuildRules(board: Board) {
   const roadReason = (edgeId: string): string => roadCheck(edgeId).reason ?? 'Cannot build road here';
   const canUpgradeToCityAt = (vertexId: string): boolean => cityCheck(vertexId).allowed;
   const upgradeReason = (vertexId: string): string => cityCheck(vertexId).reason ?? 'Cannot upgrade to a city here';
+  const canBuildSoldierAt = (vertexId: string): boolean => soldierCheck(vertexId).allowed;
+  const soldierReason = (vertexId: string): string =>
+    soldierCheck(vertexId).reason ?? 'Cannot build a soldier here';
+  const canMoveSoldierTo = (soldierId: string, targetVertexId: string): boolean =>
+    moveSoldierCheck(soldierId, targetVertexId).allowed;
+  const moveSoldierReason = (soldierId: string, targetVertexId: string): string =>
+    moveSoldierCheck(soldierId, targetVertexId).reason ?? 'Cannot move soldier there';
 
-  return { canBuildSettlementAt, settlementReason, canBuildRoadOn, roadReason, canUpgradeToCityAt, upgradeReason };
+  return {
+    canBuildSettlementAt,
+    settlementReason,
+    canBuildRoadOn,
+    roadReason,
+    canUpgradeToCityAt,
+    upgradeReason,
+    canBuildSoldierAt,
+    soldierReason,
+    canMoveSoldierTo,
+    moveSoldierReason,
+  };
 }
