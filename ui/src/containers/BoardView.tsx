@@ -297,7 +297,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           const entries = Array.from(byOwner.entries());
           return (entries as [string, number][]).map(([ownerName, count], i) => {
             const angle = (i / entries.length) * Math.PI * 2 - Math.PI / 2;
-            const radius = PROJ_SIZE * 0.45;
+            const radius = PROJ_SIZE * 0.2;
             const cx = v.position.x + Math.cos(angle) * radius;
             const cy = v.position.y + Math.sin(angle) * radius;
             const color = colorOf(ownerName);

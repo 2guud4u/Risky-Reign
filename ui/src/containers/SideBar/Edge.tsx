@@ -35,7 +35,12 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
     <div className="flex flex-col gap-3">
       <h3 className="m-0 text-base">Edge {edge.id}</h3>
 
-      <MiniView board={board} type="edge" id={edge.id} />
+      <MiniView
+        board={board}
+        type="edge"
+        id={edge.id}
+        playerColors={Object.fromEntries((gameRoom?.players ?? []).map((p) => [p.name, p.color]))}
+      />
 
       <div className="text-[13px]">
         <strong>Road:</strong> {road ? `owned by ${road.ownerId}` : 'None'}

@@ -81,7 +81,12 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     <div className="flex flex-col gap-3">
       <h3 className="m-0 text-base">Vertex {vertex.id}</h3>
 
-      <MiniView board={board} type="vertex" id={vertex.id} />
+      <MiniView
+        board={board}
+        type="vertex"
+        id={vertex.id}
+        playerColors={Object.fromEntries((gameRoom?.players ?? []).map((p) => [p.name, p.color]))}
+      />
 
       <div className="text-[13px]">
         <strong>Settlement:</strong>{' '}
