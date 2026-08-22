@@ -29,6 +29,9 @@ interface SocketContextType {
   upgradeSettlementToCity: (playerId: string, vertexId: string, roomId: string) => void;
   buildSoldier: (playerId: string, vertexId: string, roomId: string) => void;
   moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
+  healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
+  startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) => void;
+  continueBattle: (playerId: string, roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string) => void;
   updatePlayerColor: (roomId: string, color: string) => void;
@@ -51,6 +54,9 @@ const SocketContext = createContext<SocketContextType>({
   upgradeSettlementToCity: () => { },
   buildSoldier: () => { },
   moveSoldier: () => { },
+  healSoldier: () => { },
+  startAttack: () => { },
+  continueBattle: () => { },
   rollDice: () => { },
   joinRoom: () => { },
   updatePlayerColor: () => { },
@@ -83,6 +89,15 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
     emitAction(socket, 'moveSoldier', { roomId, playerId, soldierId, targetVertexId }, { requirePlayerId: true });
+
+  const healSoldier = (playerId: string, soldierId: string, roomId: string) =>
+    emitAction(socket, 'healSoldier', { roomId, playerId, soldierId }, { requirePlayerId: true });
+
+  const startAttack = (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) =>
+    emitAction(socket, 'startAttack', { roomId, playerId, soldierIds, targetVertexId }, { requirePlayerId: true });
+
+  const continueBattle = (playerId: string, roomId: string) =>
+    emitAction(socket, 'continueBattle', { roomId, playerId }, { requirePlayerId: true });
 
   const endTurn = (_playerId: string, roomId: string) =>
     emitAction(socket, 'endTurn', { roomId });
@@ -147,6 +162,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         upgradeSettlementToCity,
         buildSoldier,
         moveSoldier,
+        healSoldier,
+        startAttack,
+        continueBattle,
         rollDice,
         joinRoom,
         updatePlayerColor,

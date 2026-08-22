@@ -9,6 +9,10 @@ interface MiniViewProps {
   id: string;
   /** Player name -> color, used to tint soldier circles. */
   playerColors?: Record<string, string>;
+  /** Click handler for soldiers (makes them selectable). */
+  onSoldierClick?: (soldierId: string) => void;
+  /** Soldier currently highlighted in the mini view. */
+  selectedSoldierId?: string | null;
 }
 
 /** Board vertex/edge positions are pre-projected at GAME_HEX_SIZE. */
@@ -31,7 +35,14 @@ const hexPoints = (x: number, y: number, size: number): string =>
  * neighborhood: the adjacent hexes (terrain-colored, with tokens), the
  * incident edges and neighboring vertices, with the selection highlighted.
  */
-const MiniView: React.FC<MiniViewProps> = ({ board, type, id, playerColors }) => {
+const MiniView: React.FC<MiniViewProps> = ({
+  board,
+  type,
+  id,
+  playerColors,
+  onSoldierClick,
+  selectedSoldierId,
+}) => {
   const points: { x: number; y: number }[] = [];
   const hexes =
     type === 'vertex'
@@ -122,8 +133,10 @@ const MiniView: React.FC<MiniViewProps> = ({ board, type, id, playerColors }) =>
             cy={cy}
             r={6}
             fill={playerColors?.[ownerName] ?? '#888'}
-            stroke="#fff"
-            strokeWidth={1.5}
+            stroke={selectedSoldierId === s.id ? '#facc15' : '#fff'}
+            strokeWidth={selectedSoldierId === s.id ? 3 : 1.5}
+            style={{ cursor: onSoldierClick ? 'pointer' : undefined }}
+            onClick={onSoldierClick ? () => onSoldierClick(s.id) : undefined}
           />
         );
       });

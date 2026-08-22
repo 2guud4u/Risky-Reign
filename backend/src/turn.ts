@@ -91,16 +91,20 @@ export function advanceTurn(room: GameRoom): void {
     case 'Action':
       if (turnState.offset === playerCount - 1) {
         // All players have acted, move to next player's Dice phase.
+        // A new round begins: clear the per-turn soldier tracking arrays.
         turnState.dicePlayerIndex = (turnState.dicePlayerIndex + 1) % playerCount;
         room.turnState = {
           ...turnState,
           player: turnState.playerOrder[turnState.dicePlayerIndex],
           phase: 'Dice',
           offset: 0,
+          soldiersActedThisTurn: [],
+          soldiersCreatedThisTurn: [],
+          soldiersHealedThisTurn: [],
         };
         room.roll = { die1: null, die2: null };
       } else {
-        // Next player's turn for action.
+        // Next player's turn for action; each soldier keeps its own action limit.
         const nextPlayerIndex = (playerIndex + 1) % playerCount;
         room.turnState = {
           ...turnState,

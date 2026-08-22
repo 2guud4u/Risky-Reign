@@ -13,6 +13,12 @@ export interface TurnState {
   dicePlayerIndex: number;
   placedSettlement: boolean | null;
   placedRoad: boolean | null;
+  /** Soldier IDs that already used their action this Action phase (one action per soldier). */
+  soldiersActedThisTurn: string[];
+  /** Soldier IDs created this turn (cannot move/attack same turn). */
+  soldiersCreatedThisTurn: string[];
+  /** Soldier IDs healed this turn (cannot move same turn). */
+  soldiersHealedThisTurn: string[];
 }
 
 /** A pending resource trade between two players. */
@@ -27,13 +33,25 @@ export interface TradeOffer {
 
 export interface SoldierBattleState {
   soldier: SoldierObj;
-  rollNum: number;
+  rollNum: number | null; // null until rolled
   dead: boolean;
+  injured: boolean; // set true if this battle round injures them
 }
 
+/** Phase of the ongoing battle. */
+export type BattlePhase = 'attackerSelecting' | 'defenderRolling' | 'resolving';
+
 export interface BattleState {
-  states: Record<string, { soldiers: SoldierBattleState[]; submitted: boolean }>;
+  /** Player name who started the attack. */
+  attacker: string;
+  /** Player name defending (owner of the settlement). */
+  defender: string;
+  /** Vertex where combat is taking place. */
   vertexId: string;
+  /** Soldiers committed by each side, keyed by player name. */
+  states: Record<string, { soldiers: SoldierBattleState[] }>;
+  /** Current phase of the battle. */
+  phase: BattlePhase;
 }
 
 export interface ResourceCount {

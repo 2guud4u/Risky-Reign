@@ -312,7 +312,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                 onMouseDown={(e) => {
                   if (dragId) startDrag(e, dragId, ownerName, vertexId);
                 }}
-                style={{ cursor: draggable ? 'grab' : 'default' }}
+                onClick={() => setSelectedObject({ type: 'vertex', id: vertexId })}
+                style={{ cursor: draggable ? 'grab' : 'pointer' }}
               >
                 <circle
                   cx={cx}

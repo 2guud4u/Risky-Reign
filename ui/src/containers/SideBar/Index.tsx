@@ -3,13 +3,15 @@ import { useGameRoom } from '../../contexts/GameContext';
 import Vertex from './Vertex';
 import Edge from './Edge';
 import TradeTab from './TradeTab';
+import BattleTab from './BattleTab';
 import { cardClass } from './styles';
 
-type Tab = 'board' | 'trade';
+type Tab = 'board' | 'trade' | 'battle';
 
 /**
- * Sidebar with two tabs: the Board tab (selected vertex/edge viewer) and the
- * Trade tab (draft offers anytime, accept on your turn).
+ * Sidebar with tabs: Board (selected vertex/edge viewer, including soldier
+ * selection & actions), Trade (draft offers anytime, accept on your turn),
+ * and Battle (visible while combat is active).
  */
 const Sidebar: React.FC = () => {
   const [tab, setTab] = useState<Tab>('board');
@@ -19,6 +21,8 @@ const Sidebar: React.FC = () => {
   if (!gameRoom || !currentPlayer || !board) {
     return null;
   }
+
+  const battle = gameRoom.battleState ?? null;
 
   const incomingCount = (gameRoom.tradeOffers ?? []).filter(
     (o) => o.to === currentPlayer.name && o.status === 'pending'
@@ -62,9 +66,20 @@ const Sidebar: React.FC = () => {
             </span>
           )}
         </button>
+        {battle && (
+          <button type="button" className={tabClass(tab === 'battle')} onClick={() => setTab('battle')}>
+            ⚔ Battle
+          </button>
+        )}
       </div>
 
-      {tab === 'board' ? renderBoardTab() : <TradeTab />}
+      {tab === 'board' ? (
+        renderBoardTab()
+      ) : tab === 'battle' && battle ? (
+        <BattleTab board={board} battle={battle} />
+      ) : (
+        <TradeTab />
+      )}
     </div>
   );
 };

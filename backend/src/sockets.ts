@@ -10,6 +10,11 @@ import {
   canUpgradeSettlementToCity,
   canBuildSoldierAt,
   canMoveSoldierTo,
+  canHealSoldierAt,
+  HealSoldierPrice,
+  canStartBattle,
+  createBattleState,
+  resolveBattleRound,
   normalizePrice,
   canCreateTradeOffer,
   canAcceptTradeOffer,
@@ -423,6 +428,12 @@ export function setupSocketHandlers(io: Server): void {
         stationed: true,
       };
 
+      // Track this soldier so it cannot move/attack this turn (Rules.md line 24).
+      turnState.soldiersCreatedThisTurn.push(newSoldierId);
+
+      // A freshly built soldier has used its action for this phase.
+      turnState.soldiersActedThisTurn.push(newSoldierId);
+
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -459,8 +470,177 @@ export function setupSocketHandlers(io: Server): void {
         soldier.vertexId = targetVertexId;
       }
 
+      // Each soldier gets one action per Action phase (Rules.md line 30).
+      turnState.soldiersActedThisTurn.push(soldierId);
+
       io.to(roomId).emit('gameUpdate', { ...room });
     });
+
+    socket.on('healSoldier', (data: { roomId: string; playerId: string; soldierId: string }) => {
+      const { roomId, playerId, soldierId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board) {
+        socket.emit('error', { message: 'Game board is not available' });
+        return;
+      }
+      const turnState = room.turnState;
+      const currentPlayer = room.players.find((p) => p.id === playerId);
+      if (!currentPlayer) {
+        socket.emit('error', { message: 'Player not found' });
+        return;
+      }
+
+      // Authoritative rules live in common (shared with the UI).
+      const check = canHealSoldierAt(board, turnState, currentPlayer.name, soldierId, currentPlayer.resources);
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Cannot heal this soldier' });
+        return;
+      }
+
+      // Deduct healing cost and restore the soldier (Rules.md line 27).
+      currentPlayer.resources = subtractPrice(currentPlayer.resources, HealSoldierPrice);
+      const soldier = board.soldiers[soldierId];
+      if (soldier) {
+        soldier.injured = false;
+      }
+
+      // Track this soldier so it cannot move this turn (Rules.md line 25).
+      turnState.soldiersHealedThisTurn.push(soldierId);
+
+      // Healing consumes the soldier's action for this phase.
+      turnState.soldiersActedThisTurn.push(soldierId);
+
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    socket.on(
+      'startAttack',
+      (data: { roomId: string; playerId: string; soldierIds: string[]; targetVertexId: string }) => {
+        const { roomId, playerId, soldierIds, targetVertexId } = data;
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+        const board = room.board;
+        if (!board) {
+          socket.emit('error', { message: 'Game board is not available' });
+          return;
+        }
+        const turnState = room.turnState;
+        const currentPlayer = room.players.find((p) => p.id === playerId);
+        if (!currentPlayer) {
+          socket.emit('error', { message: 'Player not found' });
+          return;
+        }
+
+        // A battle is already in progress in this room.
+        if (room.battleState) {
+          socket.emit('error', { message: 'A battle is already in progress' });
+          return;
+        }
+
+        const check = canStartBattle(room, currentPlayer.name, soldierIds, targetVertexId);
+        if (!check.allowed) {
+          socket.emit('error', { message: check.reason ?? 'Cannot start this attack' });
+          return;
+        }
+
+        // Begin the battle and resolve the first round immediately.
+        const battleState = createBattleState(room, currentPlayer.name, soldierIds, targetVertexId);
+        const result = resolveBattleRound(battleState);
+        room.battleState = result.updatedBattleState;
+
+        // Apply casualties to the board.
+        for (const id of result.deadSoldierIds) {
+          delete board.soldiers[id];
+        }
+        for (const id of result.injuredSoldierIds) {
+          if (board.soldiers[id]) board.soldiers[id].injured = true;
+        }
+
+        // Attacking consumes each committed soldier's action for this phase.
+        for (const id of soldierIds) {
+          turnState.soldiersActedThisTurn.push(id);
+        }
+
+        io.to(roomId).emit('gameUpdate', { ...room });
+      }
+    );
+
+    socket.on(
+      'continueBattle',
+      (data: { roomId: string; playerId: string }) => {
+        const { roomId, playerId } = data;
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+        const board = room.board;
+        if (!board || !room.battleState) {
+          socket.emit('error', { message: 'No battle in progress' });
+          return;
+        }
+
+        // Only the attacker can continue a battle (Rules.md line 7).
+        const currentPlayer = room.players.find((p) => p.id === playerId);
+        if (!currentPlayer || currentPlayer.name !== room.battleState.attacker) {
+          socket.emit('error', { message: 'Only the attacker can continue this battle' });
+          return;
+        }
+
+        // Check if there are still living soldiers on both sides.
+        const attackerSoldiers = room.battleState.states[room.battleState.attacker]?.soldiers ?? [];
+        const defenderSoldiers = room.battleState.states[room.battleState.defender]?.soldiers ?? [];
+        const hasLivingAttackers = attackerSoldiers.some((s) => !s.dead);
+        const hasLivingDefenders = defenderSoldiers.some((s) => !s.dead);
+
+        if (!hasLivingAttackers || !hasLivingDefenders) {
+          // Battle is over; clear it.
+          room.battleState = null;
+          io.to(roomId).emit('gameUpdate', { ...room });
+          return;
+        }
+
+        // Reset rolls for the next round and resolve again.
+        for (const playerName of Object.keys(room.battleState.states)) {
+          for (const soldierState of room.battleState.states[playerName].soldiers) {
+            if (!soldierState.dead) {
+              soldierState.rollNum = null; // Reset for new roll
+            }
+          }
+        }
+
+        const result = resolveBattleRound(room.battleState);
+        room.battleState = result.updatedBattleState;
+
+        // Apply casualties.
+        for (const id of result.deadSoldierIds) {
+          delete board.soldiers[id];
+        }
+        for (const id of result.injuredSoldierIds) {
+          if (board.soldiers[id]) board.soldiers[id].injured = true;
+        }
+
+        // Clear battle state if it's complete.
+        const finalAttackerSoldiers = room.battleState.states[room.battleState.attacker]?.soldiers ?? [];
+        const finalDefenderSoldiers = room.battleState.states[room.battleState.defender]?.soldiers ?? [];
+        const battleComplete =
+          !finalAttackerSoldiers.some((s) => !s.dead) || !finalDefenderSoldiers.some((s) => !s.dead);
+
+        if (battleComplete) {
+          room.battleState = null;
+        }
+
+        io.to(roomId).emit('gameUpdate', { ...room });
+      }
+    );
 
     // ---- Trade offers (draft anytime; accept only on your turn) ----
 
