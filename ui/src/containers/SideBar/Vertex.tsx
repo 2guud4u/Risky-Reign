@@ -1,10 +1,12 @@
 import React from 'react';
-import { Board, VertexNode } from 'common';
+import { Board, CityPrice, SoldierPrice, VertexNode } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import MiniView from './MiniView';
 import { useBuildRules } from './useBuildRules';
 import { buildButtonClass, hexChipClass } from './styles';
+import { playerColorMap } from '../../utils/soldierPlacement';
+import { priceLabel } from '../../utils/price';
 
 /**
  * Sidebar panel for a selected vertex: mini view of the vertex and its
@@ -81,12 +83,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     <div className="flex flex-col gap-3">
       <h3 className="m-0 text-base">Vertex {vertex.id}</h3>
 
-      <MiniView
-        board={board}
-        type="vertex"
-        id={vertex.id}
-        playerColors={Object.fromEntries((gameRoom?.players ?? []).map((p) => [p.name, p.color]))}
-      />
+      <MiniView board={board} type="vertex" id={vertex.id} playerColors={playerColorMap(gameRoom)} />
 
       <div className="text-[13px]">
         <strong>Settlement:</strong>{' '}
@@ -129,7 +126,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
           className={buildButtonClass(canUpgradeToCityAt(vertex.id))}
           title={
             canUpgradeToCityAt(vertex.id)
-              ? 'Upgrade to city (2 Wheat, 3 Ore)'
+              ? `Upgrade to city (${priceLabel(CityPrice)})`
               : upgradeReason(vertex.id)
           }
         >
@@ -144,7 +141,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
           className={buildButtonClass(canBuildSoldierAt(vertex.id))}
           title={
             canBuildSoldierAt(vertex.id)
-              ? 'Build soldier on this settlement (1 Wheat, 1 Sheep)'
+              ? `Build soldier on this settlement (${priceLabel(SoldierPrice)})`
               : soldierReason(vertex.id)
           }
         >

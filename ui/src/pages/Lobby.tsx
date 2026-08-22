@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
+import { saveSession } from '../utils/session';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
 
@@ -13,14 +14,7 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
     if (playerName.trim() && roomId.trim()) {
       onJoinRoom(playerName.trim(), roomId.trim());
       // Persist the join so a reload auto-rejoins instead of returning to the lobby.
-      try {
-        sessionStorage.setItem(
-          'joinedRoom',
-          JSON.stringify({ roomId: roomId.trim(), playerName: playerName.trim() })
-        );
-      } catch {
-        // sessionStorage unavailable — ignore.
-      }
+      saveSession({ roomId: roomId.trim(), playerName: playerName.trim() });
     }
   };
 

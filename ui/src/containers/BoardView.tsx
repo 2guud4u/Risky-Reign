@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  GAME_HEX_SIZE,
+  BOARD_RADIUS,
   domainToPresentation,
   validSettlementVertices,
   validRoadEdges,
@@ -12,16 +12,19 @@ import { BoardEdge } from '../components/BoardEdge';
 import Hexagon from '../components/Hexagon';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { ownerAngle } from '../utils/soldierPlacement';
+import {
+  DROP_TARGET_RING_R,
+  DROP_THRESHOLD_FRACTION,
+  PROJ_SIZE,
+  SOLDIER_BADGE_R,
+  SOLDIER_BADGE_RADIUS_FRACTION,
+} from '../constants';
 
 interface BoardViewProps {
   /** On-screen render size (lobby preview vs. full game). */
   hexSize: number;
 }
-
-/** Standard Catan board radius (19 hexes). */
-const BOARD_RADIUS = 2;
-/** Internal projection size — must match the backend's board projection. */
-const PROJ_SIZE = GAME_HEX_SIZE;
 
 type BuildMode = 'settlement' | 'road' | 'none';
 
@@ -214,7 +217,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         best = tid;
       }
     }
-    const threshold = PROJ_SIZE * 0.45;
+    const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
     if (best && bestDist <= threshold) {
       moveSoldier(currentPlayer.id, drag.soldierId, best, gameRoom.id);
     }
@@ -296,8 +299,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           if (!v) return null;
           const entries = Array.from(byOwner.entries());
           return (entries as [string, number][]).map(([ownerName, count], i) => {
-            const angle = (i / entries.length) * Math.PI * 2 - Math.PI / 2;
-            const radius = PROJ_SIZE * 0.2;
+            const angle = ownerAngle(i, entries.length);
+            const radius = PROJ_SIZE * SOLDIER_BADGE_RADIUS_FRACTION;
             const cx = v.position.x + Math.cos(angle) * radius;
             const cy = v.position.y + Math.sin(angle) * radius;
             const color = colorOf(ownerName);
@@ -314,7 +317,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                 <circle
                   cx={cx}
                   cy={cy}
-                  r={10}
+                  r={SOLDIER_BADGE_R}
                   fill={color ?? '#888'}
                   stroke="#222"
                   strokeWidth={1.5}
@@ -345,7 +348,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                 key={tid}
                 cx={v.position.x}
                 cy={v.position.y}
-                r={16}
+                r={DROP_TARGET_RING_R}
                 fill="none"
                 stroke="#22c55e"
                 strokeWidth={3}
@@ -359,7 +362,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           <circle
             cx={mousePos.x}
             cy={mousePos.y}
-            r={10}
+            r={SOLDIER_BADGE_R}
             fill={colorOf(drag.ownerName) ?? '#888'}
             opacity={0.6}
             stroke="#222"

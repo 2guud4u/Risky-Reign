@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { GameRoom, Player } from 'common';
-
-interface SelectableObject {
-  type: 'vertex' | 'edge';
-  id: string;
-}
+import { SelectableObject } from '../types';
 interface GameRoomContextValue {
   gameRoom: GameRoom | null;
   setGameRoom: React.Dispatch<React.SetStateAction<GameRoom | null>>;

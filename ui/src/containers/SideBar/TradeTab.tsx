@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Price, TradeOffer, hasAnyResource, canAcceptTradeOffer } from 'common';
+import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTradeOffer } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
-
-const RESOURCES = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'] as const;
-type ResourceKey = (typeof RESOURCES)[number];
+import { priceLabel } from '../../utils/price';
 
 const emptyPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
 
@@ -34,12 +32,6 @@ const ResourceStepper: React.FC<{
       </button>
     </div>
   );
-};
-
-/** One-line summary of a price like "2 Wood, 1 Sheep". */
-const priceLabel = (p: Price): string => {
-  const parts = RESOURCES.filter((k) => p[k] > 0).map((k) => `${p[k]} ${k}`);
-  return parts.length ? parts.join(', ') : 'nothing';
 };
 
 /** A single trade offer row with its action buttons. */

@@ -17,6 +17,7 @@ import {
   VertexId,
   VertexNode,
 } from '../types/Board';
+import { BOARD_RADIUS, GAME_HEX_SIZE } from '../Constant';
 import { CubeCoord } from '../types/Coordinates';
 import { HexLayout } from '../types/BoardGenerator';
 import { hexId as toHexId } from './coordinates';
@@ -34,7 +35,7 @@ export function generateBoard(
   layouts: HexLayout[],
   options: { id?: string; generator?: string; hexSize?: number } = {}
 ): Board {
-  const hexSize = options.hexSize ?? 50;
+  const hexSize = options.hexSize ?? GAME_HEX_SIZE;
   const coords = layouts.map((l) => l.coord);
 
   const hexes: Record<HexId, HexNode> = {};
@@ -93,8 +94,8 @@ export function generateBoard(
  * Standard 19-hex Catan board (radius 2) with shuffled terrain/tokens.
  * The desert is always the center hex.
  */
-export function generateStandardBoard(hexSize: number = 50): Board {
-  const layouts: HexLayout[] = assignStandardHexes(2).map((h) => ({
+export function generateStandardBoard(hexSize: number = GAME_HEX_SIZE): Board {
+  const layouts: HexLayout[] = assignStandardHexes(BOARD_RADIUS).map((h) => ({
     coord: h.coord,
     terrain: h.terrain,
     rollNumber: h.rollNumber,

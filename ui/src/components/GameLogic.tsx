@@ -3,27 +3,21 @@ import { useSocket } from '../contexts/SocketContext';
 import { useGameRoom } from '../contexts/GameContext';
 import LobbyPage from '../pages/Lobby';
 import GamePage from '../pages/Game';
-import { GameRoom } from 'common';
+import { GameRoom, Player } from 'common';
+import { readSavedSession, clearSavedSession } from '../utils/session';
 
-const SESSION_KEY = 'joinedRoom';
-
-interface SavedSession {
-  roomId: string;
-  playerName: string;
-  color?: string;
-}
-
-/** Read the persisted join from sessionStorage (null if absent/invalid). */
-function readSavedSession(): SavedSession | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.roomId && parsed.playerName) return parsed as SavedSession;
-    return null;
-  } catch {
-    return null;
-  }
+/**
+ * Sync the current player from a room update. Returns true if this socket is
+ * still in the room; false otherwise (caller should clear the saved session).
+ */
+function syncCurrentPlayer(
+  room: GameRoom,
+  socketId: string | undefined,
+  setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>
+): boolean {
+  const player = room.players.find((p) => p.id === socketId);
+  setCurrentPlayer(player ?? null);
+  return !!player;
 }
 
 /**
@@ -57,23 +51,16 @@ const GameLogic: React.FC = () => {
 
     socket.on('roomUpdate', (room: GameRoom) => {
       setGameRoom(room);
-      const player = room.players.find((p) => p.id === socket.id);
-      setCurrentPlayer(player || null);
-      if (!player) {
+      if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer)) {
         // No longer in this room — clear the saved session.
-        try {
-          sessionStorage.removeItem(SESSION_KEY);
-        } catch {
-          // ignore
-        }
+        clearSavedSession();
       }
       setError(null);
     });
 
     socket.on('gameUpdate', (room: GameRoom) => {
       setGameRoom(room);
-      const player = room.players.find((p) => p.id === socket.id);
-      if (player) setCurrentPlayer(player);
+      syncCurrentPlayer(room, socket.id, setCurrentPlayer);
       setError(null);
     });
 

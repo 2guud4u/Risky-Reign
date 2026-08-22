@@ -2,6 +2,25 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Price, SOCKET_URL } from 'common';
 
+/**
+ * Generic emit helper: guards against a missing socket/roomId and validates
+ * the required playerId (when provided), then emits the event. Keeps each
+ * action function a one-liner instead of repeating the same boilerplate.
+ */
+const emitAction = (
+  socket: Socket | null,
+  event: string,
+  payload: Record<string, unknown>,
+  { requirePlayerId = false }: { requirePlayerId?: boolean } = {}
+) => {
+  if (!socket || !payload.roomId) return;
+  if (requirePlayerId && !payload.playerId) {
+    console.error(`No current player found for ${event}`);
+    return;
+  }
+  socket.emit(event, payload);
+};
+
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -50,110 +69,54 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  const rollDice = (roomId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('rollDice', { roomId });
-  };
+  const buildSettlement = (playerId: string, vertexId: string, roomId: string) =>
+    emitAction(socket, 'buildSettlement', { roomId, playerId, vertexId }, { requirePlayerId: true });
 
-  const buildSettlement = (playerId: string, vertexId: string, roomId: string) => {
-    if (!socket || !roomId) return;
-    if (!playerId) {
-      console.error('No current player found');
-      return;
-    }
-    socket.emit('buildSettlement', { roomId, playerId, vertexId });
-  };
+  const buildRoad = (playerId: string, edgeId: string, roomId: string) =>
+    emitAction(socket, 'buildRoad', { roomId, playerId, edgeId }, { requirePlayerId: true });
 
-  const buildRoad = (playerId: string, edgeId: string, roomId: string) => {
-    if (!socket || !roomId) return;
-    if (!playerId) {
-      console.error('No current player found');
-      return;
-    }
-    socket.emit('buildRoad', { roomId, playerId, edgeId });
-  };
+  const upgradeSettlementToCity = (playerId: string, vertexId: string, roomId: string) =>
+    emitAction(socket, 'upgradeSettlementToCity', { roomId, playerId, vertexId }, { requirePlayerId: true });
 
-  const upgradeSettlementToCity = (playerId: string, vertexId: string, roomId: string) => {
-    if (!socket || !roomId) return;
-    if (!playerId) {
-      console.error('No current player found');
-      return;
-    }
-    socket.emit('upgradeSettlementToCity', { roomId, playerId, vertexId });
-  };
+  const buildSoldier = (playerId: string, vertexId: string, roomId: string) =>
+    emitAction(socket, 'buildSoldier', { roomId, playerId, vertexId }, { requirePlayerId: true });
 
-  const buildSoldier = (playerId: string, vertexId: string, roomId: string) => {
-    if (!socket || !roomId) return;
-    if (!playerId) {
-      console.error('No current player found');
-      return;
-    }
-    socket.emit('buildSoldier', { roomId, playerId, vertexId });
-  };
+  const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
+    emitAction(socket, 'moveSoldier', { roomId, playerId, soldierId, targetVertexId }, { requirePlayerId: true });
 
-  const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => {
-    if (!socket || !roomId) return;
-    if (!playerId) {
-      console.error('No current player found');
-      return;
-    }
-    socket.emit('moveSoldier', { roomId, playerId, soldierId, targetVertexId });
-  };
+  const endTurn = (_playerId: string, roomId: string) =>
+    emitAction(socket, 'endTurn', { roomId });
 
-  const endTurn = (playerId: string, roomId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('endTurn', { roomId });
-  };
+  const rollDice = (roomId: string) => emitAction(socket, 'rollDice', { roomId });
 
   const joinRoom = (playerName: string, roomId: string, color?: string) => {
     if (!socket) return;
     socket.emit('joinRoom', { roomId, playerName, color });
   };
 
-  const updatePlayerColor = (roomId: string, color: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('updatePlayerColor', { roomId, color });
-  };
+  const updatePlayerColor = (roomId: string, color: string) =>
+    emitAction(socket, 'updatePlayerColor', { roomId, color });
 
-  const makeMove = (position: number, roomId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('makeMove', { roomId, position });
-  };
+  const makeMove = (position: number, roomId: string) =>
+    emitAction(socket, 'makeMove', { roomId, position });
 
-  const startGame = (roomId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('startGame', { roomId });
-  };
+  const startGame = (roomId: string) => emitAction(socket, 'startGame', { roomId });
 
-  const resetGame = (roomId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('resetGame', { roomId });
-  };
+  const resetGame = (roomId: string) => emitAction(socket, 'resetGame', { roomId });
 
-  const refreshMap = (roomId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('refreshMap', { roomId });
-  };
+  const refreshMap = (roomId: string) => emitAction(socket, 'refreshMap', { roomId });
 
-  const createTradeOffer = (roomId: string, to: string, give: Price, want: Price) => {
-    if (!socket || !roomId) return;
-    socket.emit('createTradeOffer', { roomId, to, give, want });
-  };
+  const createTradeOffer = (roomId: string, to: string, give: Price, want: Price) =>
+    emitAction(socket, 'createTradeOffer', { roomId, to, give, want });
 
-  const acceptTrade = (roomId: string, tradeId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('acceptTrade', { roomId, tradeId });
-  };
+  const acceptTrade = (roomId: string, tradeId: string) =>
+    emitAction(socket, 'acceptTrade', { roomId, tradeId });
 
-  const declineTrade = (roomId: string, tradeId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('declineTrade', { roomId, tradeId });
-  };
+  const declineTrade = (roomId: string, tradeId: string) =>
+    emitAction(socket, 'declineTrade', { roomId, tradeId });
 
-  const cancelTrade = (roomId: string, tradeId: string) => {
-    if (!socket || !roomId) return;
-    socket.emit('cancelTrade', { roomId, tradeId });
-  };
+  const cancelTrade = (roomId: string, tradeId: string) =>
+    emitAction(socket, 'cancelTrade', { roomId, tradeId });
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL);

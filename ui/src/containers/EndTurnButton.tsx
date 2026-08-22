@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 
@@ -8,26 +8,22 @@ import { useSocket } from '../contexts/SocketContext';
  * an info tip instead of an end-turn button.
  */
 const EndTurnButton: React.FC = () => {
-  const [phaseText, setPhaseText] = useState<string>('');
   const { gameRoom, currentPlayer } = useGameRoom();
   const { endTurn: onEndTurn } = useSocket();
 
-  useEffect(() => {
-    if (!gameRoom || !gameRoom.turnState) return;
-    switch (gameRoom.turnState.phase) {
+  // Label for the manual-advance phases (derived at render time).
+  const phaseText = (phase: string): string => {
+    switch (phase) {
       case 'Trade':
-        setPhaseText('End Trade Phase');
-        break;
+        return 'End Trade Phase';
       case 'Build':
-        setPhaseText('End Build Phase');
-        break;
+        return 'End Build Phase';
       case 'Action':
-        setPhaseText('End Action Phase');
-        break;
+        return 'End Action Phase';
       default:
-        setPhaseText('End Turn');
+        return 'End Turn';
     }
-  }, [gameRoom]);
+  };
 
   const handleClick = () => {
     if (!gameRoom || !currentPlayer) return;
@@ -91,7 +87,7 @@ const EndTurnButton: React.FC = () => {
 
   return (
     <button onClick={handleClick} disabled={!isMyTurn} className={buttonClass}>
-      {isMyTurn ? phaseText : `Waiting on ${gameRoom.turnState.player}`}
+      {isMyTurn ? phaseText(gameRoom.turnState.phase) : `Waiting on ${gameRoom.turnState.player}`}
     </button>
   );
 };

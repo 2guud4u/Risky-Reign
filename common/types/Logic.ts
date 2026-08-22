@@ -46,6 +46,9 @@ export interface ResourceCount {
 
 export interface Price extends ResourceCount {}
 
+/** A single resource type (Wood | Brick | Sheep | Wheat | Ore). */
+export type ResourceKey = keyof Price;
+
 /** Result of a dice roll: each die is 1-6 once rolled, null before it is rolled. */
 export interface RollResult {
   die1: number | null;

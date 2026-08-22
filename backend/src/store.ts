@@ -1,14 +1,11 @@
-import { Board, GameRoom, generateStandardBoard } from 'common';
-
-/** Board projection size (px) — must match the UI's GAME_HEX_SIZE. */
-const HEX_SIZE = 100;
+import { Board, GameRoom, GAME_HEX_SIZE, generateStandardBoard } from 'common';
 
 /** In-memory store of active game rooms. */
 export const gameRooms = new Map<string, GameRoom>();
 
-/** Build a fresh standard board. */
+/** Build a fresh standard board (projection size shared with the UI). */
 export function createBoard(): Board {
-  return generateStandardBoard(HEX_SIZE);
+  return generateStandardBoard(GAME_HEX_SIZE);
 }
 
 /** Create (and register) a new game room for the first player. */

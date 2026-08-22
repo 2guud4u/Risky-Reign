@@ -1,5 +1,7 @@
 import React from 'react';
 import { Board, EdgeNode, GAME_HEX_SIZE, terrainColors, VertexNode, cubeToPixel } from 'common';
+import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle, soldiersAtVertex } from '../../utils/soldierPlacement';
+import { RANK_OFFSET, RANK_SPACING, SOLDIER_SPACING } from '../../constants';
 
 interface MiniViewProps {
   board: Board;
@@ -29,9 +31,6 @@ const hexPoints = (x: number, y: number, size: number): string =>
  * neighborhood: the adjacent hexes (terrain-colored, with tokens), the
  * incident edges and neighboring vertices, with the selection highlighted.
  */
-/** Soldiers are drawn in ranks of this many per row. */
-const SOLDIERS_PER_ROW = 3;
-
 const MiniView: React.FC<MiniViewProps> = ({ board, type, id, playerColors }) => {
   const points: { x: number; y: number }[] = [];
   const hexes =
@@ -98,51 +97,37 @@ const MiniView: React.FC<MiniViewProps> = ({ board, type, id, playerColors }) =>
     // own ranks, placed around the vertex at the same angle as that player's
     // badge on the main board (see BoardView's soldier layer), so the two views
     // agree on orientation.
-    const soldiersHere = Object.values(board.soldiers ?? {}).filter(
-      (s) => s.vertexId === id && !s.injured
-    );
-    if (soldiersHere.length > 0) {
-      // Group by owner to keep each player's ranks separate.
-      const byOwner = new Map<string, typeof soldiersHere>();
-      for (const s of soldiersHere) {
-        const arr = byOwner.get(s.owner) ?? [];
-        arr.push(s);
-        byOwner.set(s.owner, arr);
-      }
-
-      const nOwners = byOwner.size;
-      let gi = 0;
-      byOwner.forEach((group, ownerName) => {
-        // Same angular formula as BoardView: evenly spaced, starting at top.
-        const angle = (gi++ / nOwners) * Math.PI * 2 - Math.PI / 2;
-        const dx = Math.cos(angle);
-        const dy = Math.sin(angle);
-        // Ranks run perpendicular to the radial direction.
-        const px = -dy;
-        const py = dx;
-        group.forEach((s, k) => {
-          const row = Math.floor(k / SOLDIERS_PER_ROW);
-          const inRow = k % SOLDIERS_PER_ROW;
-          const countInRow = Math.min(SOLDIERS_PER_ROW, group.length - row * SOLDIERS_PER_ROW);
-          const along = 26 + row * 13; // distance from vertex center
-          const across = (inRow - (countInRow - 1) / 2) * 15;
-          const cx = vertex.position.x + dx * along + px * across;
-          const cy = vertex.position.y + dy * along + py * across;
-          points.push({ x: cx, y: cy });
-          neighborhood.push(
-            <circle
-              key={`s-${s.id}`}
-              cx={cx}
-              cy={cy}
-              r={6}
-              fill={playerColors?.[ownerName] ?? '#888'}
-              stroke="#fff"
-              strokeWidth={1.5}
-            />
-          );
-        });
+    const byOwner = groupSoldiersByOwner(soldiersAtVertex(board, id));
+    let ownerIndex = 0;
+    byOwner.forEach((group, ownerName) => {
+      const angle = ownerAngle(ownerIndex++, byOwner.size);
+      const dx = Math.cos(angle);
+      const dy = Math.sin(angle);
+      // Ranks run perpendicular to the radial direction.
+      const px = -dy;
+      const py = dx;
+      group.forEach((s, k) => {
+        const row = Math.floor(k / SOLDIERS_PER_ROW);
+        const inRow = k % SOLDIERS_PER_ROW;
+        const countInRow = Math.min(SOLDIERS_PER_ROW, group.length - row * SOLDIERS_PER_ROW);
+        const along = RANK_OFFSET + row * RANK_SPACING; // distance from vertex center
+        const across = (inRow - (countInRow - 1) / 2) * SOLDIER_SPACING;
+        const cx = vertex.position.x + dx * along + px * across;
+        const cy = vertex.position.y + dy * along + py * across;
+        points.push({ x: cx, y: cy });
+        neighborhood.push(
+          <circle
+            key={`s-${s.id}`}
+            cx={cx}
+            cy={cy}
+            r={6}
+            fill={playerColors?.[ownerName] ?? '#888'}
+            stroke="#fff"
+            strokeWidth={1.5}
+          />
+        );
       });
-    }
+    });
   } else {
     const edge = board.edges[id];
     if (!edge) return null;
