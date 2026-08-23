@@ -29,19 +29,19 @@ const Game: React.FC = () => {
       </div>
 
       <div className="flex gap-6 items-start flex-wrap justify-center">
-        <DraggablePanel className="bg-white rounded-lg shadow p-4" title="Drag to move the board">
+        <DraggablePanel id="board" className="bg-white rounded-lg shadow p-4" title="Drag to move the board">
           <BoardView hexSize={GAME_HEX_SIZE} />
         </DraggablePanel>
 
         <div className="flex flex-col gap-4 w-[280px]">
-          <DraggablePanel className="bg-white rounded-lg shadow p-3" title="Drag to move">
+          <DraggablePanel id="turn" className="bg-white rounded-lg shadow p-3" title="Drag to move">
             <EndTurnButton />
           </DraggablePanel>
-          <DraggablePanel className="bg-white rounded-lg shadow p-3" title="Drag to move">
+          <DraggablePanel id="dice" className="bg-white rounded-lg shadow p-3" title="Drag to move">
             <DiceView />
           </DraggablePanel>
           <Sidebar />
-          <DraggablePanel className="bg-white rounded-lg shadow p-3" title="Drag to move">
+          <DraggablePanel id="players" className="bg-white rounded-lg shadow p-3" title="Drag to move">
             <PlayersList players={gameRoom.players} currentPlayerId={currentPlayer.id} />
           </DraggablePanel>
         </div>

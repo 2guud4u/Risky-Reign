@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameRoom, Player } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import ConnectionBanner from './ConnectionBanner';
 import GamePage from '../pages/Game';
 import LobbyPage from '../pages/Lobby';
 import { clearSavedSession, readSavedSession } from '../utils/session';
@@ -30,7 +31,11 @@ function syncCurrentPlayer(
  * the saved session if you end up no longer in the room.
  */
 const GameLogic: React.FC = () => {
+  // Server-sent errors surface as a transient banner (below) so they are
+  // visible in-game too, and also passed to the pages that can show them inline.
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
   const { socket, isConnected, joinRoom: onJoinRoom } = useSocket();
   const { setGameRoom, setCurrentPlayer, gameRoom } = useGameRoom();
   const autoJoinedRef = useRef(false);
@@ -66,6 +71,7 @@ const GameLogic: React.FC = () => {
 
     socket.on('error', (errorData: { message: string }) => {
       setError(errorData.message);
+      setToast(errorData.message);
     });
 
     return () => {
@@ -75,8 +81,24 @@ const GameLogic: React.FC = () => {
     };
   }, [socket, setGameRoom, setCurrentPlayer]);
 
+  // Auto-dismiss the error banner after a few seconds.
+  useEffect(() => {
+    if (!toast) return;
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 4000);
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, [toast]);
+
   return (
     <div className="min-h-screen flex flex-col items-center p-4">
+      <ConnectionBanner hidden={isConnected} />
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
+          {toast}
+        </div>
+      )}
       {!gameRoom ? <LobbyPage error={error} /> : <GamePage error={error} />}
     </div>
   );

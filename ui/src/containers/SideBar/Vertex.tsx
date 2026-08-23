@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Board, CityPrice, VertexNode } from 'common';
+import { Board, CityPrice, SettlementPrice, VertexNode } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import MiniView from './MiniView';
@@ -146,10 +146,10 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
         disabled={!canBuildSettlement}
         className={buildButtonClass(canBuildSettlement)}
         title={
-          canBuildSettlement ? 'Build settlement on this vertex' : settlementReason(vertex.id)
+          canBuildSettlement ? `Build settlement (${priceLabel(SettlementPrice)})` : settlementReason(vertex.id)
         }
       >
-        Build Settlement
+        Build Settlement <span className="text-gray-500 text-xs">({priceLabel(SettlementPrice)})</span>
       </button>
 
       {settlement && settlement.level === 'settlement' && (
@@ -163,7 +163,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
               : upgradeReason(vertex.id)
           }
         >
-          Upgrade to City
+          Upgrade to City <span className="text-gray-500 text-xs">({priceLabel(CityPrice)})</span>
         </button>
       )}
 

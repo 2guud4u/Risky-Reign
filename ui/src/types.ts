@@ -17,3 +17,9 @@ export interface SavedSession {
   playerName: string;
   color?: string;
 }
+
+/** Persisted DraggablePanel position/size, so the layout survives a reload. */
+export interface SavedPanelLayout {
+  pos: { x: number; y: number } | null;
+  size: { w: number; h: number } | null;
+}

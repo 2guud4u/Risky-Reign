@@ -60,7 +60,7 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <DraggablePanel className={`${cardClass} w-[280px]`}>
+    <DraggablePanel id="sidebar" className={`${cardClass} w-[280px]`}>
       <div className="flex -mt-1">
         <button type="button" className={tabClass(tab === 'board')} onClick={() => switchTab('board')}>
           Board

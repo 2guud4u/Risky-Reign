@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { loadPanelLayout, savePanelLayout } from '../utils/panelLayout';
 
 interface DraggablePanelProps {
   children: React.ReactNode;
   /** Optional extra classes for the panel container. */
   className?: string;
-  /** Tooltip text shown on the grip. */
+  /** Tooltip text shown on the grip (also used as the persistence key). */
   title?: string;
+  /** Stable key for persisting the layout; defaults to the panel's title. */
+  id?: string;
   /** Minimum width in px when resizing (default 160). */
   minWidth?: number;
   /** Minimum height in px when resizing (default 80). */
@@ -22,16 +25,23 @@ const DRAG_THRESHOLD = 5;
  * it becomes fixed-position (and fixed-size if resized) and floats above
  * other content. A small movement threshold ensures child clicks still work
  * when the gesture starts on them.
+ *
+ * When an `id` is provided, the panel's position/size are remembered in
+ * sessionStorage so the layout survives a reload; "Reset" restores the default.
  */
 const DraggablePanel: React.FC<DraggablePanelProps> = ({
   children,
   className = '',
   title = 'Drag to move',
+  id,
   minWidth = 160,
   minHeight = 80,
 }) => {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  // Restore any persisted layout on first render.
+  const [saved] = useState(() => (id ? loadPanelLayout(id) : null));
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(saved?.pos ?? null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(saved?.size ?? null);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const pendingDragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -43,6 +53,12 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
     origW: number;
     origH: number;
   } | null>(null);
+
+  // Persist the layout whenever it changes (only when the panel is floating).
+  useEffect(() => {
+    if (!id) return;
+    if (pos || size) savePanelLayout(id, { pos, size });
+  }, [id, pos, size]);
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -127,6 +143,15 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
     };
   };
 
+  const resetLayout = () => {
+    setPos(null);
+    setSize(null);
+    if (id) {
+      // Clear the saved layout so the next reload also starts fresh.
+      savePanelLayout(id, { pos: null, size: null });
+    }
+  };
+
   return (
     <div
       ref={panelRef}
@@ -146,10 +171,7 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
         {(pos || size) && (
           <button
             type="button"
-            onClick={() => {
-              setPos(null);
-              setSize(null);
-            }}
+            onClick={resetLayout}
             onPointerDown={(e) => e.stopPropagation()}
             className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-400 hover:text-gray-700 cursor-pointer bg-transparent"
             title="Reset position and size"

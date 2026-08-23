@@ -1,9 +1,10 @@
 import React from 'react';
-import { Board, EdgeNode } from 'common';
+import { Board, EdgeNode, RoadPrice } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import MiniView from './MiniView';
 import { useBuildRules } from './useBuildRules';
+import { priceLabel } from '../../utils/price';
 import { buildButtonClass, hexChipClass } from './styles';
 import { playerColorMap } from '../../utils/soldierPlacement';
 
@@ -56,9 +57,9 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
         onClick={handleBuildRoad}
         disabled={!canBuildRoad}
         className={buildButtonClass(canBuildRoad)}
-        title={canBuildRoad ? 'Build road on this edge' : roadReason(edge.id)}
+        title={canBuildRoad ? `Build road (${priceLabel(RoadPrice)})` : roadReason(edge.id)}
       >
-        Build Road
+        Build Road <span className="text-gray-500 text-xs">({priceLabel(RoadPrice)})</span>
       </button>
 
       <div>

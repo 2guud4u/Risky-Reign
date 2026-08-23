@@ -1,17 +1,11 @@
-import React, { useMemo, useRef, useState } from 'react';
-import {
-  BOARD_RADIUS,
-  domainToPresentation,
-  validSettlementVertices,
-  validRoadEdges,
-  playerSettlementVertexIds,
-  BoardUIState,
-} from 'common';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { BoardEdge } from '../components/BoardEdge';
 import { BoardVertex } from '../components/BoardVertex';
 import Hexagon from '../components/Hexagon';
+import { useBoardViewport } from '../hooks/useBoardViewport';
 import { ownerAngle } from '../utils/soldierPlacement';
 import {
   DROP_TARGET_RING_R,
@@ -26,16 +20,9 @@ interface BoardViewProps {
   hexSize: number;
 }
 
-type BuildMode = 'settlement' | 'road' | 'none';
-
 /** Scale limits for responsive board sizing within its panel. */
 const BOARD_MIN_SCALE = 0.5;
 const BOARD_MAX_SCALE = 1.25;
-
-const buildButtonClass = (active: boolean) =>
-  `px-3.5 py-2 border rounded-md cursor-pointer text-sm ${
-    active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'
-  }`;
 
 /**
  * Renders the board as an SVG of hexes / edges / vertices.
@@ -44,31 +31,19 @@ const buildButtonClass = (active: boolean) =>
  * at GAME_HEX_SIZE, so we always convert at that size (PROJ_SIZE) to keep hex
  * and vertex coordinates consistent; the SVG viewBox/width scale the result
  * to the requested render size.
+ *
+ * The board is an inspect/interact surface: clicking a vertex or edge selects
+ * it in the sidebar (which owns all building actions). It also supports
+ * dragging your own soldiers between adjacent vertices during the Action
+ * phase, panning (drag empty space) and zooming (wheel / double-click).
+ * Escape clears the selection and cancels any in-progress drag.
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const { gameRoom, currentPlayer, selectedObject, setSelectedObject } = useGameRoom();
-  const { buildSettlement, buildRoad, moveSoldier } = useSocket();
+  const { moveSoldier } = useSocket();
 
-  const [buildMode, setBuildMode] = useState<BuildMode>('none');
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-
-  // Responsive sizing: track the available container size so the board can
-  // scale with panel resizes (clamped to BOARD_MIN/MAX_SCALE).
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
-
-  React.useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   // Soldier drag-and-drop state.
   const [drag, setDrag] = useState<{
@@ -80,42 +55,35 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Responsive sizing: track the available container size so the board can
+  // scale with panel resizes (clamped to BOARD_MIN/MAX_SCALE).
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const board = gameRoom?.board ?? null;
 
-  // Map owner name -> chosen color so settlements/roads render in the
-  // player's color.
-  const colorOf = (ownerId: string | null): string | undefined => {
-    if (!ownerId || !gameRoom) return undefined;
-    return gameRoom.players.find((p) => p.name === ownerId)?.color;
-  };
-
-  // Recompute the presentation state + valid placements whenever the board,
-  // the acting player, or the build mode changes.
-  const base = useMemo<{ state: BoardUIState; validVertexIds: string[]; validEdgeIds: string[] } | null>(() => {
+  // Presentation state: projected vertices/edges/hexes. The board is always
+  // fully selectable — building is done from the sidebar, so nothing is
+  // gated here.
+  const base = useMemo<BoardUIState | null>(() => {
     if (!board) return null;
-
     const state = domainToPresentation(board, PROJ_SIZE);
-    let validVertexIds: string[] = [];
-    let validEdgeIds: string[] = [];
-
-    if (buildMode === 'settlement') {
-      validVertexIds = validSettlementVertices(board);
-    } else if (buildMode === 'road' && currentPlayer) {
-      const owned = playerSettlementVertexIds(board, currentPlayer.name);
-      validEdgeIds = validRoadEdges(board, owned);
-    }
-
-    const validV = new Set(validVertexIds);
-    const validE = new Set(validEdgeIds);
-    for (const v of Object.values(state.vertices)) {
-      v.isSelectable = buildMode === 'none' ? true : validV.has(v.id);
-    }
-    for (const e of Object.values(state.edges)) {
-      e.isSelectable = buildMode === 'none' ? true : validE.has(e.id);
-    }
-
-    return { state, validVertexIds, validEdgeIds };
-  }, [board, buildMode, currentPlayer]);
+    for (const v of Object.values(state.vertices)) v.isSelectable = true;
+    for (const e of Object.values(state.edges)) e.isSelectable = true;
+    return state;
+  }, [board]);
 
   // Group soldiers by vertex, then by owner (for count badges).
   const soldierGroups = useMemo(() => {
@@ -143,44 +111,56 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     return map;
   }, [board]);
 
+  // Pan/zoom over the board's coordinate space (viewBox-based).
+  const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
+  const baseSize = 1.1 * PROJ_SIZE * boardSpan;
+  const viewport = useBoardViewport(svgRef, baseSize);
+
+  // Escape clears the selection and cancels any in-progress soldier drag.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setDrag(null);
+      setMousePos(null);
+      setSelectedObject(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setSelectedObject]);
+
   // `board` is non-null whenever `base` is (the memo derives from it).
   if (!base || !gameRoom || !board) {
     return <div className="text-center text-gray-500">Loading board...</div>;
   }
 
+  // Map owner name -> chosen color so settlements/roads render in the
+  // player's color.
+  const colorOf = (ownerId: string | null): string | undefined => {
+    if (!ownerId || !gameRoom) return undefined;
+    return gameRoom.players.find((p) => p.name === ownerId)?.color;
+  };
+
   // Layer ephemeral interaction state (hover/select) and owner colors onto
   // the presentation.
-  const vertices = Object.values(base.state.vertices).map((v) => ({
+  const vertices = Object.values(base.vertices).map((v) => ({
     ...v,
     isSelected: v.id === (selectedObject?.type === 'vertex' ? selectedObject.id : null),
     isHovered: v.id === hoveredVertexId,
     ownerColor: colorOf(v.settlementOwnerId),
   }));
-  const edges = Object.values(base.state.edges).map((e) => ({
+  const edges = Object.values(base.edges).map((e) => ({
     ...e,
     isSelected: e.id === (selectedObject?.type === 'edge' ? selectedObject.id : null),
     isHovered: e.id === hoveredEdgeId,
     ownerColor: colorOf(e.roadOwnerId),
   }));
-  const hexes = Object.values(base.state.hexes);
+  const hexes = Object.values(base.hexes);
 
   const handleVertexClick = (vertexId: string) => {
-    if (buildMode === 'settlement' && base.validVertexIds.includes(vertexId) && currentPlayer) {
-      buildSettlement(currentPlayer.id, vertexId, gameRoom.id);
-      setBuildMode('none');
-      setSelectedObject(null);
-      return;
-    }
     setSelectedObject({ type: 'vertex', id: vertexId });
   };
 
   const handleEdgeClick = (edgeId: string) => {
-    if (buildMode === 'road' && base.validEdgeIds.includes(edgeId) && currentPlayer) {
-      buildRoad(currentPlayer.id, edgeId, gameRoom.id);
-      setBuildMode('none');
-      setSelectedObject(null);
-      return;
-    }
     setSelectedObject({ type: 'edge', id: edgeId });
   };
 
@@ -246,12 +226,11 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     setMousePos(null);
   };
 
-  const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
-  const viewBoxSize = 1.1 * PROJ_SIZE * boardSpan;
   const naturalSize = 1.1 * hexSize * boardSpan;
 
-  // Scale the board to fit its container, clamped so it never becomes too
-  // small or too large relative to its natural size.
+  // Size the board to fit its container, clamped so it never becomes too
+  // small or too large relative to its natural size. (Zooming on top of this
+  // is handled by the viewBox via useBoardViewport.)
   let renderSize = naturalSize;
   if (containerSize && containerSize.w > 0 && containerSize.h > 0) {
     const scale = Math.min(containerSize.w / naturalSize, containerSize.h / naturalSize);
@@ -261,148 +240,138 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      {buildMode !== 'none' && (
-        <div className="flex gap-2 mt-3">
+      <div ref={containerRef} className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+        {viewport.isDirty && (
           <button
-            className={buildButtonClass(buildMode === 'settlement')}
-            onClick={() => setBuildMode('settlement')}
+            type="button"
+            onClick={viewport.reset}
+            className="absolute top-2 right-2 z-10 px-2.5 py-1 text-[12px] font-semibold rounded-md bg-white border border-gray-300 shadow cursor-pointer text-gray-600 hover:text-gray-900"
+            title="Reset zoom and position"
           >
-            Build Settlement
+            Reset view
           </button>
-          <button
-            className={buildButtonClass(buildMode === 'road')}
-            onClick={() => setBuildMode('road')}
-          >
-            Build Road
-          </button>
-          <button
-            className={buildButtonClass(false)}
-            onClick={() => setBuildMode('none')}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+        )}
+        <svg
+          ref={svgRef}
+          width={renderSize}
+          height={renderSize}
+          viewBox={viewport.viewBox}
+          className="block mx-auto"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            setDrag(null);
+            setMousePos(null);
+          }}
+          onMouseDown={viewport.onMouseDown}
+          onWheel={viewport.onWheel}
+          onDoubleClick={viewport.onDoubleClick}
+        >
+          {/* Hex tiles layer */}
+          {hexes.map((hex) => (
+            <Hexagon key={hex.id} hex={hex} size={PROJ_SIZE} />
+          ))}
 
-      <div ref={containerRef} className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-      <svg
-        ref={svgRef}
-        width={renderSize}
-        height={renderSize}
-        viewBox={`${-viewBoxSize / 2} ${-viewBoxSize / 2} ${viewBoxSize} ${viewBoxSize}`}
-        className="block mx-auto"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => {
-          setDrag(null);
-          setMousePos(null);
-        }}
-      >
-        {/* Hex tiles layer */}
-        {hexes.map((hex) => (
-          <Hexagon key={hex.id} hex={hex} size={PROJ_SIZE} />
-        ))}
+          {/* Edges layer */}
+          {edges.map((edge) => (
+            <BoardEdge
+              key={edge.id}
+              {...edge}
+              onClick={handleEdgeClick}
+              onHover={setHoveredEdgeId}
+            />
+          ))}
 
-        {/* Edges layer */}
-        {edges.map((edge) => (
-          <BoardEdge
-            key={edge.id}
-            {...edge}
-            onClick={handleEdgeClick}
-            onHover={setHoveredEdgeId}
-          />
-        ))}
+          {/* Vertices layer */}
+          {vertices.map((vertex) => (
+            <BoardVertex
+              key={vertex.id}
+              {...vertex}
+              size={8}
+              onClick={handleVertexClick}
+              onHover={setHoveredVertexId}
+            />
+          ))}
 
-        {/* Vertices layer */}
-        {vertices.map((vertex) => (
-          <BoardVertex
-            key={vertex.id}
-            {...vertex}
-            size={8}
-            onClick={handleVertexClick}
-            onHover={setHoveredVertexId}
-          />
-        ))}
-
-        {/* Soldiers layer: count badges around each vertex */}
-        {Array.from(soldierGroups.entries()).map(([vertexId, byOwner]) => {
-          const v = board.vertices[vertexId];
-          if (!v) return null;
-          const entries = Array.from(byOwner.entries());
-          return (entries as [string, number][]).map(([ownerName, count], i) => {
-            const angle = ownerAngle(i, entries.length);
-            const radius = PROJ_SIZE * SOLDIER_BADGE_RADIUS_FRACTION;
-            const cx = v.position.x + Math.cos(angle) * radius;
-            const cy = v.position.y + Math.sin(angle) * radius;
-            const color = colorOf(ownerName);
-            const draggable = canDragSoldier(ownerName);
-            const dragId = soldierDragId.get(`${vertexId}|${ownerName}`);
-            return (
-              <g
-                key={`${vertexId}-${ownerName}`}
-                onMouseDown={(e) => {
-                  if (dragId) startDrag(e, dragId, ownerName, vertexId);
-                }}
-                onClick={() => setSelectedObject({ type: 'vertex', id: vertexId })}
-                style={{ cursor: draggable ? 'grab' : 'pointer' }}
-              >
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={SOLDIER_BADGE_R}
-                  fill={color ?? '#888'}
-                  stroke="#222"
-                  strokeWidth={1.5}
-                />
-                <text
-                  x={cx}
-                  y={cy + 4}
-                  textAnchor="middle"
-                  fontSize={11}
-                  fontWeight="bold"
-                  fill="white"
-                  pointerEvents="none"
-                >
-                  {count}
-                </text>
-              </g>
-            );
-          });
-        })}
-
-        {/* Drag feedback: highlight valid drop targets */}
-        {drag &&
-          drag.validTargets.map((tid) => {
-            const v = board.vertices[tid];
+          {/* Soldiers layer: count badges around each vertex */}
+          {Array.from(soldierGroups.entries()).map(([vertexId, byOwner]) => {
+            const v = board.vertices[vertexId];
             if (!v) return null;
-            return (
-              <circle
-                key={tid}
-                cx={v.position.x}
-                cy={v.position.y}
-                r={DROP_TARGET_RING_R}
-                fill="none"
-                stroke="#22c55e"
-                strokeWidth={3}
-                strokeDasharray="4,3"
-              />
-            );
+            const entries = Array.from(byOwner.entries());
+            return (entries as [string, number][]).map(([ownerName, count], i) => {
+              const angle = ownerAngle(i, entries.length);
+              const radius = PROJ_SIZE * SOLDIER_BADGE_RADIUS_FRACTION;
+              const cx = v.position.x + Math.cos(angle) * radius;
+              const cy = v.position.y + Math.sin(angle) * radius;
+              const color = colorOf(ownerName);
+              const draggable = canDragSoldier(ownerName);
+              const dragId = soldierDragId.get(`${vertexId}|${ownerName}`);
+              return (
+                <g
+                  key={`${vertexId}-${ownerName}`}
+                  onMouseDown={(e) => {
+                    if (dragId) startDrag(e, dragId, ownerName, vertexId);
+                  }}
+                  onClick={() => setSelectedObject({ type: 'vertex', id: vertexId })}
+                  style={{ cursor: draggable ? 'grab' : 'pointer' }}
+                >
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={SOLDIER_BADGE_R}
+                    fill={color ?? '#888'}
+                    stroke="#222"
+                    strokeWidth={1.5}
+                  />
+                  <text
+                    x={cx}
+                    y={cy + 4}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fontWeight="bold"
+                    fill="white"
+                    pointerEvents="none"
+                  >
+                    {count}
+                  </text>
+                </g>
+              );
+            });
           })}
 
-        {/* Drag ghost following the cursor */}
-        {drag && mousePos && (
-          <circle
-            cx={mousePos.x}
-            cy={mousePos.y}
-            r={SOLDIER_BADGE_R}
-            fill={colorOf(drag.ownerName) ?? '#888'}
-            opacity={0.6}
-            stroke="#222"
-            strokeWidth={1.5}
-            pointerEvents="none"
-          />
-        )}
-      </svg>
+          {/* Drag feedback: highlight valid drop targets */}
+          {drag &&
+            drag.validTargets.map((tid) => {
+              const v = board.vertices[tid];
+              if (!v) return null;
+              return (
+                <circle
+                  key={tid}
+                  cx={v.position.x}
+                  cy={v.position.y}
+                  r={DROP_TARGET_RING_R}
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth={3}
+                  strokeDasharray="4,3"
+                />
+              );
+            })}
+
+          {/* Drag ghost following the cursor */}
+          {drag && mousePos && (
+            <circle
+              cx={mousePos.x}
+              cy={mousePos.y}
+              r={SOLDIER_BADGE_R}
+              fill={colorOf(drag.ownerName) ?? '#888'}
+              opacity={0.6}
+              stroke="#222"
+              strokeWidth={1.5}
+              pointerEvents="none"
+            />
+          )}
+        </svg>
       </div>
     </div>
   );
