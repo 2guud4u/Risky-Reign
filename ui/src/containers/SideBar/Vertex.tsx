@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Board, CityPrice, SettlementPrice, VertexNode } from 'common';
+import { Board, CityPrice, SettlementPrice, SoldierPrice, VertexNode } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import MiniView from './MiniView';
@@ -16,12 +16,14 @@ import { priceLabel } from '../../utils/price';
  */
 const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex }) => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { buildSettlement, upgradeSettlementToCity, moveSoldier, healSoldier, startAttack } = useSocket();
+  const { buildSettlement, upgradeSettlementToCity, buildSoldier, moveSoldier, healSoldier, startAttack } = useSocket();
   const {
     canBuildSettlementAt,
     settlementReason,
     canUpgradeToCityAt,
     upgradeReason,
+    canBuildSoldierAt,
+    soldierReason,
     canMoveSoldierTo,
     moveSoldierReason,
   } = useBuildRules(board);
@@ -83,6 +85,11 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
   const handleUpgradeToCity = () => {
     if (!gameRoom || !currentPlayer) return;
     upgradeSettlementToCity(currentPlayer.id, vertex.id, gameRoom.id);
+  };
+
+  const handleBuildSoldier = () => {
+    if (!gameRoom || !currentPlayer) return;
+    buildSoldier(currentPlayer.id, vertex.id, gameRoom.id);
   };
 
   const handleMoveSoldier = (soldierId: string, targetVertexId: string) => {
@@ -164,6 +171,21 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
           }
         >
           Upgrade to City <span className="text-gray-500 text-xs">({priceLabel(CityPrice)})</span>
+        </button>
+      )}
+
+      {settlement && settlement.ownerId === currentPlayer?.name && (
+        <button
+          onClick={handleBuildSoldier}
+          disabled={!canBuildSoldierAt(vertex.id)}
+          className={buildButtonClass(canBuildSoldierAt(vertex.id))}
+          title={
+            canBuildSoldierAt(vertex.id)
+              ? `Build a soldier here (${priceLabel(SoldierPrice)})`
+              : soldierReason(vertex.id)
+          }
+        >
+          ⚔ Build Soldier <span className="text-gray-500 text-xs">({priceLabel(SoldierPrice)})</span>
         </button>
       )}
 

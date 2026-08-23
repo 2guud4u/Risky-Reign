@@ -28,6 +28,10 @@ const DRAG_THRESHOLD = 5;
  *
  * When an `id` is provided, the panel's position/size are remembered in
  * sessionStorage so the layout survives a reload; "Reset" restores the default.
+ *
+ * "Collapse" (to the right of Reset) hides the panel's actions — grip drag,
+ * Reset, and the resize handle — leaving a compact grip; the content stays
+ * visible and the grip (or the ▸ button) expands it again.
  */
 const DraggablePanel: React.FC<DraggablePanelProps> = ({
   children,
@@ -41,6 +45,7 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
   const [saved] = useState(() => (id ? loadPanelLayout(id) : null));
   const [pos, setPos] = useState<{ x: number; y: number } | null>(saved?.pos ?? null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(saved?.size ?? null);
+  const [collapsed, setCollapsed] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -161,36 +166,60 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
         ...(size ? { width: size.w, height: size.h } : {}),
       }}
     >
-      {/* Grip handle */}
+      {/* Grip handle: drag to move; hosts the Reset and Collapse controls on
+          the right. Collapsed, the grip stops being draggable and clicking
+          it (or the ▸ button) expands the actions again. */}
       <div
-        className="relative flex items-center justify-center py-1 cursor-move select-none text-gray-400 hover:text-gray-600"
-        onPointerDown={startDrag}
-        title={title}
+        className={`relative flex items-center justify-center py-1 select-none text-gray-400 hover:text-gray-600 ${
+          collapsed ? 'cursor-pointer' : 'cursor-move'
+        }`}
+        onPointerDown={collapsed ? undefined : startDrag}
+        onClick={collapsed ? () => setCollapsed(false) : undefined}
+        title={collapsed ? `Click to expand — ${title}` : title}
       >
-        <span className="text-lg leading-none">⠿</span>
-        {(pos || size) && (
+        {collapsed ? (
+          <span className="text-[13px] leading-none tracking-widest">•••</span>
+        ) : (
+          <span className="text-lg leading-none">⠿</span>
+        )}
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {!collapsed && (pos || size) && (
+            <button
+              type="button"
+              onClick={resetLayout}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-[10px] font-semibold cursor-pointer hover:text-gray-700"
+              title="Reset position and size"
+            >
+              Reset
+            </button>
+          )}
+          {!collapsed && (
           <button
             type="button"
-            onClick={resetLayout}
+            onClick={() => setCollapsed((c) => !c)}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-400 hover:text-gray-700 cursor-pointer bg-transparent"
-            title="Reset position and size"
+            className="text-[13px] leading-none cursor-pointer hover:text-gray-700"
+            title={collapsed ? 'Expand' : 'Collapse'}
           >
-            Reset
+            {'▾'}
           </button>
-        )}
+          )}
+        </span>
       </div>
       {children}
       {/* Resize handle (top-left corner) */}
-      <div
-        className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize select-none z-10"
-        onPointerDown={startResize}
-        title="Drag to resize"
-      >
-        <svg viewBox="0 0 16 16" className="w-full h-full text-gray-300 hover:text-gray-500">
-          <path d="M2 2 L8 2 M2 2 L5 5 M2 2 L2 8" stroke="currentColor" strokeWidth="1.5" fill="none" />
-        </svg>
-      </div>
+      {!collapsed && (
+        <div
+          className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize select-none z-10"
+          onPointerDown={startResize}
+          title="Drag to resize"
+        >
+          <svg viewBox="0 0 16 16" className="w-full h-full text-gray-300 hover:text-gray-500">
+            <path d="M2 2 L8 2 M2 2 L5 5 M2 2 L2 8" stroke="currentColor" strokeWidth="1.5" fill="none" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 };
