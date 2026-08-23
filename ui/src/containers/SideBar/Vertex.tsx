@@ -16,13 +16,10 @@ import { priceLabel } from '../../utils/price';
  */
 const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex }) => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { buildSettlement, buildRoad, upgradeSettlementToCity, moveSoldier, healSoldier, startAttack } =
-    useSocket();
+  const { buildSettlement, upgradeSettlementToCity, moveSoldier, healSoldier, startAttack } = useSocket();
   const {
     canBuildSettlementAt,
     settlementReason,
-    canBuildRoadOn,
-    roadReason,
     canUpgradeToCityAt,
     upgradeReason,
     canMoveSoldierTo,
@@ -88,11 +85,6 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     upgradeSettlementToCity(currentPlayer.id, vertex.id, gameRoom.id);
   };
 
-  const handleBuildRoad = (edgeId: string) => {
-    if (!gameRoom || !currentPlayer) return;
-    buildRoad(currentPlayer.id, edgeId, gameRoom.id);
-  };
-
   const handleMoveSoldier = (soldierId: string, targetVertexId: string) => {
     if (!gameRoom || !currentPlayer) return;
     moveSoldier(currentPlayer.id, soldierId, targetVertexId, gameRoom.id);
@@ -108,6 +100,11 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     startAttack(currentPlayer.id, [soldierId], targetVertexId, gameRoom.id);
   };
 
+  // Selecting a soldier in the mini view is a toggle: click to select,
+  // click the same soldier again to deselect.
+  const handleSoldierClick = (soldierId: string) =>
+    setSelectedSoldierId((prev) => (prev === soldierId ? null : soldierId));
+
   return (
     <div className="flex flex-col gap-3">
       <h3 className="m-0 text-base">Vertex {vertex.id}</h3>
@@ -117,7 +114,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
         type="vertex"
         id={vertex.id}
         playerColors={playerColorMap(gameRoom)}
-        onSoldierClick={(soldierId) => setSelectedSoldierId(soldierId)}
+        onSoldierClick={handleSoldierClick}
         selectedSoldierId={selectedSoldierId}
       />
 
@@ -290,7 +287,6 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
             const otherSettlement = other?.settlementId
               ? board.settlements[other.settlementId]
               : null;
-            const enabled = canBuildRoadOn(edge.id);
             return (
               <div
                 key={edge.id}
@@ -310,14 +306,6 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
                 <div className="text-gray-600">
                   Road: {road ? `owned by ${road.ownerId}` : 'none'}
                 </div>
-                <button
-                  onClick={() => handleBuildRoad(edge.id)}
-                  disabled={!enabled}
-                  className={buildButtonClass(enabled)}
-                  title={enabled ? 'Build road on this edge' : roadReason(edge.id)}
-                >
-                  Build Road
-                </button>
               </div>
             );
           })}

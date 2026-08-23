@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSocket } from '../contexts/SocketContext';
-import { useGameRoom } from '../contexts/GameContext';
-import LobbyPage from '../pages/Lobby';
-import GamePage from '../pages/Game';
 import { GameRoom, Player } from 'common';
-import { readSavedSession, clearSavedSession } from '../utils/session';
+import { useGameRoom } from '../contexts/GameContext';
+import { useSocket } from '../contexts/SocketContext';
+import GamePage from '../pages/Game';
+import LobbyPage from '../pages/Lobby';
+import { clearSavedSession, readSavedSession } from '../utils/session';
 
 /**
  * Sync the current player from a room update. Returns true if this socket is

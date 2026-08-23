@@ -7,11 +7,11 @@ import {
   playerSettlementVertexIds,
   BoardUIState,
 } from 'common';
-import { BoardVertex } from '../components/BoardVertex';
-import { BoardEdge } from '../components/BoardEdge';
-import Hexagon from '../components/Hexagon';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { BoardEdge } from '../components/BoardEdge';
+import { BoardVertex } from '../components/BoardVertex';
+import Hexagon from '../components/Hexagon';
 import { ownerAngle } from '../utils/soldierPlacement';
 import {
   DROP_TARGET_RING_R,

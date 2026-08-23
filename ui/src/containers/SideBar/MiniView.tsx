@@ -1,5 +1,6 @@
 import React from 'react';
 import { Board, EdgeNode, GAME_HEX_SIZE, terrainColors, VertexNode, cubeToPixel } from 'common';
+import { hexPointsAt } from '../../utils/hex';
 import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle, soldiersAtVertex } from '../../utils/soldierPlacement';
 import { RANK_OFFSET, RANK_SPACING, SOLDIER_SPACING } from '../../constants';
 
@@ -17,18 +18,6 @@ interface MiniViewProps {
 
 /** Board vertex/edge positions are pre-projected at GAME_HEX_SIZE. */
 const HEX_SIZE = GAME_HEX_SIZE;
-
-const hexPoints = (x: number, y: number, size: number): string =>
-  [
-    [0, -1],
-    [Math.sqrt(3) / 2, -0.5],
-    [Math.sqrt(3) / 2, 0.5],
-    [0, 1],
-    [-Math.sqrt(3) / 2, 0.5],
-    [-Math.sqrt(3) / 2, -0.5],
-  ]
-    .map(([px, py]) => `${(px * size + x).toFixed(1)},${(py * size + y).toFixed(1)}`)
-    .join(' ');
 
 /**
  * Small SVG preview of the selected board object and its immediate
@@ -216,7 +205,7 @@ const MiniView: React.FC<MiniViewProps> = ({
       {hexes.map((h) => (
         <g key={h.id}>
           <polygon
-            points={hexPoints(cubeToPixel(h.coord, HEX_SIZE).x, cubeToPixel(h.coord, HEX_SIZE).y, HEX_SIZE)}
+            points={hexPointsAt(cubeToPixel(h.coord, HEX_SIZE).x, cubeToPixel(h.coord, HEX_SIZE).y, HEX_SIZE)}
             fill={terrainColors[h.terrain] ?? '#DDD'}
             stroke="#000"
             strokeWidth={2}

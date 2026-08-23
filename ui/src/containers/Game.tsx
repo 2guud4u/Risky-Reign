@@ -1,11 +1,11 @@
 import React from 'react';
 import { GAME_HEX_SIZE } from 'common';
+import { useGameRoom } from '../contexts/GameContext';
+import DraggablePanel from '../components/DraggablePanel';
 import BoardView from './BoardView';
 import DiceView from './DiceView';
 import EndTurnButton from './EndTurnButton';
 import PlayersList from './PlayersList';
-import DraggablePanel from '../components/DraggablePanel';
-import { useGameRoom } from '../contexts/GameContext';
 import Sidebar from './SideBar/Index';
 
 /**

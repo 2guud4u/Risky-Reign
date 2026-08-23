@@ -1,10 +1,10 @@
 import React from 'react';
 import { LOBBY_HEX_SIZE } from 'common';
-import Game from '../containers/Game';
-import BoardView from '../containers/BoardView';
-import ColorPicker from '../components/ColorPicker';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import ColorPicker from '../components/ColorPicker';
+import BoardView from '../containers/BoardView';
+import Game from '../containers/Game';
 
 const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
   const { gameRoom, currentPlayer } = useGameRoom();

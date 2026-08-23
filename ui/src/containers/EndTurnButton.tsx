@@ -26,10 +26,11 @@ const EndTurnButton: React.FC = () => {
   };
 
   const handleClick = () => {
-    if (!gameRoom || !currentPlayer) return;
+    if (!gameRoom) return;
     // Rolling the dice is done in DiceView (one die per click); this button
-    // only advances the phase.
-    onEndTurn(currentPlayer.id, gameRoom.id);
+    // only advances the phase. The server derives the acting player from the
+    // socket, so no playerId is sent.
+    onEndTurn(gameRoom.id);
   };
 
   const isMyTurn = !!(gameRoom && currentPlayer && gameRoom.turnState.player === currentPlayer.name);

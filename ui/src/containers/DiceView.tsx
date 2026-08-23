@@ -42,7 +42,7 @@ const DiceView: React.FC = () => {
     : 'Dice are rolled during the Dice phase.';
 
   return (
-    <div className="w-[280px] border border-gray-300 rounded-lg p-3.5 bg-white flex flex-col gap-2">
+    <div >
       <div className="text-sm font-semibold">Dice</div>
       <div className="flex items-center gap-3">
         <button

@@ -39,7 +39,7 @@ interface SocketContextType {
   startGame: (roomId: string) => void;
   resetGame: (roomId: string) => void;
   refreshMap: (roomId: string) => void;
-  endTurn: (playerId: string, roomId: string) => void;
+  endTurn: (roomId: string) => void;
   createTradeOffer: (roomId: string, to: string, give: Price, want: Price) => void;
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
@@ -99,8 +99,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const continueBattle = (playerId: string, roomId: string) =>
     emitAction(socket, 'continueBattle', { roomId, playerId }, { requirePlayerId: true });
 
-  const endTurn = (_playerId: string, roomId: string) =>
-    emitAction(socket, 'endTurn', { roomId });
+  const endTurn = (roomId: string) => emitAction(socket, 'endTurn', { roomId });
 
   const rollDice = (roomId: string) => emitAction(socket, 'rollDice', { roomId });
 

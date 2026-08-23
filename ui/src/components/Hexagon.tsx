@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoardHex, terrainColors } from 'common';
+import { hexPointsAt } from '../utils/hex';
 
 interface HexagonProps {
   hex: BoardHex;
@@ -14,16 +15,7 @@ interface HexagonProps {
 const Hexagon: React.FC<HexagonProps> = ({ hex, size }) => {
   const { x, y } = hex.position;
 
-  const hexPoints = [
-    [0, -1],
-    [Math.sqrt(3) / 2, -0.5],
-    [Math.sqrt(3) / 2, 0.5],
-    [0, 1],
-    [-Math.sqrt(3) / 2, 0.5],
-    [-Math.sqrt(3) / 2, -0.5],
-  ]
-    .map(([px, py]) => `${px * size + x},${py * size + y}`)
-    .join(' ');
+  const hexPoints = hexPointsAt(x, y, size);
 
   return (
     <g>
