@@ -14,7 +14,10 @@ import {
   HealSoldierPrice,
   canStartBattle,
   createBattleState,
-  resolveBattleRound,
+  rollBattleDie,
+  allSoldiersRolled,
+  canRollBattleDie,
+  resolveBattleRoundIfComplete,
   normalizePrice,
   canCreateTradeOffer,
   canAcceptTradeOffer,
@@ -337,8 +340,12 @@ export function setupSocketHandlers(io: Server): void {
         builtAt: Date.now(),
       };
       edge.roadId = newRoadId;
-      board.vertices[edge.vertexAId].roadIds.push(edgeId);
-      board.vertices[edge.vertexBId].roadIds.push(edgeId);
+      // The generator already lists every adjacent edge in roadIds; only add
+      // if missing so repeated road builds can't create duplicate entries.
+      for (const vid of [edge.vertexAId, edge.vertexBId]) {
+        const v = board.vertices[vid];
+        if (v && !v.roadIds.includes(edgeId)) v.roadIds.push(edgeId);
+      }
 
       turnState.placedRoad = true;
 
@@ -551,28 +558,76 @@ export function setupSocketHandlers(io: Server): void {
           return;
         }
 
-        // Begin the battle and resolve the first round immediately.
-        const battleState = createBattleState(room, currentPlayer.name, soldierIds, targetVertexId);
-        const result = resolveBattleRound(battleState);
-        room.battleState = result.updatedBattleState;
-
-        // Apply casualties to the board.
-        for (const id of result.deadSoldierIds) {
-          delete board.soldiers[id];
-        }
-        for (const id of result.injuredSoldierIds) {
-          if (board.soldiers[id]) board.soldiers[id].injured = true;
-        }
+        // Begin the battle. The players roll their own dice in the battle
+        // window (one die per soldier); the server only resolves a round once
+        // every committed soldier has rolled.
+        room.battleState = createBattleState(room, currentPlayer.name, soldierIds, targetVertexId);
 
         // Attacking consumes each committed soldier's action for this phase.
         for (const id of soldierIds) {
-          turnState.soldiersActedThisTurn.push(id);
+          if (!turnState.soldiersActedThisTurn.includes(id)) {
+            turnState.soldiersActedThisTurn.push(id);
+          }
         }
 
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     );
 
+    // A player rolls one battle die for one of their committed soldiers.
+    socket.on('rollBattleDie', (data: { roomId: string; playerId: string; soldierId: string }) => {
+      const { roomId, playerId, soldierId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board || !room.battleState) {
+        socket.emit('error', { message: 'No battle in progress' });
+        return;
+      }
+      const currentPlayer = room.players.find((p) => p.id === playerId);
+      if (!currentPlayer) {
+        socket.emit('error', { message: 'Player not found' });
+        return;
+      }
+
+      const battle = room.battleState;
+      if (!canRollBattleDie(battle, currentPlayer.name, soldierId)) {
+        socket.emit('error', { message: 'You cannot roll that die' });
+        return;
+      }
+
+      // The player rolls a single die for one of their soldiers.
+      rollBattleDie(battle, currentPlayer.name, soldierId);
+
+      // Once every committed soldier has rolled, resolve the round.
+      if (allSoldiersRolled(battle)) {
+        const result = resolveBattleRoundIfComplete(battle);
+        room.battleState = result.updatedBattleState;
+        for (const id of result.deadSoldierIds) {
+          delete board.soldiers[id];
+        }
+        for (const id of result.injuredSoldierIds) {
+          if (board.soldiers[id]) board.soldiers[id].injured = true;
+        }
+        // The battle ends immediately if the attacker is wiped out. If only the
+        // defender is gone, keep it open so the attacker can "continue" (close it).
+        if (result.battleComplete) {
+          const attackerAlive =
+            (room.battleState?.states[room.battleState.attacker]?.soldiers ?? []).some((s) => !s.dead);
+          if (!attackerAlive) {
+            room.battleState = null;
+          }
+        }
+      }
+
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    // The attacker drives the battle forward: roll another round while the
+    // defender still has troops, or close out the battle once they are gone.
     socket.on(
       'continueBattle',
       (data: { roomId: string; playerId: string }) => {
@@ -595,47 +650,20 @@ export function setupSocketHandlers(io: Server): void {
           return;
         }
 
-        // Check if there are still living soldiers on both sides.
-        const attackerSoldiers = room.battleState.states[room.battleState.attacker]?.soldiers ?? [];
-        const defenderSoldiers = room.battleState.states[room.battleState.defender]?.soldiers ?? [];
-        const hasLivingAttackers = attackerSoldiers.some((s) => !s.dead);
-        const hasLivingDefenders = defenderSoldiers.some((s) => !s.dead);
+        const battle = room.battleState;
+        const defenderAlive = (battle.states[battle.defender]?.soldiers ?? []).some((s) => !s.dead);
 
-        if (!hasLivingAttackers || !hasLivingDefenders) {
-          // Battle is over; clear it.
+        if (!defenderAlive) {
+          // The defender is gone: continuing simply closes the battle out.
           room.battleState = null;
-          io.to(roomId).emit('gameUpdate', { ...room });
-          return;
-        }
-
-        // Reset rolls for the next round and resolve again.
-        for (const playerName of Object.keys(room.battleState.states)) {
-          for (const soldierState of room.battleState.states[playerName].soldiers) {
-            if (!soldierState.dead) {
-              soldierState.rollNum = null; // Reset for new roll
+        } else {
+          // Both sides still standing: reset the rolls and start the next round.
+          for (const side of Object.values(battle.states)) {
+            for (const s of side.soldiers) {
+              if (!s.dead) s.rollNum = null;
             }
           }
-        }
-
-        const result = resolveBattleRound(room.battleState);
-        room.battleState = result.updatedBattleState;
-
-        // Apply casualties.
-        for (const id of result.deadSoldierIds) {
-          delete board.soldiers[id];
-        }
-        for (const id of result.injuredSoldierIds) {
-          if (board.soldiers[id]) board.soldiers[id].injured = true;
-        }
-
-        // Clear battle state if it's complete.
-        const finalAttackerSoldiers = room.battleState.states[room.battleState.attacker]?.soldiers ?? [];
-        const finalDefenderSoldiers = room.battleState.states[room.battleState.defender]?.soldiers ?? [];
-        const battleComplete =
-          !finalAttackerSoldiers.some((s) => !s.dead) || !finalDefenderSoldiers.some((s) => !s.dead);
-
-        if (battleComplete) {
-          room.battleState = null;
+          room.battleState = { ...battle, phase: 'rolling', round: battle.round + 1 };
         }
 
         io.to(roomId).emit('gameUpdate', { ...room });

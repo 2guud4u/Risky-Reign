@@ -1,7 +1,7 @@
 import React from 'react';
 import { Board, EdgeNode, GAME_HEX_SIZE, terrainColors, VertexNode, cubeToPixel } from 'common';
 import { hexPointsAt } from '../../utils/hex';
-import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle, soldiersAtVertex } from '../../utils/soldierPlacement';
+import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle } from '../../utils/soldierPlacement';
 import { RANK_OFFSET, RANK_SPACING, SOLDIER_SPACING } from '../../constants';
 
 interface MiniViewProps {
@@ -10,10 +10,12 @@ interface MiniViewProps {
   id: string;
   /** Player name -> color, used to tint soldier circles. */
   playerColors?: Record<string, string>;
-  /** Click handler for soldiers (makes them selectable). */
+  /** Click handler for soldiers (toggles them in the selected group). */
   onSoldierClick?: (soldierId: string) => void;
-  /** Soldier currently highlighted in the mini view. */
-  selectedSoldierId?: string | null;
+  /** Soldier ids currently in the selected group (highlighted). */
+  selectedSoldierIds?: ReadonlySet<string>;
+  /** Soldier ids the current player may click to select for a group action. */
+  selectableSoldierIds?: ReadonlySet<string>;
 }
 
 /** Board vertex/edge positions are pre-projected at GAME_HEX_SIZE. */
@@ -30,7 +32,8 @@ const MiniView: React.FC<MiniViewProps> = ({
   id,
   playerColors,
   onSoldierClick,
-  selectedSoldierId,
+  selectedSoldierIds,
+  selectableSoldierIds,
 }) => {
   const points: { x: number; y: number }[] = [];
   const hexes =
@@ -97,7 +100,10 @@ const MiniView: React.FC<MiniViewProps> = ({
     // own ranks, placed around the vertex at the same angle as that player's
     // badge on the main board (see BoardView's soldier layer), so the two views
     // agree on orientation.
-    const byOwner = groupSoldiersByOwner(soldiersAtVertex(board, id));
+    // All garrisoned soldiers (including injured, so they can be selected to
+    // heal). Each owner forms their own ranks around the vertex.
+    const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === id);
+    const byOwner = groupSoldiersByOwner(soldiersAt);
     let ownerIndex = 0;
     byOwner.forEach((group, ownerName) => {
       const angle = ownerAngle(ownerIndex++, byOwner.size);
@@ -115,6 +121,8 @@ const MiniView: React.FC<MiniViewProps> = ({
         const cx = vertex.position.x + dx * along + px * across;
         const cy = vertex.position.y + dy * along + py * across;
         points.push({ x: cx, y: cy });
+        const selectable = selectableSoldierIds?.has(s.id) ?? false;
+        const isSel = selectedSoldierIds?.has(s.id) ?? false;
         neighborhood.push(
           <circle
             key={`s-${s.id}`}
@@ -122,10 +130,10 @@ const MiniView: React.FC<MiniViewProps> = ({
             cy={cy}
             r={6}
             fill={playerColors?.[ownerName] ?? '#888'}
-            stroke={selectedSoldierId === s.id ? '#facc15' : '#fff'}
-            strokeWidth={selectedSoldierId === s.id ? 3 : 1.5}
-            style={{ cursor: onSoldierClick ? 'pointer' : undefined }}
-            onClick={onSoldierClick ? () => onSoldierClick(s.id) : undefined}
+            stroke={isSel ? '#facc15' : s.injured ? '#dc2626' : '#fff'}
+            strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
+            style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
+            onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
           />
         );
       });

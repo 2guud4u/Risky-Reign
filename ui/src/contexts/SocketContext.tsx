@@ -31,6 +31,7 @@ interface SocketContextType {
   moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) => void;
+  rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
   continueBattle: (playerId: string, roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string) => void;
@@ -56,6 +57,7 @@ const SocketContext = createContext<SocketContextType>({
   moveSoldier: () => { },
   healSoldier: () => { },
   startAttack: () => { },
+  rollBattleDie: () => { },
   continueBattle: () => { },
   rollDice: () => { },
   joinRoom: () => { },
@@ -95,6 +97,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const startAttack = (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) =>
     emitAction(socket, 'startAttack', { roomId, playerId, soldierIds, targetVertexId }, { requirePlayerId: true });
+
+  const rollBattleDie = (playerId: string, soldierId: string, roomId: string) =>
+    emitAction(socket, 'rollBattleDie', { roomId, playerId, soldierId }, { requirePlayerId: true });
 
   const continueBattle = (playerId: string, roomId: string) =>
     emitAction(socket, 'continueBattle', { roomId, playerId }, { requirePlayerId: true });
@@ -163,6 +168,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         moveSoldier,
         healSoldier,
         startAttack,
+        rollBattleDie,
         continueBattle,
         rollDice,
         joinRoom,

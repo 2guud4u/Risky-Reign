@@ -7,6 +7,7 @@ import DiceView from './DiceView';
 import EndTurnButton from './EndTurnButton';
 import PlayersList from './PlayersList';
 import Sidebar from './SideBar/Index';
+import BattleModal from './BattleModal';
 
 /**
  * Main in-game layout: phase header, the board, and panels for turn controls,
@@ -46,6 +47,9 @@ const Game: React.FC = () => {
           </DraggablePanel>
         </div>
       </div>
+
+      {/* Separate battle window that opens for all players while combat is active. */}
+      <BattleModal />
     </div>
   );
 };

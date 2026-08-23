@@ -38,8 +38,13 @@ export interface SoldierBattleState {
   injured: boolean; // set true if this battle round injures them
 }
 
-/** Phase of the ongoing battle. */
-export type BattlePhase = 'attackerSelecting' | 'defenderRolling' | 'resolving';
+/**
+ * Phase of the ongoing battle:
+ *  - 'rolling'        : both sides are rolling one die per (living) soldier for the current round.
+ *  - 'betweenRounds'  : a round just resolved, both sides still have survivors; the attacker decides
+ *                       whether to continue to another round or let the battle end.
+ */
+export type BattlePhase = 'rolling' | 'betweenRounds';
 
 export interface BattleState {
   /** Player name who started the attack. */
@@ -52,6 +57,8 @@ export interface BattleState {
   states: Record<string, { soldiers: SoldierBattleState[] }>;
   /** Current phase of the battle. */
   phase: BattlePhase;
+  /** 1-based round number (increments each time the attacker continues). */
+  round: number;
 }
 
 export interface ResourceCount {

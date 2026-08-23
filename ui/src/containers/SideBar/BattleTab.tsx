@@ -1,66 +1,27 @@
 import React from 'react';
 import { Board, BattleState } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
-import { useSocket } from '../../contexts/SocketContext';
 
 /**
- * Sidebar tab for the active battle: shows both sides' committed soldiers with
- * their rolls, casualties, and the Continue Battle action for the attacker.
+ * Sidebar tab for an active battle. The actual combat (rolling dice,
+ * comparing, continuing) happens in the separate battle window (BattleModal),
+ * which opens for every player while a battle is in progress. This tab is a
+ * lightweight indicator pointing at the battle location.
  */
 const BattleTab: React.FC<{ board: Board; battle: BattleState }> = ({ board, battle }) => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { continueBattle } = useSocket();
 
-  const canContinue =
-    currentPlayer !== null &&
-    battle.attacker === currentPlayer.name &&
-    (battle.states[battle.attacker]?.soldiers ?? []).some((s) => !s.dead);
-
-  const handleContinue = () => {
-    if (!gameRoom || !currentPlayer) return;
-    continueBattle(currentPlayer.id, gameRoom.id);
-  };
-
-  const renderSide = (playerName: string) => {
-    const side = battle.states[playerName];
-    if (!side) return null;
-    const isAttacker = playerName === battle.attacker;
-    return (
-      <div className="border border-gray-200 rounded-md p-2 text-xs flex flex-col gap-1">
-        <div className="font-semibold">
-          {playerName}{' '}
-          <span className="text-gray-500 font-normal">({isAttacker ? 'attacker' : 'defender'})</span>
-        </div>
-        {side.soldiers.length === 0 && (
-          <div className="text-gray-400">No soldiers committed</div>
-        )}
-        {side.soldiers.map((s) => (
-          <div key={s.soldier.id} className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold ${
-                s.dead
-                  ? 'bg-red-100 text-red-600 line-through'
-                  : s.injured
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-blue-100 text-blue-700'
-              }`}
-            >
-              {s.rollNum ?? '?'}
-            </span>
-            <span className={s.dead ? 'text-red-600 line-through' : ''}>
-              {s.soldier.type}
-              {s.injured && !s.dead && <span className="ml-1 text-amber-700">(injured)</span>}
-              {s.dead && <span className="ml-1 text-red-600">(dead)</span>}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const attacker = battle.states[battle.attacker]?.soldiers ?? [];
+  const defender =
+    battle.defender && battle.states[battle.defender] ? battle.states[battle.defender].soldiers : [];
 
   return (
-    <div className="flex flex-col gap-3">
-      <h3 className="m-0 text-base">⚔ Battle</h3>
+    <div className="flex flex-col gap-2">
+      <div className="text-[13px]">
+        ⚔ <strong>{battle.attacker}</strong> is attacking{' '}
+        <strong>{battle.defender || 'the defender'}</strong> at vertex{' '}
+        <strong>{battle.vertexId}</strong>.
+      </div>
 
       <button
         type="button"
@@ -68,25 +29,27 @@ const BattleTab: React.FC<{ board: Board; battle: BattleState }> = ({ board, bat
         onClick={() => setSelectedObject({ type: 'vertex', id: battle.vertexId })}
         title="Show the battle location on the board"
       >
-        At vertex <strong>{battle.vertexId}</strong> — click to view
+        → Show the battle on the board
       </button>
 
-      {renderSide(battle.attacker)}
-      {battle.defender && renderSide(battle.defender)}
+      <div className="text-[13px] text-gray-600">
+        {battle.phase === 'rolling'
+          ? `Rolling round ${battle.round}…`
+          : `Round ${battle.round} resolved…`}
+        <span className="block text-gray-500 text-[12px] mt-1">
+          Roll your dice in the battle window (it opened for everyone).
+        </span>
+      </div>
 
-      {canContinue ? (
-        <button
-          type="button"
-          onClick={handleContinue}
-          className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
-        >
-          Continue Battle
-        </button>
-      ) : (
-        <div className="text-[13px] text-gray-500">
-          {currentPlayer && battle.attacker !== currentPlayer.name
-            ? `Waiting for ${battle.attacker} to continue...`
-            : 'Battle in progress...'}
+      <div className="text-[12px] text-gray-500">
+        Troops — {battle.attacker}: {attacker.length} · {battle.defender || 'defender'}:{' '}
+        {defender.length}
+      </div>
+
+      {currentPlayer && battle.attacker === currentPlayer.name && (
+        <div className="text-[12px] text-gray-500">
+          You are the attacker — use “Continue Battle” in the battle window to roll
+          another round or end the fight.
         </div>
       )}
     </div>

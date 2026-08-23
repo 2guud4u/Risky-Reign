@@ -161,7 +161,8 @@ export function createBattleState(
     defender: defenderName,
     vertexId: targetVertexId,
     states,
-    phase: 'defenderRolling', // Defender rolls first to defend
+    phase: 'rolling',
+    round: 1,
   };
 }
 
@@ -193,60 +194,11 @@ export function resolveBattleRound(battleState: BattleState): {
   }
 
   // Get living soldiers from both sides, sorted by roll (descending)
-  const attackerSoldiers: SoldierBattleState[] = (updatedStates[battleState.attacker]?.soldiers as
-    | SoldierBattleState[]
-    | undefined ?? [])
-    .filter((s) => !s.dead && s.rollNum !== null)
-    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
-
-  const defenderSoldiers: SoldierBattleState[] = (updatedStates[battleState.defender]?.soldiers as
-    | SoldierBattleState[]
-    | undefined ?? [])
-    .filter((s) => !s.dead && s.rollNum !== null)
-    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
-
-  // Pair up and resolve combat
-  const maxPairs = Math.min(attackerSoldiers.length, defenderSoldiers.length);
-
-  for (let i = 0; i < maxPairs; i++) {
-    const attacker = attackerSoldiers[i];
-    const defender = defenderSoldiers[i];
-
-    const attRoll = attacker.rollNum || 0;
-    const defRoll = defender.rollNum || 0;
-
-    // Attacker wins (higher roll)
-    if (attRoll > defRoll) {
-      const diff = attRoll - defRoll;
-      if (diff >= 2) {
-        // Defender dies
-        defender.dead = true;
-        deadSoldierIds.push(defender.soldier.id);
-      } else {
-        // Defender injured (Rule 29)
-        defender.injured = true;
-        injuredSoldierIds.push(defender.soldier.id);
-      }
-    }
-    // Defender wins (higher roll)
-    else if (defRoll > attRoll) {
-      const diff = defRoll - attRoll;
-      if (diff >= 2) {
-        // Attacker dies
-        attacker.dead = true;
-        deadSoldierIds.push(attacker.soldier.id);
-      } else {
-        // Attacker injured (Rule 29)
-        attacker.injured = true;
-        injuredSoldierIds.push(attacker.soldier.id);
-      }
-    }
-    // Tie: no effect (could add reroll logic later per Rule 11)
-  }
+  resolvePairs(updatedStates, battleState.attacker, battleState.defender, deadSoldierIds, injuredSoldierIds);
 
   // Check if battle is complete (one side eliminated or only injured left)
-  const livingAttackers = attackerSoldiers.filter((s) => !s.dead).length;
-  const livingDefenders = defenderSoldiers.filter((s) => !s.dead).length;
+  const livingAttackers = sideOf(updatedStates, battleState.attacker).filter((s) => !s.dead).length;
+  const livingDefenders = sideOf(updatedStates, battleState.defender).filter((s) => !s.dead).length;
 
   const battleComplete = livingAttackers === 0 || livingDefenders === 0;
 
@@ -256,6 +208,146 @@ export function resolveBattleRound(battleState: BattleState): {
     injuredSoldierIds,
     battleComplete,
   };
+}
+
+/** Living soldiers of one side in the given states, or an empty list. */
+function sideOf(
+  states: BattleState['states'],
+  playerName: string
+): SoldierBattleState[] {
+  return states[playerName]?.soldiers ?? [];
+}
+
+/**
+ * Compare the rolled dice highest-vs-lowest and mark casualties in place:
+ * the highest roll fights the highest roll, the second highest the second,
+ * and so on (ties have no effect). A win by >=2 kills the loser, by 1 injures.
+ */
+function resolvePairs(
+  states: BattleState['states'],
+  attacker: string,
+  defender: string,
+  deadSoldierIds: string[],
+  injuredSoldierIds: string[]
+): void {
+  const attackerSoldiers = sideOf(states, attacker)
+    .filter((s) => !s.dead && s.rollNum !== null)
+    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
+  const defenderSoldiers = sideOf(states, defender)
+    .filter((s) => !s.dead && s.rollNum !== null)
+    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
+
+  const maxPairs = Math.min(attackerSoldiers.length, defenderSoldiers.length);
+  for (let i = 0; i < maxPairs; i++) {
+    const atk = attackerSoldiers[i];
+    const def = defenderSoldiers[i];
+    const attRoll = atk.rollNum || 0;
+    const defRoll = def.rollNum || 0;
+    if (attRoll > defRoll) {
+      if (attRoll - defRoll >= 2) {
+        def.dead = true;
+        deadSoldierIds.push(def.soldier.id);
+      } else {
+        def.injured = true;
+        injuredSoldierIds.push(def.soldier.id);
+      }
+    } else if (defRoll > attRoll) {
+      if (defRoll - attRoll >= 2) {
+        atk.dead = true;
+        deadSoldierIds.push(atk.soldier.id);
+      } else {
+        atk.injured = true;
+        injuredSoldierIds.push(atk.soldier.id);
+      }
+    }
+  }
+}
+
+/**
+ * Record the die a player just rolled for one of their committed soldiers.
+ * The server is the source of truth: it ignores any soldier the player does
+ * not own, that is dead, or that already has a roll this round.
+ */
+export function rollBattleDie(
+  battleState: BattleState,
+  playerName: string,
+  soldierId: string
+): { updated: BattleState; value: number } {
+  const side = battleState.states[playerName];
+  const soldier = side?.soldiers.find((s) => s.soldier.id === soldierId);
+  if (!side || !soldier || soldier.dead || soldier.rollNum !== null) {
+    return { updated: battleState, value: soldier?.rollNum ?? 0 };
+  }
+  const value = rollDie();
+  soldier.rollNum = value;
+  return { updated: battleState, value };
+}
+
+/** True when every living committed soldier has rolled for the current round. */
+export function allSoldiersRolled(battleState: BattleState): boolean {
+  return Object.keys(battleState.states).every(
+    (name) =>
+      battleState.states[name].soldiers.every((s) => s.dead || s.rollNum !== null)
+  );
+}
+
+/**
+ * Whether a player may roll the given die: the battle must be in the rolling
+ * phase, the soldier must be committed by that player, alive, and not yet
+ * rolled. (Each soldier rolls once per round.)
+ */
+export function canRollBattleDie(
+  battleState: BattleState,
+  playerName: string,
+  soldierId: string
+): boolean {
+  if (battleState.phase !== 'rolling') return false;
+  const soldier = battleState.states[playerName]?.soldiers.find((s) => s.soldier.id === soldierId);
+  return Boolean(soldier && !soldier.dead && soldier.rollNum === null);
+}
+
+/**
+ * Resolve the current round once every committed soldier has rolled.
+ * Returns the post-round battle state: 'betweenRounds' when both sides still
+ * have survivors (the attacker decides whether to continue), 'rolling' when
+ * the round is ready for fresh rolls, and `battleComplete` true when a side
+ * is eliminated (the backend then clears the battle state).
+ */
+export function resolveBattleRoundIfComplete(
+  battleState: BattleState
+): {
+  updatedBattleState: BattleState;
+  deadSoldierIds: string[];
+  injuredSoldierIds: string[];
+  battleComplete: boolean;
+} {
+  if (!allSoldiersRolled(battleState)) {
+    return {
+      updatedBattleState: battleState,
+      deadSoldierIds: [],
+      injuredSoldierIds: [],
+      battleComplete: false,
+    };
+  }
+
+  const updatedStates = JSON.parse(JSON.stringify(battleState.states)); // Deep copy
+  const deadSoldierIds: string[] = [];
+  const injuredSoldierIds: string[] = [];
+  resolvePairs(updatedStates, battleState.attacker, battleState.defender, deadSoldierIds, injuredSoldierIds);
+
+  const livingAttackers = sideOf(updatedStates, battleState.attacker).filter((s) => !s.dead).length;
+  const livingDefenders = sideOf(updatedStates, battleState.defender).filter((s) => !s.dead).length;
+  const battleComplete = livingAttackers === 0 || livingDefenders === 0;
+
+  // Keep the rolled values so the UI can show how the dice compared this
+  // round. Rolls are reset by the backend when the attacker continues.
+  const updated: BattleState = {
+    ...battleState,
+    states: updatedStates,
+    phase: 'betweenRounds',
+  };
+
+  return { updatedBattleState: updated, deadSoldierIds, injuredSoldierIds, battleComplete };
 }
 
 /**
