@@ -234,8 +234,8 @@ export function canMoveSoldierTo(
 
 /**
  * Authoritative soldier heal check (Rules.md line 27): only during Action phase,
- * on your turn, for one of your own injured soldiers, and you must afford the
- * heal cost (2 of each creation resource).
+ * on your turn, for one of your own injured soldiers standing on a settlement you
+ * own, and you must afford the heal cost (2 of each creation resource).
  */
 export function canHealSoldierAt(
   board: Board,
@@ -258,6 +258,17 @@ export function canHealSoldierAt(
     return { allowed: false, reason: 'You can only heal your own soldiers' };
   if (!soldier.injured)
     return { allowed: false, reason: 'This soldier is not injured' };
+
+  // Injured soldiers can only be healed while standing on a settlement you own
+  // (Rules.md "Soldier" section). They must be moved to your settlement first.
+  const soldierVertex = board.vertices[soldier.vertexId];
+  if (!soldierVertex || !soldierVertex.settlementId)
+    return { allowed: false, reason: 'This soldier is not on one of your settlements' };
+  const settlement = board.settlements[soldierVertex.settlementId];
+  if (!settlement)
+    return { allowed: false, reason: 'This soldier is not on one of your settlements' };
+  if (settlement.ownerId !== playerName)
+    return { allowed: false, reason: 'You can only heal soldiers on your own settlements' };
 
   if (playerResources && !canAfford(playerResources, HealSoldierPrice))
     return { allowed: false, reason: 'Not enough resources to heal a soldier (2 Wheat, 2 Sheep)' };

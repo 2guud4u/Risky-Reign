@@ -43,8 +43,11 @@ export interface SoldierBattleState {
  *  - 'rolling'        : both sides are rolling one die per (living) soldier for the current round.
  *  - 'betweenRounds'  : a round just resolved, both sides still have survivors; the attacker decides
  *                       whether to continue to another round or let the battle end.
+ *  - 'repositioning'  : the battle is over; players drag their injured soldiers to adjacent
+ *                       vertices (or leave them in place) before dismissing the battle window.
+ *  - 'finished'       : the battle window is being dismissed (transient; not broadcast).
  */
-export type BattlePhase = 'rolling' | 'betweenRounds';
+export type BattlePhase = 'rolling' | 'betweenRounds' | 'repositioning' | 'finished';
 
 export interface BattleState {
   /** Player name who started the attack. */
@@ -59,6 +62,13 @@ export interface BattleState {
   phase: BattlePhase;
   /** 1-based round number (increments each time the attacker continues). */
   round: number;
+  /**
+   * Current resting vertex per injured soldier. Present during 'repositioning'
+   * — it records each injured troop's board position so the UI can drag them
+   * to an adjacent vertex (they start at the battle vertex and can be moved
+   * along a road to a neighboring vertex, or left in place).
+   */
+  injuredSettled?: Record<string, string>;
 }
 
 export interface ResourceCount {

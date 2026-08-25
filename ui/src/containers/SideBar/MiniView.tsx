@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { RefObject } from 'react';
 import { Board, EdgeNode, GAME_HEX_SIZE, terrainColors, VertexNode, cubeToPixel } from 'common';
 import { hexPointsAt } from '../../utils/hex';
 import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle } from '../../utils/soldierPlacement';
@@ -16,6 +16,34 @@ interface MiniViewProps {
   selectedSoldierIds?: ReadonlySet<string>;
   /** Soldier ids the current player may click to select for a group action. */
   selectableSoldierIds?: ReadonlySet<string>;
+  /**
+   * When false, the default garrisoned-soldier rendering at the selected
+   * vertex is skipped (used by the battle arena, which draws its own
+   * combatants).
+   */
+  showGarrisonedSoldiers?: boolean;
+  /**
+   * Extra content rendered on top of the map, in the same world-coordinate
+   * space centered on the selected object (used by the battle arena).
+   */
+  children?: React.ReactNode;
+  /**
+   * External ref for the SVG element (so the battle window can map mouse
+   * coordinates into world space for drag-and-drop).
+   */
+  svgRef?: RefObject<SVGSVGElement>;
+  /** SVG-level mouse handlers (for drag-and-drop overlays). */
+  onMouseMove?: (e: React.MouseEvent<SVGSVGElement>) => void;
+  onMouseUp?: (e: React.MouseEvent<SVGSVGElement>) => void;
+  onMouseLeave?: (e: React.MouseEvent<SVGSVGElement>) => void;
+  /**
+   * Minimum world-space size for the viewBox (squared). When set, the view is
+   * at least this large even if the board neighborhood is smaller — used by
+   * the battle arena so a wide troop formation isn't zoomed in too much.
+   */
+  minViewSize?: number;
+  /** Rendered pixel size of the SVG (width and height). Defaults to 250. */
+  pixelSize?: number;
 }
 
 /** Board vertex/edge positions are pre-projected at GAME_HEX_SIZE. */
@@ -34,6 +62,14 @@ const MiniView: React.FC<MiniViewProps> = ({
   onSoldierClick,
   selectedSoldierIds,
   selectableSoldierIds,
+  showGarrisonedSoldiers = true,
+  children,
+  svgRef,
+  onMouseMove,
+  onMouseUp,
+  onMouseLeave,
+  minViewSize,
+  pixelSize = 250,
 }) => {
   const points: { x: number; y: number }[] = [];
   const hexes =
@@ -102,42 +138,44 @@ const MiniView: React.FC<MiniViewProps> = ({
     // agree on orientation.
     // All garrisoned soldiers (including injured, so they can be selected to
     // heal). Each owner forms their own ranks around the vertex.
-    const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === id);
-    const byOwner = groupSoldiersByOwner(soldiersAt);
-    let ownerIndex = 0;
-    byOwner.forEach((group, ownerName) => {
-      const angle = ownerAngle(ownerIndex++, byOwner.size);
-      const dx = Math.cos(angle);
-      const dy = Math.sin(angle);
-      // Ranks run perpendicular to the radial direction.
-      const px = -dy;
-      const py = dx;
-      group.forEach((s, k) => {
-        const row = Math.floor(k / SOLDIERS_PER_ROW);
-        const inRow = k % SOLDIERS_PER_ROW;
-        const countInRow = Math.min(SOLDIERS_PER_ROW, group.length - row * SOLDIERS_PER_ROW);
-        const along = RANK_OFFSET + row * RANK_SPACING; // distance from vertex center
-        const across = (inRow - (countInRow - 1) / 2) * SOLDIER_SPACING;
-        const cx = vertex.position.x + dx * along + px * across;
-        const cy = vertex.position.y + dy * along + py * across;
-        points.push({ x: cx, y: cy });
-        const selectable = selectableSoldierIds?.has(s.id) ?? false;
-        const isSel = selectedSoldierIds?.has(s.id) ?? false;
-        neighborhood.push(
-          <circle
-            key={`s-${s.id}`}
-            cx={cx}
-            cy={cy}
-            r={6}
-            fill={playerColors?.[ownerName] ?? '#888'}
-            stroke={isSel ? '#facc15' : s.injured ? '#dc2626' : '#fff'}
-            strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
-            style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
-            onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
-          />
-        );
+    if (showGarrisonedSoldiers) {
+      const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === id);
+      const byOwner = groupSoldiersByOwner(soldiersAt);
+      let ownerIndex = 0;
+      byOwner.forEach((group, ownerName) => {
+        const angle = ownerAngle(ownerIndex++, byOwner.size);
+        const dx = Math.cos(angle);
+        const dy = Math.sin(angle);
+        // Ranks run perpendicular to the radial direction.
+        const px = -dy;
+        const py = dx;
+        group.forEach((s, k) => {
+          const row = Math.floor(k / SOLDIERS_PER_ROW);
+          const inRow = k % SOLDIERS_PER_ROW;
+          const countInRow = Math.min(SOLDIERS_PER_ROW, group.length - row * SOLDIERS_PER_ROW);
+          const along = RANK_OFFSET + row * RANK_SPACING; // distance from vertex center
+          const across = (inRow - (countInRow - 1) / 2) * SOLDIER_SPACING;
+          const cx = vertex.position.x + dx * along + px * across;
+          const cy = vertex.position.y + dy * along + py * across;
+          points.push({ x: cx, y: cy });
+          const selectable = selectableSoldierIds?.has(s.id) ?? false;
+          const isSel = selectedSoldierIds?.has(s.id) ?? false;
+          neighborhood.push(
+            <circle
+              key={`s-${s.id}`}
+              cx={cx}
+              cy={cy}
+              r={6}
+              fill={playerColors?.[ownerName] ?? '#888'}
+              stroke={isSel ? '#facc15' : s.injured ? '#dc2626' : '#fff'}
+              strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
+              style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
+              onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
+            />
+          );
+        });
       });
-    });
+    }
   } else {
     const edge = board.edges[id];
     if (!edge) return null;
@@ -201,14 +239,18 @@ const MiniView: React.FC<MiniViewProps> = ({
   const maxDistFromFocus = Math.max(
     ...points.map((p) => Math.hypot(p.x - focus.x, p.y - focus.y))
   );
-  const size = Math.max(bboxSize, maxDistFromFocus * 2 + pad * 2);
+  const size = Math.max(bboxSize, maxDistFromFocus * 2 + pad * 2, minViewSize ?? 0);
 
   return (
     <svg
-      width={250}
-      height={250}
+      ref={svgRef}
+      width={pixelSize}
+      height={pixelSize}
       viewBox={`${focus.x - size / 2} ${focus.y - size / 2} ${size} ${size}`}
       className="mx-auto rounded-md bg-gray-50"
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseLeave}
     >
       {hexes.map((h) => (
         <g key={h.id}>
@@ -235,6 +277,7 @@ const MiniView: React.FC<MiniViewProps> = ({
       ))}
       {neighborhood}
       {selected}
+      {children}
     </svg>
   );
 };

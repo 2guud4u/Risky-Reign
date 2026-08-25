@@ -5,6 +5,7 @@ import {
   canUpgradeSettlementToCity as checkCity,
   canBuildSoldierAt as checkSoldier,
   canMoveSoldierTo as checkMoveSoldier,
+  canHealSoldierAt as checkHealSoldier,
 } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 
@@ -36,6 +37,9 @@ export function useBuildRules(board: Board) {
       ? checkMoveSoldier(board, turn, name, soldierId, targetVertexId)
       : { allowed: false, reason: 'No active turn' };
 
+  const healSoldierCheck = (soldierId: string) =>
+    turn ? checkHealSoldier(board, turn, name, soldierId, resources) : { allowed: false, reason: 'No active turn' };
+
   const canBuildSettlementAt = (vertexId: string): boolean => settlementCheck(vertexId).allowed;
   const settlementReason = (vertexId: string): string =>
     settlementCheck(vertexId).reason ?? 'Cannot build settlement here';
@@ -51,6 +55,10 @@ export function useBuildRules(board: Board) {
   const moveSoldierReason = (soldierId: string, targetVertexId: string): string =>
     moveSoldierCheck(soldierId, targetVertexId).reason ?? 'Cannot move soldier there';
 
+  const canHealSoldierAt = (soldierId: string): boolean => healSoldierCheck(soldierId).allowed;
+  const healSoldierReason = (soldierId: string): string =>
+    healSoldierCheck(soldierId).reason ?? 'Cannot heal this soldier';
+
   return {
     canBuildSettlementAt,
     settlementReason,
@@ -62,5 +70,7 @@ export function useBuildRules(board: Board) {
     soldierReason,
     canMoveSoldierTo,
     moveSoldierReason,
+    canHealSoldierAt,
+    healSoldierReason,
   };
 }

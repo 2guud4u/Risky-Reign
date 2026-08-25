@@ -28,11 +28,12 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     soldierReason,
     canMoveSoldierTo,
     moveSoldierReason,
+    canHealSoldierAt,
+    healSoldierReason,
   } = useBuildRules(board);
 
   // Group of soldier ids the player is assembling for a group action.
   const [selectedGroup, setSelectedGroup] = useState<string[]>([]);
-  const [attackMode, setAttackMode] = useState(false);
 
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   const owner = settlement
@@ -91,18 +92,10 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     )
   );
 
-  /** Whether a vertex has enemy presence (settlement or soldiers). */
-  const hasEnemyAt = (targetId: string): boolean => {
-    const v = board.vertices[targetId];
-    if (!v) return false;
-    if (v.settlementId !== null) {
-      const stl = board.settlements[v.settlementId];
-      if (stl && stl.ownerId !== currentPlayer?.name) return true;
-    }
-    return Object.values(board.soldiers ?? {}).some(
-      (s) => s.vertexId === targetId && s.owner !== currentPlayer?.name
-    );
-  };
+  /** Enemy soldiers garrisoned on this vertex (the only valid attack target). */
+  const enemyTroopsHere = Object.values(board.soldiers ?? {}).filter(
+    (s) => s.vertexId === vertex.id && s.owner !== currentPlayer?.name
+  );
 
   const adjacent = Array.from(new Set(vertex.roadIds)).map((edgeId) => {
     const edge = board.edges[edgeId];
@@ -127,13 +120,11 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
 
   const clearGroup = () => {
     setSelectedGroup([]);
-    setAttackMode(false);
   };
 
   // Clicking a soldier in the mini view toggles it in/out of the group.
   const handleSoldierClick = (soldierId: string) => {
     if (!selectableIds.has(soldierId)) return;
-    setAttackMode(false);
     setSelectedGroup((prev) =>
       prev.includes(soldierId) ? prev.filter((id) => id !== soldierId) : [...prev, soldierId]
     );
@@ -155,17 +146,12 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     clearGroup();
   };
 
-  // Commit the whole group in an attack against the chosen enemy vertex.
-  const handleConfirmAttack = (targetVertexId: string) => {
+  // Commit the whole group in an attack against the enemy soldiers on this vertex.
+  const handleConfirmAttack = () => {
     if (!gameRoom || !currentPlayer) return;
-    startAttack(currentPlayer.id, group.map((s) => s.id), targetVertexId, gameRoom.id);
+    startAttack(currentPlayer.id, group.map((s) => s.id), vertex.id, gameRoom.id);
     clearGroup();
   };
-
-  // Enemy groups in range: adjacent (via road) vertices with enemy presence.
-  const attackTargets = groupReady
-    ? roadAdjacentVertices.filter((t) => hasEnemyAt(t))
-    : [];
 
   const renderGroupPanel = () => {
     if (group.length === 0) return null;
@@ -210,17 +196,17 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
         {injured.length > 0 && (
           <div className="flex flex-col gap-1">
             {injured.map((s) => {
-              const canHeal =
-                groupActionsAllowed &&
-                turn !== undefined &&
-                !turn.soldiersActedThisTurn.includes(s.id);
+              const canHeal = groupActionsAllowed && canHealSoldierAt(s.id);
+              const reason = !groupActionsAllowed
+                ? 'Actions available on your Action phase'
+                : healSoldierReason(s.id);
               return (
                 <button
                   key={s.id}
                   onClick={() => handleHealSoldier(s.id)}
                   disabled={!canHeal}
                   className={buildButtonClass(canHeal)}
-                  title={`Heal ${s.owner} (2 Wheat, 2 Sheep)`}
+                  title={canHeal ? `Heal ${s.owner} (2 Wheat, 2 Sheep)` : reason}
                 >
                   ✚ Heal {s.owner}
                 </button>
@@ -258,54 +244,17 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
             </div>
 
             <button
-              onClick={() => setAttackMode((v) => !v)}
-              disabled={attackTargets.length === 0}
-              className={buildButtonClass(attackTargets.length > 0)}
+              onClick={handleConfirmAttack}
+              disabled={enemyTroopsHere.length === 0}
+              className={buildButtonClass(enemyTroopsHere.length > 0)}
               title={
-                attackTargets.length > 0
-                  ? 'Choose which enemy group to attack'
-                  : 'No enemy group in range'
+                enemyTroopsHere.length > 0
+                  ? `Attack the ${enemyTroopsHere.length} enemy troop(s) on this vertex`
+                  : 'No enemy troops here to attack'
               }
             >
-              ⚔ Attack
+              ⚔ Attack {enemyTroopsHere.length} enemy troop{enemyTroopsHere.length === 1 ? '' : 's'} here
             </button>
-
-            {attackMode && (
-              <div className="border border-amber-300 bg-amber-50 rounded-md p-2 flex flex-col gap-1.5">
-                <div className="text-[12px] font-semibold">Choose the enemy group to attack:</div>
-                {attackTargets.map((targetId) => {
-                  const targetVertex = board.vertices[targetId];
-                  const targetSettlement = targetVertex?.settlementId
-                    ? board.settlements[targetVertex.settlementId]
-                    : null;
-                  const enemySoldiers = Object.values(board.soldiers ?? {}).filter(
-                    (s) => s.vertexId === targetId && s.owner !== currentPlayer?.name
-                  );
-                  const defender =
-                    targetSettlement?.ownerId ?? enemySoldiers[0]?.owner ?? 'enemy';
-                  return (
-                    <button
-                      key={targetId}
-                      onClick={() => handleConfirmAttack(targetId)}
-                      className={buildButtonClass(true)}
-                    >
-                      ⚔ {targetId} — {defender}
-                      {enemySoldiers.length > 0 ? ` · ${enemySoldiers.length} troop(s)` : ''}
-                      {targetSettlement
-                        ? ` · ${targetSettlement.level === 'city' ? 'city' : 'settlement'}`
-                        : ''}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setAttackMode(false)}
-                  className="text-left text-[11px] text-gray-500 hover:text-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>

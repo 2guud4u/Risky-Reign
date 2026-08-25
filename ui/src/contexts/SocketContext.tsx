@@ -32,7 +32,9 @@ interface SocketContextType {
   healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) => void;
   rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
+  repositionSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   continueBattle: (playerId: string, roomId: string) => void;
+  exitBattle: (roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string) => void;
   updatePlayerColor: (roomId: string, color: string) => void;
@@ -58,7 +60,9 @@ const SocketContext = createContext<SocketContextType>({
   healSoldier: () => { },
   startAttack: () => { },
   rollBattleDie: () => { },
+  repositionSoldier: () => { },
   continueBattle: () => { },
+  exitBattle: () => { },
   rollDice: () => { },
   joinRoom: () => { },
   updatePlayerColor: () => { },
@@ -101,8 +105,19 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const rollBattleDie = (playerId: string, soldierId: string, roomId: string) =>
     emitAction(socket, 'rollBattleDie', { roomId, playerId, soldierId }, { requirePlayerId: true });
 
+  const repositionSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
+    emitAction(
+      socket,
+      'repositionSoldier',
+      { roomId, playerId, soldierId, targetVertexId },
+      { requirePlayerId: true }
+    );
+
   const continueBattle = (playerId: string, roomId: string) =>
     emitAction(socket, 'continueBattle', { roomId, playerId }, { requirePlayerId: true });
+
+  const exitBattle = (roomId: string) =>
+    emitAction(socket, 'exitBattle', { roomId }, { requirePlayerId: false });
 
   const endTurn = (roomId: string) => emitAction(socket, 'endTurn', { roomId });
 
@@ -169,7 +184,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         healSoldier,
         startAttack,
         rollBattleDie,
+        repositionSoldier,
         continueBattle,
+        exitBattle,
         rollDice,
         joinRoom,
         updatePlayerColor,
