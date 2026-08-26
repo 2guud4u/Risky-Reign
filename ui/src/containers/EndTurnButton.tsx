@@ -82,7 +82,7 @@ const EndTurnButton: React.FC = () => {
     );
   }
 
-  const buttonClass = `px-4 py-2 text-sm rounded-md border border-gray-300 ${
+  const buttonClass = `w-full px-4 py-2 text-sm text-center rounded-md border border-gray-300 ${
     isMyTurn ? 'bg-blue-600 text-white cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
   }`;
 

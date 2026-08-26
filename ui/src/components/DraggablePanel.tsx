@@ -20,11 +20,13 @@ const DRAG_THRESHOLD = 5;
 
 /**
  * Reusable wrapper that makes its content draggable via a grip handle at the
- * top and resizable via a corner handle at the bottom-right. Before
- * interaction, the panel keeps its normal layout size/position; once dragged
- * it becomes fixed-position (and fixed-size if resized) and floats above
- * other content. A small movement threshold ensures child clicks still work
- * when the gesture starts on them.
+ * top and resizable via a corner handle at the top-left. In normal flow the
+ * panel sits in the page at its natural content size (it always fits its
+ * children). Once a grip drag is recognized the panel is pinned to that
+ * natural size and becomes fixed-position so it floats above other content;
+ * it can then be resized, which may make it smaller than its content. A
+ * small movement threshold ensures child clicks still work when the gesture
+ * starts on them.
  *
  * When an `id` is provided, the panel's position/size are remembered in
  * sessionStorage so the layout survives a reload; "Reset" restores the default.
@@ -72,6 +74,17 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
       if (p && Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > DRAG_THRESHOLD) {
         dragRef.current = p;
         pendingDragRef.current = null;
+        // Pin the panel to its natural size the moment the drag is recognized
+        // so it immediately fits its children once it floats (clamped to the
+        // resize minimums). The panel is still in normal flow here, so this
+        // rect is its full content size and matches its drawn position; the
+        // position update below moves it from there.
+        const el = panelRef.current;
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          setPos({ x: rect.left, y: rect.top });
+          setSize({ w: Math.max(minWidth, rect.width), h: Math.max(minHeight, rect.height) });
+        }
       }
 
       // Move the panel.
@@ -160,9 +173,13 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
   return (
     <div
       ref={panelRef}
-      className={`${className} ${pos ? 'fixed max-h-[calc(100vh-2rem)] overflow-y-auto shadow-lg z-50' : ''}`}
+      className={`${className} ${pos ? 'fixed max-h-[calc(100vh-2rem)] overflow-y-auto shadow-lg z-50' : 'relative'}`}
       style={{
         ...(pos ? { left: pos.x, top: pos.y } : {}),
+        // `size` is only set once the panel is floating (drag promotion,
+        // resize, or a restored layout), so the width/height here always
+        // accompany a fixed position. In normal flow the panel keeps its
+        // natural content size and stays in the page flow.
         ...(size ? { width: size.w, height: size.h } : {}),
       }}
     >
