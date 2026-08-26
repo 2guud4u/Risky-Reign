@@ -28,7 +28,7 @@ const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow p-4 w-full max-w-[420px]">
-        <h1 className="text-[28px] font-bold text-center mb-6">Risky Catan Lobby</h1>
+        <h1 className="text-[28px] font-bold text-center mb-6">Risky Reign Lobby</h1>
 
         <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
           <div>

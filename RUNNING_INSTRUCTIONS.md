@@ -1,4 +1,4 @@
-# How to Run RiskOfCatan Project
+# How to Run RiskyReign Project
 
 ## Problem Summary
 The project had multiple issues:

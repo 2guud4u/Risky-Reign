@@ -1,4 +1,4 @@
-# RiskOfCatan Board UI Redesign Plan
+# RiskyReign Board UI Redesign Plan
 
 ## Overview
 Modern Catan-style board redesign with interactive vertex clicking for settlement building and connector edge selection for road building. Supports flexible data types.

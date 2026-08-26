@@ -1,4 +1,4 @@
-# RiskOfCatan Clean Rebuild — RESUMABLE CHECKPOINT
+# RiskyReign Clean Rebuild — RESUMABLE CHECKPOINT
 
 > **Purpose:** This is a handoff checkpoint for an LLM (or human) to resume the
 > vertex-based board rebuild. Read top-to-bottom, then start at "NEXT ACTION".
@@ -151,9 +151,9 @@ Files (all under `common/v2/`):
 
 ### 3.2 VERIFICATION (run this to confirm the core is intact)
 ```bash
-cd /home/jia/Code/RiskOfCatan/common/v2 && rm -rf dist && \
+cd /home/jia/Code/RiskyReign/common/v2 && rm -rf dist && \
   ../../node_modules/.bin/tsc -p tsconfig.json && echo BUILD_OK && \
-  node -e 'const v2=require("/home/jia/Code/RiskOfCatan/common/v2/dist");
+  node -e 'const v2=require("/home/jia/Code/RiskyReign/common/v2/dist");
     const b=v2.generateStandardBoard(50);
     console.log("std", Object.keys(b.hexes).length, Object.keys(b.vertices).length, Object.keys(b.edges).length,
       "fails", v2.validateAdjacency(Object.values(b.hexes).map(h=>h.coord),50).length);
@@ -270,7 +270,7 @@ Edit `backend/src/index.ts` (and only what's needed):
 5. **Verify backend typechecks.** The backend uses `ts-node` at runtime and
    `tsc -b` for build. Run:
    ```bash
-   cd /home/jia/Code/RiskOfCatan/backend && ../node_modules/.bin/tsc -b 2>&1 | head -40
+   cd /home/jia/Code/RiskyReign/backend && ../node_modules/.bin/tsc -b 2>&1 | head -40
    ```
    NOTE: `backend/tsconfig.json` has `"references": [{ "path": "../common" }]`
    and `rootDir: ./src`. Because it imports `common/v2` (a subpath), TS project
@@ -359,11 +359,11 @@ socket 'roomUpdate'/'gameUpdate' → GameContext.setGameRoom(room: GameRoom)
 ### Step E — Final verification
 ```bash
 # common/v2 core (must be fails 0)
-cd /home/jia/Code/RiskOfCatan/common/v2 && rm -rf dist && ../../node_modules/.bin/tsc -p tsconfig.json && echo OK
+cd /home/jia/Code/RiskyReign/common/v2 && rm -rf dist && ../../node_modules/.bin/tsc -p tsconfig.json && echo OK
 # backend typecheck
-cd /home/jia/Code/RiskOfCatan/backend && ../node_modules/.bin/tsc -b 2>&1 | head -40
+cd /home/jia/Code/RiskyReign/backend && ../node_modules/.bin/tsc -b 2>&1 | head -40
 # ui typecheck (must be ZERO errors)
-cd /home/jia/Code/RiskOfCatan/ui && ../node_modules/.bin/tsc --noEmit 2>&1 | head -60
+cd /home/jia/Code/RiskyReign/ui && ../node_modules/.bin/tsc --noEmit 2>&1 | head -60
 ```
 The success bar for this task: **`ui/` typechecks with zero errors** against
 `common/v2`, the backend typechecks and boots, and `common/v2` core verifies
