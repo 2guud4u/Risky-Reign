@@ -34,6 +34,7 @@ interface SocketContextType {
   rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
   repositionSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   continueBattle: (playerId: string, roomId: string) => void;
+  endBattle: (playerId: string, roomId: string) => void;
   exitBattle: (roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string) => void;
@@ -62,6 +63,7 @@ const SocketContext = createContext<SocketContextType>({
   rollBattleDie: () => { },
   repositionSoldier: () => { },
   continueBattle: () => { },
+  endBattle: () => { },
   exitBattle: () => { },
   rollDice: () => { },
   joinRoom: () => { },
@@ -115,6 +117,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const continueBattle = (playerId: string, roomId: string) =>
     emitAction(socket, 'continueBattle', { roomId, playerId }, { requirePlayerId: true });
+
+  const endBattle = (playerId: string, roomId: string) =>
+    emitAction(socket, 'endBattle', { roomId, playerId }, { requirePlayerId: true });
 
   const exitBattle = (roomId: string) =>
     emitAction(socket, 'exitBattle', { roomId }, { requirePlayerId: false });
@@ -186,6 +191,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         rollBattleDie,
         repositionSoldier,
         continueBattle,
+        endBattle,
         exitBattle,
         rollDice,
         joinRoom,

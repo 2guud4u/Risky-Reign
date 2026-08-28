@@ -113,7 +113,7 @@ const troopFill = (s: SoldierBattleState, colors: Record<string, string>, phase:
 
 const BattleModal: React.FC = () => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { rollBattleDie, continueBattle, exitBattle, repositionSoldier } = useSocket();
+  const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier } = useSocket();
 
   // Hooks must run unconditionally, before the early return below.
   const svgRef = useRef<SVGSVGElement>(null);
@@ -175,6 +175,12 @@ const BattleModal: React.FC = () => {
   const handleContinue = () => {
     if (!currentPlayer) return;
     continueBattle(currentPlayer.id, gameRoom.id);
+  };
+
+  // The attacker may end the battle at their choosing after a resolved round.
+  const handleEnd = () => {
+    if (!currentPlayer) return;
+    endBattle(currentPlayer.id, gameRoom.id);
   };
 
   const handleExit = () => {
@@ -630,27 +636,44 @@ const BattleModal: React.FC = () => {
           </div>
         )}
 
-        {/* Between rounds only: let the attacker continue, or show the wait. */}
+        {/* Between rounds only: let the attacker continue or end at their choosing. */}
         {phase === 'betweenRounds' &&
           (canContinue ? (
             <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={handleContinue}
-                className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
-              >
-                {attackerAlive && defenderAlive
-                  ? `Continue Battle (round ${battle.round + 1})`
-                  : 'End Battle'}
-              </button>
-              <div className="text-[12px] text-gray-500 text-center">
-                You can keep attacking while you have troops left.
-              </div>
+              {attackerAlive && defenderAlive ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
+                  >
+                    Continue Battle (round {battle.round + 1})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleEnd}
+                    className="w-full bg-gray-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-700"
+                  >
+                    End Battle Now
+                  </button>
+                  <div className="text-[12px] text-gray-500 text-center">
+                    You can keep attacking while you have troops left, or end the battle now.
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEnd}
+                  className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
+                >
+                  End Battle — a side is defeated
+                </button>
+              )}
             </div>
           ) : (
             <div className="text-[13px] text-gray-500">
               {currentPlayer && battle.attacker !== currentPlayer.name
-                ? `Waiting for ${battle.attacker} to continue the battle...`
+                ? `Waiting for ${battle.attacker} to continue or end the battle...`
                 : 'Battle in progress...'}
             </div>
           ))}

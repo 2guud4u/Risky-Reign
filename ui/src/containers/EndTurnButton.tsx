@@ -37,6 +37,20 @@ const EndTurnButton: React.FC = () => {
 
   if (!gameRoom || !gameRoom.turnState || !currentPlayer) return null;
 
+  // Soldiers of the current player who still have an unspent action this
+  // Action phase (not yet acted, not just created). Shown as a warning when
+  // ending the phase.
+  const soldiersWithActionsLeft = (() => {
+    if (gameRoom.turnState.phase !== 'Action' || !isMyTurn) return 0;
+    const turn = gameRoom.turnState;
+    return Object.values(gameRoom.board?.soldiers ?? {}).filter(
+      (s) =>
+        s.owner === currentPlayer.name &&
+        !turn.soldiersActedThisTurn.includes(s.id) &&
+        !turn.soldiersCreatedThisTurn.includes(s.id)
+    ).length;
+  })();
+
   // SetUp: show a hint of what's still needed instead of an end-turn button.
   if (gameRoom.turnState.phase === 'SetUp') {
     const needs = [
@@ -86,10 +100,21 @@ const EndTurnButton: React.FC = () => {
     isMyTurn ? 'bg-blue-600 text-white cursor-pointer' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
   }`;
 
+  const buttonLabel = isMyTurn
+    ? phaseText(gameRoom.turnState.phase)
+    : `Waiting on ${gameRoom.turnState.player}`;
+
   return (
-    <button onClick={handleClick} disabled={!isMyTurn} className={buttonClass}>
-      {isMyTurn ? phaseText(gameRoom.turnState.phase) : `Waiting on ${gameRoom.turnState.player}`}
-    </button>
+    <div className="flex flex-col gap-1">
+      <button onClick={handleClick} disabled={!isMyTurn} className={buttonClass}>
+        {buttonLabel}
+      </button>
+      {gameRoom.turnState.phase === 'Action' && isMyTurn && soldiersWithActionsLeft > 0 && (
+        <div className="px-2 py-1 text-xs text-center rounded border border-amber-200 bg-amber-50 text-amber-800">
+          ⚠ {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} still have action(s) left
+        </div>
+      )}
+    </div>
   );
 };
 
