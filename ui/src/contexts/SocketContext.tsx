@@ -44,6 +44,8 @@ interface SocketContextType {
   resetGame: (roomId: string) => void;
   refreshMap: (roomId: string) => void;
   endTurn: (roomId: string) => void;
+  drawDevelopmentCard: (playerId: string, roomId: string) => void;
+  playDevelopmentCard: (playerId: string, roomId: string, cardIndex: number) => void;
   createTradeOffer: (roomId: string, to: string, give: Price, want: Price) => void;
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
@@ -73,6 +75,8 @@ const SocketContext = createContext<SocketContextType>({
   resetGame: () => { },
   refreshMap: () => { },
   endTurn: () => { },
+  drawDevelopmentCard: () => { },
+  playDevelopmentCard: () => { },
   createTradeOffer: () => { },
   acceptTrade: () => { },
   declineTrade: () => { },
@@ -125,6 +129,12 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     emitAction(socket, 'exitBattle', { roomId }, { requirePlayerId: false });
 
   const endTurn = (roomId: string) => emitAction(socket, 'endTurn', { roomId });
+
+  const drawDevelopmentCard = (playerId: string, roomId: string) =>
+    emitAction(socket, 'drawDevelopmentCard', { roomId, playerId }, { requirePlayerId: true });
+
+  const playDevelopmentCard = (playerId: string, roomId: string, cardIndex: number) =>
+    emitAction(socket, 'playDevelopmentCard', { roomId, playerId, cardIndex }, { requirePlayerId: true });
 
   const rollDice = (roomId: string) => emitAction(socket, 'rollDice', { roomId });
 
@@ -201,6 +211,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         resetGame,
         refreshMap,
         endTurn,
+        drawDevelopmentCard,
+        playDevelopmentCard,
         createTradeOffer,
         acceptTrade,
         declineTrade,

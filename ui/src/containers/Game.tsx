@@ -6,6 +6,7 @@ import BoardView from './BoardView';
 import DiceView from './DiceView';
 import EndTurnButton from './EndTurnButton';
 import PlayersList from './PlayersList';
+import ResourceCardsPanel from './ResourceCardsPanel';
 import Sidebar from './SideBar/Index';
 import BattleModal from './BattleModal';
 
@@ -54,6 +55,9 @@ const Game: React.FC = () => {
             <DiceView />
           </DraggablePanel>
           <Sidebar />
+          <DraggablePanel id="resourceCards" className="bg-white rounded-lg shadow p-3" title="Drag to move">
+            <ResourceCardsPanel />
+          </DraggablePanel>
           <DraggablePanel id="players" className="bg-white rounded-lg shadow p-3" title="Drag to move">
             <PlayersList players={gameRoom.players} currentPlayerId={currentPlayer.id} />
           </DraggablePanel>

@@ -24,6 +24,11 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, currentPlayerId }) =
             />
             <strong>{player.name}</strong>
             {player.id === currentPlayerId && <span>(you)</span>}
+            {(player.victoryPoints ?? 0) > 0 && (
+              <span className="text-[12px] text-yellow-700" title="Victory points">
+                ⭐ {player.victoryPoints}
+              </span>
+            )}
           </div>
           <div className="text-xs text-gray-600 mt-1">
             {Object.entries(player.resources).map(([resource, value]) => (

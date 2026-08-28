@@ -1,4 +1,10 @@
-import { Board, GameRoom, GAME_HEX_SIZE, generateStandardBoard } from 'common';
+import {
+  Board,
+  GameRoom,
+  GAME_HEX_SIZE,
+  generateStandardBoard,
+  generateDevelopmentCardDeck,
+} from 'common';
 
 /** In-memory store of active game rooms. */
 export const gameRooms = new Map<string, GameRoom>();
@@ -30,6 +36,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     winner: null,
     tradeOffers: [],
     battleState: null,
+    devCardDeck: generateDevelopmentCardDeck(),
     roll: { die1: null, die2: null },
   };
   gameRooms.set(roomId, room);

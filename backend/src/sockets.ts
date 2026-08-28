@@ -29,6 +29,8 @@ import {
   RoadPrice,
   CityPrice,
   SoldierPrice,
+  DevelopmentCardPrice,
+  canAfford,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -97,6 +99,9 @@ export function setupSocketHandlers(io: Server): void {
           Wheat: 10,
           Ore: 10,
         },
+        developmentCards: [],
+        victoryPoints: 0,
+        freeRoadsLeft: 0,
       };
 
       room.players.push(player);
@@ -166,6 +171,176 @@ export function setupSocketHandlers(io: Server): void {
       console.log('User disconnected:', socket.id);
       // Keep the player in the room so a reload / reconnect can re-attach.
       // The room and game state are intentionally NOT reset on disconnect.
+    });
+
+    // Draw a development card from the shared deck. Costs 1 wheat, 1 brick and
+    // 1 ore (DevelopmentCardPrice) — the standard Catan price.
+    socket.on('drawDevelopmentCard', (data: { roomId: string; playerId: string }) => {
+      const { roomId, playerId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const player = room.players.find((p) => p.id === playerId);
+      if (!player) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+      // Development cards can only be bought on your own turn.
+      if (room.turnState.player !== player.name) {
+        socket.emit('error', { message: 'You can only buy development cards on your turn' });
+        return;
+      }
+      if (room.devCardDeck.length === 0) {
+        socket.emit('error', { message: 'No development cards left in the deck' });
+        return;
+      }
+      if (!canAfford(player.resources, DevelopmentCardPrice)) {
+        socket.emit('error', {
+          message: 'Need 1 wheat, 1 brick and 1 ore to buy a development card',
+        });
+        return;
+      }
+
+      // Pay and draw the top card of the deck.
+      player.resources = subtractPrice(player.resources, DevelopmentCardPrice);
+      const card = room.devCardDeck.pop()!;
+      player.developmentCards.push(card);
+
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    /**
+     * Play a development card from your hand. Only allowed on your own turn.
+     * Effects vary by card type (see Rules.md).
+     */
+    socket.on('playDevelopmentCard', (data: { roomId: string; playerId: string; cardIndex: number }) => {
+      const { roomId, playerId, cardIndex } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const player = room.players.find((p) => p.id === playerId);
+      if (!player) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+      // Development cards can only be played on your own turn.
+      if (room.turnState.player !== player.name) {
+        socket.emit('error', { message: 'You can only play development cards on your turn' });
+        return;
+      }
+      const card = player.developmentCards[cardIndex];
+      if (!card) {
+        socket.emit('error', { message: 'Invalid card index' });
+        return;
+      }
+
+      // Remove the card from hand and apply its effect.
+      player.developmentCards.splice(cardIndex, 1);
+
+      switch (card) {
+        case 'knight': {
+          // Knight: move robber to a random hex and steal from a player adjacent to it.
+          const board = room.board;
+          if (!board) break;
+          
+          // Find all hexes without the robber.
+          const validHexes = Object.values(board.hexes).filter(h => !h.robber && h.terrain !== 'Desert');
+          if (validHexes.length === 0) break;
+          
+          // Move robber to a random valid hex.
+          const targetHex = validHexes[Math.floor(Math.random() * validHexes.length)];
+          Object.values(board.hexes).forEach(h => h.robber = false);
+          targetHex.robber = true;
+          
+          // Find players adjacent to this hex (have settlements/roads on its vertices).
+          const adjacentPlayers = new Set<string>();
+          for (const vertexId of Object.keys(board.vertices)) {
+            const vertex = board.vertices[vertexId];
+            if (!vertex.hexIds.includes(targetHex.id)) continue;
+            
+            // Check for settlements.
+            if (vertex.settlementId) {
+              const settlement = board.settlements[vertex.settlementId];
+              if (settlement && settlement.ownerId !== player.name) {
+                adjacentPlayers.add(settlement.ownerId);
+              }
+            }
+            
+            // Check for roads.
+            for (const roadId of vertex.roadIds) {
+              const road = board.roads[roadId];
+              if (road && road.ownerId !== player.name) {
+                adjacentPlayers.add(road.ownerId);
+              }
+            }
+          }
+          
+          // Steal from a random adjacent player.
+          const stealFrom = Array.from(adjacentPlayers)[Math.floor(Math.random() * adjacentPlayers.size)];
+          if (stealFrom) {
+            const victim = room.players.find(p => p.name === stealFrom);
+            if (victim) {
+              // Find a resource type the victim has.
+              const availableResources = Object.entries(victim.resources).filter(([_, count]) => count > 0);
+              if (availableResources.length > 0) {
+                const [resourceType] = availableResources[Math.floor(Math.random() * availableResources.length)];
+                victim.resources[resourceType as keyof typeof victim.resources]--;
+                player.resources[resourceType as keyof typeof player.resources]++;
+              }
+            }
+          }
+          break;
+        }
+
+        case 'road_building': {
+          // Road Building: gain 2 free roads.
+          player.freeRoadsLeft += 2;
+          break;
+        }
+
+        case 'year_of_plenty': {
+          // Year of Plenty: take any 2 resources from the bank.
+          const resourceTypes = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'] as const;
+          
+          // Take 1 random resource twice (or 2 different if possible).
+          for (let i = 0; i < 2; i++) {
+            const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+            player.resources[resourceType]++;
+          }
+          break;
+        }
+
+        case 'monopoly': {
+          // Monopoly: name one resource type, all other players give you their cards of that type.
+          const resourceTypes = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'] as const;
+          
+          // Pick a random resource type for this implementation.
+          // In full game, player would choose which type.
+          const chosenResource = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+          
+          // Collect from all other players.
+          for (const otherPlayer of room.players) {
+            if (otherPlayer.name !== player.name && otherPlayer.resources[chosenResource] > 0) {
+              const amount = otherPlayer.resources[chosenResource];
+              otherPlayer.resources[chosenResource] = 0;
+              player.resources[chosenResource] += amount;
+            }
+          }
+          break;
+        }
+
+        case 'victory_point': {
+          // Victory Point: gain 1 victory point.
+          player.victoryPoints++;
+          break;
+        }
+      }
+
+      io.to(roomId).emit('gameUpdate', { ...room });
     });
 
     // Handle game logic.
@@ -336,15 +511,25 @@ export function setupSocketHandlers(io: Server): void {
         return;
       }
 
-      // Authoritative rules live in common (shared with the UI).
-      const check = canBuildRoadOn(board, turnState, currentPlayer.name, edgeId, currentPlayer.resources);
+      // Authoritative rules live in common (shared with the UI). A free road
+      // from a played Road Building card skips the resource cost.
+      const usingFreeRoad = currentPlayer.freeRoadsLeft > 0;
+      const check = canBuildRoadOn(
+        board,
+        turnState,
+        currentPlayer.name,
+        edgeId,
+        usingFreeRoad ? { Wood: 99, Brick: 99, Sheep: 99, Wheat: 99, Ore: 99 } : currentPlayer.resources
+      );
       if (!check.allowed) {
         socket.emit('error', { message: check.reason ?? 'Cannot build road here' });
         return;
       }
-      
-      // Deduct resources in Build phase (after setup)
-      if (turnState.phase === 'Build') {
+
+      // Deduct resources in Build phase (after setup), unless it's a free road.
+      if (usingFreeRoad) {
+        currentPlayer.freeRoadsLeft--;
+      } else if (turnState.phase === 'Build') {
         currentPlayer.resources = subtractPrice(currentPlayer.resources, RoadPrice);
       }
       const edge = board.edges[edgeId];

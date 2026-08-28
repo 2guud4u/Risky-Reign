@@ -1,6 +1,7 @@
 import { Player } from './Player';
 import { BattleState, TradeOffer, TurnState, RollResult } from './Logic';
 import { Board } from './Board';
+import { DevelopmentCardType } from './DevelopmentCard';
 
 /**
  * Wire protocol: the backend now emits the clean domain `Board` directly
@@ -15,6 +16,8 @@ export interface GameRoom {
   turnState: TurnState;
   tradeOffers: TradeOffer[];
   battleState: BattleState | null;
+  /** Shared face-down development card deck (drawn from in order). */
+  devCardDeck: DevelopmentCardType[];
   gameStatus: 'waiting' | 'playing' | 'finished';
   winner: string | null;
   roll: RollResult;

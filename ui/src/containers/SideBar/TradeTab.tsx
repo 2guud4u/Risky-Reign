@@ -3,6 +3,7 @@ import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTra
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
+import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 
 const emptyPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
 
@@ -16,8 +17,8 @@ const ResourceStepper: React.FC<{
   const btnClass = 'w-5 h-5 flex items-center justify-center rounded border border-gray-300 bg-gray-100 cursor-pointer text-xs';
   return (
     <div className="flex items-center gap-1">
-      <span className="text-[12px] w-10 truncate" title={label}>
-        {label}
+      <span className="text-[12px] w-14 truncate" title={label}>
+        {RESOURCE_ICONS[label as ResourceKey] ?? ''} {label}
       </span>
       <button type="button" className={btnClass} onClick={() => onChange(Math.max(0, value - 1))}>
         −

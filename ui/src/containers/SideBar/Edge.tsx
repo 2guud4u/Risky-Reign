@@ -21,6 +21,7 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
   const road = edge.roadId ? board.roads[edge.roadId] : null;
   const hexes = edge.hexIds.map((hid) => board.hexes[hid]).filter(Boolean);
   const canBuildRoad = canBuildRoadOn(edge.id);
+  const hasFreeRoad = (currentPlayer?.freeRoadsLeft ?? 0) > 0;
 
   const endpoints = [edge.vertexAId, edge.vertexBId].map((vid) => {
     const vertex = board.vertices[vid];
@@ -57,9 +58,12 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
         onClick={handleBuildRoad}
         disabled={!canBuildRoad}
         className={buildButtonClass(canBuildRoad)}
-        title={canBuildRoad ? `Build road (${priceLabel(RoadPrice)})` : roadReason(edge.id)}
+        title={canBuildRoad ? (hasFreeRoad ? 'Build road (FREE — Road Building card)' : `Build road (${priceLabel(RoadPrice)})`) : roadReason(edge.id)}
       >
-        Build Road <span className="text-gray-500 text-xs">({priceLabel(RoadPrice)})</span>
+        Build Road{' '}
+        <span className="text-gray-500 text-xs">
+          {hasFreeRoad ? '(FREE 🛤️)' : `(${priceLabel(RoadPrice)})`}
+        </span>
       </button>
 
       <div>
