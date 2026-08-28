@@ -630,34 +630,13 @@ export function setupSocketHandlers(io: Server): void {
       // The player rolls a single die for one of their soldiers.
       rollBattleDie(battle, currentPlayer.name, soldierId);
 
-      // Once every committed soldier has rolled, resolve the round.
+      // Once every committed soldier has rolled, resolve the round. Casualties
+      // are recorded in the battle state only; the board is left untouched and
+      // the battle is NOT advanced past the round until the attacker clicks
+      // "continue battle" (see the continueBattle handler), so the circles
+      // stay intact until then.
       if (allSoldiersRolled(battle)) {
-        const result = resolveBattleRoundIfComplete(battle);
-        room.battleState = result.updatedBattleState;
-        for (const id of result.deadSoldierIds) {
-          delete board.soldiers[id];
-        }
-        for (const id of result.injuredSoldierIds) {
-          if (board.soldiers[id]) board.soldiers[id].injured = true;
-        }
-        // The battle ends as soon as either side has no troops left in the fight
-        // (dead or injured). Dead troops are removed from the board. Injured
-        // survivors stay put and the battle enters 'repositioning': the battle
-        // window shows the outcome and lets each owner drag their injured troops
-        // along a road to a neighboring vertex (or leave them in place).
-        if (result.battleComplete) {
-          const injured: Record<string, string> = {};
-          for (const side of Object.values(result.updatedBattleState.states)) {
-            for (const s of side.soldiers) {
-              if (!s.dead && s.injured) injured[s.soldier.id] = s.soldier.vertexId;
-            }
-          }
-          room.battleState = {
-            ...result.updatedBattleState,
-            phase: 'repositioning',
-            injuredSettled: injured,
-          };
-        }
+        room.battleState = resolveBattleRoundIfComplete(battle).updatedBattleState;
       }
 
       io.to(roomId).emit('gameUpdate', { ...room });
@@ -680,28 +659,54 @@ export function setupSocketHandlers(io: Server): void {
           return;
         }
 
-        // Only the attacker can continue a battle (Rules.md line 7).
+        // Only the attacker can continue a battle (Rules.md line 7), and only
+        // once the round has been resolved (betweenRounds).
         const currentPlayer = room.players.find((p) => p.id === playerId);
         if (!currentPlayer || currentPlayer.name !== room.battleState.attacker) {
           socket.emit('error', { message: 'Only the attacker can continue this battle' });
           return;
         }
+        if (room.battleState.phase !== 'betweenRounds') {
+          socket.emit('error', { message: 'The round has not been resolved yet' });
+          return;
+        }
 
         const battle = room.battleState;
-        const defenderAlive = (battle.states[battle.defender]?.soldiers ?? []).some((s) => !s.dead);
 
-        if (!defenderAlive) {
-          // The defender is gone: continuing ends the battle. Injured survivors
+        // Apply the resolved round's casualties to the board now: by continuing
+        // (or ending) the battle the attacker has committed to the outcome.
+        // Dead troops are removed; injured survivors stay injured on the board.
+        for (const side of Object.values(battle.states)) {
+          for (const s of side.soldiers) {
+            if (s.dead) {
+              delete board.soldiers[s.soldier.id];
+            } else if (s.injured && board.soldiers[s.soldier.id]) {
+              board.soldiers[s.soldier.id].injured = true;
+            }
+          }
+        }
+
+        const injuredSettled: Record<string, string> = {};
+        for (const side of Object.values(battle.states)) {
+          for (const s of side.soldiers) {
+            if (!s.dead && s.injured) injuredSettled[s.soldier.id] = s.soldier.vertexId;
+          }
+        }
+
+        // The battle ends when either side has no living, uninjured troops left.
+        const attackersAlive = (battle.states[battle.attacker]?.soldiers ?? []).some(
+          (s) => !s.dead && !s.injured
+        );
+        const defendersAlive = (battle.states[battle.defender]?.soldiers ?? []).some(
+          (s) => !s.dead && !s.injured
+        );
+
+        if (!attackersAlive || !defendersAlive) {
+          // A side is gone: continuing ends the battle. Injured survivors
           // stay put and the battle enters 'repositioning': the window shows the
           // outcome and lets each owner drag their injured troops along a road
           // to a neighboring vertex (or leave them in place).
-          const injured: Record<string, string> = {};
-          for (const side of Object.values(battle.states)) {
-            for (const s of side.soldiers) {
-              if (!s.dead && s.injured) injured[s.soldier.id] = s.soldier.vertexId;
-            }
-          }
-          room.battleState = { ...battle, phase: 'repositioning', injuredSettled: injured };
+          room.battleState = { ...battle, phase: 'repositioning', injuredSettled };
         } else {
           // Both sides still standing: reset ALL rolls so no troop carries a
           // stale die into the next round. Injured troops are out of the fight
@@ -712,7 +717,7 @@ export function setupSocketHandlers(io: Server): void {
               s.rollNum = null;
             }
           }
-          room.battleState = { ...battle, phase: 'rolling', round: battle.round + 1 };
+          room.battleState = { ...battle, phase: 'rolling', round: battle.round + 1, injuredSettled };
         }
 
         io.to(roomId).emit('gameUpdate', { ...room });

@@ -46,17 +46,26 @@ const SIDE_COL_MAX = 6;
 function layoutSide(
   center: { x: number; y: number },
   side: SoldierBattleState[],
-  isAttacker: boolean
+  isAttacker: boolean,
+  phase: string
 ): Slot[] {
   const sign = isAttacker ? -1 : 1;
-  // In the fight: rolled and not injured (at most MAX_PER_ROUND per the cap).
-  const rolled = side
-    .filter((s) => s.rollNum !== null && !s.injured)
-    .sort((a, b) => (b.rollNum ?? 0) - (a.rollNum ?? 0));
-  // Out of the fight: not yet rolled, plus injured troops.
+  // In the fight: rolled and not (effectively) dead/injured. During
+  // 'betweenRounds' this round's casualties are still pending, so every troop
+  // that just rolled stays on the clash line showing its die until continue.
+  const inFight = side.filter(
+    (s) => s.rollNum !== null && !effInjured(s, phase) && !effDead(s, phase)
+  );
+  const rolled = [...inFight].sort((a, b) => (b.rollNum ?? 0) - (a.rollNum ?? 0));
+  // Out of the fight: not yet rolled, plus committed casualties. Unrolled
+  // troops sort first so the ones that still need to roll are easy to see.
   const outOfFight = side
-    .filter((s) => s.rollNum === null || s.injured)
-    .sort((a, b) => Number(a.injured) - Number(b.injured)); // unrolled first
+    .filter((s) => s.rollNum === null || effInjured(s, phase) || effDead(s, phase))
+    .sort(
+      (a, b) =>
+        Number(effInjured(a, phase)) - Number(effInjured(b, phase)) ||
+        Number(effDead(a, phase)) - Number(effDead(b, phase))
+    ); // unrolled first
 
   const slots: Slot[] = [];
   const nCols = Math.max(1, Math.ceil(outOfFight.length / SIDE_COL_MAX));
@@ -81,9 +90,24 @@ function layoutSide(
   return slots;
 }
 
-const troopFill = (s: SoldierBattleState, colors: Record<string, string>): string => {
-  if (s.dead) return '#b91c1c';
-  if (s.injured) return '#d97706';
+/**
+ * Whether a troop's casualties are still "pending" in the UI: during
+ * 'betweenRounds', this round's results (dead/injured flags) are not shown
+ * until the attacker clicks "continue battle". Only troops that actually
+ * rolled this round (rollNum set) are affected; prior-round casualties and
+ * reserves keep their committed state.
+ */
+const isPending = (s: SoldierBattleState, phase: string): boolean =>
+  phase === 'betweenRounds' && s.rollNum !== null;
+
+/** Effective dead/injured flags for display, hiding pending casualties. */
+const effDead = (s: SoldierBattleState, phase: string): boolean => !isPending(s, phase) && s.dead;
+const effInjured = (s: SoldierBattleState, phase: string): boolean =>
+  !isPending(s, phase) && s.injured;
+
+const troopFill = (s: SoldierBattleState, colors: Record<string, string>, phase: string): string => {
+  if (effDead(s, phase)) return '#b91c1c';
+  if (effInjured(s, phase)) return '#d97706';
   return colors[s.soldier.owner] ?? '#888';
 };
 
@@ -249,6 +273,7 @@ const BattleModal: React.FC = () => {
   // A side is "still in the fight" only while it has a living, uninjured troop
   // (injured troops are out of the fight, Rule 28).
   const defenderAlive = defenderSide.soldiers.some((s) => !s.dead && !s.injured);
+  const attackerAlive = attackerSide.soldiers.some((s) => !s.dead && !s.injured);
 
   /** Battle outcome summary for the finished / repositioning phases. */
   const outcome = (() => {
@@ -268,15 +293,19 @@ const BattleModal: React.FC = () => {
   const renderTroop = (slot: Slot, key: string) => {
     const { x, y, s } = slot;
     const mine = canRoll(s);
-    const active = !s.dead && !s.injured && isActive(s);
-    const opacity = s.dead ? 0.4 : s.injured ? 0.7 : active ? 1 : 0.45;
+    // During 'betweenRounds', this round's casualties are not shown yet — the
+    // troop keeps its healthy look and die until "continue battle" is clicked.
+    const dead = effDead(s, phase);
+    const injured = effInjured(s, phase);
+    const active = !dead && !injured && (isPending(s, phase) || isActive(s));
+    const opacity = dead ? 0.4 : injured ? 0.7 : active ? 1 : 0.45;
     // Injured troops are out of the fight (Rule 28): they show "hurt", not a
     // roll. Reserves (beyond the front line) are dimmed and show "res".
     let label: React.ReactNode = '·';
     let labelSize = 10;
-    if (s.dead) {
+    if (dead) {
       label = '×';
-    } else if (s.injured) {
+    } else if (injured) {
       label = 'hurt';
       labelSize = 8;
     } else if (!active) {
@@ -299,7 +328,7 @@ const BattleModal: React.FC = () => {
           cx={x}
           cy={y}
           r={TROOP_R}
-          fill={troopFill(s, colors)}
+          fill={troopFill(s, colors, phase)}
           stroke={mine ? '#facc15' : '#fff'}
           strokeWidth={mine ? 3 : 1.5}
         />
@@ -319,12 +348,18 @@ const BattleModal: React.FC = () => {
     );
   };
 
-  const attackerSlots = layoutSide(center, attackerSide.soldiers, true);
-  const defenderSlots = layoutSide(center, defenderSide.soldiers, false);
+  // During 'betweenRounds' this round's casualties are hidden (pending), so
+  // every troop that rolled is still on the clash line.
+  const attackerSlots = layoutSide(center, attackerSide.soldiers, true, phase);
+  const defenderSlots = layoutSide(center, defenderSide.soldiers, false, phase);
   // The clash line spans only the troops in the fight (at most MAX_PER_ROUND
   // per side), not the waiting side line.
-  const atkInFight = attackerSide.soldiers.filter((s) => s.rollNum !== null && !s.injured).length;
-  const defInFight = defenderSide.soldiers.filter((s) => s.rollNum !== null && !s.injured).length;
+  const atkInFight = attackerSide.soldiers.filter(
+    (s) => s.rollNum !== null && !effInjured(s, phase) && !effDead(s, phase)
+  ).length;
+  const defInFight = defenderSide.soldiers.filter(
+    (s) => s.rollNum !== null && !effInjured(s, phase) && !effDead(s, phase)
+  ).length;
   const troopSpread = Math.max(atkInFight, defInFight, 2) * ROW_H;
 
   // Who still needs to roll this round (by real owner). Only counts troops in
@@ -350,13 +385,14 @@ const BattleModal: React.FC = () => {
   const matchup: { a: number; d: number; text: string; cls: string }[] = [];
   if (phase === 'betweenRounds' || phase === 'finished') {
     // Only troops that actually rolled this round and are still in the fight
-    // (not injured) appear in the comparison. Injured troops are out of the
-    // fight (Rule 28) and must not be shown as compared.
+    // appear in the comparison. In 'betweenRounds' the casualties of this
+    // round are still pending, so every troop with a die is compared; once
+    // committed (after continue) injured/dead troops drop out of the list.
     const aList = attackerSide.soldiers
-      .filter((s) => s.rollNum !== null && !s.injured)
+      .filter((s) => s.rollNum !== null && !effInjured(s, phase))
       .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
     const dList = defenderSide.soldiers
-      .filter((s) => s.rollNum !== null && !s.injured)
+      .filter((s) => s.rollNum !== null && !effInjured(s, phase))
       .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
     for (let i = 0; i < Math.min(aList.length, dList.length); i++) {
       const ar = aList[i].rollNum ?? 0;
@@ -603,9 +639,9 @@ const BattleModal: React.FC = () => {
                 onClick={handleContinue}
                 className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
               >
-                {defenderAlive
+                {attackerAlive && defenderAlive
                   ? `Continue Battle (round ${battle.round + 1})`
-                  : 'End Battle — defender defeated'}
+                  : 'End Battle'}
               </button>
               <div className="text-[12px] text-gray-500 text-center">
                 You can keep attacking while you have troops left.

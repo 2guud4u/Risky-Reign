@@ -54,7 +54,9 @@ const HEX_SIZE = GAME_HEX_SIZE;
 /**
  * Small SVG preview of the selected board object and its immediate
  * neighborhood: the adjacent hexes (terrain-colored, with tokens), the
- * incident edges and neighboring vertices, with the selection highlighted.
+ * incident edges and neighboring vertices — including owned roads (tinted
+ * in the road owner's color) and settlements/cities (in the owner's
+ * color) — with the selection highlighted.
  */
 const MiniView: React.FC<MiniViewProps> = ({
   board,
@@ -83,6 +85,51 @@ const MiniView: React.FC<MiniViewProps> = ({
   const neighborhood: React.ReactNode[] = [];
   let selected: React.ReactNode = null;
 
+  /** Stroke color/width for an edge line: owned roads are tinted in the
+   *  road owner's color and drawn thicker, mirroring the main board. */
+  const roadStroke = (edge: EdgeNode): { color: string; width: number } => {
+    const road = edge.roadId ? board.roads[edge.roadId] : null;
+    return {
+      color: road ? (playerColors?.[road.ownerId] ?? '#8B4513') : '#9ca3af',
+      width: road ? 6 : 4,
+    };
+  };
+
+  /** Settlement/city marker at a vertex, matching the main board's
+   *  BoardVertex: a circle for a settlement, a square for a city, both in
+   *  the owner's color. Returns null when the vertex is unoccupied. */
+  const settlementMarker = (v: VertexNode, r: number): React.ReactNode => {
+    const settlement = v.settlementId ? board.settlements[v.settlementId] : null;
+    if (!settlement) return null;
+    const color = playerColors?.[settlement.ownerId] ?? '#8B4513';
+    if (settlement.level === 'city') {
+      const s = r * 1.8;
+      return (
+        <rect
+          key={`set-${v.id}`}
+          x={v.position.x - s / 2}
+          y={v.position.y - s / 2}
+          width={s}
+          height={s}
+          fill={color}
+          stroke="#333"
+          strokeWidth={1.5}
+        />
+      );
+    }
+    return (
+      <circle
+        key={`set-${v.id}`}
+        cx={v.position.x}
+        cy={v.position.y}
+        r={r}
+        fill={color}
+        stroke="#fff"
+        strokeWidth={2}
+      />
+    );
+  };
+
   if (type === 'vertex') {
     const vertex = board.vertices[id];
     if (!vertex) return null;
@@ -100,6 +147,7 @@ const MiniView: React.FC<MiniViewProps> = ({
 
     neighbors.forEach(({ edge, other }) => {
       points.push(other.position);
+      const stroke = roadStroke(edge);
       neighborhood.push(
         <line
           key={edge.id}
@@ -107,8 +155,8 @@ const MiniView: React.FC<MiniViewProps> = ({
           y1={vertex.position.y}
           x2={other.position.x}
           y2={other.position.y}
-          stroke="#9ca3af"
-          strokeWidth={4}
+          stroke={stroke.color}
+          strokeWidth={stroke.width}
         />
       );
       neighborhood.push(
@@ -122,9 +170,26 @@ const MiniView: React.FC<MiniViewProps> = ({
           strokeWidth={2}
         />
       );
+      const marker = settlementMarker(other, 10);
+      if (marker) neighborhood.push(marker);
     });
 
-    selected = (
+    // Selected vertex: the owner's settlement marker when present, so the
+    // selection ring (blue) still reads as "selected" without hiding the
+    // occupancy; otherwise the plain blue dot.
+    selected = vertex.settlementId ? (
+      <g>
+        {settlementMarker(vertex, 11)}
+        <circle
+          cx={vertex.position.x}
+          cy={vertex.position.y}
+          r={15}
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth={3}
+        />
+      </g>
+    ) : (
       <circle
         cx={vertex.position.x}
         cy={vertex.position.y}
@@ -197,24 +262,25 @@ const MiniView: React.FC<MiniViewProps> = ({
         y1={a.position.y}
         x2={b.position.x}
         y2={b.position.y}
-        stroke={road ? '#8B4513' : '#2563eb'}
+        stroke={road ? (playerColors?.[road.ownerId] ?? '#8B4513') : '#2563eb'}
         strokeWidth={6}
         strokeLinecap="round"
       />
     );
     [a, b].forEach((v) => {
-      const hasSettlement = v.settlementId !== null;
       neighborhood.push(
         <circle
           key={`v-${v.id}`}
           cx={v.position.x}
           cy={v.position.y}
           r={9}
-          fill={hasSettlement ? '#8B4513' : '#6b7280'}
+          fill="#6b7280"
           stroke="#fff"
           strokeWidth={2}
         />
       );
+      const marker = settlementMarker(v, 10);
+      if (marker) neighborhood.push(marker);
     });
   }
 
