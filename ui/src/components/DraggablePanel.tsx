@@ -18,6 +18,14 @@ interface DraggablePanelProps {
 /** Minimum pointer movement (px) before a press counts as a drag instead of a click. */
 const DRAG_THRESHOLD = 5;
 
+/** Event (fired on `window`) that resets every DraggablePanel's layout. */
+export const RESET_PANELS_EVENT = 'panel-layout:reset';
+
+/** Reset the position/size of every DraggablePanel back to its default. */
+export const resetAllPanels = (): void => {
+  window.dispatchEvent(new Event(RESET_PANELS_EVENT));
+};
+
 /**
  * Reusable wrapper that makes its content draggable via a grip handle at the
  * top and resizable via a corner handle at the top-left. In normal flow the
@@ -26,14 +34,15 @@ const DRAG_THRESHOLD = 5;
  * natural size and becomes fixed-position so it floats above other content;
  * it can then be resized, which may make it smaller than its content. A
  * small movement threshold ensures child clicks still work when the gesture
- * starts on them.
+ * starts on them. Dragging is unclamped — a panel can be moved anywhere,
+ * including off-screen — and `resetAllPanels` restores every panel.
  *
  * When an `id` is provided, the panel's position/size are remembered in
- * sessionStorage so the layout survives a reload; "Reset" restores the default.
+ * sessionStorage so the layout survives a reload; resetting clears it.
  *
- * "Collapse" (to the right of Reset) hides the panel's actions — grip drag,
- * Reset, and the resize handle — leaving a compact grip; the content stays
- * visible and the grip (or the ▸ button) expands it again.
+ * "Collapse" hides the panel's actions — grip drag and the resize handle —
+ * leaving a compact grip; the content stays visible and the grip (or the ▸
+ * button) expands it again.
  */
 const DraggablePanel: React.FC<DraggablePanelProps> = ({
   children,
@@ -67,6 +76,20 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
     if (pos || size) savePanelLayout(id, { pos, size });
   }, [id, pos, size]);
 
+  // Reset this panel whenever a global reset is requested (see resetAllPanels).
+  useEffect(() => {
+    const onReset = () => {
+      setPos(null);
+      setSize(null);
+      if (id) {
+        // Clear the saved layout so the next reload also starts fresh.
+        savePanelLayout(id, { pos: null, size: null });
+      }
+    };
+    window.addEventListener(RESET_PANELS_EVENT, onReset);
+    return () => window.removeEventListener(RESET_PANELS_EVENT, onReset);
+  }, [id]);
+
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       // Promote a pending drag once the pointer moved far enough.
@@ -87,13 +110,12 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
         }
       }
 
-      // Move the panel.
+      // Move the panel (unclamped: it can go anywhere, including off-screen).
       const d = dragRef.current;
-      if (d && panelRef.current) {
-        const w = panelRef.current.offsetWidth;
+      if (d) {
         setPos({
-          x: Math.min(Math.max(0, d.origX + e.clientX - d.startX), window.innerWidth - w),
-          y: Math.min(Math.max(0, d.origY + e.clientY - d.startY), window.innerHeight - 48),
+          x: d.origX + e.clientX - d.startX,
+          y: d.origY + e.clientY - d.startY,
         });
       }
 
@@ -105,8 +127,8 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
         const h = Math.max(minHeight, r.origH - (e.clientY - r.startY));
         setSize({ w, h });
         setPos({
-          x: Math.min(Math.max(0, r.origX + (e.clientX - r.startX)), window.innerWidth - w),
-          y: Math.min(Math.max(0, r.origY + (e.clientY - r.startY)), window.innerHeight - 48),
+          x: r.origX + (e.clientX - r.startX),
+          y: r.origY + (e.clientY - r.startY),
         });
       }
     };
@@ -161,19 +183,10 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
     };
   };
 
-  const resetLayout = () => {
-    setPos(null);
-    setSize(null);
-    if (id) {
-      // Clear the saved layout so the next reload also starts fresh.
-      savePanelLayout(id, { pos: null, size: null });
-    }
-  };
-
   return (
     <div
       ref={panelRef}
-      className={`${className} ${pos ? 'fixed max-h-[calc(100vh-2rem)] overflow-y-auto shadow-lg z-50' : 'relative'}`}
+      className={`${className} ${pos ? 'fixed max-h-[calc(95vh-2rem)] overflow-y-auto shadow-lg z-50' : 'relative'}`}
       style={{
         ...(pos ? { left: pos.x, top: pos.y } : {}),
         // `size` is only set once the panel is floating (drag promotion,
@@ -183,9 +196,9 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
         ...(size ? { width: size.w, height: size.h } : {}),
       }}
     >
-      {/* Grip handle: drag to move; hosts the Reset and Collapse controls on
-          the right. Collapsed, the grip stops being draggable and clicking
-          it (or the ▸ button) expands the actions again. */}
+      {/* Grip handle: drag to move; hosts the Collapse control on the right.
+          Collapsed, the grip stops being draggable and clicking it (or the ▸
+          button) expands the actions again. */}
       <div
         className={`relative flex items-center justify-center py-1 select-none text-gray-400 hover:text-gray-600 ${
           collapsed ? 'cursor-pointer' : 'cursor-move'
@@ -200,27 +213,16 @@ const DraggablePanel: React.FC<DraggablePanelProps> = ({
           <span className="text-lg leading-none">⠿</span>
         )}
         <span className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-          {!collapsed && (pos || size) && (
+          {!collapsed && (
             <button
               type="button"
-              onClick={resetLayout}
+              onClick={() => setCollapsed((c) => !c)}
               onPointerDown={(e) => e.stopPropagation()}
-              className="text-[10px] font-semibold cursor-pointer hover:text-gray-700"
-              title="Reset position and size"
+              className="text-[13px] leading-none cursor-pointer hover:text-gray-700"
+              title={collapsed ? 'Expand' : 'Collapse'}
             >
-              Reset
+              {'▾'}
             </button>
-          )}
-          {!collapsed && (
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="text-[13px] leading-none cursor-pointer hover:text-gray-700"
-            title={collapsed ? 'Expand' : 'Collapse'}
-          >
-            {'▾'}
-          </button>
           )}
         </span>
       </div>

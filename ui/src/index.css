@@ -63,3 +63,22 @@ body {
         stroke-dashoffset: 8;
     }
 }
+
+/* Soldier with an unspent action: expand and de-expand around its own center
+   to draw the player's attention that it can still be used. */
+.pulse-soldier {
+    animation: pulse-soldier 1.1s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+@keyframes pulse-soldier {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}

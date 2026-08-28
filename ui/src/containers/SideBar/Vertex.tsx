@@ -66,17 +66,25 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     if (s && s.vertexId === vertex.id) group.push(s);
   }
 
-  /** Whether a soldier can spend its one action this phase (move or attack). */
+  /** Whether a soldier still has its one action to spend this phase. Injured
+      soldiers can still spend it on a move (they just can't attack — Rule 28),
+      so injury does not block the action. */
   const soldierCanAct = (s: SoldierObj): boolean => {
     if (!turn) return false;
-    return (
-      !s.injured &&
-      !turn.soldiersActedThisTurn.includes(s.id) &&
-      !turn.soldiersCreatedThisTurn.includes(s.id)
-    );
+    return !turn.soldiersActedThisTurn.includes(s.id) && !turn.soldiersCreatedThisTurn.includes(s.id);
   };
 
+  // My garrisoned soldiers that still have their one action to spend this
+  // phase — shown pulsing in the mini view so the player knows they can be used.
+  const canActIds = new Set(
+    groupActionsAllowed ? mySoldiersHere.filter(soldierCanAct).map((s) => s.id) : []
+  );
+
+  // Move is available whenever the group can act; attack additionally requires
+  // every member to be uninjured (injured state cannot attack — Rule 28).
   const groupReady = groupActionsAllowed && group.length > 0 && group.every((s) => soldierCanAct(s));
+  const canAttackGroup =
+    groupActionsAllowed && group.length > 0 && group.every((s) => !s.injured && soldierCanAct(s));
 
   // Vertices reachable from here via existing roads (deduped defensively).
   const roadAdjacentVertices = Array.from(
@@ -215,10 +223,9 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
           </div>
         )}
 
-        {/* Move / attack actions for the (actionable) group. */}
+        {/* Move actions for the (actionable) group — injured included. */}
         {groupReady && (
-          <>
-            <div>
+          <div>
               <div className="text-[12px] font-semibold text-gray-600 mb-1">
                 Move all {group.length} to:
               </div>
@@ -241,21 +248,23 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
                   );
                 })}
               </div>
-            </div>
+          </div>
+        )}
 
-            <button
-              onClick={handleConfirmAttack}
-              disabled={enemyTroopsHere.length === 0}
-              className={buildButtonClass(enemyTroopsHere.length > 0)}
-              title={
-                enemyTroopsHere.length > 0
-                  ? `Attack the ${enemyTroopsHere.length} enemy troop(s) on this vertex`
-                  : 'No enemy troops here to attack'
-              }
-            >
-              ⚔ Attack {enemyTroopsHere.length} enemy troop{enemyTroopsHere.length === 1 ? '' : 's'} here
-            </button>
-          </>
+        {/* Attack action — only when every group member is uninjured (Rule 28). */}
+        {canAttackGroup && (
+          <button
+            onClick={handleConfirmAttack}
+            disabled={enemyTroopsHere.length === 0}
+            className={buildButtonClass(enemyTroopsHere.length > 0)}
+            title={
+              enemyTroopsHere.length > 0
+                ? `Attack the ${enemyTroopsHere.length} enemy troop(s) on this vertex`
+                : 'No enemy troops here to attack'
+            }
+          >
+            ⚔ Attack {enemyTroopsHere.length} enemy troop{enemyTroopsHere.length === 1 ? '' : 's'} here
+          </button>
         )}
       </div>
     );
@@ -273,6 +282,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
         onSoldierClick={handleSoldierClick}
         selectedSoldierIds={new Set(selectedGroup)}
         selectableSoldierIds={selectableIds}
+        canActSoldierIds={canActIds}
       />
 
       <div className="text-[13px]">

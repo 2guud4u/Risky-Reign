@@ -16,6 +16,8 @@ interface MiniViewProps {
   selectedSoldierIds?: ReadonlySet<string>;
   /** Soldier ids the current player may click to select for a group action. */
   selectableSoldierIds?: ReadonlySet<string>;
+  /** Soldier ids with an unspent action (pulsed to show they can still be used). */
+  canActSoldierIds?: ReadonlySet<string>;
   /**
    * When false, the default garrisoned-soldier rendering at the selected
    * vertex is skipped (used by the battle arena, which draws its own
@@ -62,6 +64,7 @@ const MiniView: React.FC<MiniViewProps> = ({
   onSoldierClick,
   selectedSoldierIds,
   selectableSoldierIds,
+  canActSoldierIds,
   showGarrisonedSoldiers = true,
   children,
   svgRef,
@@ -160,6 +163,7 @@ const MiniView: React.FC<MiniViewProps> = ({
           points.push({ x: cx, y: cy });
           const selectable = selectableSoldierIds?.has(s.id) ?? false;
           const isSel = selectedSoldierIds?.has(s.id) ?? false;
+          const canAct = canActSoldierIds?.has(s.id) ?? false;
           neighborhood.push(
             <circle
               key={`s-${s.id}`}
@@ -169,6 +173,7 @@ const MiniView: React.FC<MiniViewProps> = ({
               fill={playerColors?.[ownerName] ?? '#888'}
               stroke={isSel ? '#facc15' : s.injured ? '#dc2626' : '#fff'}
               strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
+              className={canAct ? 'pulse-soldier' : undefined}
               style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
               onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
             />

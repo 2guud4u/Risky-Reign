@@ -20,7 +20,7 @@ Smuggle: pay robber and card to take soldier to its location
 Robber wins ties
 Soldier 
 To get a soldier you need: 1 sheep 1 wheat 
-Injured soldiers on a coordinate can block players from doing actions other than attacking it. Can’t move or take over settlement.
+Injured soldiers can still move and heal (they just can’t attack). Injured state can not attack (see below).
 You can not create and move soldier on the same turn
 Healed soldiers can not move on the same turn
 You can attack injured soldiers, it initiates another combat you must roll number higher than theirs if their number is higher, they get to do a movement action. If not, they die.a

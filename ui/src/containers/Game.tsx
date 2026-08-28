@@ -1,7 +1,7 @@
 import React from 'react';
 import { GAME_HEX_SIZE } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
-import DraggablePanel from '../components/DraggablePanel';
+import DraggablePanel, { resetAllPanels } from '../components/DraggablePanel';
 import BoardView from './BoardView';
 import DiceView from './DiceView';
 import EndTurnButton from './EndTurnButton';
@@ -24,13 +24,25 @@ const Game: React.FC = () => {
   const turn = gameRoom.turnState;
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4">
+    <div className="h-screen overflow-hidden flex flex-col items-center p-4">
+      <button
+        type="button"
+        onClick={resetAllPanels}
+        className="fixed top-3 right-3 z-[60] px-3 py-1.5 text-[13px] font-semibold bg-white border border-gray-300 rounded-md shadow cursor-pointer text-gray-600 hover:text-gray-900"
+        title="Reset the position and size of all panels"
+      >
+        ⟲ Reset layout
+      </button>
       <div className="text-2xl font-bold my-2 mb-4">
         Phase: {turn.phase} — {turn.player}
       </div>
 
       <div className="flex gap-6 items-start flex-wrap justify-center">
-        <DraggablePanel id="board" className="bg-white rounded-lg shadow p-4" title="Drag to move the board">
+        <DraggablePanel
+          id="board"
+          className="bg-white rounded-lg shadow p-4 h-[72vh]"
+          title="Drag to move the board"
+        >
           <BoardView hexSize={GAME_HEX_SIZE} />
         </DraggablePanel>
 
