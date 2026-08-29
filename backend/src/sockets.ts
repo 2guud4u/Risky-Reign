@@ -31,6 +31,7 @@ import {
   SoldierPrice,
   DevelopmentCardPrice,
   canAfford,
+  applyBonuses,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -60,6 +61,7 @@ export function setupSocketHandlers(io: Server): void {
         existing.id = socket.id;
         if (color) existing.color = color;
         socket.join(roomId);
+        applyBonuses(room);
         io.to(roomId).emit('roomUpdate', room);
         console.log(`Player ${playerName} re-attached to room ${roomId}`);
         return;
@@ -79,6 +81,7 @@ export function setupSocketHandlers(io: Server): void {
           return;
         }
         player.color = color;
+        applyBonuses(room);
         io.to(roomId).emit('roomUpdate', room);
       });
 
@@ -109,6 +112,7 @@ export function setupSocketHandlers(io: Server): void {
       socket.join(roomId);
 
       // Send updated room state to all players.
+      applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);
       console.log(`Player ${playerName} joined room ${roomId}`);
     });
@@ -122,6 +126,7 @@ export function setupSocketHandlers(io: Server): void {
       }
       // Regenerate the game board.
       room.board = createBoard();
+      applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);
     });
 
@@ -133,6 +138,7 @@ export function setupSocketHandlers(io: Server): void {
         return;
       }
       room.gameStatus = 'playing';
+      applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);
     });
 
@@ -149,6 +155,7 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('error', { message: 'Player not found in room' });
         return;
       }
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', room);
     });
 
@@ -163,6 +170,7 @@ export function setupSocketHandlers(io: Server): void {
       room.turnState.player = 'X';
       room.gameStatus = room.players.length === 2 ? 'playing' : 'waiting';
       room.winner = null;
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', room);
     });
 
@@ -208,6 +216,7 @@ export function setupSocketHandlers(io: Server): void {
       const card = room.devCardDeck.pop()!;
       player.developmentCards.push(card);
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -340,6 +349,7 @@ export function setupSocketHandlers(io: Server): void {
         }
       }
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -374,6 +384,7 @@ export function setupSocketHandlers(io: Server): void {
       console.log(`Ending turn for player: ${room.turnState.player}`);
       advanceTurn(room);
       // Notify all players in the room about the turn end.
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', room);
     });
 
@@ -422,6 +433,7 @@ export function setupSocketHandlers(io: Server): void {
         advanceTurn(room);
       }
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -488,6 +500,7 @@ export function setupSocketHandlers(io: Server): void {
       if (room.turnState.phase === 'SetUp' && room.turnState.placedSettlement && room.turnState.placedRoad) {
         advanceTurn(room);
       }
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -554,6 +567,7 @@ export function setupSocketHandlers(io: Server): void {
       if (room.turnState.phase === 'SetUp' && room.turnState.placedSettlement && room.turnState.placedRoad) {
         advanceTurn(room);
       }
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -608,6 +622,7 @@ export function setupSocketHandlers(io: Server): void {
       turnState.soldiersCreatedThisTurn.push(newSoldierId);
       turnState.soldiersActedThisTurn.push(newSoldierId);
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -656,6 +671,7 @@ export function setupSocketHandlers(io: Server): void {
       // A freshly built soldier has used its action for this phase.
       turnState.soldiersActedThisTurn.push(newSoldierId);
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -695,6 +711,7 @@ export function setupSocketHandlers(io: Server): void {
       // Each soldier gets one action per Action phase (Rules.md line 30).
       turnState.soldiersActedThisTurn.push(soldierId);
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -737,6 +754,7 @@ export function setupSocketHandlers(io: Server): void {
       // Healing consumes the soldier's action for this phase.
       turnState.soldiersActedThisTurn.push(soldierId);
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -826,6 +844,7 @@ export function setupSocketHandlers(io: Server): void {
         room.battleState = resolveBattleRoundIfComplete(battle).updatedBattleState;
       }
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -915,6 +934,7 @@ export function setupSocketHandlers(io: Server): void {
           room.battleState = { ...battle, phase: 'rolling', round: battle.round + 1, injuredSettled };
         }
 
+        applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     );
@@ -951,6 +971,7 @@ export function setupSocketHandlers(io: Server): void {
       const injuredSettled = applyRoundCasualties(board, battle);
       room.battleState = { ...battle, phase: 'repositioning', injuredSettled };
 
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -1001,6 +1022,7 @@ export function setupSocketHandlers(io: Server): void {
         soldier.vertexId = targetVertexId;
         soldier.stationed = false;
         room.battleState.injuredSettled = { ...room.battleState.injuredSettled, [soldierId]: targetVertexId };
+        applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     );
@@ -1014,6 +1036,7 @@ export function setupSocketHandlers(io: Server): void {
       if (!room) return;
       if (room.battleState && (room.battleState.phase === 'finished' || room.battleState.phase === 'repositioning')) {
         room.battleState = null;
+        applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     });
@@ -1049,6 +1072,7 @@ export function setupSocketHandlers(io: Server): void {
           want,
           status: 'pending',
         });
+        applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     );
@@ -1077,6 +1101,7 @@ export function setupSocketHandlers(io: Server): void {
       }
       applyTrade(room, offer);
       offer.status = 'accepted';
+      applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
@@ -1090,6 +1115,7 @@ export function setupSocketHandlers(io: Server): void {
       // Only the recipient may decline, and only while pending.
       if (offer && offer.to === player.name && offer.status === 'pending') {
         offer.status = 'declined';
+        applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     });
@@ -1104,6 +1130,7 @@ export function setupSocketHandlers(io: Server): void {
       // Only the creator may cancel, and only while pending.
       if (offer && offer.from === player.name && offer.status === 'pending') {
         offer.status = 'cancelled';
+        applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
     });

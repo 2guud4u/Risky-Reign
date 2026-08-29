@@ -59,7 +59,12 @@ const Game: React.FC = () => {
             <ResourceCardsPanel />
           </DraggablePanel>
           <DraggablePanel id="players" className="bg-white rounded-lg shadow p-3" title="Drag to move">
-            <PlayersList players={gameRoom.players} currentPlayerId={currentPlayer.id} />
+            <PlayersList
+              players={gameRoom.players}
+              board={gameRoom.board}
+              bonuses={gameRoom.bonuses}
+              currentPlayerId={currentPlayer.id}
+            />
           </DraggablePanel>
         </div>
       </div>

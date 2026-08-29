@@ -9,6 +9,26 @@ import { DevelopmentCardType } from './DevelopmentCard';
  * `room.board` as-is; no wire adapter is needed.
  */
 
+/**
+ * Room-wide scoring bonuses, keyed by player name. Recomputed from the board
+ * on every broadcast (see `utils/score.ts`):
+ *  - `longestRoad`      : the single longest continuous road chain (≥ 5 roads)
+ *                          earns 2 VP.
+ *  - `largestArmy`      : the player with the most soldiers (≥ 3) earns 2 VP.
+ *  - `hasLongestRoad` / `hasLargestArmy` : whether this player currently holds
+ *                          that bonus (ties break in the player's favor).
+ */
+export interface RoomBonuses {
+  /** Longest continuous road chain per player (0 when the player has no roads). */
+  longestRoad: Record<string, number>;
+  /** Soldier count per player (0 when the player has no soldiers). */
+  largestArmy: Record<string, number>;
+  /** Players currently holding the Longest Road bonus (2 VP). */
+  hasLongestRoad: Record<string, boolean>;
+  /** Players currently holding the Largest Army bonus (2 VP). */
+  hasLargestArmy: Record<string, boolean>;
+}
+
 export interface GameRoom {
   id: string;
   players: Player[];
@@ -21,4 +41,6 @@ export interface GameRoom {
   gameStatus: 'waiting' | 'playing' | 'finished';
   winner: string | null;
   roll: RollResult;
+  /** Recomputed scoring bonuses (longest road / largest army). */
+  bonuses: RoomBonuses;
 }

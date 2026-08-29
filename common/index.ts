@@ -33,4 +33,5 @@ export * from './utils/boardGenerator';
 export * from './utils/placement';
 export * from './utils/trade';
 export * from './utils/battle';
+export * from './utils/score';
 export * from './adapters/boardAdapter';

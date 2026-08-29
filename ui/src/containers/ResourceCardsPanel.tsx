@@ -18,6 +18,14 @@ const ResourceCardsPanel: React.FC = () => {
   const me: Player = currentPlayer;
   const isMyTurn = gameRoom.turnState.player === me.name;
 
+  // Scoring bonuses (recomputed server-side on every broadcast).
+  const soldiers = gameRoom.board
+    ? Object.values(gameRoom.board.soldiers).filter((s) => s.owner === me.name).length
+    : 0;
+  const hasRoad = gameRoom.bonuses?.hasLongestRoad?.[me.name] ?? false;
+  const hasArmy = gameRoom.bonuses?.hasLargestArmy?.[me.name] ?? false;
+  const roadLen = gameRoom.bonuses?.longestRoad?.[me.name] ?? 0;
+
   // Buying is only allowed on your own turn (enforced server-side too).
   const canBuyDevCard =
     isMyTurn &&
@@ -53,9 +61,9 @@ const ResourceCardsPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Victory points and free roads indicators. */}
-      {(me.victoryPoints > 0 || me.freeRoadsLeft > 0) && (
-        <div className="flex gap-2 text-[12px]">
+      {/* Victory points, free roads and scoring-bonus indicators. */}
+      {(me.victoryPoints > 0 || me.freeRoadsLeft > 0 || hasRoad || hasArmy) && (
+        <div className="flex gap-2 text-[12px] flex-wrap">
           {me.victoryPoints > 0 && (
             <span className="text-yellow-700 font-semibold" title="Victory points earned">
               ⭐ {me.victoryPoints} VP
@@ -64,6 +72,16 @@ const ResourceCardsPanel: React.FC = () => {
           {me.freeRoadsLeft > 0 && (
             <span className="text-green-700 font-semibold" title="Free roads from Road Building card">
               🛤️ {me.freeRoadsLeft} free road{me.freeRoadsLeft > 1 ? 's' : ''}
+            </span>
+          )}
+          {hasRoad && (
+            <span className="text-blue-700 font-semibold" title={`Longest road: ${roadLen} roads (+2 VP)`}>
+              🛤️ Longest road ({roadLen})
+            </span>
+          )}
+          {hasArmy && (
+            <span className="text-red-700 font-semibold" title={`Largest army: ${soldiers} soldiers (+2 VP)`}>
+              ⚔️ Largest army ({soldiers})
             </span>
           )}
         </div>
