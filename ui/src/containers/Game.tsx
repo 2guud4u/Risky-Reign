@@ -9,6 +9,7 @@ import PlayersList from './PlayersList';
 import ResourceCardsPanel from './ResourceCardsPanel';
 import Sidebar from './SideBar/Index';
 import BattleModal from './BattleModal';
+import RobberPrompt from './RobberPrompt';
 
 /**
  * Main in-game layout: phase header, the board, and panels for turn controls,
@@ -48,6 +49,7 @@ const Game: React.FC = () => {
         </DraggablePanel>
 
         <div className="flex flex-col gap-4 w-[280px]">
+          <RobberPrompt />
           <DraggablePanel id="turn" className="bg-white rounded-lg shadow p-3" title="Drag to move">
             <EndTurnButton />
           </DraggablePanel>

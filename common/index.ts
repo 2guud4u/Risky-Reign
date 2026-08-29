@@ -27,6 +27,7 @@ export * from './utils/hex';
 export * from './utils/logic';
 export * from './utils/dice';
 export * from './utils/validation';
+export * from './utils/robber';
 export * from './utils/pieces';
 export * from './utils/adjacency';
 export * from './utils/boardGenerator';

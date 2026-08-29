@@ -29,6 +29,15 @@ export interface RoomBonuses {
   hasLargestArmy: Record<string, boolean>;
 }
 
+/**
+ * Pending robber placement. While set, the named player must resolve it via
+ * the `moveRobber` event: a 'seven' holds the Dice phase from advancing,
+ * and a 'knight' holds the card (and its steal) until the robber is placed.
+ */
+export interface RobberMoveRequest {
+  player: string;
+  reason: 'seven' | 'knight';
+}
 export interface GameRoom {
   id: string;
   players: Player[];
@@ -41,6 +50,8 @@ export interface GameRoom {
   gameStatus: 'waiting' | 'playing' | 'finished';
   winner: string | null;
   roll: RollResult;
+  /** Pending robber placement (a 7 roll or a played knight card). */
+  robberMove: RobberMoveRequest | null;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
 }

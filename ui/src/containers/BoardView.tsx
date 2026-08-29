@@ -40,7 +40,7 @@ const BOARD_MAX_SCALE = 1.25;
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const { gameRoom, currentPlayer, selectedObject, setSelectedObject } = useGameRoom();
-  const { moveSoldier } = useSocket();
+  const { moveSoldier, moveRobber } = useSocket();
 
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
@@ -73,6 +73,15 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   }, []);
 
   const board = gameRoom?.board ?? null;
+
+  // A pending robber move (a 7 roll or a played knight card) makes valid
+  // hexes clickable for the pending player: clicking one places the robber.
+  const robberMove = gameRoom?.robberMove ?? null;
+  const robberPending = !!robberMove && robberMove.player === currentPlayer?.name;
+  const handleHexClick = (hexId: string) => {
+    if (!robberPending || !currentPlayer || !gameRoom) return;
+    moveRobber(currentPlayer.id, hexId, gameRoom.id);
+  };
 
   // Presentation state: projected vertices/edges/hexes. The board is always
   // fully selectable — building is done from the sidebar, so nothing is
@@ -267,10 +276,19 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           onWheel={viewport.onWheel}
           onDoubleClick={viewport.onDoubleClick}
         >
-          {/* Hex tiles layer */}
-          {hexes.map((hex) => (
-            <Hexagon key={hex.id} hex={hex} size={PROJ_SIZE} />
-          ))}
+          {/* Hex tiles layer (clickable while a robber move is pending) */}
+          {hexes.map((hex) => {
+            const isRobberTarget = robberPending && hex.terrain !== 'Desert' && !hex.hasRobber;
+            return (
+              <Hexagon
+                key={hex.id}
+                hex={hex}
+                size={PROJ_SIZE}
+                onClick={isRobberTarget ? handleHexClick : undefined}
+                highlight={isRobberTarget}
+              />
+            );
+          })}
 
           {/* Edges layer */}
           {edges.map((edge) => (

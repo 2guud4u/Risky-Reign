@@ -56,10 +56,15 @@ const DiceView: React.FC = () => {
           : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
     }`;
 
+  const sevenPending = gameRoom.robberMove?.reason === 'seven';
   const status = isDicePhase
-    ? isMyTurn
-      ? 'Click each die to roll it.'
-      : `Waiting for ${turn.player} to roll.`
+    ? sevenPending
+      ? isMyTurn
+        ? 'You rolled a 7 — click a highlighted hex to move the robber.'
+        : `${turn.player} rolled a 7 and must move the robber.`
+      : isMyTurn
+        ? 'Click each die to roll it.'
+        : `Waiting for ${turn.player} to roll.`
     : 'Dice are rolled during the Dice phase.';
 
   return (

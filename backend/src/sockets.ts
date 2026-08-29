@@ -11,6 +11,10 @@ import {
   canBuildRoadOn,
   canUpgradeSettlementToCity,
   canBuildSoldierAt,
+  canPlaceRobberOn,
+  placeRobber,
+  playersAdjacentToHex,
+  stealRandomCard,
   canMoveSoldierTo,
   canHealSoldierAt,
   HealSoldierPrice,
@@ -126,6 +130,8 @@ export function setupSocketHandlers(io: Server): void {
       }
       // Regenerate the game board.
       room.board = createBoard();
+      // The new board resets the robber to the desert; drop any pending move.
+      room.robberMove = null;
       applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);
     });
@@ -170,6 +176,7 @@ export function setupSocketHandlers(io: Server): void {
       room.turnState.player = 'X';
       room.gameStatus = room.players.length === 2 ? 'playing' : 'waiting';
       room.winner = null;
+      room.robberMove = null;
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', room);
     });
@@ -246,62 +253,27 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('error', { message: 'Invalid card index' });
         return;
       }
+      // A pending robber move (from a 7 or an earlier knight) must be
+      // resolved before this player plays another card.
+      if (room.robberMove && room.robberMove.player === player.name) {
+        socket.emit('error', { message: 'Move the robber before playing another card' });
+        return;
+      }
 
-      // Remove the card from hand and apply its effect.
-      player.developmentCards.splice(cardIndex, 1);
+      // The knight holds its card until the robber is placed (the moveRobber
+      // handler consumes it and performs the steal); every other card resolves
+      // immediately and is removed from the hand now.
+      if (card !== 'knight') {
+        player.developmentCards.splice(cardIndex, 1);
+      }
 
       switch (card) {
         case 'knight': {
-          // Knight: move robber to a random hex and steal from a player adjacent to it.
-          const board = room.board;
-          if (!board) break;
-          
-          // Find all hexes without the robber.
-          const validHexes = Object.values(board.hexes).filter(h => !h.robber && h.terrain !== 'Desert');
-          if (validHexes.length === 0) break;
-          
-          // Move robber to a random valid hex.
-          const targetHex = validHexes[Math.floor(Math.random() * validHexes.length)];
-          Object.values(board.hexes).forEach(h => h.robber = false);
-          targetHex.robber = true;
-          
-          // Find players adjacent to this hex (have settlements/roads on its vertices).
-          const adjacentPlayers = new Set<string>();
-          for (const vertexId of Object.keys(board.vertices)) {
-            const vertex = board.vertices[vertexId];
-            if (!vertex.hexIds.includes(targetHex.id)) continue;
-            
-            // Check for settlements.
-            if (vertex.settlementId) {
-              const settlement = board.settlements[vertex.settlementId];
-              if (settlement && settlement.ownerId !== player.name) {
-                adjacentPlayers.add(settlement.ownerId);
-              }
-            }
-            
-            // Check for roads.
-            for (const roadId of vertex.roadIds) {
-              const road = board.roads[roadId];
-              if (road && road.ownerId !== player.name) {
-                adjacentPlayers.add(road.ownerId);
-              }
-            }
-          }
-          
-          // Steal from a random adjacent player.
-          const stealFrom = Array.from(adjacentPlayers)[Math.floor(Math.random() * adjacentPlayers.size)];
-          if (stealFrom) {
-            const victim = room.players.find(p => p.name === stealFrom);
-            if (victim) {
-              // Find a resource type the victim has.
-              const availableResources = Object.entries(victim.resources).filter(([_, count]) => count > 0);
-              if (availableResources.length > 0) {
-                const [resourceType] = availableResources[Math.floor(Math.random() * availableResources.length)];
-                victim.resources[resourceType as keyof typeof victim.resources]--;
-                player.resources[resourceType as keyof typeof player.resources]++;
-              }
-            }
-          }
+          // Knight: the player chooses where to place the robber (see the
+          // moveRobber handler, which consumes the card and steals a card
+          // from a player adjacent to the chosen hex).
+          if (!room.board) break;
+          room.robberMove = { player: player.name, reason: 'knight' };
           break;
         }
 
@@ -372,9 +344,15 @@ export function setupSocketHandlers(io: Server): void {
         });
         return;
       }
-      // The Dice phase advances automatically once both dice are rolled.
+      // The Dice phase advances automatically once both dice are rolled —
+      // or, on a 7, once the robber has been moved.
       if (room.turnState.phase === 'Dice') {
-        socket.emit('error', { message: 'Roll both dice to end this phase' });
+        socket.emit('error', {
+          message:
+            room.robberMove?.reason === 'seven'
+              ? 'Move the robber before ending the Dice phase'
+              : 'Roll both dice to end this phase',
+        });
         return;
       }
       if (!room.board) {
@@ -412,6 +390,12 @@ export function setupSocketHandlers(io: Server): void {
         return;
       }
 
+      // A pending 7-robber move must be resolved before any further roll.
+      if (room.robberMove?.reason === 'seven') {
+        socket.emit('error', { message: 'Move the robber before rolling again' });
+        return;
+      }
+
       // One die per click: the first click rolls die 1, the second rolls die 2.
       const roll = room.roll;
       const value = Math.floor(Math.random() * 6) + 1;
@@ -420,18 +404,78 @@ export function setupSocketHandlers(io: Server): void {
       } else if (roll.die2 === null) {
         room.roll = { die1: roll.die1, die2: value };
       } else {
-        // Both dice already rolled — start a fresh roll.
-        room.roll = { die1: value, die2: null };
+        socket.emit('error', { message: 'Both dice are already rolled' });
+        return;
       }
 
-      // When both dice are in, pass out resources for the total and advance
-      // to the Trade phase automatically (no manual end-turn needed).
+      // When both dice are in: a 7 holds the Dice phase until the robber is
+      // moved (no payout — no hex carries a 7 token); any other total pays
+      // out resources and advances to the Trade phase automatically.
       if (room.roll.die1 !== null && room.roll.die2 !== null) {
-        const payouts = computePayouts(board, rollTotal(room.roll.die1, room.roll.die2));
-        applyPayouts(room.players, payouts);
-        console.log(`Roll ${room.roll.die1}+${room.roll.die2} paid out ${payouts.length} resource(s)`);
+        const total = rollTotal(room.roll.die1, room.roll.die2);
+        if (total === 7) {
+          room.robberMove = { player: dicePlayer, reason: 'seven' };
+          console.log(`Roll ${room.roll.die1}+${room.roll.die2} = 7: ${dicePlayer} must move the robber`);
+        } else {
+          const payouts = computePayouts(board, total);
+          applyPayouts(room.players, payouts);
+          console.log(`Roll ${room.roll.die1}+${room.roll.die2} paid out ${payouts.length} resource(s)`);
+          advanceTurn(room);
+        }
+      }
+
+      applyBonuses(room);
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    // Place the robber. Mandatory after a 7 roll (completes the Dice phase)
+    // and after a played knight card (consumes the card and steals a card
+    // from a random player adjacent to the chosen hex).
+    socket.on('moveRobber', (data: { roomId: string; playerId: string; hexId: string }) => {
+      const { roomId, playerId, hexId } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const board = room.board;
+      if (!board) {
+        socket.emit('error', { message: 'Game board is not available' });
+        return;
+      }
+      const player = room.players.find((p) => p.id === playerId);
+      if (!player) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+      // Only the player with a pending robber move may place it.
+      if (!room.robberMove || room.robberMove.player !== player.name) {
+        socket.emit('error', { message: 'You have no pending robber move' });
+        return;
+      }
+      const check = canPlaceRobberOn(board, hexId);
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Cannot place the robber there' });
+        return;
+      }
+
+      placeRobber(board, hexId);
+
+      if (room.robberMove.reason === 'knight') {
+        // Consume the knight card now that the robber is placed, then steal
+        // a random card from a random player adjacent to the chosen hex.
+        const cardIndex = player.developmentCards.indexOf('knight');
+        if (cardIndex !== -1) player.developmentCards.splice(cardIndex, 1);
+        const victims = playersAdjacentToHex(board, hexId, player.name);
+        const stolen = stealRandomCard(player, room.players, victims);
+        console.log(
+          `Knight: ${player.name} moved the robber to ${hexId} and ${stolen ? `stole a ${stolen}` : 'stole nothing'}`
+        );
+      } else {
+        // A 7: the robber move completes the Dice phase.
         advanceTurn(room);
       }
+      room.robberMove = null;
 
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });

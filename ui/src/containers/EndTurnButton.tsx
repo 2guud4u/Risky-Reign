@@ -78,19 +78,33 @@ const EndTurnButton: React.FC = () => {
     );
   }
 
-  // Dice: rolling both dice advances the phase automatically.
+  // Dice: rolling both dice advances the phase automatically — or, on a 7,
+  // moving the robber does.
   if (gameRoom.turnState.phase === 'Dice') {
+    const sevenPending = gameRoom.robberMove?.reason === 'seven';
     return (
       <div className="px-4 py-2 text-sm rounded-md border border-blue-200 bg-blue-50 text-blue-800">
         {isMyTurn ? (
-          <>
-            Roll both dice to continue
-            <span className="block text-xs text-blue-600 mt-0.5">
-              The phase ends automatically once both dice are rolled.
-            </span>
-          </>
+          sevenPending ? (
+            <>
+              Move the robber to continue
+              <span className="block text-xs text-blue-600 mt-0.5">
+                You rolled a 7 — click a highlighted hex on the board.
+              </span>
+            </>
+          ) : (
+            <>
+              Roll both dice to continue
+              <span className="block text-xs text-blue-600 mt-0.5">
+                The phase ends automatically once both dice are rolled.
+              </span>
+            </>
+          )
         ) : (
-          <>Waiting on {gameRoom.turnState.player} to roll the dice</>
+          <>
+            Waiting on {gameRoom.turnState.player} to{' '}
+            {sevenPending ? 'move the robber' : 'roll the dice'}
+          </>
         )}
       </div>
     );
