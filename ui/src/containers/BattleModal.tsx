@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { BattleState, SoldierBattleState, activeSoldiersOf, MAX_PER_ROUND } from 'common';
+import { SoldierBattleState, activeSoldiersOf } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import MiniView from './SideBar/MiniView';

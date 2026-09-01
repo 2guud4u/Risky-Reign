@@ -9,7 +9,7 @@ import { useGameRoom } from '../../contexts/GameContext';
  * lightweight indicator pointing at the battle location.
  */
 const BattleTab: React.FC<{ board: Board; battle: BattleState }> = ({ board, battle }) => {
-  const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
+  const { currentPlayer, setSelectedObject } = useGameRoom();
 
   const attacker = battle.states[battle.attacker]?.soldiers ?? [];
   const defender =
