@@ -48,17 +48,43 @@ export function playersAdjacentToHex(board: Board, hexId: HexId, excludeName?: s
 }
 
 /**
- * Steal one random resource card from a random player in `players` (chosen
- * among `victimNames`) and give it to `thief`. Returns the stolen resource
- * type, or null when no eligible victim holds any cards.
+ * Fixed resource order, shared by the backend (resolving a steal) and the UI
+ * (rendering the face-down cards). The card at index `i` is the same in both.
  */
-export function stealRandomCard(thief: Player, players: Player[], victimNames: string[]): ResourceKey | null {
-  const victims = players.filter((p) => victimNames.includes(p.name));
-  const withCards = victims.filter((p) => Object.values(p.resources).some((n) => n > 0));
-  if (withCards.length === 0) return null;
-  const victim = withCards[Math.floor(Math.random() * withCards.length)];
-  const held = (Object.entries(victim.resources) as [ResourceKey, number][]).filter(([, n]) => n > 0);
-  const [resource] = held[Math.floor(Math.random() * held.length)];
+export const RESOURCE_ORDER: ResourceKey[] = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'];
+
+/**
+ * Expand a resource count into the individual cards it represents, in
+ * `RESOURCE_ORDER` (e.g. { Wood: 2, Brick: 1 } -> [Wood, Wood, Brick]).
+ */
+export function expandCards(resources: Record<ResourceKey, number>): ResourceKey[] {
+  const cards: ResourceKey[] = [];
+  for (const resource of RESOURCE_ORDER) {
+    const count = resources[resource] ?? 0;
+    for (let i = 0; i < count; i++) cards.push(resource);
+  }
+  return cards;
+}
+
+/**
+ * Names among `victimNames` that hold at least one resource card (the
+ * eligible steal victims).
+ */
+export function eligibleVictims(players: Player[], victimNames: string[]): string[] {
+  return players
+    .filter((p) => victimNames.includes(p.name) && Object.values(p.resources).some((n) => n > 0))
+    .map((p) => p.name);
+}
+
+/**
+ * Take the card at `cardIndex` (see `expandCards`) from `victim` and give it
+ * to `thief`. Returns the stolen resource type, or null when the index is out
+ * of range.
+ */
+export function stealCard(thief: Player, victim: Player, cardIndex: number): ResourceKey | null {
+  const cards = expandCards(victim.resources);
+  if (cardIndex < 0 || cardIndex >= cards.length) return null;
+  const resource = cards[cardIndex];
   victim.resources[resource] -= 1;
   thief.resources[resource] += 1;
   return resource;

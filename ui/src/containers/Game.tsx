@@ -7,6 +7,7 @@ import DiceView from './DiceView';
 import ResourceCardsPanel from './ResourceCardsPanel';
 import PlayersList from './PlayersList';
 import RobberPrompt from './RobberPrompt';
+import StealPrompt from './StealPrompt';
 import BattleModal from './BattleModal';
 import DraggablePanel, { DefaultRect } from '../components/DraggablePanel';
 import { resetAllPanels } from '../components/DraggablePanel';
@@ -139,6 +140,9 @@ const Game: React.FC = () => {
       >
         <ResourceCardsPanel />
       </DraggablePanel>
+
+      {/* Steal prompt: the thief picks a face-down card from a victim. */}
+      <StealPrompt />
 
       {/* Separate battle window that opens for all players while combat is active. */}
       <BattleModal />

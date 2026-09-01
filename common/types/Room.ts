@@ -38,6 +38,18 @@ export interface RobberMoveRequest {
   player: string;
   reason: 'seven' | 'knight';
 }
+/**
+ * Pending steal. While set, the thief must resolve it via the `chooseSteal`
+ * event: they pick one face-down card from one of `victims`. A 'seven'
+ * holds the Dice phase until the steal resolves; a 'knight' is an action
+ * (no turn advance).
+ */
+export interface StealState {
+  thief: string;
+  /** Names of eligible victims (adjacent to the robber's hex, ≥ 1 card). */
+  victims: string[];
+  reason: 'seven' | 'knight';
+}
 export interface GameRoom {
   id: string;
   players: Player[];
@@ -52,6 +64,8 @@ export interface GameRoom {
   roll: RollResult;
   /** Pending robber placement (a 7 roll or a played knight card). */
   robberMove: RobberMoveRequest | null;
+  /** Pending steal (the thief picks a face-down card from a victim). */
+  steal: StealState | null;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
 }

@@ -14,7 +14,8 @@ import {
   canPlaceRobberOn,
   placeRobber,
   playersAdjacentToHex,
-  stealRandomCard,
+  eligibleVictims,
+  stealCard,
   canMoveSoldierTo,
   canHealSoldierAt,
   HealSoldierPrice,
@@ -345,13 +346,15 @@ export function setupSocketHandlers(io: Server): void {
         return;
       }
       // The Dice phase advances automatically once both dice are rolled —
-      // or, on a 7, once the robber has been moved.
+      // or, on a 7, once the robber has been moved and the steal resolved.
       if (room.turnState.phase === 'Dice') {
         socket.emit('error', {
           message:
             room.robberMove?.reason === 'seven'
               ? 'Move the robber before ending the Dice phase'
-              : 'Roll both dice to end this phase',
+              : room.steal?.reason === 'seven'
+                ? 'Resolve the steal before ending the Dice phase'
+                : 'Roll both dice to end this phase',
         });
         return;
       }
@@ -390,9 +393,10 @@ export function setupSocketHandlers(io: Server): void {
         return;
       }
 
-      // A pending 7-robber move must be resolved before any further roll.
-      if (room.robberMove?.reason === 'seven') {
-        socket.emit('error', { message: 'Move the robber before rolling again' });
+      // A pending 7 (robber move or steal) must be resolved before any
+      // further roll.
+      if (room.robberMove?.reason === 'seven' || room.steal?.reason === 'seven') {
+        socket.emit('error', { message: 'Resolve the 7 before rolling again' });
         return;
       }
 
@@ -428,9 +432,10 @@ export function setupSocketHandlers(io: Server): void {
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
-    // Place the robber. Mandatory after a 7 roll (completes the Dice phase)
-    // and after a played knight card (consumes the card and steals a card
-    // from a random player adjacent to the chosen hex).
+    // Place the robber. Mandatory after a 7 roll and after a played knight
+    // card. After the robber is placed, the thief chooses which card to steal
+    // from a face-down card of an adjacent player (the `chooseSteal` event);
+    // a 7 holds the Dice phase until the steal resolves.
     socket.on('moveRobber', (data: { roomId: string; playerId: string; hexId: string }) => {
       const { roomId, playerId, hexId } = data;
       const room = gameRooms.get(roomId);
@@ -460,22 +465,72 @@ export function setupSocketHandlers(io: Server): void {
       }
 
       placeRobber(board, hexId);
+      const reason = room.robberMove.reason;
 
-      if (room.robberMove.reason === 'knight') {
-        // Consume the knight card now that the robber is placed, then steal
-        // a random card from a random player adjacent to the chosen hex.
+      if (reason === 'knight') {
+        // Consume the knight card now that the robber is placed.
         const cardIndex = player.developmentCards.indexOf('knight');
         if (cardIndex !== -1) player.developmentCards.splice(cardIndex, 1);
-        const victims = playersAdjacentToHex(board, hexId, player.name);
-        const stolen = stealRandomCard(player, room.players, victims);
+      }
+
+      // Eligible victims: players adjacent to the chosen hex holding ≥ 1 card.
+      const adjacent = playersAdjacentToHex(board, hexId, player.name);
+      const victims = eligibleVictims(room.players, adjacent);
+
+      if (victims.length > 0) {
+        // Enter the steal phase: the thief picks a face-down card from a
+        // victim. A 7 holds the Dice phase until the steal resolves.
+        room.steal = { thief: player.name, victims, reason };
         console.log(
-          `Knight: ${player.name} moved the robber to ${hexId} and ${stolen ? `stole a ${stolen}` : 'stole nothing'}`
+          `${reason === 'knight' ? 'Knight' : 'Roll 7'}: ${player.name} moved the robber to ${hexId}; choosing a card to steal from: ${victims.join(', ')}`
         );
       } else {
-        // A 7: the robber move completes the Dice phase.
-        advanceTurn(room);
+        // No eligible victim: a 7 completes the Dice phase; a knight is done.
+        if (reason === 'seven') advanceTurn(room);
+        console.log(`${reason === 'knight' ? 'Knight' : 'Roll 7'}: ${player.name} moved the robber to ${hexId} (no one to steal from)`);
       }
       room.robberMove = null;
+
+      applyBonuses(room);
+      io.to(roomId).emit('gameUpdate', { ...room });
+    });
+
+    // Resolve a pending steal: the thief takes the face-down card at
+    // `cardIndex` from `victimName`. A 7 completes the Dice phase afterward.
+    socket.on('chooseSteal', (data: { roomId: string; playerId: string; victimName: string; cardIndex: number }) => {
+      const { roomId, playerId, victimName, cardIndex } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const player = room.players.find((p) => p.id === playerId);
+      if (!player) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+      if (!room.steal || room.steal.thief !== player.name) {
+        socket.emit('error', { message: 'You have no pending steal' });
+        return;
+      }
+      if (!room.steal.victims.includes(victimName)) {
+        socket.emit('error', { message: 'That player is not a valid steal target' });
+        return;
+      }
+      const victim = room.players.find((p) => p.name === victimName);
+      if (!victim) {
+        socket.emit('error', { message: 'Steal target not found' });
+        return;
+      }
+      const stolen = stealCard(player, victim, cardIndex);
+      if (!stolen) {
+        socket.emit('error', { message: 'Invalid card selection' });
+        return;
+      }
+      const reason = room.steal.reason;
+      room.steal = null;
+      if (reason === 'seven') advanceTurn(room);
+      console.log(`${reason === 'knight' ? 'Knight' : 'Roll 7'}: ${player.name} stole a ${stolen} from ${victimName}`);
 
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });

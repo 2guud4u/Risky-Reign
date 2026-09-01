@@ -30,6 +30,7 @@ interface SocketContextType {
   buildSoldier: (playerId: string, vertexId: string, roomId: string) => void;
   moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   moveRobber: (playerId: string, hexId: string, roomId: string) => void;
+  chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
   healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) => void;
   rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
@@ -62,6 +63,7 @@ const SocketContext = createContext<SocketContextType>({
   buildSoldier: () => { },
   moveSoldier: () => { },
   moveRobber: () => { },
+  chooseSteal: () => { },
   healSoldier: () => { },
   startAttack: () => { },
   rollBattleDie: () => { },
@@ -103,9 +105,11 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
     emitAction(socket, 'moveSoldier', { roomId, playerId, soldierId, targetVertexId }, { requirePlayerId: true });
-
   const moveRobber = (playerId: string, hexId: string, roomId: string) =>
     emitAction(socket, 'moveRobber', { roomId, playerId, hexId }, { requirePlayerId: true });
+
+  const chooseSteal = (playerId: string, victimName: string, cardIndex: number, roomId: string) =>
+    emitAction(socket, 'chooseSteal', { roomId, playerId, victimName, cardIndex }, { requirePlayerId: true });
 
   const healSoldier = (playerId: string, soldierId: string, roomId: string) =>
     emitAction(socket, 'healSoldier', { roomId, playerId, soldierId }, { requirePlayerId: true });
@@ -202,6 +206,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         buildSoldier,
         moveSoldier,
         moveRobber,
+        chooseSteal,
         healSoldier,
         startAttack,
         rollBattleDie,
