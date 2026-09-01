@@ -19,7 +19,7 @@ const RobberPrompt: React.FC = () => {
 
   return (
     <div
-      className={`px-4 py-2 text-sm rounded-md border ${
+      className={`fixed top-3 left-1/2 -translate-x-1/2 z-40 px-4 py-2 text-sm rounded-md border shadow-lg ${
         isMe ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-gray-200 bg-gray-50 text-gray-600'
       }`}
     >
@@ -27,5 +27,4 @@ const RobberPrompt: React.FC = () => {
     </div>
   );
 };
-
 export default RobberPrompt;

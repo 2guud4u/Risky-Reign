@@ -26,6 +26,6 @@ export function savePanelLayout(key: string, layout: SavedPanelLayout): void {
   try {
     sessionStorage.setItem(PREFIX + key, JSON.stringify(layout));
   } catch {
-    // ignore
+    // Storage unavailable (private mode / quota) — the layout just won't persist.
   }
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameRoom } from '../../contexts/GameContext';
-import DraggablePanel from '../../components/DraggablePanel';
+import DraggablePanel, { DefaultRect } from '../../components/DraggablePanel';
 import Vertex from './Vertex';
 import Edge from './Edge';
 import TradeTab from './TradeTab';
@@ -15,7 +15,12 @@ type Tab = 'board' | 'trade' | 'battle';
  * and Battle (visible while combat is active). The whole panel can be dragged
  * by its grip handle (see DraggablePanel).
  */
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  layout: DefaultRect | null;
+  onMeasure?: (size: { w: number; h: number }) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
   const [tab, setTab] = React.useState<Tab>('board');
   const { gameRoom, currentPlayer, selectedObject } = useGameRoom();
   const board = gameRoom?.board ?? null;
@@ -60,32 +65,36 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <DraggablePanel id="sidebar" className={`${cardClass} w-[280px] max-h-[92vh] overflow-y-auto`}>
-      <div className="flex -mt-1">
-        <button type="button" className={tabClass(tab === 'board')} onClick={() => switchTab('board')}>
-          Board
-        </button>
-        <button type="button" className={tabClass(tab === 'trade')} onClick={() => switchTab('trade')}>
-          Trade{incomingCount > 0 && (
-            <span className="ml-1.5 inline-block px-1.5 rounded-full bg-blue-600 text-white text-[11px]">
-              {incomingCount}
-            </span>
-          )}
-        </button>
-        {battle && (
-          <button type="button" className={tabClass(tab === 'battle')} onClick={() => switchTab('battle')}>
-            ⚔ Battle
+    <DraggablePanel id="sidebar" layout={layout} onMeasure={onMeasure} minHeight={110} className={`${cardClass} w-[280px]`}>
+      <div className="flex flex-col h-full min-h-0">
+        <div className="flex -mt-1 shrink-0">
+          <button type="button" className={tabClass(tab === 'board')} onClick={() => switchTab('board')}>
+            Board
           </button>
-        )}
-      </div>
+          <button type="button" className={tabClass(tab === 'trade')} onClick={() => switchTab('trade')}>
+            Trade{incomingCount > 0 && (
+              <span className="ml-1.5 inline-block px-1.5 rounded-full bg-blue-600 text-white text-[11px]">
+                {incomingCount}
+              </span>
+            )}
+          </button>
+          {battle && (
+            <button type="button" className={tabClass(tab === 'battle')} onClick={() => switchTab('battle')}>
+              ⚔ Battle
+            </button>
+          )}
+        </div>
 
-      {tab === 'board' ? (
-        renderBoardTab()
-      ) : tab === 'battle' && battle ? (
-        <BattleTab board={board} battle={battle} />
-      ) : (
-        <TradeTab />
-      )}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {tab === 'board' ? (
+            renderBoardTab()
+          ) : tab === 'battle' && battle ? (
+            <BattleTab board={board} battle={battle} />
+          ) : (
+            <TradeTab />
+          )}
+        </div>
+      </div>
     </DraggablePanel>
   );
 };
