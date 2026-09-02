@@ -14,7 +14,10 @@ make sure we can track soldier action
 
 add action cards
 fix robber, make it drag robber to wher ever and make new card pop up that lets you select a card face down to take away only resources
-
+robber should flash up and down and be ready to be dragged
 finish out base catan
+allow dragging of soldiers in the mini map
 
+add port trades
 
+clean up repo

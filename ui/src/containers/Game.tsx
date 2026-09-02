@@ -8,6 +8,7 @@ import ResourceCardsPanel from './ResourceCardsPanel';
 import PlayersList from './PlayersList';
 import RobberPrompt from './RobberPrompt';
 import StealPrompt from './StealPrompt';
+import DevCardPrompt from './DevCardPrompt';
 import ResourceGainLayer from '../components/ResourceGainLayer';
 import BattleModal from './BattleModal';
 import DraggablePanel, { DefaultRect } from '../components/DraggablePanel';
@@ -144,6 +145,9 @@ const Game: React.FC = () => {
 
       {/* Steal prompt: the thief picks a face-down card from a victim. */}
       <StealPrompt />
+
+      {/* Development card choice: Year of Plenty / Monopoly. */}
+      <DevCardPrompt />
 
       {/* Resource gain animation: cards fly from the source to the panel. */}
       <ResourceGainLayer />

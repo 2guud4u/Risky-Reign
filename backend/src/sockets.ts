@@ -37,6 +37,7 @@ import {
   DevelopmentCardPrice,
   canAfford,
   applyBonuses,
+  ResourceKey,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -203,7 +204,11 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('error', { message: 'Player not found in room' });
         return;
       }
-      // Development cards can only be bought on your own turn.
+      // Development cards can only be bought during the Build phase, on your own turn.
+      if (room.turnState.phase !== 'Build') {
+        socket.emit('error', { message: 'You can only buy development cards during the Build phase' });
+        return;
+      }
       if (room.turnState.player !== player.name) {
         socket.emit('error', { message: 'You can only buy development cards on your turn' });
         return;
@@ -222,7 +227,12 @@ export function setupSocketHandlers(io: Server): void {
       // Pay and draw the top card of the deck.
       player.resources = subtractPrice(player.resources, DevelopmentCardPrice);
       const card = room.devCardDeck.pop()!;
-      player.developmentCards.push(card);
+      // Victory Point cards are counted immediately (no "play" step).
+      if (card === 'victory_point') {
+        player.victoryPoints++;
+      } else {
+        player.developmentCards.push(card);
+      }
 
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
@@ -317,16 +327,80 @@ export function setupSocketHandlers(io: Server): void {
           break;
         }
 
-        case 'victory_point': {
-          // Victory Point: gain 1 victory point.
-          player.victoryPoints++;
-          break;
-        }
       }
 
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
+
+    // Resolve a pending development-card choice (Year of Plenty / Monopoly).
+    socket.on(
+      'resolveDevCardChoice',
+      (data: { roomId: string; playerId: string; resources: string[] }) => {
+        const { roomId, playerId, resources } = data;
+        const room = gameRooms.get(roomId);
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+        const player = room.players.find((p) => p.id === playerId);
+        if (!player) {
+          socket.emit('error', { message: 'Player not found in room' });
+          return;
+        }
+        if (!room.devCardChoice || room.devCardChoice.player !== player.name) {
+          socket.emit('error', { message: 'No pending card choice' });
+          return;
+        }
+        const validResources: ResourceKey[] = [
+          'Wood',
+          'Brick',
+          'Sheep',
+          'Wheat',
+          'Ore',
+        ];
+        if (room.devCardChoice.card === 'year_of_plenty') {
+          // Year of Plenty: take the 2 chosen resources from the bank.
+          if (resources.length !== 2) {
+            socket.emit('error', { message: 'Choose exactly 2 resources' });
+            return;
+          }
+          for (const r of resources) {
+            if (!validResources.includes(r as ResourceKey)) {
+              socket.emit('error', { message: 'Invalid resource' });
+              return;
+            }
+            player.resources[r as ResourceKey]++;
+          }
+        } else {
+          // Monopoly: all other players give their cards of the chosen type.
+          if (resources.length !== 1) {
+            socket.emit('error', { message: 'Choose exactly 1 resource' });
+            return;
+          }
+          const chosenResource = resources[0] as ResourceKey;
+          if (!validResources.includes(chosenResource)) {
+            socket.emit('error', { message: 'Invalid resource' });
+            return;
+          }
+          for (const otherPlayer of room.players) {
+            if (
+              otherPlayer.name !== player.name &&
+              otherPlayer.resources[chosenResource] > 0
+            ) {
+              const amount = otherPlayer.resources[chosenResource];
+              otherPlayer.resources[chosenResource] = 0;
+              player.resources[chosenResource] += amount;
+            }
+          }
+        }
+        // Consume the held card and clear the pending choice.
+        player.developmentCards.splice(room.devCardChoice.cardIndex, 1);
+        room.devCardChoice = null;
+        applyBonuses(room);
+        io.to(roomId).emit('gameUpdate', { ...room });
+      }
+    );
 
     // Handle game logic.
     socket.on('endTurn', (data: { roomId: string }) => {
