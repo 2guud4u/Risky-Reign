@@ -13,6 +13,7 @@ export function emptyBonuses() {
     largestArmy: {},
     hasLongestRoad: {},
     hasLargestArmy: {},
+    settlementVp: {},
   };
 }
 

@@ -25,6 +25,19 @@ export function countSoldiers(board: Board, playerName: string): number {
 }
 
 /**
+ * Victory points from a player's settlements (1 VP each) and cities (2 VP each).
+ */
+export function countSettlementVp(board: Board, playerName: string): number {
+  let vp = 0;
+  for (const s of Object.values(board.settlements)) {
+    if (s.ownerId === playerName) {
+      vp += s.level === 'city' ? 2 : 1;
+    }
+  }
+  return vp;
+}
+
+/**
  * Longest continuous road chain for a player: the maximum number of roads
  * connected end-to-end (a road's endpoints are its two vertices). Returns 0
  * when the player has no roads.
@@ -70,9 +83,11 @@ export function applyBonuses(room: GameRoom): void {
   const names = room.players.map((p) => p.name);
   const road: Record<string, number> = {};
   const army: Record<string, number> = {};
+  const settlementVp: Record<string, number> = {};
   for (const name of names) {
     road[name] = room.board ? longestRoadLength(room.board, name) : 0;
     army[name] = room.board ? countSoldiers(room.board, name) : 0;
+    settlementVp[name] = room.board ? countSettlementVp(room.board, name) : 0;
   }
 
   const maxRoad = names.length > 0 ? Math.max(...names.map((n) => road[n])) : 0;
@@ -91,12 +106,15 @@ export function applyBonuses(room: GameRoom): void {
     const wasArmy = prev?.hasLargestArmy?.[p.name] ?? false;
     const isRoad = hasLongestRoad[p.name] ?? false;
     const isArmy = hasLargestArmy[p.name] ?? false;
+    const wasSettlement = prev?.settlementVp?.[p.name] ?? 0;
+    const isSettlement = settlementVp[p.name] ?? 0;
     p.victoryPoints +=
       (isRoad ? BONUS_VP : 0) -
       (wasRoad ? BONUS_VP : 0) +
       (isArmy ? BONUS_VP : 0) -
-      (wasArmy ? BONUS_VP : 0);
+      (wasArmy ? BONUS_VP : 0) +
+      (isSettlement - wasSettlement);
   }
 
-  room.bonuses = { longestRoad: road, largestArmy: army, hasLongestRoad, hasLargestArmy };
+  room.bonuses = { longestRoad: road, largestArmy: army, hasLongestRoad, hasLargestArmy, settlementVp };
 }

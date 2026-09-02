@@ -27,6 +27,8 @@ export interface RoomBonuses {
   hasLongestRoad: Record<string, boolean>;
   /** Players currently holding the Largest Army bonus (2 VP). */
   hasLargestArmy: Record<string, boolean>;
+  /** Victory points from settlements (1 VP) and cities (2 VP), per player. */
+  settlementVp: Record<string, number>;
 }
 
 /**
