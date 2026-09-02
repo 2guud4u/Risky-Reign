@@ -52,6 +52,18 @@ export interface StealState {
   victims: string[];
   reason: 'seven' | 'knight';
 }
+/**
+ * Pending development-card choice. While set, the named player must resolve
+ * it via the `resolveDevCardChoice` event: Year of Plenty picks 2 resources
+ * from the bank; Monopoly names 1 resource type (all other players give
+ * their cards of that type). The card is held in the hand until resolved.
+ */
+export interface DevCardChoice {
+  player: string;
+  card: 'year_of_plenty' | 'monopoly';
+  /** Index of the held card in the player's hand. */
+  cardIndex: number;
+}
 export interface GameRoom {
   id: string;
   players: Player[];
@@ -68,6 +80,8 @@ export interface GameRoom {
   robberMove: RobberMoveRequest | null;
   /** Pending steal (the thief picks a face-down card from a victim). */
   steal: StealState | null;
+  /** Pending development-card choice (Year of Plenty / Monopoly). */
+  devCardChoice: DevCardChoice | null;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
 }

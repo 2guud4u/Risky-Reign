@@ -51,6 +51,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     roll: { die1: null, die2: null },
     robberMove: null,
     steal: null,
+    devCardChoice: null,
     bonuses: emptyBonuses(),
   };
   gameRooms.set(roomId, room);

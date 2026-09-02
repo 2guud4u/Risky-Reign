@@ -262,6 +262,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         )}
         <svg
           ref={svgRef}
+          data-board-svg="true"
           width={renderSize}
           height={renderSize}
           viewBox={viewport.viewBox}

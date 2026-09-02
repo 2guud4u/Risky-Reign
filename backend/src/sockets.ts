@@ -260,11 +260,21 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('error', { message: 'Move the robber before playing another card' });
         return;
       }
+      // A pending development-card choice (Year of Plenty / Monopoly) must
+      // be resolved before this player plays another card.
+      if (room.devCardChoice && room.devCardChoice.player === player.name) {
+        socket.emit('error', { message: 'Resolve your card choice before playing another card' });
+        return;
+      }
 
       // The knight holds its card until the robber is placed (the moveRobber
-      // handler consumes it and performs the steal); every other card resolves
-      // immediately and is removed from the hand now.
-      if (card !== 'knight') {
+      // handler consumes it and performs the steal); Year of Plenty and
+      // Monopoly hold their cards until the player makes their choice (the
+      // resolveDevCardChoice handler consumes them); every other card
+      // resolves immediately and is removed from the hand now.
+      const holdsCard =
+        card === 'knight' || card === 'year_of_plenty' || card === 'monopoly';
+      if (!holdsCard) {
         player.developmentCards.splice(cardIndex, 1);
       }
 
@@ -285,33 +295,25 @@ export function setupSocketHandlers(io: Server): void {
         }
 
         case 'year_of_plenty': {
-          // Year of Plenty: take any 2 resources from the bank.
-          const resourceTypes = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'] as const;
-          
-          // Take 1 random resource twice (or 2 different if possible).
-          for (let i = 0; i < 2; i++) {
-            const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
-            player.resources[resourceType]++;
-          }
+          // Year of Plenty: the player chooses 2 resources to take from the
+          // bank (see the resolveDevCardChoice handler).
+          room.devCardChoice = {
+            player: player.name,
+            card: 'year_of_plenty',
+            cardIndex,
+          };
           break;
         }
 
         case 'monopoly': {
-          // Monopoly: name one resource type, all other players give you their cards of that type.
-          const resourceTypes = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'] as const;
-          
-          // Pick a random resource type for this implementation.
-          // In full game, player would choose which type.
-          const chosenResource = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
-          
-          // Collect from all other players.
-          for (const otherPlayer of room.players) {
-            if (otherPlayer.name !== player.name && otherPlayer.resources[chosenResource] > 0) {
-              const amount = otherPlayer.resources[chosenResource];
-              otherPlayer.resources[chosenResource] = 0;
-              player.resources[chosenResource] += amount;
-            }
-          }
+          // Monopoly: the player names a resource type; all other players
+          // give their cards of that type (see the resolveDevCardChoice
+          // handler).
+          room.devCardChoice = {
+            player: player.name,
+            card: 'monopoly',
+            cardIndex,
+          };
           break;
         }
 

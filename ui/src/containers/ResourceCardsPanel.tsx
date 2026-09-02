@@ -41,7 +41,7 @@ const ResourceCardsPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3" data-resource-panel="true">
       {/* Resource cards: one card per resource type. */}
       <div>
         <div className="text-[12px] font-semibold text-gray-600 mb-1">
