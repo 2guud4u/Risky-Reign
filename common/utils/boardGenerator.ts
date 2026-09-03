@@ -28,25 +28,23 @@ import { computeAdjacency } from './adjacency';
 export { HexLayout };
 
 /**
- * Assign trade ports (harbors) to 10 boundary vertices (1-hex vertices):
- * 5 generic (3:1) + 5 special (2:1, one per resource). Ports are placed
- * evenly around the board by sorting boundary vertices by angle from center.
+ * Assign trade ports (harbors) to boundary vertices (1-hex vertices):
+ * 5 generic (3:1) + 5 special (2:1, one per resource), interleaved and
+ * spread evenly around the board by sorting boundary vertices by angle
+ * from center and stepping through them at `count / total`.
  */
 function assignPorts(vertices: Record<string, VertexNode>): void {
   const boundary = Object.values(vertices)
     .filter((v) => v.hexIds.length === 1)
-    .sort((a, b) => {
-      const angleA = Math.atan2(a.position.y, a.position.x);
-      const angleB = Math.atan2(b.position.y, b.position.x);
-      return angleA - angleB;
-    });
-  // Pick 10 evenly-spaced boundary vertices.
-  const ports: PortType[] = [
-    'Sheep', 'generic', 'Wheat', 'generic', 'Ore',
-  ];
-  const step = Math.max(1, Math.floor(boundary.length / ports.length));
+    .sort((a, b) => Math.atan2(a.position.y, a.position.x) - Math.atan2(b.position.y, b.position.x));
+  // One special port per resource, each followed by a generic port.
+  const special: PortType[] = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'];
+  const ports: PortType[] = [];
+  for (const res of special) ports.push(res, 'generic');
+  // Evenly space `ports.length` markers across the boundary ring.
+  const step = boundary.length / ports.length;
   for (let i = 0; i < ports.length; i++) {
-    const v = boundary[i * step];
+    const v = boundary[Math.floor(i * step)];
     if (v) v.port = ports[i];
   }
 }

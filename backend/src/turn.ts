@@ -60,7 +60,6 @@ export function advanceTurn(room: GameRoom): void {
     case 'Dice':
       // Same player continues to Trade phase.
       room.turnState = { ...turnState, phase: 'Trade' };
-      console.log('Dice rolled, moving to Trade phase');
       break;
 
     case 'Trade':

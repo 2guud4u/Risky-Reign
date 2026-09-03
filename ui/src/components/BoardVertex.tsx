@@ -1,5 +1,5 @@
 import React from 'react';
-import { BoardVertex as BoardVertexType } from 'common';
+import { BoardVertex as BoardVertexType, PortType, PixelCoord } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 
 interface BoardVertexProps extends BoardVertexType {
@@ -9,6 +9,55 @@ interface BoardVertexProps extends BoardVertexType {
   /** Owner's chosen color, used to tint the settlement. */
   ownerColor?: string;
 }
+
+// Port (harbor) presentation constants — all sized relative to the vertex `size`.
+const PORT_OFFSET = 5; // how far past the vertex the badge sits (into the water)
+const PORT_RADIUS = 2.2; // badge radius
+const PORT_INNER = 0.72; // inner "water" circle, as a fraction of the badge radius
+const PORT_TEXT = 1.7; // glyph font size
+const PORT_GENERIC_FILL = '#7a4a1f';
+const PORT_SPECIAL_FILL = '#3f7fb5';
+const PORT_STROKE = '#1e2a38';
+const PORT_WATER = '#cfe8f7';
+
+/**
+ * A trade port (harbor) marker. Positioned radially outward from the board
+ * center so it sits on the coast (in the water), never on top of a hex.
+ */
+const PortIcon: React.FC<{ position: PixelCoord; port: PortType; size: number }> = ({
+  position,
+  port,
+  size,
+}) => {
+  const dist = Math.hypot(position.x, position.y);
+  const offset = size * PORT_OFFSET;
+  const x = dist > 0 ? position.x + (position.x / dist) * offset : position.x;
+  const y = dist > 0 ? position.y + (position.y / dist) * offset : position.y;
+  const isGeneric = port === 'generic';
+  return (
+    <g>
+      <circle
+        cx={x}
+        cy={y}
+        r={size * PORT_RADIUS}
+        fill={isGeneric ? PORT_GENERIC_FILL : PORT_SPECIAL_FILL}
+        stroke={PORT_STROKE}
+        strokeWidth={1.5}
+        opacity={0.97}
+      />
+      <circle cx={x} cy={y} r={size * PORT_RADIUS * PORT_INNER} fill={PORT_WATER} opacity={0.9} />
+      <text
+        x={x}
+        y={y}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={size * PORT_TEXT}
+      >
+        {isGeneric ? '⛵' : RESOURCE_ICONS[port as keyof typeof RESOURCE_ICONS]}
+      </text>
+    </g>
+  );
+};
 
 export const BoardVertex: React.FC<BoardVertexProps> = ({
   id,
@@ -101,50 +150,8 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
           </text>
         </g>
       )}
-      {/* Port icon — sits on the coast (radially outward from the board
-          center, in the water) so it never overlaps a hex. Styled like a
-          Catan harbor: a round badge floating in the sea with a ship or
-          resource glyph. */}
-      {port &&
-        (() => {
-          const dist = Math.hypot(position.x, position.y);
-          const dirX = dist > 0 ? position.x / dist : 0;
-          const dirY = dist > 0 ? position.y / dist : 0;
-          // Push the badge out into the water, past the hex edge.
-          const offset = size * 5;
-          const portX = position.x + dirX * offset;
-          const portY = position.y + dirY * offset;
-          const r = size * 2.2;
-          return (
-            <g>
-              <circle
-                cx={portX}
-                cy={portY}
-                r={r}
-                fill={port === 'generic' ? '#7a4a1f' : '#3f7fb5'}
-                stroke="#1e2a38"
-                strokeWidth={1.5}
-                opacity={0.97}
-              />
-              <circle
-                cx={portX}
-                cy={portY}
-                r={r * 0.72}
-                fill="#cfe8f7"
-                opacity={0.9}
-              />
-              <text
-                x={portX}
-                y={portY}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={size * 1.7}
-              >
-                {port === 'generic' ? '⛵' : RESOURCE_ICONS[port as keyof typeof RESOURCE_ICONS]}
-              </text>
-            </g>
-          );
-        })()}
+      {/* Port icon (harbor) — rendered on the coast, never on a hex. */}
+      {port && <PortIcon position={position} port={port} size={size} />}
 
       {/* Selection ring */}
       {isSelected && (

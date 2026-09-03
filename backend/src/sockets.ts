@@ -51,7 +51,6 @@ import { advanceTurn } from './turn';
  */
 export function setupSocketHandlers(io: Server): void {
   io.on('connection', (socket: Socket) => {
-    console.log('User connected:', socket.id);
 
     // Join or create a game room.
     socket.on('joinRoom', (data: { roomId: string; playerName: string; color?: string }) => {
@@ -72,7 +71,6 @@ export function setupSocketHandlers(io: Server): void {
         socket.join(roomId);
         applyBonuses(room);
         io.to(roomId).emit('roomUpdate', room);
-        console.log(`Player ${playerName} re-attached to room ${roomId}`);
         return;
       }
 
@@ -123,7 +121,6 @@ export function setupSocketHandlers(io: Server): void {
       // Send updated room state to all players.
       applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);
-      console.log(`Player ${playerName} joined room ${roomId}`);
     });
 
     socket.on('refreshMap', (data: { roomId: string }) => {
@@ -188,7 +185,6 @@ export function setupSocketHandlers(io: Server): void {
 
     // Handle disconnect.
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
       // Keep the player in the room so a reload / reconnect can re-attach.
       // The room and game state are intentionally NOT reset on disconnect.
     });
@@ -441,7 +437,6 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('error', { message: 'Game board is not available' });
         return;
       }
-      console.log(`Ending turn for player: ${room.turnState.player}`);
       advanceTurn(room);
       // Notify all players in the room about the turn end.
       applyBonuses(room);
@@ -498,11 +493,9 @@ export function setupSocketHandlers(io: Server): void {
         const total = rollTotal(room.roll.die1, room.roll.die2);
         if (total === 7) {
           room.robberMove = { player: dicePlayer, reason: 'seven' };
-          console.log(`Roll ${room.roll.die1}+${room.roll.die2} = 7: ${dicePlayer} must move the robber`);
         } else {
           const payouts = computePayouts(board, total);
           applyPayouts(room.players, payouts);
-          console.log(`Roll ${room.roll.die1}+${room.roll.die2} paid out ${payouts.length} resource(s)`);
           advanceTurn(room);
         }
       }
@@ -560,13 +553,9 @@ export function setupSocketHandlers(io: Server): void {
         // Enter the steal phase: the thief picks a face-down card from a
         // victim. A 7 holds the Dice phase until the steal resolves.
         room.steal = { thief: player.name, victims, reason };
-        console.log(
-          `${reason === 'knight' ? 'Knight' : 'Roll 7'}: ${player.name} moved the robber to ${hexId}; choosing a card to steal from: ${victims.join(', ')}`
-        );
       } else {
         // No eligible victim: a 7 completes the Dice phase; a knight is done.
         if (reason === 'seven') advanceTurn(room);
-        console.log(`${reason === 'knight' ? 'Knight' : 'Roll 7'}: ${player.name} moved the robber to ${hexId} (no one to steal from)`);
       }
       room.robberMove = null;
 
@@ -609,14 +598,12 @@ export function setupSocketHandlers(io: Server): void {
       const reason = room.steal.reason;
       room.steal = null;
       if (reason === 'seven') advanceTurn(room);
-      console.log(`${reason === 'knight' ? 'Knight' : 'Roll 7'}: ${player.name} stole a ${stolen} from ${victimName}`);
 
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
     });
 
     socket.on('buildSettlement', (data: { roomId: string; playerId: string; vertexId: string }) => {
-      console.log('building settlement');
       const { roomId, playerId, vertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
@@ -683,7 +670,6 @@ export function setupSocketHandlers(io: Server): void {
     });
 
     socket.on('buildRoad', (data: { roomId: string; playerId: string; edgeId: string }) => {
-      console.log('building road');
       const { roomId, playerId, edgeId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
@@ -750,7 +736,6 @@ export function setupSocketHandlers(io: Server): void {
     });
 
     socket.on('upgradeSettlementToCity', (data: { roomId: string; playerId: string; vertexId: string }) => {
-      console.log('upgrading settlement to city');
       const { roomId, playerId, vertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
@@ -805,7 +790,6 @@ export function setupSocketHandlers(io: Server): void {
     });
 
     socket.on('buildSoldier', (data: { roomId: string; playerId: string; vertexId: string }) => {
-      console.log('building soldier');
       const { roomId, playerId, vertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
@@ -854,7 +838,6 @@ export function setupSocketHandlers(io: Server): void {
     });
 
     socket.on('moveSoldier', (data: { roomId: string; playerId: string; soldierId: string; targetVertexId: string }) => {
-      console.log('moving soldier');
       const { roomId, playerId, soldierId, targetVertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {

@@ -126,6 +126,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   // Pan/zoom over the board's coordinate space (viewBox-based).
   const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
+  // 1.2 leaves margin past the hex ring so the trade ports (which sit in the
+  // water beyond the board edge) are not clipped by the viewBox.
   const baseSize = 1.2 * PROJ_SIZE * boardSpan;
   const viewport = useBoardViewport(svgRef, baseSize);
 

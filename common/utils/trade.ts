@@ -142,6 +142,11 @@ function hasSettlementOnVertex(board: Board, v: VertexNode, player: Player): boo
 }
 
 /**
+ * Check whether a player can trade with the bank. Uses the best available
+ * ratio (2:1 on a matching special port, 3:1 on a generic port, else 4:1)
+ * and validates the trade: valid distinct resources, enough to give, and
+ * within the per-turn supply limit.
+ *
  * @param room - the game room
  * @param playerName - the player attempting the trade
  * @param giveResource - the resource to give (per unit)
