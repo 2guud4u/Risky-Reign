@@ -1,4 +1,4 @@
-import { EdgeId, HexId, VertexId } from './Board';
+import type { EdgeId, HexId, VertexId, PortType } from './Board';
 import { PixelCoord } from './Coordinates';
 
 /**
@@ -17,6 +17,8 @@ export interface BoardVertex {
   adjacentVertexIds: VertexId[];
   isHovered: boolean;
   isSelected: boolean;
+  /** Trade port (harbor) at this vertex: null, generic (3:1), or a special resource (2:1). */
+  port: PortType | null;
 }
 
 export interface BoardEdge {

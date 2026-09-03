@@ -60,7 +60,7 @@ const DiceView: React.FC = () => {
   const status = isDicePhase
     ? sevenPending
       ? isMyTurn
-        ? 'You rolled a 7 — click a highlighted hex to move the robber.'
+        ? 'You rolled a 7 — drag the black robber to a hex to move it.'
         : `${turn.player} rolled a 7 and must move the robber.`
       : isMyTurn
         ? 'Click each die to roll it.'

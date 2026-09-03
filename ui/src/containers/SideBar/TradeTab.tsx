@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTradeOffer } from 'common';
+import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTradeOffer, bestBankTradeRatio } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
@@ -106,11 +106,13 @@ const OfferRow: React.FC<{
  */
 const TradeTab: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
-  const { createTradeOffer } = useSocket();
+  const { createTradeOffer, bankTrade } = useSocket();
   const [recipient, setRecipient] = useState('');
   const [give, setGive] = useState<Price>({ ...emptyPrice });
   const [want, setWant] = useState<Price>({ ...emptyPrice });
-
+  const [bankGive, setBankGive] = useState<ResourceKey>('Wood');
+  const [bankWant, setBankWant] = useState<ResourceKey>('Brick');
+  const [bankCount, setBankCount] = useState(4);
   if (!gameRoom || !currentPlayer) return null;
 
   const others = gameRoom.players.filter((p) => p.name !== currentPlayer.name);
@@ -130,6 +132,58 @@ const TradeTab: React.FC = () => {
 
   return (
     <div>
+      {/* Bank trade */}
+      <h4 className="text-[13px] font-semibold m-0 mb-2">Bank Trade</h4>
+      {gameRoom.board && (
+        <p className="text-[12px] text-gray-600 m-0 mb-2">
+          Ratio: {bestBankTradeRatio(gameRoom.board, currentPlayer, bankGive)}:1
+        </p>
+      )}
+      <div className="flex gap-2 mb-2">
+        <select
+          value={bankGive}
+          onChange={(e) => setBankGive(e.target.value as ResourceKey)}
+          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-[13px]"
+        >
+          {RESOURCES.map((k) => (
+            <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+        <span className="text-[13px] text-gray-500 flex items-center">→</span>
+        <select
+          value={bankWant}
+          onChange={(e) => setBankWant(e.target.value as ResourceKey)}
+          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-[13px]"
+        >
+          {RESOURCES.map((k) => (
+            <option key={k} value={k}>{k}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[12px] text-gray-600">Give:</span>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setBankCount((c) => Math.max(1, c - 1))} className="w-5 h-5 flex items-center justify-center rounded border border-gray-300 bg-gray-100 cursor-pointer text-xs">-</button>
+          <span className="text-[13px] font-mono w-8 text-center">{bankCount}</span>
+          <button type="button" onClick={() => setBankCount((c) => Math.min(currentPlayer.resources[bankGive], c + 1))} className="w-5 h-5 flex items-center justify-center rounded border border-gray-300 bg-gray-100 cursor-pointer text-xs">+</button>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          bankTrade(gameRoom.id, bankGive, bankWant, bankCount);
+          setBankCount(4);
+        }}
+        disabled={bankGive === bankWant || bankCount < 1 || currentPlayer.resources[bankGive] < bankCount}
+        className={`w-full py-1.5 text-[13px] font-semibold rounded-md border ${
+          bankGive !== bankWant && bankCount >= 1 && currentPlayer.resources[bankGive] >= bankCount
+            ? 'bg-green-600 text-white border-green-600 cursor-pointer'
+            : 'bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed'
+        }`}
+      >
+        Trade with Bank
+      </button>
+
       {/* New offer */}
       <h4 className="text-[13px] font-semibold m-0 mb-2">New Offer</h4>
       <select

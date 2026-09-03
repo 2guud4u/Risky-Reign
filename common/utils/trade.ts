@@ -1,6 +1,7 @@
 import { GameRoom } from '../types/Room';
-import { Price, ResourceCount, TradeOffer } from '../types/Logic';
+import { Price, ResourceCount, ResourceKey, TradeOffer } from '../types/Logic';
 import { Player } from '../types/Player';
+import { Board, VertexNode } from '../types/Board';
 
 /** Result of a trade-eligibility check. */
 export interface TradeCheck {
@@ -103,4 +104,101 @@ export function applyTrade(room: GameRoom, offer: TradeOffer): void {
 /** Find a player by name (helper for handlers). */
 export function findPlayer(room: GameRoom, name: string): Player | undefined {
   return room.players.find((p) => p.name === name);
+}
+
+/**
+ * Determine the best bank trade ratio for a player based on their
+ * settlements/cities on trade ports (harbors).
+ * - 2:1 if the player has a settlement/city on a special port of `giveResource`
+ * - 3:1 if the player has a settlement/city on any generic port
+ * - 4:1 otherwise
+ */
+export function bestBankTradeRatio(
+  board: Board,
+  player: Player,
+  giveResource: ResourceKey
+): number {
+  // Check for a special port of the given resource (2:1).
+  for (const v of Object.values(board.vertices)) {
+    if (v.port === giveResource && hasSettlementOnVertex(board, v, player)) {
+      return 2;
+    }
+  }
+  // Check for a generic port (3:1).
+  for (const v of Object.values(board.vertices)) {
+    if (v.port === 'generic' && hasSettlementOnVertex(board, v, player)) {
+      return 3;
+    }
+  }
+  // Default bank trade (4:1).
+  return 4;
+}
+
+/** Whether the player has a settlement or city on the given vertex. */
+function hasSettlementOnVertex(board: Board, v: VertexNode, player: Player): boolean {
+  if (!v.settlementId) return false;
+  const settlement = board.settlements[v.settlementId];
+  return settlement?.ownerId === player.id;
+}
+
+/**
+ * @param room - the game room
+ * @param playerName - the player attempting the trade
+ * @param giveResource - the resource to give (per unit)
+ * @param wantResource - the resource to receive
+ * @param giveCount - how many units of `giveResource` to give
+ * @param supply - the global supply of resources (optional; if omitted, no supply check)
+ */
+export function canBankTrade(
+  room: GameRoom,
+  playerName: string,
+  giveResource: ResourceKey,
+  wantResource: ResourceKey,
+  giveCount: number,
+  supply?: Record<ResourceKey, number>
+): TradeCheck {
+  if (giveResource === wantResource) {
+    return { allowed: false, reason: 'Cannot trade a resource for itself' };
+  }
+  if (giveCount < 1) {
+    return { allowed: false, reason: 'Must trade at least one resource' };
+  }
+  const player = findPlayer(room, playerName);
+  if (!player) return { allowed: false, reason: 'Unknown player' };
+  if (!room.board) return { allowed: false, reason: 'No board' };
+  const ratio = bestBankTradeRatio(room.board, player, giveResource);
+  const wantCount = Math.floor(giveCount / ratio);
+  if (wantCount < 1) {
+    return { allowed: false, reason: `Need at least ${ratio} ${giveResource} for a 1:1 trade at ${ratio}:1` };
+  }
+  if (player.resources[giveResource] < giveCount) {
+    return { allowed: false, reason: `Not enough ${giveResource} (have ${player.resources[giveResource]}, need ${giveCount})` };
+  }
+  if (supply && supply[wantResource] < wantCount) {
+    return { allowed: false, reason: `Not enough ${wantResource} in supply (have ${supply[wantResource]}, need ${wantCount})` };
+  }
+  return { allowed: true, reason: null };
+}
+
+/**
+ * Apply a bank trade: subtract `giveCount` of `giveResource`, add `wantCount` of `wantResource`.
+ * Mutates the player in place. Returns the number of `wantResource` received.
+ */
+export function applyBankTrade(
+  room: GameRoom,
+  playerName: string,
+  giveResource: ResourceKey,
+  wantResource: ResourceKey,
+  giveCount: number,
+  supply?: Record<ResourceKey, number>
+): number {
+  const player = findPlayer(room, playerName)!;
+  const ratio = bestBankTradeRatio(room.board!, player, giveResource);
+  const wantCount = Math.floor(giveCount / ratio);
+  player.resources[giveResource] -= giveCount;
+  player.resources[wantResource] += wantCount;
+  if (supply) {
+    supply[wantResource] -= wantCount;
+  }
+  return wantCount;
 }

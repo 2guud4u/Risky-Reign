@@ -53,6 +53,7 @@ interface SocketContextType {
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
   cancelTrade: (roomId: string, tradeId: string) => void;
+  bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -87,6 +88,7 @@ const SocketContext = createContext<SocketContextType>({
   acceptTrade: () => { },
   declineTrade: () => { },
   cancelTrade: () => { },
+  bankTrade: () => { },
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -181,6 +183,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const cancelTrade = (roomId: string, tradeId: string) =>
     emitAction(socket, 'cancelTrade', { roomId, tradeId });
 
+  const bankTrade = (roomId: string, giveResource: string, wantResource: string, giveCount: number) =>
+    emitAction(socket, 'bankTrade', { roomId, giveResource, wantResource, giveCount });
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
@@ -234,6 +238,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         acceptTrade,
         declineTrade,
         cancelTrade,
+        bankTrade,
       }}
     >
       {children}

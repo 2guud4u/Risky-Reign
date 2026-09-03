@@ -53,6 +53,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     validTargets: string[];
   } | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  // Robber drag state: true while the user is dragging the robber.
+  const [robberDrag, setRobberDrag] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Responsive sizing: track the available container size so the board can
@@ -74,13 +76,15 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   const board = gameRoom?.board ?? null;
 
-  // A pending robber move (a 7 roll or a played knight card) makes valid
-  // hexes clickable for the pending player: clicking one places the robber.
+  // A pending robber move (a 7 roll or a played knight card) makes the
+  // robber draggable for the pending player: dragging it to a valid hex
+  // places it there.
   const robberMove = gameRoom?.robberMove ?? null;
   const robberPending = !!robberMove && robberMove.player === currentPlayer?.name;
-  const handleHexClick = (hexId: string) => {
-    if (!robberPending || !currentPlayer || !gameRoom) return;
-    moveRobber(currentPlayer.id, hexId, gameRoom.id);
+  const startRobberDrag = (e: React.MouseEvent) => {
+    if (!robberPending) return;
+    e.stopPropagation();
+    setRobberDrag(true);
   };
 
   // Presentation state: projected vertices/edges/hexes. The board is always
@@ -122,7 +126,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   // Pan/zoom over the board's coordinate space (viewBox-based).
   const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
-  const baseSize = 1.1 * PROJ_SIZE * boardSpan;
+  const baseSize = 1.2 * PROJ_SIZE * boardSpan;
   const viewport = useBoardViewport(svgRef, baseSize);
 
   // Escape clears the selection and cancels any in-progress soldier drag.
@@ -130,6 +134,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setDrag(null);
+      setRobberDrag(false);
       setMousePos(null);
       setSelectedObject(null);
     };
@@ -205,11 +210,35 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!drag) return;
+    if (!drag && !robberDrag) return;
     setMousePos(toSvgCoords(e));
   };
 
   const handleMouseUp = () => {
+    // Handle robber drag.
+    if (robberDrag) {
+      setRobberDrag(false);
+      if (mousePos && board && currentPlayer && gameRoom) {
+        // Find the nearest valid hex (non-Desert, no robber) within reach.
+        let best: string | null = null;
+        let bestDist = Infinity;
+        for (const hex of Object.values(base.hexes)) {
+          if (hex.terrain === 'Desert' || hex.hasRobber) continue;
+          const d = Math.hypot(hex.position.x - mousePos.x, hex.position.y - mousePos.y);
+          if (d < bestDist) {
+            bestDist = d;
+            best = hex.id;
+          }
+        }
+        const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
+        if (best && bestDist <= threshold) {
+          moveRobber(currentPlayer.id, best, gameRoom.id);
+        }
+      }
+      setMousePos(null);
+      return;
+    }
+    // Handle soldier drag.
     if (!drag || !mousePos || !board || !currentPlayer) {
       setDrag(null);
       setMousePos(null);
@@ -271,6 +300,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           onMouseUp={handleMouseUp}
           onMouseLeave={() => {
             setDrag(null);
+            setRobberDrag(false);
             setMousePos(null);
           }}
           onMouseDown={viewport.onMouseDown}
@@ -285,8 +315,9 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                 key={hex.id}
                 hex={hex}
                 size={PROJ_SIZE}
-                onClick={isRobberTarget ? handleHexClick : undefined}
                 highlight={isRobberTarget}
+                onRobberMouseDown={robberPending ? startRobberDrag : undefined}
+                robberDraggable={robberPending}
               />
             );
           })}
@@ -387,6 +418,17 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               opacity={0.6}
               stroke="#222"
               strokeWidth={1.5}
+              pointerEvents="none"
+            />
+          )}
+          {/* Robber drag ghost following the cursor */}
+          {robberDrag && mousePos && (
+            <circle
+              cx={mousePos.x}
+              cy={mousePos.y}
+              r={PROJ_SIZE / 5}
+              fill="#000"
+              fillOpacity={0.6}
               pointerEvents="none"
             />
           )}

@@ -38,6 +38,9 @@ import {
   canAfford,
   applyBonuses,
   ResourceKey,
+  canBankTrade,
+  applyBankTrade,
+  bestBankTradeRatio,
 } from 'common';
 import { gameRooms, createGameRoom, createBoard } from './store';
 import { advanceTurn } from './turn';
@@ -1308,6 +1311,39 @@ export function setupSocketHandlers(io: Server): void {
         applyBonuses(room);
         io.to(roomId).emit('gameUpdate', { ...room });
       }
+    });
+
+    socket.on('bankTrade', (data: {
+      roomId: string;
+      giveResource: string;
+      wantResource: string;
+      giveCount: number;
+    }) => {
+      const { roomId, giveResource, wantResource, giveCount } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) return;
+      const player = room.players.find((p) => p.id === socket.id);
+      if (!player) return;
+      const check = canBankTrade(
+        room,
+        player.name,
+        giveResource as ResourceKey,
+        wantResource as ResourceKey,
+        giveCount
+      );
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Bank trade not allowed' });
+        return;
+      }
+      applyBankTrade(
+        room,
+        player.name,
+        giveResource as ResourceKey,
+        wantResource as ResourceKey,
+        giveCount
+      );
+      applyBonuses(room);
+      io.to(roomId).emit('gameUpdate', { ...room });
     });
   });
 }

@@ -14,6 +14,7 @@ import {
   EdgeNode,
   HexId,
   HexNode,
+  PortType,
   VertexId,
   VertexNode,
 } from '../types/Board';
@@ -27,10 +28,29 @@ import { computeAdjacency } from './adjacency';
 export { HexLayout };
 
 /**
- * Build a domain Board from an arbitrary hex layout.
- * @param layouts - one entry per hex (coord + terrain + token)
- * @param options - hex size for pixel projection and metadata
+ * Assign trade ports (harbors) to 10 boundary vertices (1-hex vertices):
+ * 5 generic (3:1) + 5 special (2:1, one per resource). Ports are placed
+ * evenly around the board by sorting boundary vertices by angle from center.
  */
+function assignPorts(vertices: Record<string, VertexNode>): void {
+  const boundary = Object.values(vertices)
+    .filter((v) => v.hexIds.length === 1)
+    .sort((a, b) => {
+      const angleA = Math.atan2(a.position.y, a.position.x);
+      const angleB = Math.atan2(b.position.y, b.position.x);
+      return angleA - angleB;
+    });
+  // Pick 10 evenly-spaced boundary vertices.
+  const ports: PortType[] = [
+    'Sheep', 'generic', 'Wheat', 'generic', 'Ore',
+  ];
+  const step = Math.max(1, Math.floor(boundary.length / ports.length));
+  for (let i = 0; i < ports.length; i++) {
+    const v = boundary[i * step];
+    if (v) v.port = ports[i];
+  }
+}
+
 export function generateBoard(
   layouts: HexLayout[],
   options: { id?: string; generator?: string; hexSize?: number } = {}
@@ -60,8 +80,13 @@ export function generateBoard(
       hexIds: v.hexIds,
       settlementId: null,
       roadIds: Array.from(g.vertexEdges.get(v.id) ?? []),
+      port: null,
     };
   }
+
+  // Assign trade ports (harbors) to 10 boundary vertices:
+  // 5 generic (3:1) + 5 special (2:1, one per resource).
+  assignPorts(vertices);
 
   const edges: Record<EdgeId, EdgeNode> = {};
   for (const e of g.edges.values()) {

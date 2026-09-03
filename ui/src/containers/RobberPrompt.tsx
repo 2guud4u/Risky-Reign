@@ -13,8 +13,8 @@ const RobberPrompt: React.FC = () => {
   const isMe = player === currentPlayer.name;
   const text = isMe
     ? reason === 'seven'
-      ? 'You rolled a 7 — click a highlighted hex to move the robber.'
-      : 'Knight: click a highlighted hex to place the robber and steal a card.'
+      ? 'You rolled a 7 — drag the black robber to a hex to move it.'
+      : 'Knight: drag the black robber to a hex to place it and steal a card.'
     : `${player} must move the robber (${reason === 'seven' ? 'rolled a 7' : 'knight card'}).`;
 
   return (

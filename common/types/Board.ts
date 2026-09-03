@@ -13,6 +13,8 @@ export type EdgeId = string;
 export type SettlementId = string;
 export type RoadId = string;
 
+/** A trade port (harbor) type: generic (3:1) or a special resource (2:1). */
+export type PortType = 'generic' | 'Wood' | 'Brick' | 'Sheep' | 'Wheat' | 'Ore';
 export interface HexNode {
   id: HexId;
   coord: CubeCoord;
@@ -28,6 +30,8 @@ export interface VertexNode {
   hexIds: HexId[];
   settlementId: SettlementId | null;
   roadIds: EdgeId[];
+  /** Trade port (harbor) at this coastal vertex: null, generic (3:1), or a special resource (2:1). */
+  port: PortType | null;
 }
 
 export interface EdgeNode {

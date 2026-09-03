@@ -89,7 +89,7 @@ const EndTurnButton: React.FC = () => {
             <>
               Move the robber to continue
               <span className="block text-xs text-blue-600 mt-0.5">
-                You rolled a 7 — click a highlighted hex on the board.
+                You rolled a 7 — drag the black robber to a hex on the board.
               </span>
             </>
           ) : (

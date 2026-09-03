@@ -60,6 +60,7 @@ export function domainToPresentation(board: Board, hexSize: number = 50): BoardU
       adjacentVertexIds: Array.from(new Set(adjacentVertexIds)),
       isHovered: false,
       isSelected: false,
+      port: v.port,
     };
   }
 

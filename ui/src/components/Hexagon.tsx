@@ -9,6 +9,10 @@ interface HexagonProps {
   onClick?: (hexId: string) => void;
   /** Draw a dashed highlight ring (e.g. valid robber targets). */
   highlight?: boolean;
+  /** Drag handler for the robber (called on mousedown on the robber circle). */
+  onRobberMouseDown?: (e: React.MouseEvent) => void;
+  /** Whether the robber is draggable (changes cursor). */
+  robberDraggable?: boolean;
 }
 
 /**
@@ -16,7 +20,7 @@ interface HexagonProps {
  * adapter (BoardHex.position), so this component only projects the six
  * corners around that center — no cube-coord math here.
  */
-const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight }) => {
+const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, robberDraggable }) => {
   const { x, y } = hex.position;
 
   const hexPoints = hexPointsAt(x, y, size);
@@ -49,7 +53,15 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight }) => {
       )}
 
       {hex.hasRobber && (
-        <circle cx={x} cy={y} r={size / 5} fill="#000" fillOpacity={0.6} />
+        <circle
+          cx={x}
+          cy={y}
+          r={size / 5}
+          fill="#000"
+          fillOpacity={0.6}
+          onMouseDown={onRobberMouseDown}
+          style={robberDraggable ? { cursor: 'grab' } : undefined}
+        />
       )}
 
       {highlight && (
