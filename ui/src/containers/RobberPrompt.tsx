@@ -13,7 +13,9 @@ const RobberPrompt: React.FC = () => {
   const isMe = player === currentPlayer.name;
   const text = isMe
     ? reason === 'seven'
-      ? 'You rolled a 7 — drag the black robber to a hex to move it.'
+      ? gameRoom.discards && Object.keys(gameRoom.discards).length > 0
+        ? 'You rolled a 7 — resolve the discard prompt, then drag the black robber to a hex to move it.'
+        : 'You rolled a 7 — drag the black robber to a hex to move it.'
       : 'Knight: drag the black robber to a hex to place it and steal a card.'
     : `${player} must move the robber (${reason === 'seven' ? 'rolled a 7' : 'knight card'}).`;
 

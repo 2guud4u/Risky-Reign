@@ -31,6 +31,7 @@ interface SocketContextType {
   moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   moveRobber: (playerId: string, hexId: string, roomId: string) => void;
   chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
+  resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
   resolveDevCardChoice: (playerId: string, resources: string[], roomId: string) => void;
   healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) => void;
@@ -68,6 +69,7 @@ const SocketContext = createContext<SocketContextType>({
   moveSoldier: () => { },
   moveRobber: () => { },
   chooseSteal: () => { },
+  resolveDiscard: () => { },
   resolveDevCardChoice: () => { },
   healSoldier: () => { },
   startAttack: () => { },
@@ -118,6 +120,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const chooseSteal = (playerId: string, victimName: string, cardIndex: number, roomId: string) =>
     emitAction(socket, 'chooseSteal', { roomId, playerId, victimName, cardIndex }, { requirePlayerId: true });
+  const resolveDiscard = (playerId: string, discards: Record<string, number>, roomId: string) =>
+    emitAction(socket, 'resolveDiscard', { roomId, playerId, discards }, { requirePlayerId: true });
 
   const resolveDevCardChoice = (playerId: string, resources: string[], roomId: string) =>
     emitAction(socket, 'resolveDevCardChoice', { roomId, playerId, resources }, { requirePlayerId: true });
@@ -224,6 +228,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         moveSoldier,
         moveRobber,
         chooseSteal,
+        resolveDiscard,
         resolveDevCardChoice,
         healSoldier,
         startAttack,

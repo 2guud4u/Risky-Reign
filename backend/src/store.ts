@@ -53,6 +53,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     robberMove: null,
     steal: null,
     devCardChoice: null,
+    discards: {},
     bonuses: emptyBonuses(),
   };
   gameRooms.set(roomId, room);

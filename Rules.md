@@ -18,6 +18,7 @@ When discarding, choose half of discarded cards to put into the robber pile, fac
 If rolled on robber tile, robber gets that card face up.
 Smuggle: pay robber and card to take soldier to its location
 Robber wins ties
+Rolling a 7: every player holding 8 or more resource cards must discard half their hand (rounded down), choosing which resource cards to lose. All discards must be resolved before the robber is moved, then the steal happens.
 Soldier 
 To get a soldier you need: 1 sheep 1 wheat 
 Injured soldiers can still move and heal (they just can’t attack). Injured state can not attack (see below).

@@ -26,8 +26,5 @@ robber pile rules- and fight robber
 
 random late game join, allow random placement of settlement
 
-refactor and order backend old
 Bug: 
-built roads when didnt have enough resources(brick speciificaly)
-in setup, my second road and settlement does not have to follow settlement then road order
 flying resources each resource should go after one another

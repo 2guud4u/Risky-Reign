@@ -6,6 +6,7 @@ import Sidebar from './SideBar/Index';
 import EndTurnButton from './SideBar/EndTurnButton';
 import RobberPrompt from './RobberPrompt';
 import StealPrompt from './StealPrompt';
+import DiscardPrompt from './DiscardPrompt';
 import DevCardPrompt from './DevCardPrompt';
 import ResourceGainLayer from '../components/ResourceGainLayer';
 import ResourceSpendLayer from '../components/ResourceSpendLayer';
@@ -138,6 +139,9 @@ const Game: React.FC = () => {
 
       {/* Steal prompt: the thief picks a face-down card from a victim. */}
       <StealPrompt />
+
+      {/* 7-discard prompt: players with 8+ resource cards hand in half. */}
+      <DiscardPrompt />
 
       {/* Development card choice: Year of Plenty / Monopoly. */}
       <DevCardPrompt />

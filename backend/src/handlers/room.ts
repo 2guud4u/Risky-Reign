@@ -130,6 +130,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     room.gameStatus = room.players.length === 2 ? 'playing' : 'waiting';
     room.winner = null;
     room.robberMove = null;
+    room.discards = {};
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', room);
   });

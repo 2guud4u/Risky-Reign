@@ -13,6 +13,7 @@ import {
   playersAdjacentToHex,
   eligibleVictims,
   stealCard,
+  RESOURCES,
   type TurnState,
 } from 'common';
 import { advanceTurn } from '../turn';
@@ -212,6 +213,15 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       const total = rollTotal(room.roll.die1, room.roll.die2);
       if (total === 7) {
         room.robberMove = { player: dicePlayer, reason: 'seven' };
+        // Standard 7: every player holding 8+ resource cards must discard
+        // down to half (floor). Discards must be resolved before the
+        // robber can be moved.
+        const discards: Record<string, number> = {};
+        for (const p of room.players) {
+          const hand = RESOURCES.reduce((sum, r) => sum + p.resources[r], 0);
+          if (hand >= 8) discards[p.name] = Math.floor(hand / 2);
+        }
+        room.discards = discards;
       } else {
         const payouts = computePayouts(board, total);
         applyPayouts(room.players, payouts);
@@ -247,6 +257,11 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
     // Only the player with a pending robber move may place it.
     if (!room.robberMove || room.robberMove.player !== player.name) {
       socket.emit('error', { message: 'You have no pending robber move' });
+      return;
+    }
+    // A 7 requires every discard to be resolved before the robber moves.
+    if (room.robberMove.reason === 'seven' && Object.keys(room.discards).length > 0) {
+      socket.emit('error', { message: 'Resolve the 7 discards before moving the robber' });
       return;
     }
     const check = canPlaceRobberOn(board, hexId);
@@ -321,4 +336,44 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', { ...room });
   });
+  // Resolve a pending 7-discard: the player hands in exactly `required`
+  // resource cards (the floor of half their hand), choosing which ones.
+  socket.on(
+    'resolveDiscard',
+    (data: { roomId: string; playerId: string; discards: Record<string, number> }) => {
+      const { roomId, playerId, discards } = data;
+      const room = gameRooms.get(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+      const player = room.players.find((p) => p.id === playerId);
+      if (!player) {
+        socket.emit('error', { message: 'Player not found in room' });
+        return;
+      }
+      const required = room.discards[player.name];
+      if (required === undefined) {
+        socket.emit('error', { message: 'You have no pending discard' });
+        return;
+      }
+      let total = 0;
+      for (const r of RESOURCES) {
+        const n = Math.floor(discards[r] ?? 0);
+        if (n < 0 || n > player.resources[r]) {
+          socket.emit('error', { message: 'Invalid discard selection' });
+          return;
+        }
+        total += n;
+      }
+      if (total !== required) {
+        socket.emit('error', { message: `Discard exactly ${required} cards` });
+        return;
+      }
+      for (const r of RESOURCES) player.resources[r] -= Math.floor(discards[r] ?? 0);
+      delete room.discards[player.name];
+      applyBonuses(room);
+      io.to(roomId).emit('gameUpdate', { ...room });
+    }
+  );
 }

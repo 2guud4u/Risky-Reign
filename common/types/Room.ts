@@ -64,6 +64,14 @@ export interface DevCardChoice {
   /** Index of the held card in the player's hand. */
   cardIndex: number;
 }
+/**
+ * Pending 7-discards, keyed by player name. While a player's entry is set,
+ * they must resolve it via the `resolveDiscard` event: they hand in exactly
+ * that many resource cards (half their resource hand, rounded down). A 7
+ * holds the Dice phase until every discard is resolved and the robber is
+ * moved.
+ */
+export type DiscardState = Record<string, number>;
 export interface GameRoom {
   id: string;
   players: Player[];
@@ -82,6 +90,8 @@ export interface GameRoom {
   steal: StealState | null;
   /** Pending development-card choice (Year of Plenty / Monopoly). */
   devCardChoice: DevCardChoice | null;
+  /** Pending 7-discards (players with 8+ resource cards hand in half). */
+  discards: DiscardState;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
 }
