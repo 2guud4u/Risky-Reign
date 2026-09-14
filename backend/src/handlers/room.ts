@@ -134,6 +134,36 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('gameUpdate', room);
   });
 
+  // A player leaves the game: remove them from the room and the turn order.
+  // If they were the current player, pass the turn to the next player (or to
+  // the sentinel 'X' if the room is now empty).
+  socket.on('leaveGame', (data: { roomId: string }) => {
+    const { roomId } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
+    const leavingName = player.name;
+    const orderIndex = room.turnState.playerOrder.indexOf(leavingName);
+    room.players = room.players.filter((p) => p.id !== socket.id);
+    room.turnState.playerOrder = room.turnState.playerOrder.filter((n) => n !== leavingName);
+    if (room.turnState.player === leavingName) {
+      room.turnState.player =
+        room.turnState.playerOrder.length > 0
+          ? room.turnState.playerOrder[orderIndex % room.turnState.playerOrder.length]
+          : 'X';
+    }
+    socket.leave(roomId);
+    applyBonuses(room);
+    io.to(roomId).emit('gameUpdate', { ...room });
+  });
+
   // Handle disconnect.
   socket.on('disconnect', () => {
     // Keep the player in the room so a reload / reconnect can re-attach.

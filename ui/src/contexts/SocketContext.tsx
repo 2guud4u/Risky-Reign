@@ -55,6 +55,7 @@ interface SocketContextType {
   declineTrade: (roomId: string, tradeId: string) => void;
   cancelTrade: (roomId: string, tradeId: string) => void;
   bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => void;
+  leaveGame: (roomId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -91,6 +92,7 @@ const SocketContext = createContext<SocketContextType>({
   declineTrade: () => { },
   cancelTrade: () => { },
   bankTrade: () => { },
+  leaveGame: () => { },
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -175,6 +177,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const refreshMap = (roomId: string) => emitAction(socket, 'refreshMap', { roomId });
 
+  const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
+
   const createTradeOffer = (roomId: string, to: string, give: Price, want: Price) =>
     emitAction(socket, 'createTradeOffer', { roomId, to, give, want });
 
@@ -235,6 +239,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         startGame,
         resetGame,
         refreshMap,
+        leaveGame,
         endTurn,
         undoBuild,
         drawDevelopmentCard,

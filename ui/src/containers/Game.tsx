@@ -42,7 +42,7 @@ const phaseColor = (phase: string): string => {
 
 const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer } = useGameRoom();
-  const { undoBuild } = useSocket();
+  const { undoBuild, leaveGame: emitLeaveGame } = useSocket();
   const [vp, setVp] = useState({ vw: window.innerWidth, vh: window.innerHeight });
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -62,6 +62,7 @@ const Game: React.FC = () => {
   }, [vp]);
 
   const leaveGame = () => {
+    if (gameRoom && currentPlayer) emitLeaveGame(gameRoom.id);
     clearSavedSession();
     setGameRoom(null);
     setCurrentPlayer(null);
