@@ -223,8 +223,9 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
         }
         room.discards = discards;
       } else {
-        const payouts = computePayouts(board, total);
+        const { payouts, robbed } = computePayouts(board, total);
         applyPayouts(room.players, payouts);
+        for (const r of RESOURCES) room.robberBag[r] += robbed[r];
         advanceTurn(room);
       }
     }
@@ -370,7 +371,11 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: `Discard exactly ${required} cards` });
         return;
       }
-      for (const r of RESOURCES) player.resources[r] -= Math.floor(discards[r] ?? 0);
+      for (const r of RESOURCES) {
+        const n = Math.floor(discards[r] ?? 0);
+        player.resources[r] -= n;
+        room.robberBag[r] += n;
+      }
       delete room.discards[player.name];
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });

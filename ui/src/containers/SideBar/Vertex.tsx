@@ -329,7 +329,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
 
       {/* Hint before any selection, when troops are present here. */}
       {selectedGroup.length === 0 && soldiersHere.length > 0 && (
-        <p className="text-[13px] text-gray-100 m-0">
+        <p className="text-[13px] m-0">
           {groupActionsAllowed
             ? 'Click your soldiers in the map above to select a group, then move or attack with it.'
             : 'Soldiers act during your Action phase.'}

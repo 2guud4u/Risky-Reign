@@ -131,6 +131,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     room.winner = null;
     room.robberMove = null;
     room.discards = {};
+    room.robberBag = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', room);
   });

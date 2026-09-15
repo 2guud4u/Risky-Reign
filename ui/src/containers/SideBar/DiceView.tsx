@@ -12,7 +12,7 @@ const rollTotal = (roll: RollResult): number | null =>
 /** Aggregate one player's resource gains for a roll total, by resource. */
 const gainsForPlayer = (board: Board, total: number, playerName: string): Price => {
   const gains: Price = { ...emptyPrice };
-  for (const p of computePayouts(board, total)) {
+  for (const p of computePayouts(board, total).payouts) {
     if (p.playerName === playerName) gains[p.resource as keyof Price] += p.amount;
   }
   return gains;

@@ -1,5 +1,5 @@
 import { Player } from './Player';
-import { BattleState, TradeOffer, TurnState, RollResult } from './Logic';
+import { BattleState, TradeOffer, TurnState, RollResult, ResourceCount } from './Logic';
 import { Board } from './Board';
 import { DevelopmentCardType } from './DevelopmentCard';
 
@@ -92,6 +92,11 @@ export interface GameRoom {
   devCardChoice: DevCardChoice | null;
   /** Pending 7-discards (players with 8+ resource cards hand in half). */
   discards: DiscardState;
+  /**
+   * The robber's bag: every resource card discarded by the 7 rule, plus the
+   * resources produced by hexes the robber sits on.
+   */
+  robberBag: ResourceCount;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
 }

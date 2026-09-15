@@ -54,6 +54,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     steal: null,
     devCardChoice: null,
     discards: {},
+    robberBag: { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 },
     bonuses: emptyBonuses(),
   };
   gameRooms.set(roomId, room);

@@ -8,6 +8,7 @@ import TradeTab from './TradeTab';
 import PlayersList from './PlayersList';
 import ResourceCardsPanel from './ResourceCardsPanel';
 import DiceView from './DiceView';
+import RobberBagView from './RobberBagView';
 import EndTurnButton from './EndTurnButton';
 import { cardClass } from './styles';
 type Tab = 'board' | 'dice' | 'players' | 'cards' | 'trade';
@@ -82,6 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
         return (
           <div className="flex flex-col gap-3">
             <DiceView />
+            <RobberBagView />
             <EndTurnButton />
           </div>
         );

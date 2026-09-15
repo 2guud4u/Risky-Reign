@@ -107,7 +107,7 @@ export const FlyIconView: React.FC<{
     <div
       ref={ref}
       className="fixed left-0 top-0 z-[60] pointer-events-none will-change-transform"
-      style={{ transform: `translate(${icon.sourceX}px, ${icon.sourceY}px)` }}
+      style={{ transform: `translate(${icon.sourceX}px, ${icon.sourceY}px)`, opacity: 0 }}
     >
       <span className="text-2xl drop-shadow">{RESOURCE_ICONS[icon.resource]}</span>
     </div>

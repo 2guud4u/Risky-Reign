@@ -146,6 +146,16 @@ export interface Payout {
   resource: Exclude<Resource, 'Nothing'>;
   amount: number;
 }
+/**
+ * Result of a dice payout computation: the grants players receive, and the
+ * resources diverted to the robber's bag (hexes the robber sits on).
+ */
+export interface PayoutResult {
+  /** Grants to players (settlement = 1, city = 2 of the hex's resource). */
+  payouts: Payout[];
+  /** Resources collected by the robber (robbed hexes), by type. */
+  robbed: ResourceCount;
+}
 
 /** Result of a build-eligibility check. */
 export interface BuildCheck {
