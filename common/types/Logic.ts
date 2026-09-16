@@ -20,6 +20,8 @@ export interface TurnState {
   soldiersCreatedThisTurn: string[];
   /** Soldier IDs healed this turn (cannot move same turn). */
   soldiersHealedThisTurn: string[];
+  /** Players who already fought the robber this Action phase (once per player per phase). */
+  robberFoughtThisPhase: string[];
   /** Undoable actions taken by the acting player this phase (cleared on every advance). */
   undoLog: UndoEntry[];
 }
@@ -64,6 +66,26 @@ export type UndoEntry =
       soldierId: string;
       /** The vertex the soldier was on before the move (restored on undo). */
       originalVertexId: string;
+    }
+  | {
+      kind: 'captureSettlement';
+      settlementId: string;
+      /** The owner before the capture (restored on undo). */
+      originalOwnerId: string;
+      /** The soldiers that performed the capture (their actions are refunded on undo). */
+      soldierIds: string[];
+    }
+  | {
+      kind: 'fightRobber';
+      /** The player who fought (their once-per-phase fight is refunded on undo). */
+      playerName: string;
+      soldierId: string;
+      /** The fight outcome. */
+      result: 'win' | 'lose';
+      /** The soldier as it was before the fight (restored on undo if it was killed). */
+      soldierSnapshot: SoldierObj;
+      /** The robber bag before the fight (restored on undo if the player won). */
+      bagBefore: ResourceCount;
     };
 
 /** A pending resource trade between two players. */

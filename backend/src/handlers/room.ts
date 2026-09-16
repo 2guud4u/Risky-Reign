@@ -25,6 +25,10 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     // If the player is already in the room (reconnect / reload), just re-attach.
     const existing = room.players.find((p) => p.name === playerName);
     if (existing) {
+      // Re-attach: the player's id IS their socket id, so a reload (new
+      // socket) must re-point it, or the client's syncCurrentPlayer (which
+      // matches p.id === socket.id) fails and the session is cleared.
+      existing.id = socket.id;
       socket.join(roomId);
       applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);

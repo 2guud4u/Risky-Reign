@@ -79,6 +79,7 @@ export function advanceTurn(room: GameRoom): void {
           phase: 'Action',
           offset: 0,
           soldiersActedThisTurn: [],
+          robberFoughtThisPhase: [],
           undoLog: [],
         };
       } else {

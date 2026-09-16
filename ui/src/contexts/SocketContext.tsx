@@ -29,6 +29,8 @@ interface SocketContextType {
   upgradeSettlementToCity: (playerId: string, vertexId: string, roomId: string) => void;
   recruitSoldier: (playerId: string, vertexId: string, roomId: string) => void;
   moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
+  captureSettlement: (playerId: string, soldierIds: string[], vertexId: string, roomId: string) => void;
+  fightRobber: (playerId: string, soldierId: string, vertexId: string, roomId: string) => void;
   moveRobber: (playerId: string, hexId: string, roomId: string) => void;
   chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
   resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
@@ -67,6 +69,8 @@ const SocketContext = createContext<SocketContextType>({
   upgradeSettlementToCity: () => { },
   recruitSoldier: () => { },
   moveSoldier: () => { },
+  captureSettlement: () => { },
+  fightRobber: () => { },
   moveRobber: () => { },
   chooseSteal: () => { },
   resolveDiscard: () => { },
@@ -115,6 +119,10 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
     emitAction(socket, 'moveSoldier', { roomId, playerId, soldierId, targetVertexId }, { requirePlayerId: true });
+  const captureSettlement = (playerId: string, soldierIds: string[], vertexId: string, roomId: string) =>
+    emitAction(socket, 'captureSettlement', { roomId, playerId, soldierIds, vertexId }, { requirePlayerId: true });
+  const fightRobber = (playerId: string, soldierId: string, vertexId: string, roomId: string) =>
+    emitAction(socket, 'fightRobber', { roomId, playerId, soldierId, vertexId }, { requirePlayerId: true });
   const moveRobber = (playerId: string, hexId: string, roomId: string) =>
     emitAction(socket, 'moveRobber', { roomId, playerId, hexId }, { requirePlayerId: true });
 
@@ -226,6 +234,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         upgradeSettlementToCity,
         recruitSoldier,
         moveSoldier,
+        captureSettlement,
+        fightRobber,
         moveRobber,
         chooseSteal,
         resolveDiscard,

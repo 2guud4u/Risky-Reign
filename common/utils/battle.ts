@@ -103,6 +103,81 @@ export function canStartBattle(
 }
 
 /**
+ * Check if a player's soldier can fight the robber 1v1 at the given vertex.
+ * Rules:
+ * - Must be in Action phase, on the current player's turn
+ * - No battle in progress
+ * - Soldier owned by the player, not injured (Rule 28), not created this turn (Rule 24), not yet acted this phase (Rule 30)
+ * - The player has not fought the robber yet this Action phase (once per player per phase)
+ * - The robber is on one of the vertex's hexes (the soldier is "nearby")
+ */
+export function canFightRobber(
+  room: GameRoom,
+  playerName: string,
+  soldierId: string,
+  vertexId: string
+): { allowed: boolean; reason?: string } {
+  const turnState = room.turnState;
+
+  if (turnState.phase !== 'Action') {
+    return { allowed: false, reason: 'Can only fight the robber during Action phase' };
+  }
+  if (turnState.player !== playerName) {
+    return { allowed: false, reason: 'Not your turn to act' };
+  }
+  if (room.battleState) {
+    return { allowed: false, reason: 'A battle is already in progress' };
+  }
+
+  const board = room.board;
+  if (!board) {
+    return { allowed: false, reason: 'No board available' };
+  }
+
+  const soldier = board.soldiers[soldierId];
+  if (!soldier) {
+    return { allowed: false, reason: 'Soldier not found' };
+  }
+  if (soldier.owner !== playerName) {
+    return { allowed: false, reason: 'You do not own this soldier' };
+  }
+  // Rule 28: Injured state cannot attack
+  if (soldier.injured) {
+    return { allowed: false, reason: 'An injured soldier cannot fight the robber' };
+  }
+  // Rule 30: each soldier gets one action per Action phase
+  if (turnState.soldiersActedThisTurn.includes(soldierId)) {
+    return { allowed: false, reason: 'This soldier already used its action this phase' };
+  }
+  // Rule 24: Cannot create and move/attack on same turn
+  if (turnState.soldiersCreatedThisTurn.includes(soldierId)) {
+    return { allowed: false, reason: 'A just-created soldier cannot fight the robber this turn' };
+  }
+  // Once per player per entire Action phase
+  if (turnState.robberFoughtThisPhase.includes(playerName)) {
+    return { allowed: false, reason: 'You already fought the robber this Action phase' };
+  }
+
+  // The soldier must be on the vertex, and the robber must sit on one of
+  // the vertex's hexes (the soldier is "nearby").
+  const vertex = board.vertices[vertexId];
+  if (!vertex) {
+    return { allowed: false, reason: 'Vertex not found' };
+  }
+  if (soldier.vertexId !== vertexId) {
+    return { allowed: false, reason: 'This soldier is not on that vertex' };
+  }
+  const robberHex = vertex.hexIds
+    .map((id) => board.hexes[id])
+    .find((h) => h && h.robber);
+  if (!robberHex) {
+    return { allowed: false, reason: 'The robber is not on a hex next to this vertex' };
+  }
+
+  return { allowed: true };
+}
+
+/**
  * Initialize a battle state when an attack starts.
  */
 export function createBattleState(

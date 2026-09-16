@@ -264,3 +264,48 @@ export function canHealSoldierAt(
 
   return { allowed: true, reason: null };
 }
+
+/**
+ * Authoritative soldier capture check (Rules.md "capture settlement/city"):
+ * only during Action phase, on your turn, for one of your own soldiers
+ * standing on a settlement you do not own, with no enemy or other troops
+ * on the vertex (every troop present must be yours).
+ */
+export function canCaptureSettlementAt(
+  board: Board,
+  turn: TurnState,
+  playerName: string,
+  soldierId: string,
+  vertexId: string
+): BuildCheck {
+  if (turn.player !== playerName) return { allowed: false, reason: 'Not your turn' };
+  if (turn.phase !== 'Action')
+    return { allowed: false, reason: 'Soldiers can only capture in the Action phase' };
+
+  // Each soldier gets one action per Action phase (Rules.md line 30).
+  if (turn.soldiersActedThisTurn.includes(soldierId))
+    return { allowed: false, reason: 'This soldier already used its action this phase' };
+
+  const soldier = board.soldiers[soldierId];
+  if (!soldier) return { allowed: false, reason: 'Soldier not found' };
+  if (soldier.owner !== playerName)
+    return { allowed: false, reason: 'You can only capture with your own soldiers' };
+  if (soldier.vertexId !== vertexId)
+    return { allowed: false, reason: 'This soldier is not on that vertex' };
+
+  const vertex = board.vertices[vertexId];
+  if (!vertex || !vertex.settlementId)
+    return { allowed: false, reason: 'No settlement on this vertex to capture' };
+  const settlement = board.settlements[vertex.settlementId];
+  if (!settlement) return { allowed: false, reason: 'Settlement not found' };
+  if (settlement.ownerId === playerName)
+    return { allowed: false, reason: 'You already own this settlement' };
+
+  // Capturable only when no enemy or other troops are on the vertex:
+  // every troop present must belong to the capturing player.
+  const troopsHere = Object.values(board.soldiers).filter((s) => s.vertexId === vertexId);
+  if (troopsHere.some((s) => s.owner !== playerName))
+    return { allowed: false, reason: 'Enemy or other troops are on this vertex' };
+
+  return { allowed: true, reason: null };
+}

@@ -37,6 +37,18 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
     if (selectedObject) setTab('board');
   }, [selectedObject]);
 
+  // When the game enters the Dice phase on our turn, jump the sidebar to
+  // the Dice tab so the acting player lands on the roll control. Fires on
+  // the transition only, so a manual tab switch during the Dice phase sticks.
+  const prevPhase = React.useRef<string | undefined>(gameRoom?.turnState.phase);
+  useEffect(() => {
+    const phase = gameRoom?.turnState.phase;
+    if (phase === 'Dice' && prevPhase.current !== 'Dice' && gameRoom?.turnState.player === currentPlayer?.name) {
+      setTab('dice');
+    }
+    prevPhase.current = phase;
+  }, [gameRoom?.turnState.phase, gameRoom?.turnState.player, currentPlayer?.name]);
+
 
   if (!gameRoom || !currentPlayer || !board) {
     return null;

@@ -51,6 +51,8 @@ const GameLogic: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
   const { socket, isConnected, joinRoom: onJoinRoom } = useSocket();
   const { setGameRoom, setCurrentPlayer, gameRoom } = useGameRoom();
   const autoJoinedRef = useRef(false);
@@ -89,10 +91,22 @@ const GameLogic: React.FC = () => {
       setToast(errorData.message);
     });
 
+    socket.on(
+      'robberFightResult',
+      (r: { playerName: string; soldierRoll: number; robberRoll: number; won: boolean }) => {
+        setNotice(
+          r.won
+            ? `${r.playerName}'s soldier rolled ${r.soldierRoll} vs the robber's ${r.robberRoll} — took the robber bag!`
+            : `${r.playerName}'s soldier rolled ${r.soldierRoll} vs the robber's ${r.robberRoll} — the soldier was killed!`
+        );
+      }
+    );
+
     return () => {
       socket.off('roomUpdate');
       socket.off('gameUpdate');
       socket.off('error');
+      socket.off('robberFightResult');
     };
   }, [socket, setGameRoom, setCurrentPlayer]);
 
@@ -106,12 +120,27 @@ const GameLogic: React.FC = () => {
     };
   }, [toast]);
 
+  // Auto-dismiss the fight-result notice after a few seconds.
+  useEffect(() => {
+    if (!notice) return;
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(null), TOAST_DURATION_MS);
+    return () => {
+      if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    };
+  }, [notice]);
+
   return (
     <div className="min-h-screen flex flex-col items-center p-4">
       <ConnectionBanner hidden={isConnected} />
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
           {toast}
+        </div>
+      )}
+      {notice && (
+        <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-[100] bg-amber-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
+          {notice}
         </div>
       )}
       {!gameRoom ? <LobbyPage error={error} /> : <GamePage error={error} />}

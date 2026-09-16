@@ -6,6 +6,8 @@ import {
   canRecruitSoldierAt as checkSoldier,
   canMoveSoldierTo as checkMoveSoldier,
   canHealSoldierAt as checkHealSoldier,
+  canCaptureSettlementAt as checkCaptureSettlement,
+  canFightRobber as checkFightRobber,
 } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { UNLIMITED_RESOURCES } from '../../constants';
@@ -51,6 +53,12 @@ export function useBuildRules(board: Board) {
   const healSoldierCheck = (soldierId: string) =>
     turn ? checkHealSoldier(board, turn, name, soldierId, resources) : { allowed: false, reason: 'No active turn' };
 
+  const captureCheck = (soldierId: string, vertexId: string) =>
+    turn ? checkCaptureSettlement(board, turn, name, soldierId, vertexId) : { allowed: false, reason: 'No active turn' };
+
+  const fightRobberCheck = (soldierId: string, vertexId: string) =>
+    gameRoom ? checkFightRobber(gameRoom, name, soldierId, vertexId) : { allowed: false, reason: 'No active room' };
+
   const canBuildSettlementAt = (vertexId: string): boolean => settlementCheck(vertexId).allowed;
   const canBuildRoadOn = (edgeId: string): boolean => roadCheck(edgeId).allowed;
   const canUpgradeToCityAt = (vertexId: string): boolean => cityCheck(vertexId).allowed;
@@ -60,6 +68,12 @@ export function useBuildRules(board: Board) {
 
   const canHealSoldierAt = (soldierId: string): boolean => healSoldierCheck(soldierId).allowed;
 
+  const canCaptureSettlementAt = (soldierId: string, vertexId: string): boolean =>
+    captureCheck(soldierId, vertexId).allowed;
+
+  const canFightRobberAt = (soldierId: string, vertexId: string): boolean =>
+    fightRobberCheck(soldierId, vertexId).allowed;
+
   return {
     canBuildSettlementAt,
     canBuildRoadOn,
@@ -67,5 +81,7 @@ export function useBuildRules(board: Board) {
     canRecruitSoldierAt,
     canMoveSoldierTo,
     canHealSoldierAt,
+    canCaptureSettlementAt,
+    canFightRobberAt,
   };
 }

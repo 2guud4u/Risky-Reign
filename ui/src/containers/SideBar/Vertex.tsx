@@ -19,13 +19,15 @@ import { triggerBuildAnimation } from '../../components/ResourceSpendLayer';
  */
 const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex }) => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { buildSettlement, upgradeSettlementToCity, recruitSoldier, moveSoldier, healSoldier, startAttack } = useSocket();
+  const { buildSettlement, upgradeSettlementToCity, recruitSoldier, moveSoldier, healSoldier, startAttack, captureSettlement, fightRobber } = useSocket();
   const {
     canBuildSettlementAt,
     canUpgradeToCityAt,
     canRecruitSoldierAt,
     canMoveSoldierTo,
     canHealSoldierAt,
+    canCaptureSettlementAt,
+    canFightRobberAt,
   } = useBuildRules(board);
 
   // Group of soldier ids the player is assembling for a group action.
@@ -81,6 +83,14 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
   const groupReady = groupActionsAllowed && group.length > 0 && group.every((s) => soldierCanAct(s));
   const canAttackGroup =
     groupActionsAllowed && group.length > 0 && group.every((s) => !s.injured && soldierCanAct(s));
+  // Capture is available when the group can act and the vertex holds a
+  // settlement/city that is not yours, with no enemy or other troops there.
+  const canCaptureGroup =
+    groupActionsAllowed && group.length > 0 && group.every((s) => canCaptureSettlementAt(s.id, vertex.id));
+  // The robber fight is 1v1 and once per player per Action phase, so it is
+  // offered when any group member can fight; the first eligible soldier goes.
+  const canFightRobberGroup =
+    groupActionsAllowed && group.some((s) => canFightRobberAt(s.id, vertex.id));
 
   // Vertices reachable from here via existing roads (deduped defensively).
   const roadAdjacentVertices = Array.from(
@@ -157,6 +167,22 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
   const handleConfirmAttack = () => {
     if (!gameRoom || !currentPlayer) return;
     startAttack(currentPlayer.id, group.map((s) => s.id), vertex.id, gameRoom.id);
+    clearGroup();
+  };
+
+  // Commit the whole group to capture the settlement/city on this vertex.
+  const handleCaptureSettlement = () => {
+    if (!gameRoom || !currentPlayer) return;
+    captureSettlement(currentPlayer.id, group.map((s) => s.id), vertex.id, gameRoom.id);
+    clearGroup();
+  };
+
+  // Send the first eligible soldier to fight the robber 1v1 (once per phase).
+  const handleFightRobber = () => {
+    if (!gameRoom || !currentPlayer) return;
+    const fighter = group.find((s) => canFightRobberAt(s.id, vertex.id));
+    if (!fighter) return;
+    fightRobber(currentPlayer.id, fighter.id, vertex.id, gameRoom.id);
     clearGroup();
   };
 
@@ -252,6 +278,30 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
             ⚔ Attack {enemyTroopsHere.length} enemy troop{enemyTroopsHere.length === 1 ? '' : 's'} here
           </button>
         )}
+
+        {/* Capture action — the vertex holds a settlement/city that is not
+            ours and no enemy or other troops are on the vertex. */}
+        {canCaptureGroup && (
+          <button
+            onClick={handleCaptureSettlement}
+            className={buildButtonClass}
+            title={`Capture the ${settlement?.level === 'city' ? 'city' : 'settlement'} on this vertex`}
+          >
+            🚩 Capture {settlement?.level === 'city' ? 'City' : 'Settlement'}
+          </button>
+        )}
+
+        {/* Robber fight — the robber sits on one of this vertex's hexes;
+            1v1, once per player per Action phase. */}
+        {canFightRobberGroup && (
+          <button
+            onClick={handleFightRobber}
+            className={buildButtonClass}
+            title="Fight the robber 1v1 — win the robber bag or lose the soldier (once per phase)"
+          >
+            🛡 Fight the Robber
+          </button>
+        )}
       </div>
     );
   };
@@ -331,7 +381,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
       {selectedGroup.length === 0 && soldiersHere.length > 0 && (
         <p className="text-[13px] m-0">
           {groupActionsAllowed
-            ? 'Click your soldiers in the map above to select a group, then move or attack with it.'
+            ? 'Click your soldiers in the map above to select a group, then move, attack, or capture with it.'
             : 'Soldiers act during your Action phase.'}
         </p>
       )}

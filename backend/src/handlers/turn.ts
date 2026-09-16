@@ -157,6 +157,37 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
         );
         break;
       }
+      case 'captureSettlement': {
+        const settlement = board.settlements[entry.settlementId];
+        if (settlement) settlement.ownerId = entry.originalOwnerId;
+        // Refund the actions so the capturing soldiers can act again this phase.
+        for (const id of entry.soldierIds) {
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (x) => x !== id,
+          );
+        }
+        break;
+      }
+      case 'fightRobber': {
+        // Refund the soldier's action and the player's once-per-phase fight.
+        turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+          (id) => id !== entry.soldierId,
+        );
+        turnState.robberFoughtThisPhase = turnState.robberFoughtThisPhase.filter(
+          (name) => name !== entry.playerName,
+        );
+        if (entry.result === 'lose') {
+          // Restore the killed soldier.
+          board.soldiers[entry.soldierId] = entry.soldierSnapshot;
+        } else {
+          // Take the bag back and return it to the robber.
+          for (const r of RESOURCES) {
+            actingPlayer.resources[r] -= entry.bagBefore[r];
+          }
+          room.robberBag = { ...entry.bagBefore };
+        }
+        break;
+      }
     }
 
     applyBonuses(room);
