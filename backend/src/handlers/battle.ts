@@ -456,9 +456,10 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   );
 
   // A player can dismiss the battle window once they have seen the outcome.
-  // In the repositioning phase the window stays open until BOTH sides have
-  // finished repositioning (the attacker moves first); any injured troops not
-  // yet repositioned simply stay where the fight ended (injured until healed).
+  // In the repositioning phase the window can be dismissed at any time: the
+  // "attacker moves first" rule sets the ORDER of repositioning, not a gate
+  // on exiting. Any injured troops not yet repositioned simply stay where the
+  // fight ended (injured until healed).
   socket.on('exitBattle', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);
@@ -467,18 +468,11 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
       return;
     }
     const bs = room.battleState;
-    if (bs && bs.phase === 'finished') {
+    if (bs && (bs.phase === 'finished' || bs.phase === 'repositioning')) {
       room.battleState = null;
       room.robberDefeatedBy = null;
       applyBonuses(room);
       io.to(roomId).emit('gameUpdate', { ...room });
-    } else if (bs && bs.phase === 'repositioning' && (bs.repositionTurn === null || bs.repositionTurn === undefined)) {
-      room.battleState = null;
-      room.robberDefeatedBy = null;
-      applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
-    } else if (bs && bs.phase === 'repositioning') {
-      socket.emit('error', { message: 'Both players must finish repositioning injured soldiers before the battle can be dismissed' });
     }
   });
 

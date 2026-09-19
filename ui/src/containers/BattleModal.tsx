@@ -623,7 +623,7 @@ const BattleModal: React.FC = () => {
               <div className="text-[12px] text-gray-700 bg-amber-50 border border-amber-200 rounded-md p-2">
                 {battle.repositionTurn === null ? (
                   <span>
-                    Repositioning is done. You can exit the battle now.
+                    Repositioning is done.
                   </span>
                 ) : (
                   <>
@@ -634,7 +634,7 @@ const BattleModal: React.FC = () => {
                     </strong>{' '}
                     — drag the yellow-ringed injured troops to a neighboring
                     vertex connected by a road to settle them. Any you leave
-                    stay put.
+                    stay put. You can exit at any time.
                   </>
                 )}
               </div>
@@ -700,18 +700,9 @@ const BattleModal: React.FC = () => {
             <button
               type="button"
               onClick={handleExit}
-              disabled={
-                phase === 'repositioning' &&
-                battle.repositionTurn !== null &&
-                battle.repositionTurn !== undefined
-              }
-              className="w-full bg-gray-800 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full bg-gray-800 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-900"
             >
-              {phase === 'repositioning'
-                ? battle.repositionTurn === null
-                  ? 'Done — Exit Battle'
-                  : 'Exit Battle (after repositioning)'
-                : 'Exit Battle'}
+              Exit Battle
             </button>
           </div>
         )}
