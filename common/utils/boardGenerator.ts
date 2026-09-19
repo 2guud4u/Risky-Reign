@@ -37,12 +37,12 @@ function shuffle<T>(arr: T[]): T[] {
 }
 /**
  * Assign trade ports (harbors) to boundary vertices (1-hex vertices).
- * There are 5 special docks (2:1, one per resource) and 5 generic docks
- * (3:1). Each dock is a stretch of coastline: it spans 1-3 consecutive
- * boundary vertices, so a settlement on any vertex of the stretch can use
- * the dock. The layout is fully random: the resource assignment, the dock
- * order, the dock widths, and the start position are all shuffled. A few
- * coast vertices stay port-free.
+ * There are 9 docks (classic Catan): 5 special (2:1, one per resource) and
+ * 4 generic (3:1). Each dock is a stretch of coastline: it spans 1-2
+ * consecutive boundary vertices, so a settlement on any vertex of the
+ * stretch can use the dock. The layout is fully random: the resource
+ * assignment, the dock order, the dock widths, and the start position are
+ * all shuffled. A few coast vertices stay port-free.
  */
 function assignPorts(vertices: Record<string, VertexNode>): void {
   const boundary = Object.values(vertices)
@@ -50,20 +50,21 @@ function assignPorts(vertices: Record<string, VertexNode>): void {
     .sort((a, b) => Math.atan2(a.position.y, a.position.x) - Math.atan2(b.position.y, b.position.x));
   const n = boundary.length;
   if (n === 0) return;
-  // One special dock per resource (random resource order), each paired with
-  // a generic dock.
+  // 9 docks (classic Catan): 5 special (2:1, one per resource) + 4 generic
+  // (3:1).
   const special: PortType[] = shuffle(['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore']);
-  const docks: PortType[] = [];
-  for (const res of special) docks.push(res, 'generic');
+  const docks: PortType[] = [...special];
+  for (let i = 0; i < 4; i++) docks.push('generic');
   const count = Math.min(docks.length, n);
-  // Widths: every dock spans one vertex; then hand out extra slots (max +2
-  // per dock) so some docks expand to 2-3 vertices, leaving ~2 coast
-  // vertices free.
+  // Widths: every dock spans one vertex; then hand out extra slots (max +1
+  // per dock) so some docks expand to 2 vertices, leaving ~2 coast vertices
+  // free. A dock never spans more than 2 vertices (classic Catan: a harbor
+  // is bordered by 1-2 coastal intersections).
   const widths: number[] = [];
   for (let i = 0; i < count; i++) widths.push(1);
   const extra = Math.max(0, n - count - Math.min(2, n - count));
   for (let i = 0; i < extra; i++) {
-    const candidates = widths.map((w, idx) => (w < 3 ? idx : -1)).filter((idx) => idx >= 0);
+    const candidates = widths.map((w, idx) => (w < 2 ? idx : -1)).filter((idx) => idx >= 0);
     if (candidates.length === 0) break;
     widths[candidates[Math.floor(Math.random() * candidates.length)]]++;
   }

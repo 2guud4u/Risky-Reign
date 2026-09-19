@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Board, GameRoom, Player } from 'common';
+import { GameRoom, Player } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
@@ -20,20 +20,6 @@ function syncCurrentPlayer(
   const player = room.players.find((p) => p.id === socketId);
   setCurrentPlayer(player ?? null);
   return !!player;
-}
-
-/**
- * The backend mutates `room.board` in place (e.g. deleting dead soldiers) and
- * emits `{ ...room }` — a new top-level object but the SAME `board` reference.
- * React components memoize on `board` (e.g. BoardView's soldier groups), so a
- * stable board reference would leave those stale (dead troops never disappear).
- * Return a shallow-copied board (fresh identity, same contents) so any `[board]`
- * memo recomputes on every update.
- */
-function normalizeRoom(room: GameRoom): GameRoom {
-  if (!room) return room;
-  const board: Board | null = room.board ? { ...room.board } : null;
-  return { ...room, board };
 }
 
 /**
@@ -72,7 +58,7 @@ const GameLogic: React.FC = () => {
     if (!socket) return;
 
     socket.on('roomUpdate', (room: GameRoom) => {
-      setGameRoom(normalizeRoom(room));
+      setGameRoom(room);
       if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer)) {
         // No longer in this room — clear the saved session.
         clearSavedSession();
@@ -81,7 +67,7 @@ const GameLogic: React.FC = () => {
     });
 
     socket.on('gameUpdate', (room: GameRoom) => {
-      setGameRoom(normalizeRoom(room));
+      setGameRoom(room);
       syncCurrentPlayer(room, socket.id, setCurrentPlayer);
       setError(null);
     });

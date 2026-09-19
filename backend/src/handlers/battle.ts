@@ -279,7 +279,10 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   socket.on('exitBattle', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);
-    if (!room) return;
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
     if (room.battleState && (room.battleState.phase === 'finished' || room.battleState.phase === 'repositioning')) {
       room.battleState = null;
       applyBonuses(room);

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
+import { BOARD_RADIUS, domainToPresentation, BoardUIState, PortType, PixelCoord } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { BoardEdge } from '../components/BoardEdge';
-import { BoardVertex } from '../components/BoardVertex';
+import { BoardVertex, PortDock } from '../components/BoardVertex';
 import Hexagon from '../components/Hexagon';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { ownerAngle } from '../utils/soldierPlacement';
@@ -95,6 +95,28 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     for (const e of Object.values(state.edges)) e.isSelectable = true;
     return state;
   }, [board]);
+
+  // Group boundary vertices into docks. A dock serves 1-2 adjacent coastal
+  // vertices and renders as a single PortDock (one icon, with a little road
+  // to each vertex it serves). Vertices are grouped by port type in angular
+  // order, capped at 2 per group: the board stores only the port type per
+  // vertex (not dock identity), so adjacent same-type docks (e.g. two
+  // generic harbors) can merge into one long run — capping at 2 keeps each
+  // rendered port to 1-2 vertices, matching a single harbor.
+  const portGroups = useMemo(() => {
+    if (!base) return [];
+    const withPort = Object.values(base.vertices).filter((v) => v.port !== null);
+    const sorted = withPort.slice().sort(
+      (a, b) => Math.atan2(a.position.y, a.position.x) - Math.atan2(b.position.y, b.position.x)
+    );
+    const groups: { port: PortType; vertices: PixelCoord[] }[] = [];
+    for (const v of sorted) {
+      const last = groups[groups.length - 1];
+      if (last && last.port === v.port && last.vertices.length < 2) last.vertices.push(v.position);
+      else groups.push({ port: v.port as PortType, vertices: [v.position] });
+    }
+    return groups;
+  }, [base]);
 
   // Group soldiers by vertex, then by owner (for count badges).
   const soldierGroups = useMemo(() => {
@@ -341,6 +363,12 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               onClick={handleVertexClick}
               onHover={setHoveredVertexId}
             />
+          ))}
+
+          {/* Trade ports (harbors): one icon per dock, with a little road
+              to each of the 1-2 vertices it serves. */}
+          {portGroups.map((g, i) => (
+            <PortDock key={`port-${i}`} vertices={g.vertices} port={g.port} size={8} />
           ))}
 
           {/* Soldiers layer: count badges around each vertex */}

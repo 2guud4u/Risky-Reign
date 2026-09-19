@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { expandCards } from 'common';
@@ -17,6 +17,13 @@ const StealPrompt: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { chooseSteal } = useSocket();
   const [selectedVictim, setSelectedVictim] = useState<string | null>(null);
+
+  // Reset the selection when the prompt closes, so a stale victim pick from a
+  // previous steal can't point at a player who is no longer in the victims list.
+  const active = !!gameRoom?.steal;
+  useEffect(() => {
+    if (!active) setSelectedVictim(null);
+  }, [active]);
 
   if (!gameRoom || !currentPlayer || !gameRoom.steal) return null;
   const { thief, victims, reason } = gameRoom.steal;

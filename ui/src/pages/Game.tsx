@@ -1,5 +1,5 @@
 import React from 'react';
-import { LOBBY_HEX_SIZE, WIN_VP } from 'common';
+import { LOBBY_HEX_SIZE, WIN_VP, MIN_PLAYERS } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
@@ -21,7 +21,7 @@ const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
 
   // Waiting room: players gather, pick their color, then the host starts the game.
   if (gameRoom.gameStatus === 'waiting') {
-    const canStart = gameRoom.players.length >= 2;
+    const canStart = gameRoom.players.length >= MIN_PLAYERS;
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="bg-white rounded-lg shadow p-4 max-w-[520px] w-full">

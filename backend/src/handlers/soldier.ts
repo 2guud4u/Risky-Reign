@@ -9,7 +9,7 @@ import {
   RESOURCES,
   applyBonuses,
 } from 'common';
-import { gameRooms } from '../store';
+import { gameRooms, freshResourceCount } from '../store';
 import { HandlerContext, blockIfFinished } from './context';
 
 /**
@@ -197,6 +197,10 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     }
 
     const soldier = board.soldiers[soldierId];
+    if (!soldier) {
+      socket.emit('error', { message: 'Soldier not found' });
+      return;
+    }
 
     // 1v1 roll: the soldier's die vs the robber's die; the robber wins
     // ties (Rules.md line 20).
@@ -220,7 +224,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       for (const r of RESOURCES) {
         currentPlayer.resources[r] += room.robberBag[r];
       }
-      room.robberBag = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
+      room.robberBag = freshResourceCount(0);
     } else {
       // The robber kills the soldier.
       delete board.soldiers[soldierId];

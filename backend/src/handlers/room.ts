@@ -1,6 +1,6 @@
-import { PLAYER_COLORS, Player, applyBonuses } from 'common';
+import { PLAYER_COLORS, Player, applyBonuses, MAX_PLAYERS, MIN_PLAYERS } from 'common';
 
-import { createGameRoom, createBoard, gameRooms, freshBankSupply } from '../store';
+import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount } from '../store';
 import { HandlerContext } from './context';
 
 /**
@@ -18,7 +18,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     if (!room) {
       room = createGameRoom(roomId, playerName);
     }
-    if (room.players.length >= 4) {
+    if (room.players.length >= MAX_PLAYERS) {
       socket.emit('error', { message: 'Room is full' });
       return;
     }
@@ -44,18 +44,12 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       id: socket.id,
       name: playerName,
       color: assigned,
-      resources: {
-        Wood: 10,
-        Brick: 10,
-        Sheep: 10,
-        Wheat: 10,
-        Ore: 10,
-      },
+      resources: freshResourceCount(10),
       victoryPoints: 0,
       developmentCards: [],
       freeRoadsLeft: 0,
       devCardsBoughtThisTurn: 0,
-      bankTradesThisTurn: { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 },
+      bankTradesThisTurn: freshResourceCount(0),
     };
 
     room.players.push(player);
@@ -101,26 +95,13 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (room.players.length < MIN_PLAYERS) {
+      socket.emit('error', { message: `Need at least ${MIN_PLAYERS} players to start` });
+      return;
+    }
     room.gameStatus = 'playing';
     applyBonuses(room);
     io.to(roomId).emit('roomUpdate', room);
-  });
-
-  // Handle game moves.
-  socket.on('makeMove', (data: { roomId: string; position: number }) => {
-    const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
-    const player = room.players.find((p) => p.id === socket.id);
-    if (!player) {
-      socket.emit('error', { message: 'Player not found in room' });
-      return;
-    }
-    applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', room);
   });
 
   // Reset game.
@@ -131,14 +112,8 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    room.turnState.player = 'X';
-    room.gameStatus = room.players.length === 2 ? 'playing' : 'waiting';
-    room.winner = null;
-    room.robberMove = null;
-    room.discards = {};
-    room.robberBag = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
-    room.bankSupply = freshBankSupply();
-    for (const p of room.players) p.bankTradesThisTurn = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
+    resetRoom(room);
+    room.gameStatus = room.players.length >= MIN_PLAYERS ? 'playing' : 'waiting';
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', room);
   });

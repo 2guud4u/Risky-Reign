@@ -30,6 +30,17 @@ export function freshBankSupply(): ResourceCount {
   };
 }
 
+/** A resource count with every resource set to `value` (0 for a fresh bag, 10 for a fresh hand). */
+export function freshResourceCount(value: number): ResourceCount {
+  return {
+    Wood: value,
+    Brick: value,
+    Sheep: value,
+    Wheat: value,
+    Ore: value,
+  };
+}
+
 /** In-memory store of active game rooms. */
 export const gameRooms = new Map<string, GameRoom>();
 
@@ -68,12 +79,57 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     steal: null,
     devCardChoice: null,
     discards: {},
-    robberBag: { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 },
+    robberBag: freshResourceCount(0),
     bankSupply: freshBankSupply(),
     bonuses: emptyBonuses(),
   };
   gameRooms.set(roomId, room);
   return room;
+}
+
+/**
+ * Reset a room to a fresh game state (same shape as a newly created room),
+ * keeping the existing players and their identity (id/name/color). Used by
+ * "Play Again" after a game ends. Resets the board, turn machine, all
+ * per-player resources/VP/cards, the dev-card deck, and every pending
+ * game state so a new game starts clean.
+ */
+export function resetRoom(room: GameRoom): void {
+  room.board = createBoard();
+  room.turnState = {
+    phase: 'SetUp',
+    player: room.players[0]?.name ?? 'X',
+    playerOrder: room.players.map((p) => p.name),
+    offset: 0,
+    dicePlayerIndex: 0,
+    placedSettlement: false,
+    placedRoad: false,
+    soldiersActedThisTurn: [],
+    soldiersCreatedThisTurn: [],
+    soldiersHealedThisTurn: [],
+    robberFoughtThisPhase: [],
+    undoLog: [],
+  };
+  room.winner = null;
+  room.tradeOffers = [];
+  room.battleState = null;
+  room.devCardDeck = generateDevelopmentCardDeck();
+  room.roll = { die1: null, die2: null };
+  room.robberMove = null;
+  room.steal = null;
+  room.devCardChoice = null;
+  room.discards = {};
+  room.robberBag = freshResourceCount(0);
+  room.bankSupply = freshBankSupply();
+  room.bonuses = emptyBonuses();
+  for (const p of room.players) {
+    p.resources = freshResourceCount(10);
+    p.victoryPoints = 0;
+    p.developmentCards = [];
+    p.freeRoadsLeft = 0;
+    p.devCardsBoughtThisTurn = 0;
+    p.bankTradesThisTurn = freshResourceCount(0);
+  }
 }
 
 /** Look up a room by id. */

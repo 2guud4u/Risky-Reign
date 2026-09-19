@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCES, ResourceKey } from 'common';
@@ -24,6 +24,13 @@ const DiscardPrompt: React.FC = () => {
     Wheat: 0,
     Ore: 0,
   });
+
+  // Reset the selection when the prompt closes, so a stale discard selection
+  // from a previous 7 can't pre-enable the confirm.
+  const active = !!gameRoom?.discards;
+  useEffect(() => {
+    if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
+  }, [active]);
 
   if (!gameRoom || !currentPlayer || !gameRoom.discards) return null;
   const pendingNames = Object.keys(gameRoom.discards);

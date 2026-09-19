@@ -89,13 +89,6 @@ const Game: React.FC = () => {
             </div>
             <button
               type="button"
-              className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
-              title="Chat"
-            >
-              {'💬'} Chat
-            </button>
-            <button
-              type="button"
               onClick={() => {
                 setMenuOpen(false);
                 leaveGame();

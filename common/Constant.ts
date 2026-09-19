@@ -20,6 +20,11 @@ export const BOARD_RADIUS = 2;
 /** The five resource types, in canonical display order. */
 export const RESOURCES = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'] as const;
 
+/** Maximum number of players in a room. */
+export const MAX_PLAYERS = 10;
+/** Minimum number of players required to start a game. */
+export const MIN_PLAYERS = 2;
+
 /** Default socket server url (override with REACT_APP_SOCKET_URL). */
 export const SOCKET_URL: string =
   (typeof process !== 'undefined' && process && process.env && process.env.REACT_APP_SOCKET_URL) ||

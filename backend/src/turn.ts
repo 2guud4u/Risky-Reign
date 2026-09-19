@@ -1,4 +1,5 @@
 import { GameRoom } from 'common';
+import { freshResourceCount } from './store';
 
 /**
  * Advance the room's turn/phase state machine based on the current phase.
@@ -42,7 +43,7 @@ export function advanceTurn(room: GameRoom): void {
         room.roll = { die1: null, die2: null };
         turnState.dicePlayerIndex = 0;
         // A new round: bank-trade counts reset (per-turn limit).
-        for (const p of room.players) p.bankTradesThisTurn = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
+        for (const p of room.players) p.bankTradesThisTurn = freshResourceCount(0);
       } else {
         // Determine next player based on setup round.
         let nextPlayerIndex;
@@ -117,7 +118,7 @@ export function advanceTurn(room: GameRoom): void {
         // A new round: cards bought last turn are now playable.
         for (const p of room.players) p.devCardsBoughtThisTurn = 0;
         // A new round: bank-trade counts reset (per-turn limit).
-        for (const p of room.players) p.bankTradesThisTurn = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
+        for (const p of room.players) p.bankTradesThisTurn = freshResourceCount(0);
       } else {
         // Next player's turn for action; each soldier keeps its own action limit.
         const nextPlayerIndex = (playerIndex + 1) % playerCount;

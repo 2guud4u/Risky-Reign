@@ -168,8 +168,11 @@ export function canBankTrade(
   if (giveResource === wantResource) {
     return { allowed: false, reason: 'Cannot trade a resource for itself' };
   }
-  if (giveCount < 1) {
-    return { allowed: false, reason: 'Must trade at least one resource' };
+  if (!RESOURCES.includes(giveResource) || !RESOURCES.includes(wantResource)) {
+    return { allowed: false, reason: 'Invalid resource' };
+  }
+  if (!Number.isInteger(giveCount) || giveCount < 1) {
+    return { allowed: false, reason: 'Must trade a whole number of at least one resource' };
   }
   const player = findPlayer(room, playerName);
   if (!player) return { allowed: false, reason: 'Unknown player' };

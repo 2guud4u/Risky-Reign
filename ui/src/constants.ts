@@ -90,18 +90,20 @@ export const DRAG_THRESHOLD = 5;
 export const PORT_OFFSET = 5;
 /** Badge radius. */
 export const PORT_RADIUS = 2.2;
-/** Inner "water" circle, as a fraction of the badge radius. */
-export const PORT_INNER = 0.72;
+/** White ring around the badge, as an extra radius (contrast vs. water). */
+export const PORT_RING = 1.4;
 /** Glyph font size. */
 export const PORT_TEXT = 1.7;
-/** Generic port fill. */
-export const PORT_GENERIC_FILL = '#7a4a1f';
-/** Special port fill. */
-export const PORT_SPECIAL_FILL = '#3f7fb5';
-/** Port stroke. */
-export const PORT_STROKE = '#1e2a38';
-/** Port water fill. */
-export const PORT_WATER = '#cfe8f7';
+/** Generic port fill (3:1) — warm amber. */
+export const PORT_GENERIC_FILL = '#c9971f';
+/** Special port fill (2:1) — pleasant blue. */
+export const PORT_SPECIAL_FILL = '#4a90d9';
+/** Port outline. */
+export const PORT_STROKE = '#2a3a4a';
+/** Pier (dock road) fill — wood. */
+export const PORT_PIER = '#b08d57';
+/** Pier edge — darker wood. */
+export const PORT_PIER_EDGE = '#6e5230';
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 

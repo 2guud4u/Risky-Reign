@@ -5,6 +5,7 @@ import {
   generateDevelopmentCardDeck,
   applyBonuses,
   ResourceKey,
+  RESOURCES,
 } from 'common';
 import { gameRooms } from '../store';
 import { HandlerContext, blockIfFinished } from './context';
@@ -190,13 +191,6 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'No pending card choice' });
         return;
       }
-      const validResources: ResourceKey[] = [
-        'Wood',
-        'Brick',
-        'Sheep',
-        'Wheat',
-        'Ore',
-      ];
       if (room.devCardChoice.card === 'year_of_plenty') {
         // Year of Plenty: take the 2 chosen resources from the bank.
         if (resources.length !== 2) {
@@ -204,7 +198,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
           return;
         }
         for (const r of resources) {
-          if (!validResources.includes(r as ResourceKey)) {
+          if (!RESOURCES.includes(r as ResourceKey)) {
             socket.emit('error', { message: 'Invalid resource' });
             return;
           }
@@ -222,7 +216,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
           return;
         }
         const chosenResource = resources[0] as ResourceKey;
-        if (!validResources.includes(chosenResource)) {
+        if (!RESOURCES.includes(chosenResource)) {
           socket.emit('error', { message: 'Invalid resource' });
           return;
         }

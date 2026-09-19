@@ -19,7 +19,6 @@ allow dragging of soldiers in the mini map
 
 
 Feature:
-capture settlement
 ]fighting injured soldier logic
 revamp moving resource animation to go to the card tab if its not on
 when dice phase, jump to roll dice tab

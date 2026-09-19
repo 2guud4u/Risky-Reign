@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCES, ResourceKey } from 'common';
@@ -23,6 +23,14 @@ const DevCardPrompt: React.FC = () => {
     Wheat: 0,
     Ore: 0,
   });
+
+  // Reset the selection when the prompt closes, so a stale pick from a
+  // previous prompt (a second Year of Plenty, a reset, or a choice resolved
+  // elsewhere) can't pre-enable the confirm or carry an invalid selection.
+  const active = !!gameRoom?.devCardChoice;
+  useEffect(() => {
+    if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
+  }, [active]);
 
   if (!gameRoom || !currentPlayer || !gameRoom.devCardChoice) return null;
   const { player, card } = gameRoom.devCardChoice;

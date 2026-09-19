@@ -87,10 +87,16 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
   socket.on('declineTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
     const room = gameRooms.get(roomId);
-    if (!room) return;
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
     if (blockIfFinished(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
-    if (!player) return;
+    if (!player) {
+      socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
     const offer = room.tradeOffers.find((o) => o.id === tradeId);
     // Only the recipient may decline, and only while pending.
     if (offer && offer.to === player.name && offer.status === 'pending') {
@@ -103,10 +109,16 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
   socket.on('cancelTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
     const room = gameRooms.get(roomId);
-    if (!room) return;
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
     if (blockIfFinished(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
-    if (!player) return;
+    if (!player) {
+      socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
     const offer = room.tradeOffers.find((o) => o.id === tradeId);
     // Only the creator may cancel, and only while pending.
     if (offer && offer.from === player.name && offer.status === 'pending') {
@@ -124,10 +136,16 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
   }) => {
     const { roomId, giveResource, wantResource, giveCount } = data;
     const room = gameRooms.get(roomId);
-    if (!room) return;
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
     if (blockIfFinished(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
-    if (!player) return;
+    if (!player) {
+      socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
     const check = canBankTrade(
       room,
       player.name,
