@@ -14,4 +14,9 @@ export interface Player {
   freeRoadsLeft: number;
   /** Dev cards bought this turn (cannot be played until next turn). */
   devCardsBoughtThisTurn: number;
+  /**
+   * Resources given to the bank per type this turn (enforces the official
+   * "at most 4 of one resource type per turn" bank-trade limit).
+   */
+  bankTradesThisTurn: ResourceCount;
 }

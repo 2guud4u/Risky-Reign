@@ -109,6 +109,23 @@ export const LONGEST_ROAD_MIN = 5;
 export const LARGEST_ARMY_MIN = 3;
 /** Victory points awarded by each bonus. */
 export const BONUS_VP = 2;
+/** Victory points needed to win the game (standard Catan: first to 10 VP on your turn). */
+export const WIN_VP = 10;
+
+/**
+ * Official piece-pool limits per player: a maximum of 5 settlements, 4 cities
+ * (a city is an upgraded settlement, so it also occupies a settlement slot)
+ * and 15 roads.
+ */
+export const MAX_SETTLEMENTS = 5;
+export const MAX_CITIES = 4;
+export const MAX_ROADS = 15;
+
+/** The bank holds this many cards of each resource (95 total, official). */
+export const BANK_SUPPLY_PER_RESOURCE = 19;
+
+/** A player may trade at most this many of one resource type per turn (official). */
+export const MAX_BANK_TRADE_PER_TURN = 4;
 
 /** Maximum soldiers that may fight on a side in a single battle round. */
 export const MAX_PER_ROUND = 3;

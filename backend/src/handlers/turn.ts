@@ -18,7 +18,7 @@ import {
 } from 'common';
 import { advanceTurn } from '../turn';
 import { gameRooms } from '../store';
-import { HandlerContext } from './context';
+import { HandlerContext, blockIfFinished } from './context';
 
 /**
  * Turn-flow handlers: ending the turn, undoing the most recent action, rolling
@@ -41,6 +41,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     // Setup cannot be skipped: the current player must place both a
     // settlement and a road before their setup turn may end.
     if (
@@ -85,6 +86,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -201,6 +203,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -276,6 +279,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -338,6 +342,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const player = room.players.find((p) => p.id === playerId);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
@@ -379,6 +384,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      if (blockIfFinished(room, socket)) return;
       const player = room.players.find((p) => p.id === playerId);
       if (!player) {
         socket.emit('error', { message: 'Player not found in room' });

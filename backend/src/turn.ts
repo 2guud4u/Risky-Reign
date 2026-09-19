@@ -5,6 +5,9 @@ import { GameRoom } from 'common';
  * Mutates `room.turnState` (and `room.roll` when a new Dice phase begins).
  */
 export function advanceTurn(room: GameRoom): void {
+  // A finished game never advances: the turn machine is frozen at the
+  // moment the win condition is met.
+  if (room.gameStatus === 'finished') return;
   const turnState = room.turnState;
   const playerCount = turnState.playerOrder.length;
   const playerIndex = turnState.playerOrder.indexOf(turnState.player);
@@ -38,6 +41,8 @@ export function advanceTurn(room: GameRoom): void {
         };
         room.roll = { die1: null, die2: null };
         turnState.dicePlayerIndex = 0;
+        // A new round: bank-trade counts reset (per-turn limit).
+        for (const p of room.players) p.bankTradesThisTurn = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
       } else {
         // Determine next player based on setup round.
         let nextPlayerIndex;
@@ -111,6 +116,8 @@ export function advanceTurn(room: GameRoom): void {
         room.roll = { die1: null, die2: null };
         // A new round: cards bought last turn are now playable.
         for (const p of room.players) p.devCardsBoughtThisTurn = 0;
+        // A new round: bank-trade counts reset (per-turn limit).
+        for (const p of room.players) p.bankTradesThisTurn = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
       } else {
         // Next player's turn for action; each soldier keeps its own action limit.
         const nextPlayerIndex = (playerIndex + 1) % playerCount;

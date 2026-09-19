@@ -97,6 +97,11 @@ export interface GameRoom {
    * resources produced by hexes the robber sits on.
    */
   robberBag: ResourceCount;
+  /**
+   * Remaining bank supply per resource (19 of each at game start — the
+   * official 95-card bank). Bank trades and Year of Plenty deplete it.
+   */
+  bankSupply: ResourceCount;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
 }

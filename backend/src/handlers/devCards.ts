@@ -7,7 +7,7 @@ import {
   ResourceKey,
 } from 'common';
 import { gameRooms } from '../store';
-import { HandlerContext } from './context';
+import { HandlerContext, blockIfFinished } from './context';
 
 /**
  * Development-card handlers: drawing a card from the shared deck, playing a
@@ -26,6 +26,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const player = room.players.find((p) => p.id === playerId);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
@@ -78,6 +79,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const player = room.players.find((p) => p.id === playerId);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
@@ -178,6 +180,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      if (blockIfFinished(room, socket)) return;
       const player = room.players.find((p) => p.id === playerId);
       if (!player) {
         socket.emit('error', { message: 'Player not found in room' });
@@ -205,6 +208,11 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
             socket.emit('error', { message: 'Invalid resource' });
             return;
           }
+          if (room.bankSupply[r as ResourceKey] < 1) {
+            socket.emit('error', { message: `Not enough ${r} in the bank` });
+            return;
+          }
+          room.bankSupply[r as ResourceKey]--;
           player.resources[r as ResourceKey]++;
         }
       } else {

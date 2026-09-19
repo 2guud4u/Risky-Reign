@@ -27,25 +27,54 @@ import { computeAdjacency } from './adjacency';
 
 export { HexLayout };
 
+/** Fisher-Yates shuffle (in place). */
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 /**
- * Assign trade ports (harbors) to boundary vertices (1-hex vertices):
- * 5 generic (3:1) + 5 special (2:1, one per resource), interleaved and
- * spread evenly around the board by sorting boundary vertices by angle
- * from center and stepping through them at `count / total`.
+ * Assign trade ports (harbors) to boundary vertices (1-hex vertices).
+ * There are 5 special docks (2:1, one per resource) and 5 generic docks
+ * (3:1). Each dock is a stretch of coastline: it spans 1-3 consecutive
+ * boundary vertices, so a settlement on any vertex of the stretch can use
+ * the dock. The layout is fully random: the resource assignment, the dock
+ * order, the dock widths, and the start position are all shuffled. A few
+ * coast vertices stay port-free.
  */
 function assignPorts(vertices: Record<string, VertexNode>): void {
   const boundary = Object.values(vertices)
     .filter((v) => v.hexIds.length === 1)
     .sort((a, b) => Math.atan2(a.position.y, a.position.x) - Math.atan2(b.position.y, b.position.x));
-  // One special port per resource, each followed by a generic port.
-  const special: PortType[] = ['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore'];
-  const ports: PortType[] = [];
-  for (const res of special) ports.push(res, 'generic');
-  // Evenly space `ports.length` markers across the boundary ring.
-  const step = boundary.length / ports.length;
-  for (let i = 0; i < ports.length; i++) {
-    const v = boundary[Math.floor(i * step)];
-    if (v) v.port = ports[i];
+  const n = boundary.length;
+  if (n === 0) return;
+  // One special dock per resource (random resource order), each paired with
+  // a generic dock.
+  const special: PortType[] = shuffle(['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore']);
+  const docks: PortType[] = [];
+  for (const res of special) docks.push(res, 'generic');
+  const count = Math.min(docks.length, n);
+  // Widths: every dock spans one vertex; then hand out extra slots (max +2
+  // per dock) so some docks expand to 2-3 vertices, leaving ~2 coast
+  // vertices free.
+  const widths: number[] = [];
+  for (let i = 0; i < count; i++) widths.push(1);
+  const extra = Math.max(0, n - count - Math.min(2, n - count));
+  for (let i = 0; i < extra; i++) {
+    const candidates = widths.map((w, idx) => (w < 3 ? idx : -1)).filter((idx) => idx >= 0);
+    if (candidates.length === 0) break;
+    widths[candidates[Math.floor(Math.random() * candidates.length)]]++;
+  }
+  // Place the docks in a random order, starting at a random coast vertex.
+  const order = shuffle(Array.from({ length: count }, (_, i) => i));
+  let cursor = Math.floor(Math.random() * n);
+  for (const di of order) {
+    for (let w = 0; w < widths[di]; w++) {
+      boundary[cursor % n].port = docks[di];
+      cursor++;
+    }
   }
 }
 

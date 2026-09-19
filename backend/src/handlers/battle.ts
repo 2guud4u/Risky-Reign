@@ -10,7 +10,7 @@ import {
   BattleState,
 } from 'common';
 import { gameRooms } from '../store';
-import { HandlerContext } from './context';
+import { HandlerContext, blockIfFinished } from './context';
 
 /**
  * Battle handlers: starting a battle, rolling dice, continuing/ending the
@@ -29,6 +29,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      if (blockIfFinished(room, socket)) return;
       const board = room.board;
       if (!board) {
         socket.emit('error', { message: 'Game board is not available' });
@@ -79,6 +80,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      if (blockIfFinished(room, socket)) return;
       const board = room.board;
       if (!board || !room.battleState) {
         socket.emit('error', { message: 'No battle in progress' });
@@ -125,6 +127,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board || !room.battleState) {
       socket.emit('error', { message: 'No battle in progress' });
@@ -190,6 +193,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board || !room.battleState) {
       socket.emit('error', { message: 'No battle in progress' });
@@ -228,6 +232,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'No battle in progress' });
         return;
       }
+      if (blockIfFinished(room, socket)) return;
       const currentPlayer = room.players.find((p) => p.id === playerId);
       if (!currentPlayer) {
         socket.emit('error', { message: 'Player not found' });

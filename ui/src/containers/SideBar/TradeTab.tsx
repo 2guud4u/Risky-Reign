@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTradeOffer, bestBankTradeRatio, diceOwner } from 'common';
+import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTradeOffer, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
@@ -129,7 +129,8 @@ const TradeTab: React.FC = () => {
   // Bank ratio for the selected give resource (port-aware).
   const bankRatio = gameRoom.board ? bestBankTradeRatio(gameRoom.board, currentPlayer, bankGive) : 4;
   const bankCanTrade =
-    isTurnOwner && bankGive !== bankWant && bankCount >= 1 && currentPlayer.resources[bankGive] >= bankCount;
+    isTurnOwner && !!gameRoom.board &&
+    canBankTrade(gameRoom, currentPlayer.name, bankGive, bankWant, bankCount, gameRoom.bankSupply).allowed;
 
   const setGiveAmount = (k: ResourceKey, v: number) => setGive({ ...give, [k]: v });
   const setWantAmount = (k: ResourceKey, v: number) => setWant({ ...want, [k]: v });
@@ -172,7 +173,9 @@ const TradeTab: React.FC = () => {
 
       {isBank && (
         <div>
-          <p className="text-[12px] text-gray-600 m-0 mb-2">Ratio: {bankRatio}:1</p>
+          <p className="text-[12px] text-gray-600 m-0 mb-2">
+            Ratio: {bankRatio}:1 · Bank {bankWant}: {gameRoom.bankSupply[bankWant]}
+          </p>
           <div className="flex gap-2 mb-2">
             <select
               value={bankGive}

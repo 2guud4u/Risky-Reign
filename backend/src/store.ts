@@ -1,7 +1,9 @@
 import {
   Board,
   GameRoom,
+  ResourceCount,
   GAME_HEX_SIZE,
+  BANK_SUPPLY_PER_RESOURCE,
   generateStandardBoard,
   generateDevelopmentCardDeck,
 } from 'common';
@@ -14,6 +16,17 @@ export function emptyBonuses() {
     hasLongestRoad: {},
     hasLargestArmy: {},
     settlementVp: {},
+  };
+}
+
+/** A fresh bank supply: 19 of each resource (the official 95-card bank). */
+export function freshBankSupply(): ResourceCount {
+  return {
+    Wood: BANK_SUPPLY_PER_RESOURCE,
+    Brick: BANK_SUPPLY_PER_RESOURCE,
+    Sheep: BANK_SUPPLY_PER_RESOURCE,
+    Wheat: BANK_SUPPLY_PER_RESOURCE,
+    Ore: BANK_SUPPLY_PER_RESOURCE,
   };
 }
 
@@ -56,6 +69,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     devCardChoice: null,
     discards: {},
     robberBag: { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 },
+    bankSupply: freshBankSupply(),
     bonuses: emptyBonuses(),
   };
   gameRooms.set(roomId, room);

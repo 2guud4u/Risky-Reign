@@ -10,7 +10,7 @@ import {
   applyBonuses,
 } from 'common';
 import { gameRooms } from '../store';
-import { HandlerContext } from './context';
+import { HandlerContext, blockIfFinished } from './context';
 
 /**
  * Soldier handlers: moving a garrisoned soldier, healing one, capturing a
@@ -26,6 +26,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -76,6 +77,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      if (blockIfFinished(room, socket)) return;
       const board = room.board;
       if (!board) {
         socket.emit('error', { message: 'Game board is not available' });
@@ -130,6 +132,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -173,6 +176,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    if (blockIfFinished(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });

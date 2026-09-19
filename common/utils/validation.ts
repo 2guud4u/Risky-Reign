@@ -2,7 +2,7 @@ import { Board, VertexId, EdgeId } from '../types/Board';
 import { TurnState, ResourceCount, Price, BuildCheck } from '../types/Logic';
 import { playerSettlementVertexIds, playerRoadEdgeIds } from './placement';
 import { canAfford } from './logic';
-import { SettlementPrice, RoadPrice, CityPrice, SoldierPrice, HealSoldierPrice } from '../Constant';
+import { SettlementPrice, RoadPrice, CityPrice, SoldierPrice, HealSoldierPrice, MAX_SETTLEMENTS, MAX_CITIES, MAX_ROADS } from '../Constant';
 
 /**
  * Check if a vertex is adjacent to any of the player's roads.
@@ -33,6 +33,10 @@ export function canBuildSettlementAt(
   const vertex = board.vertices[vertexId];
   if (!vertex) return { allowed: false, reason: 'Vertex not found' };
   if (vertex.settlementId !== null) return { allowed: false, reason: 'Vertex already occupied' };
+  // Official piece-pool limit: a city is an upgraded settlement, so both
+  // share the 5-settlement pool.
+  if (playerSettlementVertexIds(board, playerName).length >= MAX_SETTLEMENTS)
+    return { allowed: false, reason: `You already have the maximum ${MAX_SETTLEMENTS} settlements (including cities)` };
   
   // Distance rule: no adjacent settlements
   const hasAdjacentSettlement = vertex.roadIds.some((edgeId) => {
@@ -79,6 +83,9 @@ export function canBuildRoadOn(
   const edge = board.edges[edgeId];
   if (!edge) return { allowed: false, reason: 'Edge not found' };
   if (edge.roadId !== null) return { allowed: false, reason: 'A road already exists on this edge' };
+  // Official piece-pool limit (15 roads).
+  if (playerRoadEdgeIds(board, playerName).length >= MAX_ROADS)
+    return { allowed: false, reason: `You already have the maximum ${MAX_ROADS} roads` };
   
   // Must touch one of your settlements OR extend from one of your roads.
   const owned = playerSettlementVertexIds(board, playerName);
@@ -134,6 +141,12 @@ export function canUpgradeSettlementToCity(
     return { allowed: false, reason: 'You can only upgrade your own settlements' };
   if (settlement.level === 'city')
     return { allowed: false, reason: 'Already a city' };
+  // Official piece-pool limit (4 cities).
+  const cityCount = Object.values(board.settlements).filter(
+    (s) => s.ownerId === playerName && s.level === 'city'
+  ).length;
+  if (cityCount >= MAX_CITIES)
+    return { allowed: false, reason: `You already have the maximum ${MAX_CITIES} cities` };
   if (playerResources && !canAfford(playerResources, CityPrice))
     return { allowed: false, reason: 'Not enough resources to upgrade to a city' };
   return { allowed: true, reason: null };

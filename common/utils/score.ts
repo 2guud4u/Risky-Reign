@@ -1,6 +1,6 @@
 import { Board } from '../types/Board';
 import { GameRoom } from '../types/Room';
-import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, BONUS_VP } from '../Constant';
+import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, BONUS_VP, WIN_VP } from '../Constant';
 
 /**
  * Room scoring bonuses: Longest Road and Largest Army (standard Catan rules).
@@ -8,9 +8,10 @@ import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, BONUS_VP } from '../Constant';
  *  - Largest Army: having at least 3 soldiers earns 2 VP (soldier count is
  *    simply how many soldiers a player has on the board).
  *
- * `applyBonuses` is idempotent — it is safe to call on every broadcast: it
  * diffs the freshly computed state against `room.bonuses` and adjusts each
- * player's `victoryPoints` by the delta only.
+ * player's `victoryPoints` by the delta only. It then runs the win check
+ * (`checkWinCondition`): the first player at `WIN_VP` (10) points ends the
+ * game.
  */
 
 /** Total number of soldiers a player currently has on the board. */
@@ -111,4 +112,25 @@ export function applyBonuses(room: GameRoom): void {
   }
 
   room.bonuses = { longestRoad: road, largestArmy: army, hasLongestRoad, hasLargestArmy, settlementVp };
+  checkWinCondition(room);
+}
+
+/**
+ * Win condition (standard Catan): the first player to reach `WIN_VP` (10)
+ * victory points wins. The check prefers the acting player — a player wins
+ * on their own turn — and falls back to the first player in turn order with
+ * enough points (deterministic). Idempotent: once `gameStatus` is
+ * 'finished' the room is never changed again, so it is safe to run on every
+ * broadcast.
+ */
+export function checkWinCondition(room: GameRoom): void {
+  if (room.gameStatus !== 'playing') return;
+  const acting = room.players.find((p) => p.name === room.turnState.player);
+  const winner =
+    (acting && acting.victoryPoints >= WIN_VP ? acting : null) ??
+    room.players.find((p) => p.victoryPoints >= WIN_VP);
+  if (winner) {
+    room.gameStatus = 'finished';
+    room.winner = winner.name;
+  }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LOBBY_HEX_SIZE } from 'common';
+import { LOBBY_HEX_SIZE, WIN_VP } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
@@ -8,8 +8,12 @@ import Game from '../containers/Game';
 
 const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
-  const { startGame: onStartGame, refreshMap: onRefreshMap, updatePlayerColor: onUpdatePlayerColor } =
-    useSocket();
+  const {
+    startGame: onStartGame,
+    resetGame: onResetGame,
+    refreshMap: onRefreshMap,
+    updatePlayerColor: onUpdatePlayerColor,
+  } = useSocket();
 
   if (!gameRoom || !currentPlayer) {
     return <p className="text-center text-gray-500">Loading game...</p>;
@@ -56,6 +60,38 @@ const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
           <div className="mt-4 flex justify-center">
             <BoardView hexSize={LOBBY_HEX_SIZE} />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Game over: the first player to reach WIN_VP victory points wins.
+  if (gameRoom.gameStatus === 'finished') {
+    const standings = [...gameRoom.players].sort((a, b) => b.victoryPoints - a.victoryPoints);
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="bg-white rounded-lg shadow p-8 max-w-[520px] w-full text-center">
+          <h1 className="text-3xl font-bold mb-2">🏆 {gameRoom.winner} wins!</h1>
+          <p className="text-gray-600 mb-6">First to {WIN_VP} victory points wins the game.</p>
+          <div className="space-y-2 mb-6">
+            {standings.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between px-3 py-2 rounded-md bg-gray-50"
+              >
+                <span className="font-semibold" style={{ color: p.color }}>
+                  {p.name}
+                </span>
+                <span className="text-yellow-700 font-semibold">⭐ {p.victoryPoints} VP</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => onResetGame(gameRoom.id)}
+            className="w-full py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer"
+          >
+            Play Again
+          </button>
         </div>
       </div>
     );

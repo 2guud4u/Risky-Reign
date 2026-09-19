@@ -1,6 +1,6 @@
 import { PLAYER_COLORS, Player, applyBonuses } from 'common';
 
-import { createGameRoom, createBoard, gameRooms } from '../store';
+import { createGameRoom, createBoard, gameRooms, freshBankSupply } from '../store';
 import { HandlerContext } from './context';
 
 /**
@@ -55,6 +55,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       developmentCards: [],
       freeRoadsLeft: 0,
       devCardsBoughtThisTurn: 0,
+      bankTradesThisTurn: { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 },
     };
 
     room.players.push(player);
@@ -136,6 +137,8 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     room.robberMove = null;
     room.discards = {};
     room.robberBag = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
+    room.bankSupply = freshBankSupply();
+    for (const p of room.players) p.bankTradesThisTurn = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', room);
   });

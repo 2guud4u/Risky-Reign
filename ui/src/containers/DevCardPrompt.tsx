@@ -43,6 +43,8 @@ const DevCardPrompt: React.FC = () => {
 
   const increment = (r: ResourceKey) => {
     if (total >= 2) return; // at capacity
+    // Year of Plenty takes from the bank: cannot exceed the bank's supply.
+    if (isYearOfPlenty && (counts[r] ?? 0) >= (gameRoom.bankSupply?.[r] ?? Infinity)) return;
     setCounts((prev) => ({ ...prev, [r]: (prev[r] ?? 0) + 1 }));
   };
   const decrement = (r: ResourceKey) => {
@@ -102,7 +104,7 @@ const DevCardPrompt: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => increment(r)}
-                      disabled={total >= 2}
+                      disabled={total >= 2 || count >= (gameRoom.bankSupply?.[r] ?? Infinity)}
                       className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold"
                     >
                       +
