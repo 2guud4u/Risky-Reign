@@ -77,9 +77,12 @@ const ResourceSpendLayer: React.FC = () => {
       let source: { x: number; y: number } = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
       resolveResourceAnchor((center) => { source = center; });
 
-      // Create one icon per resource in the cost.
+      // Create one icon per resource in the cost. Stagger them with a
+      // running index (like the gain layer) so each resource flies after
+      // the previous one instead of all launching at once and stacking.
       const price = PRICE_BY_TYPE[info.type];
       const newIcons: FlyIcon[] = [];
+      let staggerIdx = 0;
       RESOURCES.forEach((k) => {
         const count = price[k] ?? 0;
         for (let i = 0; i < count; i++) {
@@ -90,7 +93,7 @@ const ResourceSpendLayer: React.FC = () => {
             sourceY: source.y,
             targetX: screenTarget.x,
             targetY: screenTarget.y,
-            delay: i * SPEND_STAGGER,
+            delay: staggerIdx++ * SPEND_STAGGER,
           });
         }
       });

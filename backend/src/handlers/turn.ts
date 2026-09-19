@@ -162,6 +162,11 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       case 'captureSettlement': {
         const settlement = board.settlements[entry.settlementId];
         if (settlement) settlement.ownerId = entry.originalOwnerId;
+        // Restore the roads that transferred to the capturer.
+        for (const t of entry.roadTransfers ?? []) {
+          const road = board.roads[t.roadId];
+          if (road) road.ownerId = t.originalOwnerId;
+        }
         // Refund the actions so the capturing soldiers can act again this phase.
         for (const id of entry.soldierIds) {
           turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
@@ -188,6 +193,12 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
           }
           room.robberBag = { ...entry.bagBefore };
         }
+        if (entry.robberMoved) {
+          // Restore the robber to its pre-fight hex.
+          placeRobber(board, entry.robberMoved.fromHexId);
+        }
+        // The move option belonged to the undone fight.
+        room.robberDefeatedBy = null;
         break;
       }
     }

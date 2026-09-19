@@ -1,4 +1,4 @@
-import { GameRoom, BattleState, SoldierBattleState, Board } from '../index';
+import { GameRoom, BattleState, SoldierBattleState, Board, SoldierObj } from '../index';
 import { MAX_PER_ROUND } from '../Constant';
 
 /**
@@ -89,10 +89,11 @@ export function canStartBattle(
     }
   }
 
-  // Target vertex must have (uninjured) enemy soldiers (no settlement needed).
-  // Injured troops are out of the fight (Rule 28), so they don't count.
+  // Target vertex must have enemy soldiers (no settlement needed). Injured
+  // troops count too: you can attack injured soldiers (Rules.md line 28),
+  // which starts an "injured fight" (a roll-off) rather than a normal battle.
   const hasEnemySoldiers = Object.values(board.soldiers).some(
-    (s) => s.vertexId === targetVertexId && s.owner !== attackerName && !s.injured
+    (s) => s.vertexId === targetVertexId && s.owner !== attackerName
   );
 
   if (!hasEnemySoldiers) {
@@ -187,15 +188,19 @@ export function createBattleState(
   targetVertexId: string
 ): BattleState {
   const board = room.board!;
-
   // The defender faces every enemy troop garrisoned at the target vertex
   // (Rules.md line 7: "Defender defend with whatever is on the defending
   // turf"), even when those troops belong to several different players.
-  // Injured troops are counted as gone from the battle and are not committed
-  // (Rule 28: injured state cannot attack).
-  const enemySoldiers = Object.values(board.soldiers).filter(
-    (s) => s.vertexId === targetVertexId && s.owner !== attackerName && !s.injured
+  // Normally injured troops are out of the fight (Rule 28). But when the
+  // vertex holds ONLY injured troops, this is an "injured fight" (Rules.md
+  // line 28): the injured defenders DO roll, and the outcome is a roll-off
+  // (defender higher → they flee; otherwise they die).
+  const allEnemySoldiers = Object.values(board.soldiers).filter(
+    (s) => s.vertexId === targetVertexId && s.owner !== attackerName
   );
+  const healthyEnemySoldiers = allEnemySoldiers.filter((s) => !s.injured);
+  const injuredFight = healthyEnemySoldiers.length === 0 && allEnemySoldiers.length > 0;
+  const enemySoldiers = injuredFight ? allEnemySoldiers : healthyEnemySoldiers;
 
   // Choose the defending player's label: the settlement owner when they have
   // troops here, otherwise the player with the most troops at the vertex.
@@ -237,7 +242,7 @@ export function createBattleState(
         soldier: s,
         rollNum: null,
         dead: false,
-        injured: false,
+        injured: s.injured,
       })),
     };
   }
@@ -249,7 +254,60 @@ export function createBattleState(
     states,
     phase: 'rolling',
     round: 1,
+    injuredFight,
   };
+}
+
+/**
+ * Initialize a battle state for a 1v1 fight against the robber. The robber is
+ * represented as a pseudo-soldier on the defender side (it is not a real board
+ * soldier). The robber's die is rolled by the caller (auto-roll).
+ */
+export function createRobberBattleState(
+  room: GameRoom,
+  playerName: string,
+  soldierId: string,
+  vertexId: string
+): BattleState {
+  const soldier = room.board!.soldiers[soldierId];
+  // A pseudo-soldier standing in for the robber (the defender).
+  const robberSoldier: SoldierObj = {
+    id: 'robber',
+    owner: 'Robber',
+    injured: false,
+    vertexId,
+    type: 'infantry',
+    stationed: true,
+  };
+  return {
+    attacker: playerName,
+    defender: 'Robber',
+    vertexId,
+    states: {
+      [playerName]: {
+        soldiers: [{ soldier, rollNum: null, dead: false, injured: false }],
+      },
+      Robber: {
+        soldiers: [{ soldier: robberSoldier, rollNum: null, dead: false, injured: false }],
+      },
+    },
+    phase: 'rolling',
+    round: 1,
+    robberFight: true,
+  };
+}
+
+/**
+ * Resolve a robber fight: a single roll-off with no casualties — the attacker
+ * wins only on a strictly higher roll (the robber wins ties). The outcome is
+ * applied by the backend (win → take the bag; lose → the soldier is killed).
+ */
+function resolveRobberFight(
+  _battle: BattleState,
+  _deadSoldierIds: string[],
+  _injuredSoldierIds: string[]
+): void {
+  // No casualties: the result is determined by comparing the rolls.
 }
 
 
@@ -268,11 +326,14 @@ function sideOf(
  * committed troops roll into the front automatically.
  */
 export function activeSoldiersOf(
-  states: BattleState['states'],
+  battle: BattleState,
   playerName: string
 ): SoldierBattleState[] {
-  return sideOf(states, playerName)
-    .filter((s) => !s.dead && !s.injured)
+  // In an injured fight the defender's troops are already injured but still
+  // fight (they roll), so include them. Otherwise injured troops are out.
+  const includeInjured = battle.injuredFight && playerName === battle.defender;
+  return sideOf(battle.states, playerName)
+    .filter((s) => !s.dead && (includeInjured || !s.injured))
     .slice(0, MAX_PER_ROUND);
 }
 
@@ -282,19 +343,17 @@ export function activeSoldiersOf(
  * and so on (ties have no effect). A win by >=2 kills the loser, by 1 injures.
  */
 function resolvePairs(
-  states: BattleState['states'],
-  attacker: string,
-  defender: string,
+  battle: BattleState,
   deadSoldierIds: string[],
   injuredSoldierIds: string[]
 ): void {
   // Only the active front line (first MAX_PER_ROUND standing troops) that have
   // rolled take part in the matchup. Injured troops are out of the fight
   // (Rule 28); reserve troops beyond the front line haven't stepped up yet.
-  const attackerSoldiers = activeSoldiersOf(states, attacker)
+  const attackerSoldiers = activeSoldiersOf(battle, battle.attacker)
     .filter((s) => s.rollNum !== null)
     .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
-  const defenderSoldiers = activeSoldiersOf(states, defender)
+  const defenderSoldiers = activeSoldiersOf(battle, battle.defender)
     .filter((s) => s.rollNum !== null)
     .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
 
@@ -324,6 +383,38 @@ function resolvePairs(
   }
 }
 
+/**
+ * Resolve an "injured fight" (Rules.md line 28): the attacker's rolls are
+ * paired against the injured defenders' rolls (highest vs. highest). The
+ * outcome only affects the injured defenders — if their roll is higher they
+ * flee (stay injured, can move); otherwise they die. The attacker's troops
+ * are unaffected.
+ */
+function resolveInjuredFight(
+  battle: BattleState,
+  deadSoldierIds: string[],
+  injuredSoldierIds: string[]
+): void {
+  const attackerSoldiers = activeSoldiersOf(battle, battle.attacker)
+    .filter((s) => s.rollNum !== null)
+    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
+  const defenderSoldiers = activeSoldiersOf(battle, battle.defender)
+    .filter((s) => s.rollNum !== null)
+    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
+  const maxPairs = Math.min(attackerSoldiers.length, defenderSoldiers.length);
+  for (let i = 0; i < maxPairs; i++) {
+    const attRoll = attackerSoldiers[i].rollNum || 0;
+    const defRoll = defenderSoldiers[i].rollNum || 0;
+    if (defRoll > attRoll) {
+      // Injured defender wins → they flee (stay injured, can move).
+    } else {
+      // Attacker wins (or tie) → the injured defender dies.
+      defenderSoldiers[i].dead = true;
+      deadSoldierIds.push(defenderSoldiers[i].soldier.id);
+    }
+  }
+}
+
 /** Find a committed soldier by id across every side of the battle. */
 function findCommittedSoldier(
   battleState: BattleState,
@@ -334,6 +425,19 @@ function findCommittedSoldier(
     if (found) return found;
   }
   return null;
+}
+
+/** True when this is an injured fight and the soldier is on the defender's
+ * side (the injured defenders that still roll). */
+function isInjuredFightDefender(
+  battleState: BattleState,
+  soldier: SoldierBattleState
+): boolean {
+  if (!battleState.injuredFight) return false;
+  const sideName = Object.keys(battleState.states).find(
+    (name) => battleState.states[name].soldiers.includes(soldier)
+  );
+  return sideName === battleState.defender;
 }
 
 /**
@@ -353,9 +457,13 @@ export function rollBattleDie(
     !soldier ||
     soldier.soldier.owner !== playerName ||
     soldier.dead ||
-    soldier.injured ||
     soldier.rollNum !== null
   ) {
+    return { updated: battleState, value: soldier?.rollNum ?? 0 };
+  }
+  // Injured troops normally can't roll (Rule 28), but in an injured fight the
+  // injured defenders DO roll.
+  if (soldier.injured && !isInjuredFightDefender(battleState, soldier)) {
     return { updated: battleState, value: soldier?.rollNum ?? 0 };
   }
   const value = rollDie();
@@ -373,7 +481,7 @@ export function rollBattleDie(
 export function allSoldiersRolled(battleState: BattleState): boolean {
   return Object.keys(battleState.states).every(
     (name) =>
-      activeSoldiersOf(battleState.states, name).every((s) => s.rollNum !== null)
+      activeSoldiersOf(battleState, name).every((s) => s.rollNum !== null)
   );
 }
 
@@ -393,16 +501,18 @@ export function canRollBattleDie(
     !soldier ||
     soldier.soldier.owner !== playerName ||
     soldier.dead ||
-    soldier.injured ||
     soldier.rollNum !== null
   ) {
+    return false;
+  }
+  if (soldier.injured && !isInjuredFightDefender(battleState, soldier)) {
     return false;
   }
   const sideName = Object.keys(battleState.states).find(
     (name) => battleState.states[name].soldiers.includes(soldier)
   );
   if (!sideName) return false;
-  return activeSoldiersOf(battleState.states, sideName).includes(soldier);
+  return activeSoldiersOf(battleState, sideName).includes(soldier);
 }
 
 /**
@@ -432,7 +542,14 @@ export function resolveBattleRoundIfComplete(
   const updatedStates = JSON.parse(JSON.stringify(battleState.states)); // Deep copy
   const deadSoldierIds: string[] = [];
   const injuredSoldierIds: string[] = [];
-  resolvePairs(updatedStates, battleState.attacker, battleState.defender, deadSoldierIds, injuredSoldierIds);
+  const updatedBattle = { ...battleState, states: updatedStates };
+  if (battleState.robberFight) {
+    resolveRobberFight(updatedBattle, deadSoldierIds, injuredSoldierIds);
+  } else if (battleState.injuredFight) {
+    resolveInjuredFight(updatedBattle, deadSoldierIds, injuredSoldierIds);
+  } else {
+    resolvePairs(updatedBattle, deadSoldierIds, injuredSoldierIds);
+  }
 
   // A side is "gone" when it has no living, uninjured troops left.
   const livingAttackers = sideOf(updatedStates, battleState.attacker).filter(
@@ -441,7 +558,7 @@ export function resolveBattleRoundIfComplete(
   const livingDefenders = sideOf(updatedStates, battleState.defender).filter(
     (s) => !s.dead && !s.injured
   ).length;
-  const battleComplete = livingAttackers === 0 || livingDefenders === 0;
+  const battleComplete = battleState.robberFight || livingAttackers === 0 || livingDefenders === 0;
 
   // Keep the rolled values so the UI can show how the dice compared this
   // round. Rolls are reset by the backend when the attacker continues.

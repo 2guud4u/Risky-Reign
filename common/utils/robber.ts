@@ -1,4 +1,5 @@
-import { Board, HexId } from '../types/Board';
+import { Board, HexId, HexNode } from '../types/Board';
+import { CubeCoord } from '../types/Coordinates';
 import { Player } from '../types/Player';
 import { ResourceKey, BuildCheck } from '../types/Logic';
 import { RESOURCES } from '../Constant';
@@ -25,6 +26,56 @@ export function canPlaceRobberOn(board: Board, hexId: HexId): BuildCheck {
 export function placeRobber(board: Board, hexId: HexId): void {
   for (const h of Object.values(board.hexes)) h.robber = false;
   board.hexes[hexId].robber = true;
+}
+
+/** The six cube-coordinate unit directions (hex adjacency). */
+const HEX_DIRECTIONS: CubeCoord[] = [
+  { q: 1, r: -1, s: 0 },
+  { q: 1, r: 0, s: -1 },
+  { q: 0, r: 1, s: -1 },
+  { q: -1, r: 1, s: 0 },
+  { q: -1, r: 0, s: 1 },
+  { q: 0, r: -1, s: 1 },
+];
+
+/** Whether two hex coordinates are adjacent (cube distance 1). */
+export function areHexesAdjacent(a: CubeCoord, b: CubeCoord): boolean {
+  return HEX_DIRECTIONS.some(
+    (d) => b.q - a.q === d.q && b.r - a.r === d.r && b.s - a.s === d.s
+  );
+}
+
+/**
+ * Ids of the hexes adjacent to the given hex (cube-coordinate distance 1).
+ */
+export function adjacentHexIds(board: Board, hexId: HexId): HexId[] {
+  const hex = board.hexes[hexId];
+  if (!hex) return [];
+  return (Object.values(board.hexes) as HexNode[])
+    .filter((h) => h.id !== hexId && areHexesAdjacent(hex.coord, h.coord))
+    .map((h) => h.id);
+}
+
+/**
+ * Authoritative check for moving the robber to an adjacent hex after a
+ * victorious fight (Rules.md: "after the robber is defeated, the winner
+ * can move the robber to any adjacent hex"). The target must exist, be
+ * adjacent to the robber's current hex, and not be the desert.
+ */
+export function canMoveRobberAdjacent(
+  board: Board,
+  fromHexId: HexId,
+  toHexId: HexId
+): BuildCheck {
+  if (toHexId === fromHexId)
+    return { allowed: false, reason: 'The robber is already on this hex' };
+  const target = board.hexes[toHexId];
+  if (!target) return { allowed: false, reason: 'Unknown hex' };
+  if (target.terrain === 'Desert')
+    return { allowed: false, reason: 'The robber cannot be placed on the desert' };
+  if (!adjacentHexIds(board, fromHexId).includes(toHexId))
+    return { allowed: false, reason: 'That hex is not adjacent to the robber' };
+  return { allowed: true, reason: null };
 }
 
 /**

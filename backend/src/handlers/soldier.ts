@@ -2,7 +2,9 @@ import {
   canMoveSoldierTo,
   canHealSoldierAt,
   canCaptureSettlementAt,
+  captureRoadTransfers,
   canFightRobber,
+  createRobberBattleState,
   rollDie,
   subtractPrice,
   HealSoldierPrice,
@@ -102,17 +104,26 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       }
 
       // Transfer the settlement/city to the acting player, recording the
-      // previous owner so the capture can be undone this phase.
+      // previous owner so the capture can be undone this phase. Also
+      // transfer to the capturer the road(s) connecting the captured vertex
+      // to their other settlements/cities (Rules.md "capture settlement/city"),
+      // recording the previous road owners for undo.
       const vertex = board.vertices[vertexId];
       const settlement = vertex?.settlementId ? board.settlements[vertex.settlementId] : undefined;
       if (settlement) {
+        const roadTransfers = captureRoadTransfers(board, currentPlayer.name, vertexId);
         turnState.undoLog.push({
           kind: 'captureSettlement',
           settlementId: settlement.id,
           originalOwnerId: settlement.ownerId,
           soldierIds: [...soldierIds],
+          roadTransfers,
         });
         settlement.ownerId = currentPlayer.name;
+        for (const t of roadTransfers) {
+          const road = board.roads[t.roadId];
+          if (road) road.ownerId = currentPlayer.name;
+        }
       }
 
       // Each capturing soldier gets one action per Action phase (Rules.md line 30).
@@ -196,53 +207,16 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
 
-    const soldier = board.soldiers[soldierId];
-    if (!soldier) {
-      socket.emit('error', { message: 'Soldier not found' });
-      return;
-    }
-
-    // 1v1 roll: the soldier's die vs the robber's die; the robber wins
-    // ties (Rules.md line 20).
-    const soldierRoll = rollDie();
-    const robberRoll = rollDie();
-    const won = soldierRoll > robberRoll;
-
-    // Record for undo: restore the soldier if it was killed, return the
-    // bag if it was won.
-    turnState.undoLog.push({
-      kind: 'fightRobber',
-      playerName: currentPlayer.name,
-      soldierId,
-      result: won ? 'win' : 'lose',
-      soldierSnapshot: { ...soldier },
-      bagBefore: { ...room.robberBag },
-    });
-
-    if (won) {
-      // The winner takes the entire robber bag.
-      for (const r of RESOURCES) {
-        currentPlayer.resources[r] += room.robberBag[r];
-      }
-      room.robberBag = freshResourceCount(0);
-    } else {
-      // The robber kills the soldier.
-      delete board.soldiers[soldierId];
-    }
-
-    // The fight consumes the soldier's action for this phase and the
-    // player's once-per-phase robber fight.
+    // Start a 1v1 battle against the robber: the HUD is shown, the player
+    // rolls their soldier, and the robber's die is auto-rolled. The outcome
+    // is applied when the round resolves (see the rollBattleDie handler).
+    room.battleState = createRobberBattleState(room, currentPlayer.name, soldierId, vertexId);
+    // Auto-roll the robber's die.
+    room.battleState.states['Robber'].soldiers[0].rollNum = rollDie();
+    // The fight consumes the soldier's action for this phase.
     turnState.soldiersActedThisTurn.push(soldierId);
-    turnState.robberFoughtThisPhase.push(currentPlayer.name);
 
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', { ...room });
-    io.to(roomId).emit('robberFightResult', {
-      playerName: currentPlayer.name,
-      soldierId,
-      soldierRoll,
-      robberRoll,
-      won,
-    });
   });
 }

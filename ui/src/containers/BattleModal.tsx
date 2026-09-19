@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { SoldierBattleState, activeSoldiersOf } from 'common';
+import { SoldierBattleState, activeSoldiersOf, adjacentHexIds } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import MiniView from '../components/MiniView';
@@ -111,7 +111,7 @@ const troopFill = (s: SoldierBattleState, colors: Record<string, string>, phase:
 
 const BattleModal: React.FC = () => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
-  const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier } = useSocket();
+  const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier, finishRepositioning, moveRobberAfterWin } = useSocket();
 
   // Hooks must run unconditionally, before the early return below.
   const svgRef = useRef<SVGSVGElement>(null);
@@ -154,14 +154,23 @@ const BattleModal: React.FC = () => {
       (name) => battle.states[name].soldiers.includes(s)
     );
     if (!sideName) return false;
-    return activeSoldiersOf(battle.states, sideName).includes(s);
+    return activeSoldiersOf(battle, sideName).includes(s);
   };
 
+  // In an injured fight the injured defenders still roll (Rule 28), so they
+  // are rollable despite being injured.
+  const isInjuredFightDefender = (s: SoldierBattleState): boolean => {
+    if (!battle.injuredFight) return false;
+    const sideName = Object.keys(battle.states).find(
+      (name) => battle.states[name].soldiers.includes(s)
+    );
+    return sideName === battle.defender;
+  };
   const canRoll = (s: SoldierBattleState): boolean =>
     phase === 'rolling' &&
     currentPlayer?.name === s.soldier.owner &&
     !s.dead &&
-    !s.injured &&
+    (!s.injured || isInjuredFightDefender(s)) &&
     s.rollNum === null &&
     isActive(s);
 
@@ -219,8 +228,16 @@ const BattleModal: React.FC = () => {
     ownerName: string,
     vertexId: string
   ) => {
-    // Only the owner may reposition their own injured troops.
+    // Only the owner may reposition their own injured troops, and only
+    // while it is their side's repositioning turn (attacker first).
     if (currentPlayer?.name !== ownerName) return;
+    const turn = battle.repositionTurn;
+    if (turn !== undefined && turn !== null) {
+      const isAttacker = currentPlayer.name === battle.attacker;
+      const isDefender = currentPlayer.name === battle.defender;
+      if (!isAttacker && !isDefender) return;
+      if (turn !== (isAttacker ? 'attacker' : 'defender')) return;
+    }
     e.stopPropagation();
     setDrag({ soldierId, ownerName, fromVertexId: vertexId, validTargets: adjacentViaRoad(vertexId) });
   };
@@ -377,7 +394,7 @@ const BattleModal: React.FC = () => {
     for (const name of owners) {
       let n = 0;
       for (const sideName of Object.keys(battle.states)) {
-        for (const s of activeSoldiersOf(battle.states, sideName)) {
+        for (const s of activeSoldiersOf(battle, sideName)) {
           if (s.soldier.owner === name && s.rollNum === null) n++;
         }
       }
@@ -604,16 +621,21 @@ const BattleModal: React.FC = () => {
 
             {phase === 'repositioning' && (
               <div className="text-[12px] text-gray-700 bg-amber-50 border border-amber-200 rounded-md p-2">
-                {injuredTroops.length > 0 ? (
-                  <>
-                    <strong>Drag your injured troops</strong> (the yellow-ringed
-                    circles) to a neighboring vertex connected by a road to settle
-                    them. Any you leave stay put. When you're done, exit the battle.
-                  </>
-                ) : (
+                {battle.repositionTurn === null ? (
                   <span>
-                    No injured troops to reposition. You can exit the battle now.
+                    Repositioning is done. You can exit the battle now.
                   </span>
+                ) : (
+                  <>
+                    <strong>
+                      {battle.repositionTurn === 'attacker'
+                        ? `${battle.attacker} (attacker) moves first`
+                        : `${battle.defender || 'Defender'} moves next`}
+                    </strong>{' '}
+                    — drag the yellow-ringed injured troops to a neighboring
+                    vertex connected by a road to settle them. Any you leave
+                    stay put.
+                  </>
                 )}
               </div>
             )}
@@ -624,12 +646,72 @@ const BattleModal: React.FC = () => {
               </div>
             )}
 
+            {/* The side whose repositioning turn it is finishes first
+                (attacker before defender). */}
+            {phase === 'repositioning' &&
+              battle.repositionTurn !== null &&
+              battle.repositionTurn !== undefined &&
+              (() => {
+                const isAttacker = currentPlayer?.name === battle.attacker;
+                const isDefender = currentPlayer?.name === battle.defender;
+                if (!isAttacker || !isDefender) return null;
+                if (battle.repositionTurn !== (isAttacker ? 'attacker' : 'defender')) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => finishRepositioning(currentPlayer!.id, gameRoom.id)}
+                    className="w-full bg-blue-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-blue-700"
+                  >
+                    Finish My Repositioning
+                  </button>
+                );
+              })()}
+
+            {/* After defeating the robber, the winner may move it to any
+                adjacent hex (Rules.md). */}
+            {gameRoom.robberDefeatedBy &&
+              gameRoom.robberDefeatedBy.playerName === currentPlayer?.name && (
+              <div className="flex flex-col gap-1">
+                <div className="text-[12px] font-semibold text-gray-600">
+                  🛡 You defeated the robber — move it to an adjacent hex:
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {adjacentHexIds(board, gameRoom.robberDefeatedBy.fromHexId)
+                    .filter((hexId) => board.hexes[hexId]?.terrain !== 'Desert')
+                    .map((hexId) => {
+                      const hex = board.hexes[hexId];
+                      return (
+                        <button
+                          key={hexId}
+                          type="button"
+                          onClick={() => moveRobberAfterWin(currentPlayer!.id, hexId, gameRoom.id)}
+                          className="px-2 py-1 rounded border border-gray-300 bg-white text-[12px] hover:bg-gray-100"
+                          title={`Move the robber to the ${hex.terrain} hex`}
+                        >
+                          {hex.terrain}
+                          {hex.rollNumber !== null ? ` (${hex.rollNumber})` : ''}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleExit}
-              className="w-full bg-gray-800 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-900"
+              disabled={
+                phase === 'repositioning' &&
+                battle.repositionTurn !== null &&
+                battle.repositionTurn !== undefined
+              }
+              className="w-full bg-gray-800 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {phase === 'repositioning' ? 'Done — Exit Battle' : 'Exit Battle'}
+              {phase === 'repositioning'
+                ? battle.repositionTurn === null
+                  ? 'Done — Exit Battle'
+                  : 'Exit Battle (after repositioning)'
+                : 'Exit Battle'}
             </button>
           </div>
         )}

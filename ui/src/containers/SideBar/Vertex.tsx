@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Board, CityPrice, SettlementPrice, SoldierObj, SoldierPrice, VertexNode } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
@@ -8,6 +8,7 @@ import { buildButtonClass, hexChipClass } from './styles';
 import { playerColorMap } from '../../utils/soldierPlacement';
 import { priceLabel } from '../../utils/price';
 import { triggerBuildAnimation } from '../../components/ResourceSpendLayer';
+import { neighborNicknames } from '../../utils/neighborLabels';
 
 /**
  * Sidebar panel for a selected vertex: mini view of the vertex and its
@@ -78,6 +79,18 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     groupActionsAllowed ? mySoldiersHere.filter(soldierCanAct).map((s) => s.id) : []
   );
 
+  // When the selected vertex changes, auto-select my soldiers on it that still
+  // have their action to spend this phase, so the player can act on them
+  // without manually picking each one.
+  useEffect(() => {
+    if (!groupActionsAllowed) {
+      setSelectedGroup([]);
+      return;
+    }
+    setSelectedGroup(mySoldiersHere.filter(soldierCanAct).map((s) => s.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vertex.id]);
+
   // Move is available whenever the group can act; attack additionally requires
   // every member to be uninjured (injured state cannot attack — Rule 28).
   const groupReady = groupActionsAllowed && group.length > 0 && group.every((s) => soldierCanAct(s));
@@ -105,6 +118,10 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
         .filter((id): id is string => id !== null && id !== undefined)
     )
   );
+
+  // Nicknames (a, b, c, …) for the neighbor vertices — the same mapping the
+  // mini map uses for its labels, so "Move to b" matches the "b" on the map.
+  const nicknames = neighborNicknames(board, vertex.id);
 
   /** Enemy soldiers garrisoned on this vertex (the only valid attack target). */
   const enemyTroopsHere = Object.values(board.soldiers ?? {}).filter(
@@ -260,7 +277,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
                       className={buildButtonClass}
                       title={`Move the group to ${targetId}`}
                     >
-                      → Move to {targetId}
+                      → Move to {nicknames[targetId] ?? targetId}
                     </button>
                   ) : null;
                 })}
@@ -416,7 +433,8 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
                   title="Show this edge"
                 >
                   <span className="text-gray-600">→ vertex </span>
-                  <strong>{otherId}</strong>
+                  <strong>{nicknames[otherId] ?? otherId}</strong>
+                  <span className="text-gray-400"> ({otherId})</span>
                   {otherSettlement && (
                     <span className="text-[#8B4513]"> ({otherSettlement.ownerId})</span>
                   )}

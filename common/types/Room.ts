@@ -86,6 +86,13 @@ export interface GameRoom {
   roll: RollResult;
   /** Pending robber placement (a 7 roll or a played knight card). */
   robberMove: RobberMoveRequest | null;
+  /**
+   * Set when a player defeats the robber in a fight: the winner may move
+   * the robber to any hex adjacent to its current position (via the
+   * `moveRobberAfterWin` event). Cleared when the robber is moved, when
+   * the battle window is dismissed, or when the Action phase advances.
+   */
+  robberDefeatedBy: { playerName: string; fromHexId: string } | null;
   /** Pending steal (the thief picks a face-down card from a victim). */
   steal: StealState | null;
   /** Pending development-card choice (Year of Plenty / Monopoly). */

@@ -1,6 +1,7 @@
 Rules in place
 Actions:
 Spawn, move, heal, attack, capture settlement/city, upgrade/downgrade soldier, unstation/destation cannon, sneak
+Capturing a settlement/city also transfers to you the road between your settlement/city and the captured one (it becomes your color)
 Clockwise to persons turn
 Wheat can be played for an extra movement
 Specific Battle rules
@@ -10,6 +11,7 @@ When cannon splash attack on own tile, canon itself is immune but ally troops ca
 When mix fight with cannon in turf, cannon is lowest roll
 Reroll if tie on ambiguous turf
 Attacker
+After a battle, the attacker gets to move their injured soldiers away first (before the defender repositions theirs)
 
 
 Robber

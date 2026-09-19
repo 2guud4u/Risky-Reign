@@ -3,6 +3,7 @@ import { Board, EdgeNode, GAME_HEX_SIZE, terrainColors, VertexNode, cubeToPixel 
 import { hexPointsAt } from '../utils/hex';
 import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle } from '../utils/soldierPlacement';
 import { RANK_OFFSET, RANK_SPACING, SOLDIER_SPACING } from '../constants';
+import { neighborNicknames } from '../utils/neighborLabels';
 
 interface MiniViewProps {
   board: Board;
@@ -142,6 +143,10 @@ const MiniView: React.FC<MiniViewProps> = ({
       })
       .filter(Boolean) as { edge: EdgeNode; other: VertexNode }[];
 
+    // Nicknames for the neighbor circles (a, b, c, …) — the same mapping the
+    // sidebar's "Move to b" buttons use, so the map and buttons agree.
+    const nicknames = neighborNicknames(board, id);
+
     neighbors.forEach(({ edge, other }) => {
       points.push(other.position);
       const stroke = roadStroke(edge);
@@ -169,6 +174,38 @@ const MiniView: React.FC<MiniViewProps> = ({
       );
       const marker = settlementMarker(other, 10);
       if (marker) neighborhood.push(marker);
+      // Letter label just outside the circle, on the far side from the
+      // selected vertex, so it doesn't sit on the road line.
+      const label = nicknames[other.id];
+      if (label) {
+        const dx = other.position.x - vertex.position.x;
+        const dy = other.position.y - vertex.position.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const lx = other.position.x + (dx / len) * 20;
+        const ly = other.position.y + (dy / len) * 20;
+        // Fit the glyph's full extent (not just its anchor) into the
+        // viewBox, or edge letters get clipped.
+        points.push(
+          { x: lx - 6, y: ly - 9 },
+          { x: lx + 6, y: ly - 9 },
+          { x: lx - 6, y: ly + 9 },
+          { x: lx + 6, y: ly + 9 }
+        );
+        neighborhood.push(
+          <text
+            key={`label-${other.id}`}
+            x={lx}
+            y={ly}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={15}
+            fontWeight="bold"
+            fill="#111827"
+          >
+            {label}
+          </text>
+        );
+      }
     });
 
     // Selected vertex: the owner's settlement marker when present, so the

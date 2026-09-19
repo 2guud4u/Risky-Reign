@@ -76,6 +76,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     devCardDeck: generateDevelopmentCardDeck(),
     roll: { die1: null, die2: null },
     robberMove: null,
+    robberDefeatedBy: null,
     steal: null,
     devCardChoice: null,
     discards: {},
@@ -116,6 +117,7 @@ export function resetRoom(room: GameRoom): void {
   room.devCardDeck = generateDevelopmentCardDeck();
   room.roll = { die1: null, die2: null };
   room.robberMove = null;
+  room.robberDefeatedBy = null;
   room.steal = null;
   room.devCardChoice = null;
   room.discards = {};

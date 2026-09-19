@@ -322,3 +322,32 @@ export function canCaptureSettlementAt(
 
   return { allowed: true, reason: null };
 }
+
+/**
+ * Authoritative capture road transfer (Rules.md "capture settlement/city"):
+ * when a player captures a settlement/city, the road(s) connecting the
+ * captured vertex to any of the capturer's OTHER settlements/cities become
+ * the capturer's. Returns the roads to transfer with their current owners
+ * (so a capture undo can restore them).
+ */
+export function captureRoadTransfers(
+  board: Board,
+  capturingPlayer: string,
+  capturedVertexId: string
+): { roadId: string; originalOwnerId: string }[] {
+  const myVertices = playerSettlementVertexIds(board, capturingPlayer).filter(
+    (v) => v !== capturedVertexId
+  );
+  if (myVertices.length === 0) return [];
+  const out: { roadId: string; originalOwnerId: string }[] = [];
+  for (const edgeId of board.vertices[capturedVertexId]?.roadIds ?? []) {
+    const edge = board.edges[edgeId];
+    if (!edge || edge.roadId === null) continue;
+    const other = edge.vertexAId === capturedVertexId ? edge.vertexBId : edge.vertexAId;
+    if (!myVertices.includes(other)) continue;
+    const road = board.roads[edge.roadId];
+    if (!road) continue;
+    out.push({ roadId: road.id, originalOwnerId: road.ownerId });
+  }
+  return out;
+}

@@ -74,6 +74,8 @@ export type UndoEntry =
       originalOwnerId: string;
       /** The soldiers that performed the capture (their actions are refunded on undo). */
       soldierIds: string[];
+      /** Roads that transferred to the capturer (ownership restored on undo). */
+      roadTransfers: { roadId: string; originalOwnerId: string }[];
     }
   | {
       kind: 'fightRobber';
@@ -86,6 +88,8 @@ export type UndoEntry =
       soldierSnapshot: SoldierObj;
       /** The robber bag before the fight (restored on undo if the player won). */
       bagBefore: ResourceCount;
+      /** The robber's position if the winner moved it after winning (restored on undo). */
+      robberMoved?: { fromHexId: string; toHexId: string };
     };
 
 /** A pending resource trade between two players. */
@@ -130,12 +134,34 @@ export interface BattleState {
   /** 1-based round number (increments each time the attacker continues). */
   round: number;
   /**
+   * True when this battle is a "fight an injured soldier" (Rules.md line 28):
+   * the target vertex held only injured enemy troops, so the defenders are
+   * already injured and DO roll (unlike a normal battle, where injured troops
+   * are out of the fight). Resolution is a roll-off: if the injured defender
+   * rolls higher they flee (stay injured, can move); otherwise they die.
+   */
+  injuredFight?: boolean;
+  /**
    * Current resting vertex per injured soldier. Present during 'repositioning'
    * — it records each injured troop's board position so the UI can drag them
    * to an adjacent vertex (they start at the battle vertex and can be moved
    * along a road to a neighboring vertex, or left in place).
    */
   injuredSettled?: Record<string, string>;
+  /**
+   * True when this battle is a 1v1 fight against the robber (the "defender"
+   * is the robber, auto-rolled). The outcome is a single roll-off: the
+   * attacker wins only on a strictly higher roll (the robber wins ties).
+   */
+  robberFight?: boolean;
+  /**
+   * Whose repositioning turn it is during the 'repositioning' phase: the
+   * attacker moves their injured troops away first, then the defender
+   * (Rules.md: "attacker gets to move injured soldiers away first").
+   * A side with no injured troops is auto-skipped; null once both sides
+   * are done (or had nothing to reposition).
+   */
+  repositionTurn?: 'attacker' | 'defender' | null;
 }
 
 export interface ResourceCount {

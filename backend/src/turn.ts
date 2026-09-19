@@ -101,6 +101,8 @@ export function advanceTurn(room: GameRoom): void {
       break;
 
     case 'Action':
+      // The robber-move option belongs to the Action phase it was won in.
+      room.robberDefeatedBy = null;
       if (turnState.offset === playerCount - 1) {
         // All players have acted, move to next player's Dice phase.
         // A new round begins: clear the per-round soldier restrictions (Rule 24/25).
