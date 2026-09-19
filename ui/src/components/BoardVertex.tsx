@@ -55,7 +55,7 @@ export const PortDock: React.FC<{
           </g>
         ))}
       {/* Dock badge: white ring for contrast, soft fill, top highlight, glyph. */}
-      <circle cx={x} cy={y} r={r + size * PORT_RING} fill="#ffffff" opacity={0.92} />
+      {/* <circle cx={x} cy={y} r={r + size * PORT_RING} fill="#ffffff" opacity={0.92} /> */}
       <circle cx={x} cy={y} r={r} fill={isGeneric ? PORT_GENERIC_FILL : PORT_SPECIAL_FILL} stroke={PORT_STROKE} strokeWidth={1} />
       <ellipse cx={x} cy={y - r * 0.45} rx={r * 0.55} ry={r * 0.32} fill="#ffffff" opacity={0.22} />
       <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={size * PORT_TEXT}>
