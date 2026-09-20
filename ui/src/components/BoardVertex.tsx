@@ -101,10 +101,13 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
     return '#999';
   };
 
-  // House art sizing; cities render slightly larger than settlements.
-  const levelScale = settlementLevel === 'city' ? 1.2 : 1;
-  const houseW = size * 6 * levelScale;
-  const houseH = size * 7.05 * levelScale;
+  // House art sizing; cities render at a different size than settlements
+  // (larger, with a different aspect ratio — not just a uniform scale).
+  const houseW = settlementLevel === 'city' ? size * 13.5 : size * 6;
+  const houseH = settlementLevel === 'city' ? size * 14.25 : size * 7.05;
+
+  // Move the house slightly above the vertex center.
+  const yOffset = settlementLevel === 'city' ? size * .5 : size * 2;
 
 
 
@@ -131,17 +134,21 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
       {hasSettlement && (
         <svg
           x={position.x - houseW / 2}
-          y={position.y - houseH / 2}
+          y={position.y - houseH / 2 - yOffset}
           width={houseW}
           height={houseH}
           style={{
             color: ownerColor ?? '#999',
-            // Darker tone for the shadow layer; falls back to the SVG's #3f403d
+            // Darker tone for the shadow layer; falls back to the SVG's #6b6c68
             // when there is no owner color.
             ['--settlement-dark' as string]: ownerColor ? darkenColor(ownerColor) : undefined,
           }}
         >
-          <use href="/art/settlement.svg#settlement-shape" width={houseW} height={houseH} />
+          <use
+            href={settlementLevel === 'city' ? '/art/city.svg#city-shape' : '/art/settlement.svg#settlement-shape'}
+            width={houseW}
+            height={houseH}
+          />
         </svg>
       )}
 
