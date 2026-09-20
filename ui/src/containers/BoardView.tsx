@@ -6,15 +6,15 @@ import { BoardEdge } from '../components/BoardEdge';
 import { BoardVertex, PortDock } from '../components/BoardVertex';
 import Hexagon from '../components/Hexagon';
 import { useBoardViewport } from '../hooks/useBoardViewport';
-import { ownerAngle } from '../utils/soldierPlacement';
 import {
   BOARD_MAX_SCALE,
   BOARD_MIN_SCALE,
   DROP_TARGET_RING_R,
   DROP_THRESHOLD_FRACTION,
   PROJ_SIZE,
+  SOLDIER_BADGE_GAP,
   SOLDIER_BADGE_R,
-  SOLDIER_BADGE_RADIUS_FRACTION,
+  SOLDIER_BADGE_ROW_OFFSET_FRACTION,
 } from '../constants';
 
 interface BoardViewProps {
@@ -386,10 +386,13 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             if (!v) return null;
             const entries = Array.from(byOwner.entries());
             return (entries as [string, number][]).map(([ownerName, count], i) => {
-              const angle = ownerAngle(i, entries.length);
-              const radius = PROJ_SIZE * SOLDIER_BADGE_RADIUS_FRACTION;
-              const cx = v.position.x + Math.cos(angle) * radius;
-              const cy = v.position.y + Math.sin(angle) * radius;
+              // Horizontal row of badges below the vertex (so they don't cover
+              // the building image); centered under the vertex.
+              const badgeDiameter = 2 * SOLDIER_BADGE_R;
+              const totalWidth = entries.length * badgeDiameter + (entries.length - 1) * SOLDIER_BADGE_GAP;
+              const startX = v.position.x - totalWidth / 2 + badgeDiameter / 2;
+              const cx = startX + i * (badgeDiameter + SOLDIER_BADGE_GAP);
+              const cy = v.position.y + PROJ_SIZE * SOLDIER_BADGE_ROW_OFFSET_FRACTION;
               const color = colorOf(ownerName);
               const draggable = canDragSoldier(ownerName);
               const dragId = soldierDragId.get(`${vertexId}|${ownerName}`);
