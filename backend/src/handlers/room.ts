@@ -113,7 +113,8 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       return;
     }
     resetRoom(room);
-    room.gameStatus = room.players.length >= MIN_PLAYERS ? 'playing' : 'waiting';
+    // "Play Again" returns the room to the lobby (waiting room).
+    room.gameStatus = 'waiting';
     applyBonuses(room);
     io.to(roomId).emit('gameUpdate', room);
   });
