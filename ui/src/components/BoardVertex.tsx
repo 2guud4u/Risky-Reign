@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardVertex as BoardVertexType, PortType, PixelCoord } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import { darkenColor } from '../utils/color';
 import {
   PORT_GENERIC_FILL,
   PORT_OFFSET,
@@ -100,17 +101,12 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
     return '#999';
   };
 
-  const getSettlementColor = () => {
-    if (ownerColor) return ownerColor;
-    switch (settlementLevel) {
-      case 'city':
-        return '#FFD700';
-      case 'settlement':
-        return '#A0522D';
-      default:
-        return 'transparent';
-    }
-  };
+  // House art sizing; cities render slightly larger than settlements.
+  const levelScale = settlementLevel === 'city' ? 1.2 : 1;
+  const houseW = size * 6 * levelScale;
+  const houseH = size * 7.05 * levelScale;
+
+
 
   return (
     <g
@@ -130,29 +126,23 @@ export const BoardVertex: React.FC<BoardVertexProps> = ({
         opacity={isSelectable ? 1 : 0.5}
       />
 
-      {/* Settlement indicator */}
+      {/* Settlement: multi-color house art; the medium-gray layer is the
+          owner's color (via currentColor). */}
       {hasSettlement && (
-        <g>
-          <rect
-            x={position.x - size * 2}
-            y={position.y - size * 2}
-            width={size * 4}
-            height={size * 4}
-            fill={getSettlementColor()}
-            stroke="#333"
-            strokeWidth={1}
-          />
-          <text
-            x={position.x}
-            y={position.y + 4}
-            textAnchor="middle"
-            fill="white"
-            fontSize={size}
-            fontWeight="bold"
-          >
-            {settlementLevel === 'city' ? 'C' : 'S'}
-          </text>
-        </g>
+        <svg
+          x={position.x - houseW / 2}
+          y={position.y - houseH / 2}
+          width={houseW}
+          height={houseH}
+          style={{
+            color: ownerColor ?? '#999',
+            // Darker tone for the shadow layer; falls back to the SVG's #3f403d
+            // when there is no owner color.
+            ['--settlement-dark' as string]: ownerColor ? darkenColor(ownerColor) : undefined,
+          }}
+        >
+          <use href="/art/settlement.svg#settlement-shape" width={houseW} height={houseH} />
+        </svg>
       )}
 
       {/* Selection ring */}

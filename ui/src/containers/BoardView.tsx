@@ -337,6 +337,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           onMouseDown={viewport.onMouseDown}
           onDoubleClick={viewport.onDoubleClick}
         >
+
           {/* Hex tiles layer (clickable while a robber move is pending) */}
           {hexes.map((hex) => {
             const isRobberTarget = robberPending && hex.terrain !== 'Desert' && !hex.hasRobber;
@@ -469,6 +470,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             />
           )}
         </svg>
+        {/* <image  href="/art/settlement.svg#settlement-shape" enableBackground={}/> */}
+
       </div>
     </div>
   );
