@@ -1,6 +1,7 @@
 import React, { RefObject } from 'react';
-import { Board, EdgeNode, GAME_HEX_SIZE, terrainColors, VertexNode, cubeToPixel } from 'common';
+import { Board, EdgeNode, GAME_HEX_SIZE, VertexNode, cubeToPixel } from 'common';
 import { hexPointsAt } from '../utils/hex';
+import TerrainBackground from './TerrainBackground';
 import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle } from '../utils/soldierPlacement';
 import { RANK_OFFSET, RANK_SPACING, SOLDIER_SPACING } from '../constants';
 import { neighborNicknames } from '../utils/neighborLabels';
@@ -357,29 +358,31 @@ const MiniView: React.FC<MiniViewProps> = ({
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
     >
-      {hexes.map((h) => (
-        <g key={h.id}>
-          <polygon
-            points={hexPointsAt(cubeToPixel(h.coord, GAME_HEX_SIZE).x, cubeToPixel(h.coord, GAME_HEX_SIZE).y, GAME_HEX_SIZE)}
-            fill={terrainColors[h.terrain] ?? '#DDD'}
-            stroke="#000"
-            strokeWidth={2}
-          />
-          {h.rollNumber !== null && (
-            <text
-              x={cubeToPixel(h.coord, GAME_HEX_SIZE).x}
-              y={cubeToPixel(h.coord, GAME_HEX_SIZE).y}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="#000"
-              fontSize={16}
-              fontWeight="bold"
-            >
-              {h.rollNumber}
-            </text>
-          )}
-        </g>
-      ))}
+      {hexes.map((h) => {
+        const { x, y } = cubeToPixel(h.coord, GAME_HEX_SIZE);
+        const points = hexPointsAt(x, y, GAME_HEX_SIZE);
+        return (
+          <g key={h.id}>
+            {/* Terrain background (artwork, or flat-color fallback). */}
+            <TerrainBackground x={x} y={y} size={GAME_HEX_SIZE} terrain={h.terrain} points={points} />
+            {/* Hex border. */}
+            <polygon points={points} fill="none" stroke="#000" strokeWidth={2} />
+            {h.rollNumber !== null && (
+              <text
+                x={x}
+                y={y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#000"
+                fontSize={16}
+                fontWeight="bold"
+              >
+                {h.rollNumber}
+              </text>
+            )}
+          </g>
+        );
+      })}
       {neighborhood}
       {selected}
       {children}

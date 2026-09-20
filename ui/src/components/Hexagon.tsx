@@ -1,6 +1,7 @@
 import React from 'react';
-import { BoardHex, terrainColors } from 'common';
+import { BoardHex } from 'common';
 import { hexPointsAt } from '../utils/hex';
+import TerrainBackground from './TerrainBackground';
 
 interface HexagonProps {
   hex: BoardHex;
@@ -30,12 +31,10 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
       onClick={onClick ? () => onClick(hex.id) : undefined}
       style={onClick ? { cursor: 'pointer' } : undefined}
     >
-      <polygon
-        points={hexPoints}
-        fill={terrainColors[hex.terrain] ?? '#DDD'}
-        stroke="#000"
-        strokeWidth="2"
-      />
+      {/* Terrain background (artwork, or flat-color fallback). */}
+      <TerrainBackground x={x} y={y} size={size} terrain={hex.terrain} points={hexPoints} />
+      {/* Hex border. */}
+      <polygon points={hexPoints} fill="none" stroke="#000" strokeWidth="2" />
 
       {hex.rollNumber !== null && (
         <text
@@ -43,11 +42,10 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           y={y}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#000"
+          fill="#FFF"
           fontSize={size / 3}
           fontWeight="bold"
         >
-          {hex.terrain[0]}
           {hex.rollNumber}
         </text>
       )}

@@ -141,6 +141,7 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
           🛤️
         </text>
       )}
+
     </g>
   );
 };
