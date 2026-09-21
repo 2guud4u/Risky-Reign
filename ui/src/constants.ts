@@ -34,13 +34,13 @@ export const DROP_TARGET_RING_R = 16;
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
 /** Distance from the vertex center to the first soldier rank row. */
-export const RANK_OFFSET = 26;
+export const RANK_OFFSET = 34;
 
 /** Vertical spacing between consecutive rank rows. */
-export const RANK_SPACING = 13;
+export const RANK_SPACING = 70;
 
 /** Horizontal spacing between soldiers within a rank row. */
-export const SOLDIER_SPACING = 15;
+export const SOLDIER_SPACING = 30;
 
 // ── BoardView (scale) ─────────────────────────────────────────────────────
 
@@ -57,13 +57,13 @@ export const TOAST_DURATION_MS = 4000;
 // ── BattleModal ────────────────────────────────────────────────────────────
 
 /** Distance of each side's formation from the vertex center (world units). */
-export const SIDE_OFFSET = 62;
+export const SIDE_OFFSET = 130;
 /** Rolled troops stop this far inside the center clash line. */
 export const CENTER_GAP = 15;
 /** Vertical spacing between troops in a line. */
 export const ROW_H = 34;
 /** Troop circle radius. */
-export const TROOP_R = 13;
+export const TROOP_R = 26;
 /** Small soldier dot radius — matches how garrisoned soldiers are drawn in MiniView. */
 export const SOLDIER_DOT_R = 6;
 /** Horizontal spacing between columns of the waiting line. */
@@ -114,7 +114,7 @@ export const PORT_PIER_EDGE = '#6e5230';
 // ── Game (layout) ──────────────────────────────────────────────────────────
 
 /** Width of the sidebar. */
-export const SIDEBAR_W = 280;
+export const SIDEBAR_W = 420;
 
 // ── useBoardViewport ───────────────────────────────────────────────────────
 

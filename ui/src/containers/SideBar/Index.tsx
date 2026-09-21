@@ -113,7 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
     }
   };
   return (
-    <DraggablePanel id="sidebar" layout={layout} onMeasure={onMeasure} minHeight={110} className={`${cardClass} w-[280px]`}>
+    <DraggablePanel id="sidebar" layout={layout} onMeasure={onMeasure} minHeight={110} className={`${cardClass} w-[420px]`}>
       <div className="flex flex-col h-full min-h-0">
         <div className="flex -mt-1 shrink-0">
           <button type="button" className={tabClass(tab === 'board')} onClick={() => switchTab('board')}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { BOARD_RADIUS, domainToPresentation, BoardUIState, PortType, PixelCoord } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -163,6 +163,12 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [setSelectedObject]);
+  const handleVertexClick = useCallback(
+    (vertexId: string) => {
+      setSelectedObject({ type: 'vertex', id: vertexId });
+    },
+    [setSelectedObject]
+  );
 
   // `board` is non-null whenever `base` is (the memo derives from it).
   if (!base || !gameRoom || !board) {
@@ -192,9 +198,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   }));
   const hexes = Object.values(base.hexes);
 
-  const handleVertexClick = (vertexId: string) => {
-    setSelectedObject({ type: 'vertex', id: vertexId });
-  };
 
   const handleEdgeClick = (edgeId: string) => {
     setSelectedObject({ type: 'edge', id: edgeId });

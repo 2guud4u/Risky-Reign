@@ -46,8 +46,6 @@ interface MiniViewProps {
    * the battle arena so a wide troop formation isn't zoomed in too much.
    */
   minViewSize?: number;
-  /** Rendered pixel size of the SVG (width and height). Defaults to 250. */
-  pixelSize?: number;
 }
 
 /**
@@ -73,7 +71,6 @@ const MiniView: React.FC<MiniViewProps> = ({
   onMouseUp,
   onMouseLeave,
   minViewSize,
-  pixelSize = 250,
 }) => {
   const points: { x: number; y: number }[] = [];
   const hexes =
@@ -265,18 +262,38 @@ const MiniView: React.FC<MiniViewProps> = ({
           const isSel = selectedSoldierIds?.has(s.id) ?? false;
           const canAct = canActSoldierIds?.has(s.id) ?? false;
           neighborhood.push(
-            <circle
+            <g
               key={`s-${s.id}`}
-              cx={cx}
-              cy={cy}
-              r={6}
-              fill={playerColors?.[ownerName] ?? '#888'}
-              stroke={isSel ? '#facc15' : s.injured ? '#dc2626' : '#fff'}
-              strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
               className={canAct ? 'pulse-soldier' : undefined}
               style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
               onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
-            />
+            >
+              <svg
+                x={cx - 28.5}
+                y={cy - 33}
+                width={57}
+                height={70}
+                shapeRendering="optimizeSpeed"
+                style={{ color: playerColors?.[ownerName] ?? '#888' }}
+              >
+                <use
+                  href={s.injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
+                  width={57}
+                  height={66}
+                />
+              </svg>
+              {/* Highlight rectangle (yellow for selected, red for injured, white otherwise). */}
+              {isSel && <rect
+                x={cx - 15}
+                y={cy - 35}
+                width={30}
+                height={70}
+                fill="none"
+                stroke={'#facc15'}
+                strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
+              />
+        }
+            </g>
           );
         });
       });
@@ -350,8 +367,8 @@ const MiniView: React.FC<MiniViewProps> = ({
   return (
     <svg
       ref={svgRef}
-      width={pixelSize}
-      height={pixelSize}
+      width="100%"
+      height="auto"
       viewBox={`${focus.x - size / 2} ${focus.y - size / 2} ${size} ${size}`}
       className="mx-auto rounded-md bg-gray-50"
       onMouseMove={onMouseMove}

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { SoldierBattleState, activeSoldiersOf, adjacentHexIds } from 'common';
+import { SoldierBattleState, activeSoldiersOf, adjacentHexIds, MAX_PER_ROUND } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import MiniView from '../components/MiniView';
@@ -48,26 +48,18 @@ function layoutSide(
   phase: string
 ): Slot[] {
   const sign = isAttacker ? -1 : 1;
-  // In the fight: rolled and not (effectively) dead/injured. During
-  // 'betweenRounds' this round's casualties are still pending, so every troop
-  // that just rolled stays on the clash line showing its die until continue.
-  const inFight = side.filter(
-    (s) => s.rollNum !== null && !effInjured(s, phase) && !effDead(s, phase)
-  );
-  const rolled = [...inFight].sort((a, b) => (b.rollNum ?? 0) - (a.rollNum ?? 0));
-  // Out of the fight: not yet rolled, plus committed casualties. Unrolled
-  // troops sort first so the ones that still need to roll are easy to see.
-  const outOfFight = side
-    .filter((s) => s.rollNum === null || effInjured(s, phase) || effDead(s, phase))
-    .sort(
-      (a, b) =>
-        Number(effInjured(a, phase)) - Number(effInjured(b, phase)) ||
-        Number(effDead(a, phase)) - Number(effDead(b, phase))
-    ); // unrolled first
+  // The active front line: the first MAX_PER_ROUND standing troops (not dead,
+  // not injured). These are the "fighting ones" — pre-lined up in the center
+  // even before they roll.
+  const standing = side.filter((s) => !effDead(s, phase) && !effInjured(s, phase));
+  const frontLine = standing.slice(0, MAX_PER_ROUND);
+  const frontLineIds = new Set(frontLine.map((s) => s.soldier.id));
+  // The rest: beyond the front line, plus dead/injured troops.
+  const rest = side.filter((s) => !frontLineIds.has(s.soldier.id));
 
   const slots: Slot[] = [];
-  const nCols = Math.max(1, Math.ceil(outOfFight.length / SIDE_COL_MAX));
-  outOfFight.forEach((s, i) => {
+  const nCols = Math.max(1, Math.ceil(rest.length / SIDE_COL_MAX));
+  rest.forEach((s, i) => {
     const col = Math.floor(i / SIDE_COL_MAX); // front col = 0 (nearest center)
     const row = i % SIDE_COL_MAX;
     // Front column sits closest to the center; deeper columns sit further out.
@@ -78,10 +70,21 @@ function layoutSide(
       s,
     });
   });
-  rolled.forEach((s, i) => {
+  // The front line: pre-lined up in the center (clash line). Once the roll
+  // outcomes come in, rolled troops order by roll (highest on top); unrolled
+  // troops keep their position order below them.
+  const orderedFrontLine = [...frontLine].sort((a, b) => {
+    const aRolled = a.rollNum !== null;
+    const bRolled = b.rollNum !== null;
+    if (aRolled && bRolled) return (b.rollNum ?? 0) - (a.rollNum ?? 0);
+    if (aRolled) return -1; // rolled troops first
+    if (bRolled) return 1;
+    return 0; // both unrolled: keep position order
+  });
+  orderedFrontLine.forEach((s, i) => {
     slots.push({
       x: center.x + sign * CENTER_GAP,
-      y: center.y + (i - (rolled.length - 1) / 2) * ROW_H,
+      y: center.y + (i - (MAX_PER_ROUND - 1) / 2) * ROW_H,
       s,
     });
   });
@@ -103,11 +106,6 @@ const effDead = (s: SoldierBattleState, phase: string): boolean => !isPending(s,
 const effInjured = (s: SoldierBattleState, phase: string): boolean =>
   !isPending(s, phase) && s.injured;
 
-const troopFill = (s: SoldierBattleState, colors: Record<string, string>, phase: string): string => {
-  if (effDead(s, phase)) return '#b91c1c';
-  if (effInjured(s, phase)) return '#d97706';
-  return colors[s.soldier.owner] ?? '#888';
-};
 
 const BattleModal: React.FC = () => {
   const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
@@ -318,20 +316,13 @@ const BattleModal: React.FC = () => {
     // troop keeps its healthy look and die until "continue battle" is clicked.
     const dead = effDead(s, phase);
     const injured = effInjured(s, phase);
-    const active = !dead && !injured && (isPending(s, phase) || isActive(s));
-    const opacity = dead ? 0.4 : injured ? 0.7 : active ? 1 : 0.45;
-    // Injured troops are out of the fight (Rule 28): they show "hurt", not a
-    // roll. Reserves (beyond the front line) are dimmed and show "res".
+    const opacity = dead ? 0.4 : 1;
+    // Injured troops render at 0.75x the size of a healthy troop.
+    const scale = injured ? 0.75 : 1;
     let label: React.ReactNode = '·';
     let labelSize = 10;
     if (dead) {
       label = '×';
-    } else if (injured) {
-      label = 'hurt';
-      labelSize = 8;
-    } else if (!active) {
-      label = 'res';
-      labelSize = 8;
     } else if (s.rollNum !== null) {
       label = s.rollNum;
       labelSize = 13;
@@ -345,14 +336,22 @@ const BattleModal: React.FC = () => {
         style={{ cursor: mine ? 'pointer' : undefined }}
         onClick={mine ? () => handleRoll(s.soldier.id) : undefined}
       >
-        <circle
-          cx={x}
-          cy={y}
-          r={TROOP_R}
-          fill={troopFill(s, colors, phase)}
-          stroke={mine ? '#facc15' : '#fff'}
-          strokeWidth={mine ? 3 : 1.5}
-        />
+        {/* Soldier icon (red part tinted to the owner's color); injured uses the injured icon. */}
+        <svg
+          x={x - TROOP_R * scale}
+          y={y - TROOP_R * 1.15 * scale}
+          width={TROOP_R * 2 * scale}
+          height={TROOP_R * 2.3 * scale}
+          shapeRendering="optimizeSpeed"
+          style={{ color: colors[s.soldier.owner] ?? '#888' }}
+        >
+          <use
+            href={injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
+            width={TROOP_R * 2 * scale}
+            height={TROOP_R * 2.3 * scale}
+            transform={x < center.x ? `translate(${TROOP_R * 2 * scale}, 0) scale(-1, 1)` : undefined}
+          />
+        </svg>
         <text
           x={x}
           y={y}
@@ -433,12 +432,11 @@ const BattleModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-5 flex flex-col gap-3 max-h-[94vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl p-5 flex flex-col gap-3 max-h-[94vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h2 className="m-0 text-xl font-bold">⚔ Battle</h2>
           <span className="text-[13px] text-gray-500">Round {battle.round}</span>
         </div>
-
         {/* The battle arena: the vertex mini-map with both armies on it. In the
             repositioning phase it instead shows each player's injured troops so
             they can be dragged along a road to a neighboring vertex. */}
@@ -453,7 +451,6 @@ const BattleModal: React.FC = () => {
             onMouseMove={handleMiniMouseMove}
             onMouseUp={handleMiniMouseUp}
             onMouseLeave={handleMiniMouseLeave}
-            pixelSize={400}
             minViewSize={300}
           >
             {phase === 'repositioning' ? (
@@ -482,39 +479,48 @@ const BattleModal: React.FC = () => {
                     a vertex are fanned out on a small ring so each is visible
                     and individually draggable. */}
                 {(() => {
-                  const byVertex = new Map<string, typeof injuredTroops>();
-                  for (const t of injuredTroops) {
+                  // Only show your own soldiers (the ones you need to drag);
+                  // the enemy's soldiers are hidden until they confirm.
+                  const myTroops = injuredTroops.filter(
+                    (t) => currentPlayer?.name === t.ownerName
+                  );
+                  const byVertex = new Map<string, typeof myTroops>();
+                  for (const t of myTroops) {
                     const arr = byVertex.get(t.vertexId) ?? [];
                     arr.push(t);
                     byVertex.set(t.vertexId, arr);
                   }
-                  const RING_R = SOLDIER_DOT_R * 1.9;
                   const out: React.ReactNode[] = [];
                   byVertex.forEach((troops, vertexId) => {
                     const v = board.vertices[vertexId];
                     if (!v) return;
                     const n = troops.length;
                     troops.forEach((t, k) => {
-                      const angle = n === 1 ? 0 : (k / n) * Math.PI * 2 - Math.PI / 2;
-                      const cx = v.position.x + (n === 1 ? 0 : Math.cos(angle) * RING_R);
-                      const cy = v.position.y + (n === 1 ? 0 : Math.sin(angle) * RING_R);
-                      const mine = currentPlayer?.name === t.ownerName;
+                      // Row below the vertex (not a ring around it).
+                      const rowOffset = (k - (n - 1) / 2) * 44;
+                      const cx = v.position.x + rowOffset;
+                      const cy = v.position.y + 60;
                       out.push(
-                        <circle
+                        <g
                           key={`i-${t.soldierId}`}
-                          cx={cx}
-                          cy={cy}
-                          r={SOLDIER_DOT_R}
-                          fill={colors[t.ownerName] ?? '#888'}
-                          stroke={mine ? '#facc15' : '#dc2626'}
-                          strokeWidth={mine ? 2.5 : 1.5}
-                          style={{ cursor: mine ? 'grab' : 'default' }}
-                          onMouseDown={
-                            mine
-                              ? (e) => startRepositionDrag(e, t.soldierId, t.ownerName, t.vertexId)
-                              : undefined
-                          }
-                        />
+                          style={{ cursor: 'grab' }}
+                          onMouseDown={(e) => startRepositionDrag(e, t.soldierId, t.ownerName, t.vertexId)}
+                        >
+                          <svg
+                            x={cx - 20}
+                            y={cy - 23}
+                            width={40}
+                            height={46}
+                            shapeRendering="optimizeSpeed"
+                            style={{ color: colors[t.ownerName] ?? '#888' }}
+                          >
+                            <use
+                              href="/art/injuredSoldier.svg#injured-soldier-shape"
+                              width={40}
+                              height={46}
+                            />
+                          </svg>
+                        </g>
                       );
                     });
                   });
