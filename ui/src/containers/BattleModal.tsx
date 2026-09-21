@@ -10,6 +10,10 @@ import {
   DROP_TARGET_RING_R,
   DROP_THRESHOLD_FRACTION,
   PROJ_SIZE,
+  REPOSITION_ROW_OFFSET_Y,
+  REPOSITION_ROW_SPACING,
+  REPOSITION_SOLDIER_H,
+  REPOSITION_SOLDIER_W,
   ROW_H,
   SIDE_COL_MAX,
   SIDE_OFFSET,
@@ -317,8 +321,8 @@ const BattleModal: React.FC = () => {
     const dead = effDead(s, phase);
     const injured = effInjured(s, phase);
     const opacity = dead ? 0.4 : 1;
-    // Injured troops render at 0.75x the size of a healthy troop.
-    const scale = injured ? 0.75 : 1;
+    // Injured troops render at 0.65x the size of a healthy troop.
+    const scale = injured ? 0.65 : 1;
     let label: React.ReactNode = '·';
     let labelSize = 10;
     if (dead) {
@@ -497,9 +501,9 @@ const BattleModal: React.FC = () => {
                     const n = troops.length;
                     troops.forEach((t, k) => {
                       // Row below the vertex (not a ring around it).
-                      const rowOffset = (k - (n - 1) / 2) * 44;
+                      const rowOffset = (k - (n - 1) / 2) * REPOSITION_ROW_SPACING;
                       const cx = v.position.x + rowOffset;
-                      const cy = v.position.y + 60;
+                      const cy = v.position.y + REPOSITION_ROW_OFFSET_Y;
                       out.push(
                         <g
                           key={`i-${t.soldierId}`}
@@ -507,17 +511,17 @@ const BattleModal: React.FC = () => {
                           onMouseDown={(e) => startRepositionDrag(e, t.soldierId, t.ownerName, t.vertexId)}
                         >
                           <svg
-                            x={cx - 20}
-                            y={cy - 23}
-                            width={40}
-                            height={46}
+                            x={cx - REPOSITION_SOLDIER_W / 2}
+                            y={cy - REPOSITION_SOLDIER_H / 2}
+                            width={REPOSITION_SOLDIER_W}
+                            height={REPOSITION_SOLDIER_H}
                             shapeRendering="optimizeSpeed"
                             style={{ color: colors[t.ownerName] ?? '#888' }}
                           >
                             <use
                               href="/art/injuredSoldier.svg#injured-soldier-shape"
-                              width={40}
-                              height={46}
+                              width={REPOSITION_SOLDIER_W}
+                              height={REPOSITION_SOLDIER_H}
                             />
                           </svg>
                         </g>

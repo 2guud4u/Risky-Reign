@@ -70,6 +70,24 @@ export const SOLDIER_DOT_R = 6;
 export const COL_W = 34;
 /** Maximum troops in a single column of the waiting line. */
 export const SIDE_COL_MAX = 6;
+/** Horizontal spacing between troops in a repositioning row. */
+export const REPOSITION_ROW_SPACING = 44;
+/** Distance below the vertex center where the repositioning row sits. */
+export const REPOSITION_ROW_OFFSET_Y = 60;
+/** Rendered width of the injured-soldier icon in the repositioning view. */
+export const REPOSITION_SOLDIER_W = 40;
+/** Rendered height of the injured-soldier icon in the repositioning view. */
+export const REPOSITION_SOLDIER_H = 46;
+/** Neighbor vertex circle radius in the MiniView. */
+export const MINI_NEIGHBOR_R = 8;
+/** Selection ring radius in the MiniView. */
+export const MINI_SELECT_RING_R = 15;
+/** Selection circle radius in the MiniView. */
+export const MINI_SELECT_CIRCLE_R = 11;
+/** Highlight rectangle width in the MiniView. */
+export const MINI_HIGHLIGHT_W = 30;
+/** Highlight rectangle height in the MiniView. */
+export const MINI_HIGHLIGHT_H = 70;
 
 // ── ResourceGainLayer ──────────────────────────────────────────────────────
 

@@ -305,6 +305,8 @@ export function canCaptureSettlementAt(
     return { allowed: false, reason: 'You can only capture with your own soldiers' };
   if (soldier.vertexId !== vertexId)
     return { allowed: false, reason: 'This soldier is not on that vertex' };
+  if (soldier.injured)
+    return { allowed: false, reason: 'Injured soldiers cannot capture' };
 
   const vertex = board.vertices[vertexId];
   if (!vertex || !vertex.settlementId)

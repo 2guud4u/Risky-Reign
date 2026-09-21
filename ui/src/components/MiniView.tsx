@@ -261,6 +261,8 @@ const MiniView: React.FC<MiniViewProps> = ({
           const selectable = selectableSoldierIds?.has(s.id) ?? false;
           const isSel = selectedSoldierIds?.has(s.id) ?? false;
           const canAct = canActSoldierIds?.has(s.id) ?? false;
+          // Injured soldiers render at 0.65x the size of a healthy soldier.
+          const scale = s.injured ? 0.65 : 1;
           neighborhood.push(
             <g
               key={`s-${s.id}`}
@@ -269,17 +271,17 @@ const MiniView: React.FC<MiniViewProps> = ({
               onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
             >
               <svg
-                x={cx - 28.5}
-                y={cy - 33}
-                width={57}
-                height={70}
+                x={cx - 28.5 * scale}
+                y={cy - 33 * scale}
+                width={57 * scale}
+                height={70 * scale}
                 shapeRendering="optimizeSpeed"
                 style={{ color: playerColors?.[ownerName] ?? '#888' }}
               >
                 <use
                   href={s.injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
-                  width={57}
-                  height={66}
+                  width={57 * scale}
+                  height={66 * scale}
                 />
               </svg>
               {/* Highlight rectangle (yellow for selected, red for injured, white otherwise). */}

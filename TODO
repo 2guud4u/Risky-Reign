@@ -19,8 +19,11 @@ allow dragging of soldiers in the mini map
 
 
 Feature:
-after robber is defeated, we can move robber to hex adjenct to current
 allow simple art view 
+port  connector should still show with 1 vertex
+bug:
+fix soldier move out logic with injured soldiers
+
 
 Far future requests:
 allow fir customization of map
