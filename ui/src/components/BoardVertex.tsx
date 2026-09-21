@@ -82,7 +82,6 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
           y={position.y - houseH / 2 - yOffset}
           width={houseW}
           height={houseH}
-          shapeRendering="optimizeSpeed"
           style={{
             color: ownerColor ?? '#999',
             // Darker tone for the shadow layer; falls back to the SVG's #6b6c68

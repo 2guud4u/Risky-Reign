@@ -275,7 +275,6 @@ const MiniView: React.FC<MiniViewProps> = ({
                 y={cy - 33 * scale}
                 width={57 * scale}
                 height={70 * scale}
-                shapeRendering="optimizeSpeed"
                 style={{ color: playerColors?.[ownerName] ?? '#888' }}
               >
                 <use

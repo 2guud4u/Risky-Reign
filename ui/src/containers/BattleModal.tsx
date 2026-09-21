@@ -346,7 +346,6 @@ const BattleModal: React.FC = () => {
           y={y - TROOP_R * 1.15 * scale}
           width={TROOP_R * 2 * scale}
           height={TROOP_R * 2.3 * scale}
-          shapeRendering="optimizeSpeed"
           style={{ color: colors[s.soldier.owner] ?? '#888' }}
         >
           <use
@@ -515,7 +514,6 @@ const BattleModal: React.FC = () => {
                             y={cy - REPOSITION_SOLDIER_H / 2}
                             width={REPOSITION_SOLDIER_W}
                             height={REPOSITION_SOLDIER_H}
-                            shapeRendering="optimizeSpeed"
                             style={{ color: colors[t.ownerName] ?? '#888' }}
                           >
                             <use
