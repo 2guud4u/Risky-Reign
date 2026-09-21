@@ -20,7 +20,7 @@ export const SOLDIER_BADGE_RADIUS_FRACTION = 0.2;
 export const SOLDIER_BADGE_R = 10;
 
 /** Vertical offset below a vertex center to the soldier badge row, as a fraction of the hex size. */
-export const SOLDIER_BADGE_ROW_OFFSET_FRACTION = 0.4;
+export const SOLDIER_BADGE_ROW_OFFSET_FRACTION = 0.2;
 
 /** Horizontal gap between adjacent soldier badges in a row. */
 export const SOLDIER_BADGE_GAP = 4;

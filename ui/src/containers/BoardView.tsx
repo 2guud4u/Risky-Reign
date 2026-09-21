@@ -3,7 +3,9 @@ import { BOARD_RADIUS, domainToPresentation, BoardUIState, PortType, PixelCoord 
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { BoardEdge } from '../components/BoardEdge';
-import { BoardVertex, PortDock } from '../components/BoardVertex';
+import { BoardVertex } from '../components/BoardVertex';
+import { PortDock } from '../components/PortDock';
+import { SoldierBadges } from '../components/SoldierBadges';
 import Hexagon from '../components/Hexagon';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import {
@@ -12,9 +14,7 @@ import {
   DROP_TARGET_RING_R,
   DROP_THRESHOLD_FRACTION,
   PROJ_SIZE,
-  SOLDIER_BADGE_GAP,
   SOLDIER_BADGE_R,
-  SOLDIER_BADGE_ROW_OFFSET_FRACTION,
 } from '../constants';
 
 interface BoardViewProps {
@@ -380,54 +380,16 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             <PortDock key={`port-${i}`} vertices={g.vertices} port={g.port} size={8} />
           ))}
 
-          {/* Soldiers layer: count badges around each vertex */}
-          {Array.from(soldierGroups.entries()).map(([vertexId, byOwner]) => {
-            const v = board.vertices[vertexId];
-            if (!v) return null;
-            const entries = Array.from(byOwner.entries());
-            return (entries as [string, number][]).map(([ownerName, count], i) => {
-              // Horizontal row of badges below the vertex (so they don't cover
-              // the building image); centered under the vertex.
-              const badgeDiameter = 2 * SOLDIER_BADGE_R;
-              const totalWidth = entries.length * badgeDiameter + (entries.length - 1) * SOLDIER_BADGE_GAP;
-              const startX = v.position.x - totalWidth / 2 + badgeDiameter / 2;
-              const cx = startX + i * (badgeDiameter + SOLDIER_BADGE_GAP);
-              const cy = v.position.y + PROJ_SIZE * SOLDIER_BADGE_ROW_OFFSET_FRACTION;
-              const color = colorOf(ownerName);
-              const draggable = canDragSoldier(ownerName);
-              const dragId = soldierDragId.get(`${vertexId}|${ownerName}`);
-              return (
-                <g
-                  key={`${vertexId}-${ownerName}`}
-                  onMouseDown={(e) => {
-                    if (dragId) startDrag(e, dragId, ownerName, vertexId);
-                  }}
-                  onClick={() => setSelectedObject({ type: 'vertex', id: vertexId })}
-                  style={{ cursor: draggable ? 'grab' : 'pointer' }}
-                >
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={SOLDIER_BADGE_R}
-                    fill={color ?? '#888'}
-                    stroke="#222"
-                    strokeWidth={1.5}
-                  />
-                  <text
-                    x={cx}
-                    y={cy + 4}
-                    textAnchor="middle"
-                    fontSize={11}
-                    fontWeight="bold"
-                    fill="white"
-                    pointerEvents="none"
-                  >
-                    {count}
-                  </text>
-                </g>
-              );
-            });
-          })}
+          {/* Soldiers layer: count badges below each vertex */}
+          <SoldierBadges
+            soldierGroups={soldierGroups}
+            vertices={board.vertices}
+            colorOf={colorOf}
+            canDragSoldier={canDragSoldier}
+            soldierDragId={soldierDragId}
+            onDragStart={startDrag}
+            onSelect={setSelectedObject}
+          />
 
           {/* Drag feedback: highlight valid drop targets */}
           {drag &&
