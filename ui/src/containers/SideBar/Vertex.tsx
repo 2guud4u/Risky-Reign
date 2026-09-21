@@ -357,6 +357,7 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
         selectedSoldierIds={new Set(selectedGroup)}
         selectableSoldierIds={selectableIds}
         canActSoldierIds={canActIds}
+        currentPlayer={currentPlayer?.name}
       />
 
       <div className="text-[13px]">

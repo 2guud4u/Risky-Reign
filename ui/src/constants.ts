@@ -34,7 +34,7 @@ export const DROP_TARGET_RING_R = 16;
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
 /** Distance from the vertex center to the first soldier rank row. */
-export const RANK_OFFSET = 34;
+export const RANK_OFFSET = 50;
 
 /** Vertical spacing between consecutive rank rows. */
 export const RANK_SPACING = 70;

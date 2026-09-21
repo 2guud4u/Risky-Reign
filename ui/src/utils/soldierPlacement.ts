@@ -5,7 +5,7 @@ export const playerColorMap = (gameRoom: GameRoom | null): Record<string, string
   Object.fromEntries((gameRoom?.players ?? []).map((p) => [p.name, p.color]));
 
 /** Number of soldiers per rank row in the mini view. */
-export const SOLDIERS_PER_ROW = 8;
+export const SOLDIERS_PER_ROW = 3;
 
 /**
  * Presentation helpers for laying out garrisoned soldiers around a vertex.

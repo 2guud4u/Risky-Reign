@@ -3,8 +3,9 @@ import { Board, EdgeNode, GAME_HEX_SIZE, VertexNode, cubeToPixel } from 'common'
 import { hexPointsAt } from '../utils/hex';
 import TerrainBackground from './TerrainBackground';
 import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle } from '../utils/soldierPlacement';
-import { RANK_OFFSET, RANK_SPACING, SOLDIER_SPACING } from '../constants';
+import { RANK_OFFSET, RANK_SPACING } from '../constants';
 import { neighborNicknames } from '../utils/neighborLabels';
+import SoldierGroup from './SoldierGroup';
 
 interface MiniViewProps {
   board: Board;
@@ -46,6 +47,8 @@ interface MiniViewProps {
    * the battle arena so a wide troop formation isn't zoomed in too much.
    */
   minViewSize?: number;
+  /** The current player's name (used to separate own troops from enemy groups). */
+  currentPlayer?: string;
 }
 
 /**
@@ -71,6 +74,7 @@ const MiniView: React.FC<MiniViewProps> = ({
   onMouseUp,
   onMouseLeave,
   minViewSize,
+  currentPlayer,
 }) => {
   const points: { x: number; y: number }[] = [];
   const hexes =
@@ -241,62 +245,63 @@ const MiniView: React.FC<MiniViewProps> = ({
     if (showGarrisonedSoldiers) {
       const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === id);
       const byOwner = groupSoldiersByOwner(soldiersAt);
-      let ownerIndex = 0;
-      byOwner.forEach((group, ownerName) => {
-        const angle = ownerAngle(ownerIndex++, byOwner.size);
-        const dx = Math.cos(angle);
-        const dy = Math.sin(angle);
-        // Ranks run perpendicular to the radial direction.
-        const px = -dy;
-        const py = dx;
-        group.forEach((s, k) => {
-          const row = Math.floor(k / SOLDIERS_PER_ROW);
-          const inRow = k % SOLDIERS_PER_ROW;
-          const countInRow = Math.min(SOLDIERS_PER_ROW, group.length - row * SOLDIERS_PER_ROW);
-          const along = RANK_OFFSET + row * RANK_SPACING; // distance from vertex center
-          const across = (inRow - (countInRow - 1) / 2) * SOLDIER_SPACING;
-          const cx = vertex.position.x + dx * along + px * across;
-          const cy = vertex.position.y + dy * along + py * across;
-          points.push({ x: cx, y: cy });
-          const selectable = selectableSoldierIds?.has(s.id) ?? false;
-          const isSel = selectedSoldierIds?.has(s.id) ?? false;
-          const canAct = canActSoldierIds?.has(s.id) ?? false;
-          // Injured soldiers render at 0.65x the size of a healthy soldier.
-          const scale = s.injured ? 0.65 : 1;
-          neighborhood.push(
-            <g
-              key={`s-${s.id}`}
-              className={canAct ? 'pulse-soldier' : undefined}
-              style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
-              onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
-            >
-              <svg
-                x={cx - 28.5 * scale}
-                y={cy - 33 * scale}
-                width={57 * scale}
-                height={70 * scale}
-                style={{ color: playerColors?.[ownerName] ?? '#888' }}
-              >
-                <use
-                  href={s.injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
-                  width={57 * scale}
-                  height={66 * scale}
-                />
-              </svg>
-              {/* Highlight rectangle (yellow for selected, red for injured, white otherwise). */}
-              {isSel && <rect
-                x={cx - 15}
-                y={cy - 35}
-                width={30}
-                height={70}
-                fill="none"
-                stroke={'#facc15'}
-                strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
-              />
+
+      // 3×3 grid regions (in fill order): start from the corners (farthest
+      // from center) and stack inward: top-right, bottom-left, top-left,
+      // bottom-right, top-middle, bottom-middle, middle-right, middle-left,
+      // middle-middle.
+      const REGIONS: { dx: number; dy: number }[] = [
+        { dx: 1, dy: -1 },
+        { dx: -1, dy: 1 },
+        { dx: -1, dy: -1 },
+        { dx: 1, dy: 1 },
+        { dx: 0, dy: -1 },
+        { dx: 0, dy: 1 },
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 0 },
+      ];
+
+      // Assign each owner a direction: a grid region if ≤9 groups, otherwise
+      // fall back to the circular surround (evenly spaced angles).
+      const owners = Array.from(byOwner.keys());
+      const useGrid = owners.length <= REGIONS.length;
+
+      // Compute a global scale + spacing shrink if the formation is too large
+      // relative to the hex (prevents clipping / squishing).
+      const maxTroops = Math.max(1, ...Array.from(byOwner.values()).map((g) => g.length));
+      const estimatedSpread = RANK_OFFSET + (Math.ceil(maxTroops / SOLDIERS_PER_ROW) - 1) * RANK_SPACING;
+      const shrink = estimatedSpread > GAME_HEX_SIZE * 1.5 ? GAME_HEX_SIZE * 1.5 / estimatedSpread : 1;
+
+      Array.from(byOwner.entries()).forEach(([ownerName, group], idx) => {
+        let dx: number, dy: number;
+        if (useGrid) {
+          const region = REGIONS[idx];
+          dx = region.dx;
+          dy = region.dy;
+        } else {
+          const angle = ownerAngle(idx, byOwner.size);
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
         }
-            </g>
-          );
-        });
+        neighborhood.push(
+          <SoldierGroup
+            key={`g-${ownerName}`}
+            group={group}
+            ownerName={ownerName}
+            playerColors={playerColors}
+            dx={dx}
+            dy={dy}
+            cx={vertex.position.x}
+            cy={vertex.position.y}
+            shrink={shrink}
+            onSoldierClick={onSoldierClick}
+            selectedSoldierIds={selectedSoldierIds}
+            selectableSoldierIds={selectableSoldierIds}
+            canActSoldierIds={canActSoldierIds}
+            onPoints={(pts) => pts.forEach((p) => points.push(p))}
+          />
+        );
       });
     }
   } else {
@@ -391,7 +396,7 @@ const MiniView: React.FC<MiniViewProps> = ({
                 y={y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fill="#000"
+                fill="#FFF"
                 fontSize={16}
                 fontWeight="bold"
               >
