@@ -25,7 +25,8 @@ export function canStartBattle(
   room: GameRoom,
   attackerName: string,
   soldierIds: string[],
-  targetVertexId: string
+  targetVertexId: string,
+  defenderName?: string
 ): { allowed: boolean; reason?: string } {
   const turnState = room.turnState;
 
@@ -88,12 +89,12 @@ export function canStartBattle(
       return { allowed: false, reason: `Soldier at ${soldier.vertexId} must be on the target vertex (${targetVertexId}) to attack` };
     }
   }
-
   // Target vertex must have enemy soldiers (no settlement needed). Injured
   // troops count too: you can attack injured soldiers (Rules.md line 28),
   // which starts an "injured fight" (a roll-off) rather than a normal battle.
+  // When a specific defender is chosen, only that defender's troops count.
   const hasEnemySoldiers = Object.values(board.soldiers).some(
-    (s) => s.vertexId === targetVertexId && s.owner !== attackerName
+    (s) => s.vertexId === targetVertexId && s.owner !== attackerName && (!defenderName || s.owner === defenderName)
   );
 
   if (!hasEnemySoldiers) {
@@ -185,40 +186,44 @@ export function createBattleState(
   room: GameRoom,
   attackerName: string,
   soldierIds: string[],
-  targetVertexId: string
+  targetVertexId: string,
+  defenderName?: string
 ): BattleState {
   const board = room.board!;
-  // The defender faces every enemy troop garrisoned at the target vertex
-  // (Rules.md line 7: "Defender defend with whatever is on the defending
-  // turf"), even when those troops belong to several different players.
-  // Normally injured troops are out of the fight (Rule 28). But when the
-  // vertex holds ONLY injured troops, this is an "injured fight" (Rules.md
-  // line 28): the injured defenders DO roll, and the outcome is a roll-off
-  // (defender higher → they flee; otherwise they die).
+  // The defender faces the enemy troops garrisoned at the target vertex that
+  // belong to the chosen defending player (when multiple enemy groups are
+  // present the attacker must pick which one to fight). Normally injured
+  // troops are out of the fight (Rule 28). But when the chosen group holds
+  // ONLY injured troops, this is an "injured fight" (Rules.md line 28): the
+  // injured defenders DO roll, and the outcome is a roll-off (defender higher
+  // → they flee; otherwise they die).
   const allEnemySoldiers = Object.values(board.soldiers).filter(
-    (s) => s.vertexId === targetVertexId && s.owner !== attackerName
+    (s) => s.vertexId === targetVertexId && s.owner !== attackerName && (!defenderName || s.owner === defenderName)
   );
   const healthyEnemySoldiers = allEnemySoldiers.filter((s) => !s.injured);
   const injuredFight = healthyEnemySoldiers.length === 0 && allEnemySoldiers.length > 0;
   const enemySoldiers = injuredFight ? allEnemySoldiers : healthyEnemySoldiers;
 
-  // Choose the defending player's label: the settlement owner when they have
-  // troops here, otherwise the player with the most troops at the vertex.
-  let defenderName = '';
-  const counts = new Map<string, number>();
-  for (const s of enemySoldiers) counts.set(s.owner, (counts.get(s.owner) ?? 0) + 1);
-  if (counts.size > 0) {
-    let best: [string, number] = ['', 0];
-    for (const [name, count] of counts) {
-      if (count > best[1] || (count === best[1] && name < best[0])) best = [name, count];
-    }
-    defenderName = best[0];
-    const settlementOwner =
-      board.vertices[targetVertexId]?.settlementId
-        ? board.settlements[board.vertices[targetVertexId].settlementId]?.ownerId
-        : undefined;
-    if (settlementOwner && (counts.get(settlementOwner) ?? 0) > 0) {
-      defenderName = settlementOwner;
+  // Choose the defending player's label: the chosen defender when specified,
+  // otherwise the settlement owner when they have troops here, otherwise the
+  // player with the most troops at the vertex.
+  let resolvedDefender = defenderName ?? '';
+  if (!resolvedDefender) {
+    const counts = new Map<string, number>();
+    for (const s of enemySoldiers) counts.set(s.owner, (counts.get(s.owner) ?? 0) + 1);
+    if (counts.size > 0) {
+      let best: [string, number] = ['', 0];
+      for (const [name, count] of counts) {
+        if (count > best[1] || (count === best[1] && name < best[0])) best = [name, count];
+      }
+      resolvedDefender = best[0];
+      const settlementOwner =
+        board.vertices[targetVertexId]?.settlementId
+          ? board.settlements[board.vertices[targetVertexId].settlementId]?.ownerId
+          : undefined;
+      if (settlementOwner && (counts.get(settlementOwner) ?? 0) > 0) {
+        resolvedDefender = settlementOwner;
+      }
     }
   }
 
@@ -237,7 +242,7 @@ export function createBattleState(
 
   // All defending troops at the target, keyed under the defender's label.
   if (enemySoldiers.length > 0) {
-    states[defenderName] = {
+    states[resolvedDefender] = {
       soldiers: enemySoldiers.map((s) => ({
         soldier: s,
         rollNum: null,
@@ -249,7 +254,7 @@ export function createBattleState(
 
   return {
     attacker: attackerName,
-    defender: defenderName,
+    defender: resolvedDefender,
     vertexId: targetVertexId,
     states,
     phase: 'rolling',

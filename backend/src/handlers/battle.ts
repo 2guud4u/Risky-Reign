@@ -27,8 +27,8 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
 
   socket.on(
     'startAttack',
-    (data: { roomId: string; playerId: string; soldierIds: string[]; targetVertexId: string }) => {
-      const { roomId, playerId, soldierIds, targetVertexId } = data;
+    (data: { roomId: string; playerId: string; soldierIds: string[]; targetVertexId: string; defenderName?: string }) => {
+      const { roomId, playerId, soldierIds, targetVertexId, defenderName } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -58,14 +58,14 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
       }
 
       // Authoritative rules live in common (shared with the UI).
-      const check = canStartBattle(room, currentPlayer.name, soldierIds, targetVertexId);
+      const check = canStartBattle(room, currentPlayer.name, soldierIds, targetVertexId, defenderName);
       if (!check.allowed) {
         socket.emit('error', { message: check.reason ?? 'Cannot start a battle here' });
         return;
       }
 
       // Create the battle state and move to the battle phase.
-      room.battleState = createBattleState(room, currentPlayer.name, soldierIds, targetVertexId);
+      room.battleState = createBattleState(room, currentPlayer.name, soldierIds, targetVertexId, defenderName);
 
       // Track the soldiers as having acted (Rules.md line 30).
       for (const sid of soldierIds) {
@@ -389,6 +389,20 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
     }
     if (turn !== (isAttacker ? 'attacker' : 'defender')) {
       socket.emit('error', { message: 'It is not your turn to reposition injured soldiers' });
+      return;
+    }
+    // All of this side's injured troops must be moved (off the battle
+    // vertex) before the player can confirm.
+    const mySide = isAttacker ? room.battleState.attacker : room.battleState.defender;
+    const myInjured = (room.battleState.states[mySide]?.soldiers ?? []).filter(
+      (s) => s.injured && !s.dead
+    );
+    const settled = room.battleState.injuredSettled ?? {};
+    const allMoved = myInjured.every(
+      (s) => settled[s.soldier.id] !== room.battleState!.vertexId
+    );
+    if (!allMoved) {
+      socket.emit('error', { message: 'Move all your injured troops before confirming' });
       return;
     }
     const hasInjured = (name: string) =>

@@ -20,7 +20,8 @@ allow dragging of soldiers in the mini map
 
 Feature:
 allow simple art view 
-port  connector should still show with 1 vertex
+port  connector should still show with 1 vertex - visual port update
+-play one with sister and try to host
 bug:
 fix soldier move out logic with injured soldiers
 
@@ -30,6 +31,6 @@ allow fir customization of map
 rule customization
 - unlimited property
 random late game join, allow random placement of settlement
-
-maybe lock the colors to only 10 colors
+allow attack multigroup at the same time
+maybe lock the colors to only 10 colors-use nvidia gpu
 

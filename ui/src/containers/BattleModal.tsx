@@ -49,13 +49,16 @@ function layoutSide(
   center: { x: number; y: number },
   side: SoldierBattleState[],
   isAttacker: boolean,
-  phase: string
+  phase: string,
+  isInjuredFightDefender = false
 ): Slot[] {
   const sign = isAttacker ? -1 : 1;
   // The active front line: the first MAX_PER_ROUND standing troops (not dead,
-  // not injured). These are the "fighting ones" — pre-lined up in the center
-  // even before they roll.
-  const standing = side.filter((s) => !effDead(s, phase) && !effInjured(s, phase));
+  // not injured). In an injured fight the defender's troops are already
+  // injured but still fight (they roll), so they count as standing.
+  const standing = side.filter(
+    (s) => !effDead(s, phase) && (isInjuredFightDefender || !effInjured(s, phase))
+  );
   const frontLine = standing.slice(0, MAX_PER_ROUND);
   const frontLineIds = new Set(frontLine.map((s) => s.soldier.id));
   // The rest: beyond the front line, plus dead/injured troops.
@@ -373,15 +376,15 @@ const BattleModal: React.FC = () => {
 
   // During 'betweenRounds' this round's casualties are hidden (pending), so
   // every troop that rolled is still on the clash line.
-  const attackerSlots = layoutSide(center, attackerSide.soldiers, true, phase);
-  const defenderSlots = layoutSide(center, defenderSide.soldiers, false, phase);
+  const attackerSlots = layoutSide(center, attackerSide.soldiers, true, phase, false);
+  const defenderSlots = layoutSide(center, defenderSide.soldiers, false, phase, !!battle.injuredFight);
   // The clash line spans only the troops in the fight (at most MAX_PER_ROUND
   // per side), not the waiting side line.
   const atkInFight = attackerSide.soldiers.filter(
     (s) => s.rollNum !== null && !effInjured(s, phase) && !effDead(s, phase)
   ).length;
   const defInFight = defenderSide.soldiers.filter(
-    (s) => s.rollNum !== null && !effInjured(s, phase) && !effDead(s, phase)
+    (s) => s.rollNum !== null && !effDead(s, phase) && (battle.injuredFight || !effInjured(s, phase))
   ).length;
   const troopSpread = Math.max(atkInFight, defInFight, 2) * ROW_H;
 
@@ -415,14 +418,22 @@ const BattleModal: React.FC = () => {
       .filter((s) => s.rollNum !== null && !effInjured(s, phase))
       .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
     const dList = defenderSide.soldiers
-      .filter((s) => s.rollNum !== null && !effInjured(s, phase))
+      .filter((s) => s.rollNum !== null && (battle.injuredFight || !effInjured(s, phase)))
       .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
     for (let i = 0; i < Math.min(aList.length, dList.length); i++) {
       const ar = aList[i].rollNum ?? 0;
       const dr = dList[i].rollNum ?? 0;
       let text: string;
       let cls: string;
-      if (ar > dr) {
+      if (battle.injuredFight) {
+        // Injured fight: the injured defender wins only on a strictly higher
+        // roll (they flee, stay injured); a tie or loss kills them.
+        if (dr > ar) {
+          [text, cls] = ['flee', 'text-blue-600'];
+        } else {
+          [text, cls] = ['dies', 'text-red-600'];
+        }
+      } else if (ar > dr) {
         [text, cls] = ar - dr >= 2 ? [`${dr} killed`, 'text-red-600'] : [`${dr} injured`, 'text-amber-600'];
       } else if (dr > ar) {
         [text, cls] = dr - ar >= 2 ? [`${ar} killed`, 'text-red-600'] : [`${ar} injured`, 'text-amber-600'];
@@ -664,13 +675,29 @@ const BattleModal: React.FC = () => {
                 const isDefender = currentPlayer?.name === battle.defender;
                 if (!isAttacker || !isDefender) return null;
                 if (battle.repositionTurn !== (isAttacker ? 'attacker' : 'defender')) return null;
+                // All of this side's injured troops must be moved (off the
+                // battle vertex) before the player can confirm.
+                const mySide = isAttacker ? battle.attacker : battle.defender;
+                const myInjured = (battle.states[mySide]?.soldiers ?? []).filter(
+                  (s) => s.injured && !s.dead
+                );
+                const settled = battle.injuredSettled ?? {};
+                const allMoved = myInjured.every(
+                  (s) => settled[s.soldier.id] !== battle.vertexId
+                );
                 return (
                   <button
                     type="button"
+                    disabled={!allMoved}
                     onClick={() => finishRepositioning(currentPlayer!.id, gameRoom.id)}
-                    className="w-full bg-blue-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-blue-700"
+                    className={`w-full rounded-md py-2 text-sm font-semibold ${
+                      allMoved
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                    title={allMoved ? 'Confirm your troop moves' : 'Move all your injured troops before confirming'}
                   >
-                    Finish My Repositioning
+                    Confirm Move Troops
                   </button>
                 );
               })()}

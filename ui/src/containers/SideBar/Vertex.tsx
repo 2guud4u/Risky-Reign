@@ -33,6 +33,8 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
 
   // Group of soldier ids the player is assembling for a group action.
   const [selectedGroup, setSelectedGroup] = useState<string[]>([]);
+  // The chosen defender when multiple enemy groups are on the target vertex.
+  const [pendingAttack, setPendingAttack] = useState(false);
 
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   const owner = settlement
@@ -127,6 +129,11 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
   const enemyTroopsHere = Object.values(board.soldiers ?? {}).filter(
     (s) => s.vertexId === vertex.id && s.owner !== currentPlayer?.name
   );
+  // Distinct enemy groups (owners) on this vertex — when there are 2 or
+  // more, the attacker must choose which group to fight.
+  const enemyGroups = Array.from(
+    new Set(enemyTroopsHere.map((s) => s.owner))
+  );
 
   const adjacent = Array.from(new Set(vertex.roadIds)).map((edgeId) => {
     const edge = board.edges[edgeId];
@@ -180,10 +187,24 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
     clearGroup();
   };
 
-  // Commit the whole group in an attack against the enemy soldiers on this vertex.
+  // Commit the whole group in an attack against the enemy soldiers on this
+  // vertex. When multiple enemy groups are present, show a selection dialog
+  // to choose which group to fight.
   const handleConfirmAttack = () => {
     if (!gameRoom || !currentPlayer) return;
+    if (enemyGroups.length > 1) {
+      setPendingAttack(true);
+      return;
+    }
     startAttack(currentPlayer.id, group.map((s) => s.id), vertex.id, gameRoom.id);
+    clearGroup();
+  };
+
+  // Commit the attack against the chosen defender group.
+  const handleAttackDefender = (defenderName: string) => {
+    if (!gameRoom || !currentPlayer) return;
+    startAttack(currentPlayer.id, group.map((s) => s.id), vertex.id, gameRoom.id, defenderName);
+    setPendingAttack(false);
     clearGroup();
   };
 
@@ -393,6 +414,36 @@ const Vertex: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex 
 
       {/* Group action panel: only appears once the player has selected troops. */}
       {renderGroupPanel()}
+
+      {/* Defender selection dialog: shown when multiple enemy groups are on
+          the target vertex and the player wants to attack. */}
+      {pendingAttack && enemyGroups.length > 1 && (
+        <div className="border border-blue-300 bg-blue-50 rounded-md p-2.5 flex flex-col gap-2">
+          <div className="text-[13px] font-semibold">Choose which group to fight:</div>
+          <div className="flex flex-col gap-1">
+            {enemyGroups.map((ownerName) => {
+              const count = enemyTroopsHere.filter((s) => s.owner === ownerName).length;
+              const injuredCount = enemyTroopsHere.filter((s) => s.owner === ownerName && s.injured).length;
+              return (
+                <button
+                  key={ownerName}
+                  onClick={() => handleAttackDefender(ownerName)}
+                  className={buildButtonClass}
+                  title={`Fight ${ownerName}'s ${count} troop(s)`}
+                >
+                  ⚔ Fight {ownerName} ({count} troop{count === 1 ? '' : 's'}{injuredCount > 0 ? `, ${injuredCount} injured` : ''})
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setPendingAttack(false)}
+            className="text-[11px] text-gray-600 hover:text-gray-800"
+          >
+            ✕ Cancel
+          </button>
+        </div>
+      )}
 
       {/* Hint before any selection, when troops are present here. */}
       {selectedGroup.length === 0 && soldiersHere.length > 0 && (

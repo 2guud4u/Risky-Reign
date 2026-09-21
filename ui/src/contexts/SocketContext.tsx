@@ -36,7 +36,7 @@ interface SocketContextType {
   resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
   resolveDevCardChoice: (playerId: string, resources: string[], roomId: string) => void;
   healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
-  startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) => void;
+  startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => void;
   rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
   repositionSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   finishRepositioning: (playerId: string, roomId: string) => void;
@@ -139,8 +139,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const healSoldier = (playerId: string, soldierId: string, roomId: string) =>
     emitAction(socket, 'healSoldier', { roomId, playerId, soldierId }, { requirePlayerId: true });
 
-  const startAttack = (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string) =>
-    emitAction(socket, 'startAttack', { roomId, playerId, soldierIds, targetVertexId }, { requirePlayerId: true });
+  const startAttack = (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) =>
+    emitAction(socket, 'startAttack', { roomId, playerId, soldierIds, targetVertexId, defenderName }, { requirePlayerId: true });
 
   const rollBattleDie = (playerId: string, soldierId: string, roomId: string) =>
     emitAction(socket, 'rollBattleDie', { roomId, playerId, soldierId }, { requirePlayerId: true });
