@@ -24,6 +24,7 @@ export function assignStandardHexes(
 
   const terrains: Terrain[] = [];
   (Object.keys(TERRAIN_COUNTS) as (keyof typeof TERRAIN_COUNTS)[]).forEach((t) => {
+    if (t === 'Desert') return; // the center hex is always the Desert
     for (let i = 0; i < TERRAIN_COUNTS[t]; i++) terrains.push(t);
   });
   const tokens: number[] = [];
