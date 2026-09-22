@@ -22,7 +22,6 @@ Feature:
 allow simple art view 
 port  connector should still show with 1 vertex - visual port update
 -play one with sister and try to host
-mini view instead of soldiers surrounding the vertex, have them in a grid , enemies opposite sides, with 2 enemy groups,top and bottom, with 3 enemy groups, top, bottom, and right side, with 4 enemy groups, top, bottom, left, right, with 5 enemy groups, top, bottom, left, right and center, with 7 just have them start in crcular radius as far away as possible from each other then stack inwards
 
 mini view should also zoom in closer too, if vertex on outside clipped, jjust put the letter on the line of the road
 

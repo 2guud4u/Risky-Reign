@@ -95,34 +95,35 @@ const MiniView: React.FC<MiniViewProps> = ({
     };
   };
 
-  /** Settlement/city marker at a vertex, matching the main board's
-   *  BoardVertex: a circle for a settlement, a square for a city, both in
-   *  the owner's color. Returns null when the vertex is unoccupied. */
+  /** Settlement/city marker at a vertex: a square for a settlement, a
+   *  triangle for a city, both in the owner's color. Returns null when
+   *  the vertex is unoccupied. */
   const settlementMarker = (v: VertexNode, r: number): React.ReactNode => {
     const settlement = v.settlementId ? board.settlements[v.settlementId] : null;
     if (!settlement) return null;
     const color = playerColors?.[settlement.ownerId] ?? '#8B4513';
     if (settlement.level === 'city') {
       const s = r * 1.8;
+      const cx = v.position.x;
+      const cy = v.position.y;
       return (
-        <rect
+        <polygon
           key={`set-${v.id}`}
-          x={v.position.x - s / 2}
-          y={v.position.y - s / 2}
-          width={s}
-          height={s}
+          points={`${cx},${cy - s / 2} ${cx - s / 2},${cy + s / 2} ${cx + s / 2},${cy + s / 2}`}
           fill={color}
           stroke="#333"
           strokeWidth={1.5}
         />
       );
     }
+    const s = r * 1.8;
     return (
-      <circle
+      <rect
         key={`set-${v.id}`}
-        cx={v.position.x}
-        cy={v.position.y}
-        r={r}
+        x={v.position.x - s / 2}
+        y={v.position.y - s / 2}
+        width={s}
+        height={s}
         fill={color}
         stroke="#fff"
         strokeWidth={2}
@@ -276,7 +277,8 @@ const MiniView: React.FC<MiniViewProps> = ({
       Array.from(byOwner.entries()).forEach(([ownerName, group], idx) => {
         let dx: number, dy: number;
         if (useGrid) {
-          const region = REGIONS[idx];
+          // A lone group sits above the vertex, in the middle.
+          const region = owners.length === 1 ? { dx: 0, dy: -1 } : REGIONS[idx];
           dx = region.dx;
           dy = region.dy;
         } else {
