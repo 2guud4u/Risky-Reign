@@ -2,6 +2,7 @@ import React from 'react';
 import { BoardHex } from 'common';
 import { hexPointsAt } from '../utils/hex';
 import TerrainBackground from './TerrainBackground';
+import { ROBBER_W_FRACTION, ROBBER_H_FRACTION, ROBBER_Y_OFFSET_FRACTION } from '../constants';
 
 interface HexagonProps {
   hex: BoardHex;
@@ -51,12 +52,13 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
       )}
 
       {hex.hasRobber && (
-        <circle
-          cx={x}
-          cy={y}
-          r={size / 5}
-          fill="#000"
-          fillOpacity={0.6}
+        <image
+          href="/art/robber.png"
+          x={x - (size * ROBBER_W_FRACTION) / 2}
+          y={y - size * ROBBER_Y_OFFSET_FRACTION}
+          width={size * ROBBER_W_FRACTION}
+          height={size * ROBBER_H_FRACTION}
+          preserveAspectRatio="xMidYMax meet"
           onMouseDown={onRobberMouseDown}
           style={robberDraggable ? { cursor: 'grab' } : undefined}
         />

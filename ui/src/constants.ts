@@ -31,6 +31,12 @@ export const DROP_THRESHOLD_FRACTION = 0.45;
 /** Radius of the valid drop-target highlight ring (SVG units). */
 export const DROP_TARGET_RING_R = 16;
 
+/** Robber image width, as a fraction of the hex size. */
+export const ROBBER_W_FRACTION = 1.4;
+/** Robber image height, as a fraction of the hex size. */
+export const ROBBER_H_FRACTION = 1.05;
+/** Robber image top offset above the hex center, as a fraction of the hex size. */
+export const ROBBER_Y_OFFSET_FRACTION = 1.05;
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
 /** Distance from the vertex center to the first soldier rank row. */

@@ -23,7 +23,7 @@ allow simple art view
 port  connector should still show with 1 vertex - visual port update
 -play one with sister and try to host
 
-mini view should also zoom in closer too, if vertex on outside clipped, jjust put the letter on the line of the road
+draft up map customization
 
 bug:
 fix soldier move out logic with injured soldiers
