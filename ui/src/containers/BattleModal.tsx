@@ -15,6 +15,8 @@ import {
   REPOSITION_SOLDIER_H,
   REPOSITION_SOLDIER_W,
   ROW_H,
+  ROBBER_BATTLE_W,
+  ROBBER_BATTLE_H,
   SIDE_COL_MAX,
   SIDE_OFFSET,
   SOLDIER_DOT_R,
@@ -326,6 +328,7 @@ const BattleModal: React.FC = () => {
     const opacity = dead ? 0.4 : 1;
     // Injured troops render at 0.65x the size of a healthy troop.
     const scale = injured ? 0.65 : 1;
+    const isRobber = s.soldier.owner === 'Robber';
     let label: React.ReactNode = '·';
     let labelSize = 10;
     if (dead) {
@@ -343,21 +346,33 @@ const BattleModal: React.FC = () => {
         style={{ cursor: mine ? 'pointer' : undefined }}
         onClick={mine ? () => handleRoll(s.soldier.id) : undefined}
       >
-        {/* Soldier icon (red part tinted to the owner's color); injured uses the injured icon. */}
-        <svg
-          x={x - TROOP_R * scale}
-          y={y - TROOP_R * 1.15 * scale}
-          width={TROOP_R * 2 * scale}
-          height={TROOP_R * 2.3 * scale}
-          style={{ color: colors[s.soldier.owner] ?? '#888' }}
-        >
-          <use
-            href={injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
+        {isRobber ? (
+          /* Robber icon (the full character art, untinted). */
+          <image
+            href="/art/robber.png"
+            x={x - (TROOP_R * ROBBER_BATTLE_W * scale) / 2}
+            y={y - TROOP_R * 1.6 * scale}
+            width={TROOP_R * ROBBER_BATTLE_W * scale}
+            height={TROOP_R * ROBBER_BATTLE_H * scale}
+            preserveAspectRatio="xMidYMax meet"
+          />
+        ) : (
+          /* Soldier icon (red part tinted to the owner's color); injured uses the injured icon. */
+          <svg
+            x={x - TROOP_R * scale}
+            y={y - TROOP_R * 1.15 * scale}
             width={TROOP_R * 2 * scale}
             height={TROOP_R * 2.3 * scale}
-            transform={x < center.x ? `translate(${TROOP_R * 2 * scale}, 0) scale(-1, 1)` : undefined}
-          />
-        </svg>
+            style={{ color: colors[s.soldier.owner] ?? '#888' }}
+          >
+            <use
+              href={injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
+              width={TROOP_R * 2 * scale}
+              height={TROOP_R * 2.3 * scale}
+              transform={x < center.x ? `translate(${TROOP_R * 2 * scale}, 0) scale(-1, 1)` : undefined}
+            />
+          </svg>
+        )}
         <text
           x={x}
           y={y}
