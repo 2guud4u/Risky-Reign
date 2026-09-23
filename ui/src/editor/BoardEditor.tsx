@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Terrain,
   CubeCoord,
@@ -120,6 +120,8 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
   const [playerName, setPlayerName] = useState('');
   const [newRoomId, setNewRoomId] = useState('');
   const [toolbarDrag, setToolbarDrag] = useState<{ kind: 'terrain' | 'number'; value: Terrain | number } | null>(null);
+  const [history, setHistory] = useState<Array<{ id: number; label: string; time: string; map: EditorMap }>>([]);
+  const historyIdRef = useRef(0);
   const { joinRoom, editBoard } = useSocket();
   const selectedHex = selectedCoord ? map[selectedCoord] : null;
 
@@ -294,12 +296,28 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
 
   const handleSave = () => {
     if (!canSave) return;
+    // Snapshot the current board into the history stack so the player can
+    // click a previous save to go back to it.
+    historyIdRef.current += 1;
+    const snapshot = {
+      id: historyIdRef.current,
+      label: `Save #${historyIdRef.current}`,
+      time: new Date().toLocaleTimeString(),
+      map: JSON.parse(JSON.stringify(map)) as EditorMap,
+    };
+    setHistory((h) => [...h, snapshot]);
     const layouts = toHexLayouts(map);
     if (roomId) {
       editBoard(roomId, layouts);
     } else {
       joinRoom(playerName.trim(), newRoomId.trim(), undefined, layouts);
     }
+  };
+
+  // Restore a saved snapshot (go back to it).
+  const restoreSnapshot = (snapshotMap: EditorMap) => {
+    setMap(JSON.parse(JSON.stringify(snapshotMap)) as EditorMap);
+    setSelectedCoord(null);
   };
 
   return (
@@ -503,6 +521,23 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
                 <p className="text-xs text-red-600">
                   {missingNumbers} hex{missingNumbers > 1 ? 'es' : ''} missing a number (Desert/Water are exempt)
                 </p>
+              )}
+              {history.length > 0 && (
+                <div className="mt-2">
+                  <h4 className="text-xs font-semibold text-gray-600 mb-1">History (click to go back)</h4>
+                  <div className="max-h-40 overflow-y-auto flex flex-col gap-1">
+                    {[...history].reverse().map((snap) => (
+                      <button
+                        key={snap.id}
+                        onClick={() => restoreSnapshot(snap.map)}
+                        className="flex items-center justify-between px-2 py-1 border border-gray-200 rounded-md text-xs cursor-pointer hover:bg-blue-50"
+                      >
+                        <span className="font-semibold text-gray-700">{snap.label}</span>
+                        <span className="text-gray-400">{snap.time}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </div>

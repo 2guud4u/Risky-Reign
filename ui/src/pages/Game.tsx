@@ -23,7 +23,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
   if (gameRoom.gameStatus === 'waiting') {
     const canStart = gameRoom.players.length >= MIN_PLAYERS;
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="bg-white rounded-lg shadow p-4 max-w-[520px] w-full">
           <h1 className="text-2xl font-bold text-center mb-4">Waiting for Players</h1>
           <p className="text-center text-gray-600">Current Room ID: {gameRoom.id}</p>

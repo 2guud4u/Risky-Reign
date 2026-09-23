@@ -118,8 +118,24 @@ const GameLogic: React.FC = () => {
     };
   }, [notice]);
 
+  // The ocean backdrop shows on the lobby and the in-game "waiting for
+  // players" room (not the game board or the board editor).
+  const showOceanBg = view === 'lobby' || (view === 'game' && gameRoom != null && gameRoom.gameStatus === 'waiting');
+
   return (
-    <div className="min-h-screen flex flex-col items-center p-4">
+    <div
+      className="min-h-screen flex flex-col items-center p-4"
+      style={
+        showOceanBg
+          ? {
+              backgroundImage: 'url(/art/ocean.jpeg)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }
+          : undefined
+      }
+    >
       <ConnectionBanner hidden={isConnected} />
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">

@@ -19,6 +19,7 @@ allow dragging of soldiers in the mini map
 
 
 Feature:
+1. clean up the ui
 1. try to host server on small pc now
 allow simple art view 
 port  connector should still show with 1 vertex - visual port update
