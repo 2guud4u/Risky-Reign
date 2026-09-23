@@ -5,7 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
 import GamePage from '../pages/Game';
 import LobbyPage from '../pages/Lobby';
-import BoardEditorPage from '../pages/BoardEditor';
+import BoardEditorPage from '../editor/BoardEditor';
 import { clearSavedSession, readSavedSession } from '../utils/session';
 import { TOAST_DURATION_MS } from '../constants';
 

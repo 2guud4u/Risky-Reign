@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { CubeCoord, Terrain, cubeToPixel } from 'common';
 import { hexPointsAt } from '../utils/hex';
 import { terrainColors } from 'common';
-import { EditorMap, coordKey } from '../types/BoardEditor';
+import { EditorMap, coordKey } from './types';
 
 /**
  * The infinite-grid board editor canvas. Renders a window of the hex grid
@@ -23,9 +23,12 @@ interface BoardEditorCanvasProps {
   onSelect: (coordKey: string | null) => void;
   onAdd: (coord: CubeCoord, terrain: Terrain) => void;
   onRemove: (coordKey: string) => void;
+  onClearNumber: (coordKey: string) => void;
   onMoveHex: (from: CubeCoord, to: CubeCoord) => void;
   onMoveNumber: (from: CubeCoord, to: CubeCoord) => void;
   onPlaceNumber: (coord: CubeCoord, number: number) => void;
+  onPaint: (coord: CubeCoord) => void;
+  paintMode: boolean;
   toolbarDrag: { kind: 'terrain' | 'number'; value: Terrain | number } | null;
 }
 
@@ -62,9 +65,12 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
   onSelect,
   onAdd,
   onRemove,
+  onClearNumber,
   onMoveHex,
   onMoveNumber,
   onPlaceNumber,
+  onPaint,
+  paintMode,
   toolbarDrag,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -78,7 +84,8 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [dragKind, setDragKind] = useState<'hex' | 'number' | null>(null);
   const [dragValue, setDragValue] = useState<number | null>(null);
-
+  const [overTrash, setOverTrash] = useState(false);
+  const trashRef = useRef<HTMLDivElement>(null);
   const BASE_W = 900;
   const BASE_H = 650;
   const w = BASE_W / scale;
@@ -107,6 +114,13 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
     },
     [center, w, h, boardUnitsPerScreenPx]
   );
+
+  // True when the pointer is over the trash-can overlay (screen coords).
+  const isOverTrash = useCallback((e: React.MouseEvent) => {
+    const rect = trashRef.current?.getBoundingClientRect();
+    if (!rect) return false;
+    return e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+  }, []);
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -148,9 +162,10 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
       } else {
         const pt = eventToBoard(e);
         if (pt) setHoverKey(coordKey(pixelToCube(pt.px, pt.py, HEX_SIZE)));
+        setOverTrash(isOverTrash(e));
       }
     },
-    [boardUnitsPerScreenPx, eventToBoard]
+    [boardUnitsPerScreenPx, eventToBoard, isOverTrash]
   );
 
   const onMouseUp = useCallback(
@@ -160,21 +175,31 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
       setHoverKey(null);
       setDragKind(null);
       setDragValue(null);
+      setOverTrash(false);
       if (!d) return;
       const pt = eventToBoard(e);
       if (!pt) return;
       const cube = pixelToCube(pt.px, pt.py, HEX_SIZE);
       const key = coordKey(cube);
 
+      // Drop on the trash can: delete the hex / clear the number.
+      if (d.moved && (d.kind === 'hex' || d.kind === 'number') && isOverTrash(e)) {
+        if (d.kind === 'hex') onRemove(coordKey(d.from));
+        else onClearNumber(coordKey(d.from));
+        return;
+      }
+
       if (d.kind === 'pan') {
         if (d.moved) return; // it was a pan, not a click
         if (map[key]) onSelect(key);
-        else onAdd(cube, selectedTerrain);
+        else if (paintMode) onAdd(cube, selectedTerrain);
         return;
       }
 
       if (!d.moved) {
-        // A click on a hex (or its number token): select it.
+        // A click on a hex (or its number token): paint it (paint mode) and/or
+        // select it.
+        if (paintMode) onPaint(d.from);
         onSelect(coordKey(d.from));
         return;
       }
@@ -191,7 +216,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
         onMoveNumber(d.from, cube);
       }
     },
-    [map, selectedTerrain, onSelect, onAdd, onMoveHex, onMoveNumber, eventToBoard]
+    [map, selectedTerrain, onSelect, onAdd, onMoveHex, onMoveNumber, onPaint, paintMode, eventToBoard, isOverTrash, onRemove, onClearNumber]
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
@@ -204,6 +229,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
     setHoverKey(null);
     setDragKind(null);
     setDragValue(null);
+    setOverTrash(false);
   };
 
   // Clear the hover preview when a toolbar drag ends without a drop.
@@ -327,22 +353,41 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
     );
   }
 
+  const draggingDeletable = dragKind === 'hex' || dragKind === 'number';
+
   return (
-    <svg
-      ref={svgRef}
-      viewBox={`${center.x - w / 2} ${center.y - h / 2} ${w} ${h}`}
-      style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block' }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={clearDrag}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onWheel={onWheel}
-    >
-      {cells}
-      {preview}
-    </svg>
+    <div className="relative w-full h-full">
+      <svg
+        ref={svgRef}
+        viewBox={`${center.x - w / 2} ${center.y - h / 2} ${w} ${h}`}
+        style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block', userSelect: 'none' }}
+        onDragStart={(e) => e.preventDefault()}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={clearDrag}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        onWheel={onWheel}
+      >
+        {cells}
+        {preview}
+      </svg>
+      {/* Trash can: drop a dragged hex (deletes it) or number (clears it) here. */}
+      <div
+        ref={trashRef}
+        className={`absolute top-3 right-3 flex flex-col items-center justify-center w-20 h-20 rounded-xl border-2 text-3xl select-none pointer-events-none transition-colors ${
+          overTrash && draggingDeletable
+            ? 'border-red-500 bg-red-100'
+            : draggingDeletable
+            ? 'border-gray-400 bg-white/80'
+            : 'border-gray-300 bg-white/60'
+        }`}
+        title="Drag a hex or a number here to delete it"
+      >
+        <span>🗑️</span>
+      </div>
+    </div>
   );
 };
 

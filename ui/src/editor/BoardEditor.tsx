@@ -7,10 +7,12 @@ import {
   BOARD_RADIUS,
   validateLayouts,
   terrainColors,
+  TOKENS,
+  shuffle,
 } from 'common';
 import { useSocket } from '../contexts/SocketContext';
-import BoardEditorCanvas from '../components/BoardEditorCanvas';
-import { EditorMap, coordKey, toHexLayouts } from '../types/BoardEditor';
+import BoardEditorCanvas from './BoardEditorCanvas';
+import { EditorMap, coordKey, toHexLayouts } from './types';
 
 /**
  * The board editor page. Reached from the waiting room (edit an existing
@@ -21,6 +23,36 @@ import { EditorMap, coordKey, toHexLayouts } from '../types/BoardEditor';
 
 const TERRAIN_OPTIONS: Terrain[] = ['Wood', 'Sheep', 'Wheat', 'Brick', 'Ore', 'Desert', 'Water'];
 const NUMBER_OPTIONS = [2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+
+type Tactic = 'equal' | 'random' | 'current';
+type Target = 'only empty' | 'only filled' | 'all';
+
+/**
+ * Build a number list that follows the standard Catan token ratio
+ * (the `TOKENS` weights), scaled to exactly `count` entries, then shuffled.
+ * Uses largest-remainder rounding so the total is always exactly `count`.
+ */
+function balancedNumbers(count: number): number[] {
+  if (count <= 0) return [];
+  const weights = Object.entries(TOKENS).map(([n, w]) => ({ n: Number(n), w }));
+  const totalWeight = weights.reduce((s, x) => s + x.w, 0);
+  const result: number[] = [];
+  const remainders: { n: number; frac: number }[] = [];
+  for (const { n, w } of weights) {
+    const ideal = (w * count) / totalWeight;
+    const whole = Math.floor(ideal);
+    for (let i = 0; i < whole; i++) result.push(n);
+    remainders.push({ n, frac: ideal - whole });
+  }
+  remainders.sort((a, b) => b.frac - a.frac);
+  let remaining = count - result.length;
+  for (const r of remainders) {
+    if (remaining <= 0) break;
+    result.push(r.n);
+    remaining -= 1;
+  }
+  return shuffle(result);
+}
 
 /** Seed an EditorMap from a fresh standard board. */
 function standardBoardMap(): EditorMap {
@@ -42,6 +74,34 @@ function boardToMap(board: Board): EditorMap {
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
 
+/**
+ * Set a small, clean drag image so the browser's drag ghost is a tidy token
+ * (a colored dot for terrain, a number token for numbers) instead of a
+ * snapshot of the whole toolbar item / board.
+ */
+function setCustomDragImage(e: React.DragEvent, kind: 'terrain' | 'number', value: Terrain | number) {
+  const el = document.createElement('div');
+  el.style.width = '44px';
+  el.style.height = '44px';
+  el.style.borderRadius = '50%';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.fontWeight = 'bold';
+  el.style.fontSize = '20px';
+  el.style.border = '2px solid #111';
+  el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+  if (kind === 'terrain') {
+    el.style.background = terrainColors[value as Terrain] ?? '#eee';
+  } else {
+    el.style.background = '#fff';
+    el.textContent = String(value);
+  }
+  document.body.appendChild(el);
+  e.dataTransfer.setDragImage(el, 22, 22);
+  window.setTimeout(() => el.remove(), 0);
+}
+
 interface BoardEditorProps {
   /** When set, the editor edits this existing room's board (Save → editBoard). */
   roomId?: string;
@@ -53,8 +113,10 @@ interface BoardEditorProps {
 const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onBack }) => {
   const [map, setMap] = useState<EditorMap>(() => (initialBoard ? boardToMap(initialBoard) : standardBoardMap()));
   const [selectedTerrain, setSelectedTerrain] = useState<Terrain>('Wood');
+  const [paintMode, setPaintMode] = useState(false);
+  const [tactic, setTactic] = useState<Tactic>('random');
+  const [target, setTarget] = useState<Target>('all');
   const [selectedCoord, setSelectedCoord] = useState<string | null>(null);
-  const [stashedNumber, setStashedNumber] = useState<number | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [newRoomId, setNewRoomId] = useState('');
   const [toolbarDrag, setToolbarDrag] = useState<{ kind: 'terrain' | 'number'; value: Terrain | number } | null>(null);
@@ -78,6 +140,14 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
     setSelectedCoord((c) => (c === key ? null : c));
   }, []);
 
+  const clearNumber = useCallback((key: string) => {
+    setMap((m) => {
+      const hex = m[key];
+      if (!hex) return m;
+      return { ...m, [key]: { ...hex, rollNumber: null } };
+    });
+  }, []);
+
   const setTerrain = (terrain: Terrain) => {
     if (!selectedCoord) return;
     setMap((m) => {
@@ -99,16 +169,44 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
     });
   };
 
-  const takeNumber = () => {
-    if (!selectedHex || selectedHex.rollNumber === null) return;
-    setStashedNumber(selectedHex.rollNumber);
-    setNumber(null);
-  };
+  const assignNumbers = () => {
+    setMap((m) => {
+      // Hexes that can carry a number (not Desert/Water).
+      const eligible = Object.entries(m).filter(
+        ([, hex]) => hex.terrain !== 'Desert' && hex.terrain !== 'Water'
+      );
+      // Narrow by target.
+      let targets: [string, (typeof m)[string]][];
+      if (target === 'only empty') targets = eligible.filter(([, hex]) => hex.rollNumber === null);
+      else if (target === 'only filled') targets = eligible.filter(([, hex]) => hex.rollNumber !== null);
+      else targets = eligible;
 
-  const placeNumber = () => {
-    if (stashedNumber === null) return;
-    setNumber(stashedNumber);
-    setStashedNumber(null);
+      // Build the number pool based on the tactic.
+      let pool: number[];
+      if (tactic === 'equal') {
+        pool = balancedNumbers(targets.length);
+      } else if (tactic === 'current') {
+        pool = shuffle(
+          Object.values(m)
+            .filter((hex) => hex.rollNumber !== null)
+            .map((hex) => hex.rollNumber as number)
+        );
+        // Pad with random if there are fewer current numbers than targets.
+        while (pool.length < targets.length) {
+          pool.push(NUMBER_OPTIONS[Math.floor(Math.random() * NUMBER_OPTIONS.length)]);
+        }
+        pool = pool.slice(0, targets.length);
+      } else {
+        // 'random'
+        pool = targets.map(() => NUMBER_OPTIONS[Math.floor(Math.random() * NUMBER_OPTIONS.length)]);
+      }
+
+      const next = { ...m };
+      targets.forEach(([key], i) => {
+        next[key] = { ...next[key], rollNumber: pool[i] };
+      });
+      return next;
+    });
   };
 
   const handleMoveHex = useCallback((from: CubeCoord, to: CubeCoord) => {
@@ -133,7 +231,9 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
       if (!src || src.rollNumber === null || !dst) return m;
       if (dst.terrain === 'Desert' || dst.terrain === 'Water') return m;
       const next = { ...m };
-      next[fromKey] = { ...src, rollNumber: null };
+      // Swap the numbers: the source takes the target's number (null if the
+      // target has none, i.e. a plain move), the target takes the source's.
+      next[fromKey] = { ...src, rollNumber: dst.rollNumber };
       next[toKey] = { ...dst, rollNumber: src.rollNumber };
       return next;
     });
@@ -149,10 +249,23 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
     });
   }, []);
 
+  const handlePaint = useCallback(
+    (coord: CubeCoord) => {
+      setMap((m) => {
+        const key = coordKey(coord);
+        const hex = m[key];
+        if (!hex) return m;
+        // Desert / Water cannot carry a number.
+        const rollNumber = selectedTerrain === 'Desert' || selectedTerrain === 'Water' ? null : hex.rollNumber;
+        return { ...m, [key]: { ...hex, terrain: selectedTerrain, rollNumber } };
+      });
+    },
+    [selectedTerrain]
+  );
+
   const resetToStandard = () => {
     setMap(standardBoardMap());
     setSelectedCoord(null);
-    setStashedNumber(null);
   };
 
   const generateRoomId = () => {
@@ -160,9 +273,14 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
   };
 
   const validation = validateLayouts(toHexLayouts(map));
-  // Editing an existing room only needs a valid layout; creating a new room
-  // also needs a name + room id.
-  const canSave = validation.allowed && (roomId ? true : playerName.trim() !== '' && newRoomId.trim() !== '');
+  // Every hex that can carry a number (not Desert/Water) must have one before
+  // the game can start.
+  const missingNumbers = Object.values(map).filter(
+    (h) => h.terrain !== 'Desert' && h.terrain !== 'Water' && h.rollNumber === null
+  ).length;
+  // Editing an existing room needs a valid layout + no missing numbers; creating
+  // a new room also needs a name + room id.
+  const canSave = validation.allowed && missingNumbers === 0 && (roomId ? true : playerName.trim() !== '' && newRoomId.trim() !== '');
 
   // Counts of each terrain and each roll number, for the summary panel.
   const terrainCounts = TERRAIN_OPTIONS.reduce(
@@ -203,10 +321,11 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
         </button>
         <span className="text-sm text-gray-500">
           {Object.keys(map).length} hexes · {validation.allowed ? 'valid' : `invalid: ${validation.reason}`}
+          {missingNumbers > 0 ? ` · ${missingNumbers} missing number${missingNumbers > 1 ? 's' : ''}` : ''}
         </span>
       </div>
       <p className="w-full max-w-[1200px] text-xs text-gray-500">
-        Click empty cell to add · drag a hex to move it · drag a number token to move it · drag a terrain/number from the toolbar to place it · right-click (or double-click) a hex to delete
+        Toggle 🖌️ paint mode to click-place/paint terrain · drag a hex to move it · drag a number token to move it (swaps if the target has one) · drag a terrain/number from the toolbar to place it · drag a hex or number onto the 🗑️ to delete it · right-click (or double-click) a hex to delete
       </p>
       <div className="w-full max-w-[1200px] flex gap-4 flex-col lg:flex-row">
         {/* Canvas */}
@@ -218,9 +337,12 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
             onSelect={setSelectedCoord}
             onAdd={handleAdd}
             onRemove={handleRemove}
+            onClearNumber={clearNumber}
             onMoveHex={handleMoveHex}
             onMoveNumber={handleMoveNumber}
             onPlaceNumber={handlePlaceNumber}
+            onPaint={handlePaint}
+            paintMode={paintMode}
             toolbarDrag={toolbarDrag}
           />
         </div>
@@ -229,9 +351,18 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
         <div className="w-full lg:w-[300px] flex flex-col gap-4">
           {/* Terrain palette */}
           <div className="p-3 border border-gray-300 rounded-lg bg-white">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
-              Terrain 
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-gray-700">Terrain</h3>
+              <button
+                onClick={() => setPaintMode((p) => !p)}
+                title={paintMode ? 'Paint mode ON: click a hex to paint it' : 'Paint mode OFF: click a hex to select it'}
+                className={`p-1 rounded-md border text-sm cursor-pointer ${
+                  paintMode ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-gray-100'
+                }`}
+              >
+                🖌️
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {TERRAIN_OPTIONS.map((t) => (
                 <button
@@ -240,11 +371,12 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', `terrain:${t}`);
                     e.dataTransfer.effectAllowed = 'move';
+                    setCustomDragImage(e, 'terrain', t);
                     setToolbarDrag({ kind: 'terrain', value: t });
                   }}
                   onDragEnd={() => setToolbarDrag(null)}
                   onClick={() => (selectedCoord ? setTerrain(t) : setSelectedTerrain(t))}
-                  title={`Drag onto the board to place a ${t} hex`}
+                  title={`Apply ${t} to the selected hex (or set for the next placed / drag onto the board)`}
                   className={`flex items-center gap-2 px-2 py-1.5 border rounded-md text-sm cursor-grab active:cursor-grabbing ${
                     (selectedCoord ? selectedHex?.terrain === t : selectedTerrain === t)
                       ? 'border-blue-500 ring-1 ring-blue-500'
@@ -262,16 +394,16 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
           {/* Number palette */}
           <div className="p-3 border border-gray-300 rounded-lg bg-white">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">
-              Number 
+              Number
             </h3>
             <div className="flex flex-wrap gap-2">
               {NUMBER_OPTIONS.map((n) => (
                 <button
                   key={n}
-                  draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('text/plain', `number:${n}`);
                     e.dataTransfer.effectAllowed = 'move';
+                    setCustomDragImage(e, 'number', n);
                     setToolbarDrag({ kind: 'number', value: n });
                   }}
                   onDragEnd={() => setToolbarDrag(null)}
@@ -287,34 +419,42 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
                   </span>
                 </button>
               ))}
-              <button
-                onClick={() => setNumber(null)}
-                disabled={!selectedCoord}
-                className="px-3 h-9 border border-gray-300 rounded-md text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Clear
-              </button>
             </div>
             <div className="flex gap-2 mt-3">
-              <button
-                onClick={takeNumber}
-                className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Take number
-              </button>
-              <button
-                onClick={placeNumber}
-                className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Place {stashedNumber !== null ? `(${stashedNumber})` : ''}
-              </button>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Tactic</label>
+                <select
+                  value={tactic}
+                  onChange={(e) => setTactic(e.target.value as Tactic)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+                >
+                  <option value="equal">Equal (standard ratio)</option>
+                  <option value="random">Random</option>
+                  <option value="current" disabled={target === 'all'}>
+                    Current (shuffle existing)
+                  </option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Target</label>
+                <select
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value as Target)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+                >
+                  <option value="all" disabled={tactic === 'current'}>
+                    All
+                  </option>
+                  <option value="only empty">Only empty</option>
+                  <option value="only filled">Only filled</option>
+                </select>
+              </div>
             </div>
             <button
-              onClick={() => selectedCoord && handleRemove(selectedCoord)}
-              disabled={!selectedCoord}
-              className="w-full mt-3 px-2 py-1.5 border border-red-300 bg-red-50 text-red-700 rounded-md text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={assignNumbers}
+              className="w-full mt-2 px-2 py-1.5 border border-blue-300 bg-blue-50 text-blue-700 rounded-md text-sm cursor-pointer"
             >
-              Remove selected hex
+              Assign numbers
             </button>
           </div>
 
@@ -358,6 +498,11 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
               </button>
               {!validation.allowed && (
                 <p className="text-xs text-red-600">{validation.reason}</p>
+              )}
+              {validation.allowed && missingNumbers > 0 && (
+                <p className="text-xs text-red-600">
+                  {missingNumbers} hex{missingNumbers > 1 ? 'es' : ''} missing a number (Desert/Water are exempt)
+                </p>
               )}
             </div>
           </div>
