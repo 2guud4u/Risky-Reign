@@ -1,4 +1,4 @@
-import { PLAYER_COLORS, Player, applyBonuses, MAX_PLAYERS, MIN_PLAYERS } from 'common';
+import { PLAYER_COLORS, Player, applyBonuses, MAX_PLAYERS, MIN_PLAYERS, validateLayouts, generateBoard, HexLayout, GAME_HEX_SIZE } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount } from '../store';
 import { HandlerContext } from './context';
@@ -12,11 +12,22 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
   // Handle room joining.
-  socket.on('joinRoom', (data: { roomId: string; playerName: string; color?: string }) => {
-    const { roomId, playerName, color } = data;
+  socket.on('joinRoom', (data: { roomId: string; playerName: string; color?: string; layouts?: HexLayout[] }) => {
+    const { roomId, playerName, color, layouts } = data;
     let room = gameRooms.get(roomId);
     if (!room) {
       room = createGameRoom(roomId, playerName);
+      // If a custom board layout was provided, validate it and build the
+      // board from it instead of the standard board.
+      if (layouts && layouts.length > 0) {
+        const ok = validateLayouts(layouts);
+        if (!ok.allowed) {
+          socket.emit('error', { message: ok.reason ?? 'Invalid board layout' });
+          return;
+        }
+        room.board = generateBoard(layouts, { generator: 'custom', hexSize: GAME_HEX_SIZE });
+        room.robberMove = null;
+      }
     }
     if (room.players.length >= MAX_PLAYERS) {
       socket.emit('error', { message: 'Room is full' });
@@ -88,6 +99,25 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('roomUpdate', room);
   });
 
+  socket.on('editBoard', (data: { roomId: string; layouts: HexLayout[] }) => {
+    const { roomId, layouts } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    const ok = validateLayouts(layouts);
+    if (!ok.allowed) {
+      socket.emit('error', { message: ok.reason ?? 'Invalid board layout' });
+      return;
+    }
+    // Rebuild the board from the custom layout. Pre-game (waiting) this is
+    // safe — nothing is built yet. The robber resets to the new desert.
+    room.board = generateBoard(layouts, { generator: 'custom', hexSize: GAME_HEX_SIZE });
+    room.robberMove = null;
+    applyBonuses(room);
+    io.to(roomId).emit('roomUpdate', room);
+  });
   socket.on('startGame', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);

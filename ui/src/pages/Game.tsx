@@ -7,7 +7,7 @@ import BoardView from '../containers/BoardView';
 import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
 
-const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
+const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }> = ({ error, onCustomizeBoard }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const {
     startGame: onStartGame,
@@ -57,6 +57,14 @@ const GamePage: React.FC<{ error: string | null }> = ({ error }) => {
           >
             Refresh Map
           </button>
+          {onCustomizeBoard && (
+            <button
+              onClick={onCustomizeBoard}
+              className="mt-2 w-full py-2.5 px-4 bg-emerald-600 text-white border-0 rounded-md cursor-pointer text-sm"
+            >
+              Customize Board
+            </button>
+          )}
           <div className="mt-4 flex justify-center">
             <BoardView hexSize={LOBBY_HEX_SIZE} />
           </div>

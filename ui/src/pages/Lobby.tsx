@@ -4,7 +4,11 @@ import { saveSession } from '../utils/session';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
 
-const LobbyPage: React.FC<{ error: string | null }> = ({ error }) => {
+interface LobbyProps {
+  error: string | null;
+}
+
+const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
   const { isConnected, joinRoom: onJoinRoom } = useSocket();

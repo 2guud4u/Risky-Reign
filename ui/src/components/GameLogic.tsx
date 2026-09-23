@@ -5,6 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
 import GamePage from '../pages/Game';
 import LobbyPage from '../pages/Lobby';
+import BoardEditorPage from '../pages/BoardEditor';
 import { clearSavedSession, readSavedSession } from '../utils/session';
 import { TOAST_DURATION_MS } from '../constants';
 
@@ -39,6 +40,7 @@ const GameLogic: React.FC = () => {
   const toastTimerRef = useRef<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
+  const [view, setView] = useState<'lobby' | 'game' | 'boardEditor'>('lobby');
   const { socket, isConnected, joinRoom: onJoinRoom } = useSocket();
   const { setGameRoom, setCurrentPlayer, gameRoom } = useGameRoom();
   const autoJoinedRef = useRef(false);
@@ -129,7 +131,17 @@ const GameLogic: React.FC = () => {
           {notice}
         </div>
       )}
-      {!gameRoom ? <LobbyPage error={error} /> : <GamePage error={error} />}
+      {view === 'boardEditor' ? (
+        <BoardEditorPage
+          roomId={gameRoom?.id}
+          initialBoard={gameRoom?.board ?? undefined}
+          onBack={() => setView(gameRoom ? 'game' : 'lobby')}
+        />
+      ) : gameRoom ? (
+        <GamePage error={error} onCustomizeBoard={() => setView('boardEditor')} />
+      ) : (
+        <LobbyPage error={error} />
+      )}
     </div>
   );
 };

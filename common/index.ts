@@ -30,6 +30,7 @@ export * from './utils/validation';
 export * from './utils/robber';
 export * from './utils/pieces';
 export * from './utils/adjacency';
+export * from './utils/boardValidate';
 export * from './utils/boardGenerator';
 export * from './utils/placement';
 export * from './utils/trade';

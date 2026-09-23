@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Price, SOCKET_URL } from 'common';
+import { Price, SOCKET_URL, HexLayout } from 'common';
 
 /**
  * Generic emit helper: guards against a missing socket/roomId and validates
@@ -45,11 +45,12 @@ interface SocketContextType {
   endBattle: (playerId: string, roomId: string) => void;
   exitBattle: (roomId: string) => void;
   rollDice: (roomId: string) => void;
-  joinRoom: (playerName: string, roomId: string, color?: string) => void;
+  joinRoom: (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => void;
   updatePlayerColor: (roomId: string, color: string) => void;
   startGame: (roomId: string) => void;
   resetGame: (roomId: string) => void;
   refreshMap: (roomId: string) => void;
+  editBoard: (roomId: string, layouts: HexLayout[]) => void;
   endTurn: (roomId: string) => void;
   undoBuild: (roomId: string) => void;
   drawDevelopmentCard: (playerId: string, roomId: string) => void;
@@ -91,6 +92,7 @@ const SocketContext = createContext<SocketContextType>({
   startGame: () => { },
   resetGame: () => { },
   refreshMap: () => { },
+  editBoard: () => { },
   endTurn: () => { },
   undoBuild: () => { },
   drawDevelopmentCard: () => { },
@@ -180,9 +182,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const rollDice = (roomId: string) => emitAction(socket, 'rollDice', { roomId });
 
-  const joinRoom = (playerName: string, roomId: string, color?: string) => {
+  const joinRoom = (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => {
     if (!socket) return;
-    socket.emit('joinRoom', { roomId, playerName, color });
+    socket.emit('joinRoom', { roomId, playerName, color, ...(layouts && layouts.length > 0 ? { layouts } : {}) });
   };
 
   const updatePlayerColor = (roomId: string, color: string) =>
@@ -194,6 +196,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const refreshMap = (roomId: string) => emitAction(socket, 'refreshMap', { roomId });
 
+  const editBoard = (roomId: string, layouts: HexLayout[]) =>
+    emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
 
   const createTradeOffer = (roomId: string, to: string, give: Price, want: Price) =>
@@ -260,6 +264,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         startGame,
         resetGame,
         refreshMap,
+        editBoard,
         leaveGame,
         endTurn,
         undoBuild,

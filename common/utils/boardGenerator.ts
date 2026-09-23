@@ -94,8 +94,14 @@ export function generateBoard(
       coord: l.coord,
       terrain: l.terrain,
       rollNumber: l.rollNumber,
-      robber: l.terrain === 'Desert',
+      robber: false,
     };
+  }
+  // The robber's home: the first Desert, or the first hex if there is none.
+  // Exactly one hex is the robber's starting position.
+  const homeLayout = layouts.find((l) => l.terrain === 'Desert') ?? layouts[0];
+  if (homeLayout) {
+    hexes[toHexId(homeLayout.coord)].robber = true;
   }
 
   const g = computeAdjacency(coords, hexSize);
