@@ -82,6 +82,8 @@ export interface GameRoom {
   /** Shared face-down development card deck (drawn from in order). */
   devCardDeck: DevelopmentCardType[];
   gameStatus: 'waiting' | 'playing' | 'finished';
+  /** Victory threshold in VP (the "points to win" setting). */
+  pointsToWin: number;
   winner: string | null;
   roll: RollResult;
   /** Pending robber placement (a 7 roll or a played knight card). */

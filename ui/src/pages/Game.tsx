@@ -1,5 +1,5 @@
 import React from 'react';
-import { LOBBY_HEX_SIZE, MIN_PLAYERS } from 'common';
+import { LOBBY_HEX_SIZE, MIN_PLAYERS, DEFAULT_POINTS_TO_WIN } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
@@ -13,6 +13,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     startGame: onStartGame,
     refreshMap: onRefreshMap,
     updatePlayerColor: onUpdatePlayerColor,
+    updatePointsToWin: onUpdatePointsToWin,
   } = useSocket();
 
   if (!gameRoom || !currentPlayer) {
@@ -23,8 +24,10 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
   if (gameRoom.gameStatus === 'waiting') {
     const canStart = gameRoom.players.length >= MIN_PLAYERS;
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-white rounded-lg shadow p-4 max-w-[520px] w-full">
+      <div className="flex items-center justify-center min-h-screen w-full p-4">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
+          <div />
+          <div className="bg-white rounded-lg shadow p-4 max-w-[520px]">
           <h1 className="text-2xl font-bold text-center mb-4">Waiting for Players</h1>
           <p className="text-center text-gray-600">Current Room ID: {gameRoom.id}</p>
           <p className="text-center text-gray-600">
@@ -66,6 +69,29 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
           <div className="mt-4 flex justify-center">
             <BoardView hexSize={LOBBY_HEX_SIZE} />
           </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4 max-w-[320px] justify-self-end">
+          <h2 className="text-xl font-bold text-center mb-4">Game Settings</h2>
+          <label className="block text-[13px] font-semibold mb-1.5">Points to Win</label>
+          <input
+            type="number"
+            min={1}
+            value={gameRoom.pointsToWin}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              if (!Number.isNaN(value) && value >= 1) {
+                onUpdatePointsToWin(gameRoom.id, value);
+              }
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-[15px]"
+          />
+          <button
+            onClick={() => onUpdatePointsToWin(gameRoom.id, DEFAULT_POINTS_TO_WIN)}
+            className="mt-3 w-full py-2 px-4 border border-gray-300 bg-gray-100 rounded-md text-sm cursor-pointer"
+          >
+            Reset to Default
+          </button>
+        </div>
         </div>
       </div>
     );

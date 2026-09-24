@@ -99,6 +99,27 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('roomUpdate', room);
   });
 
+  // Update the "points to win" setting (only while waiting).
+  socket.on('updatePointsToWin', (data: { roomId: string; pointsToWin: number }) => {
+    const { roomId, pointsToWin } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'Can only change settings while waiting' });
+      return;
+    }
+    const value = Math.floor(pointsToWin);
+    if (!Number.isFinite(value) || value < 1) {
+      socket.emit('error', { message: 'Points to win must be at least 1' });
+      return;
+    }
+    room.pointsToWin = value;
+    io.to(roomId).emit('roomUpdate', room);
+  });
+
   socket.on('editBoard', (data: { roomId: string; layouts: HexLayout[] }) => {
     const { roomId, layouts } = data;
     const room = gameRooms.get(roomId);

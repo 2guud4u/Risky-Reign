@@ -1,6 +1,6 @@
 import { Board } from '../types/Board';
 import { GameRoom } from '../types/Room';
-import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, BONUS_VP, WIN_VP } from '../Constant';
+import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, BONUS_VP } from '../Constant';
 
 /**
  * Room scoring bonuses: Longest Road and Largest Army (standard Catan rules).
@@ -116,19 +116,20 @@ export function applyBonuses(room: GameRoom): void {
 }
 
 /**
- * Win condition (standard Catan): the first player to reach `WIN_VP` (10)
- * victory points wins. The check prefers the acting player — a player wins
- * on their own turn — and falls back to the first player in turn order with
- * enough points (deterministic). Idempotent: once `gameStatus` is
- * 'finished' the room is never changed again, so it is safe to run on every
- * broadcast.
+ * Win condition: the first player to reach the room's `pointsToWin`
+ * threshold (default 10, the standard Catan value) wins. The check prefers
+ * the acting player — a player wins on their own turn — and falls back to
+ * the first player in turn order with enough points (deterministic).
+ * Idempotent: once `gameStatus` is 'finished' the room is never changed
+ * again, so it is safe to run on every broadcast.
  */
 export function checkWinCondition(room: GameRoom): void {
   if (room.gameStatus !== 'playing') return;
+  const threshold = room.pointsToWin;
   const acting = room.players.find((p) => p.name === room.turnState.player);
   const winner =
-    (acting && acting.victoryPoints >= WIN_VP ? acting : null) ??
-    room.players.find((p) => p.victoryPoints >= WIN_VP);
+    (acting && acting.victoryPoints >= threshold ? acting : null) ??
+    room.players.find((p) => p.victoryPoints >= threshold);
   if (winner) {
     room.gameStatus = 'finished';
     room.winner = winner.name;

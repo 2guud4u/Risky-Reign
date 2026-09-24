@@ -4,6 +4,7 @@ import {
   ResourceCount,
   GAME_HEX_SIZE,
   BANK_SUPPLY_PER_RESOURCE,
+  DEFAULT_POINTS_TO_WIN,
   generateStandardBoard,
   generateDevelopmentCardDeck,
 } from 'common';
@@ -70,6 +71,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
       undoLog: [],
     },
     gameStatus: 'waiting',
+    pointsToWin: DEFAULT_POINTS_TO_WIN,
     winner: null,
     tradeOffers: [],
     battleState: null,

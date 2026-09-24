@@ -25,6 +25,9 @@ export const MAX_PLAYERS = 10;
 /** Minimum number of players required to start a game. */
 export const MIN_PLAYERS = 2;
 
+/** Default victory threshold (standard Catan: first to 10 VP wins). */
+export const DEFAULT_POINTS_TO_WIN = 10;
+
 /** Default socket server url (override with REACT_APP_SOCKET_URL). */
 export const SOCKET_URL: string =
   (typeof process !== 'undefined' && process && process.env && process.env.REACT_APP_SOCKET_URL) ||

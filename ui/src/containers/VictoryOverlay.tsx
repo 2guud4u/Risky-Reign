@@ -1,5 +1,4 @@
 import React from 'react';
-import { WIN_VP } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 
@@ -19,7 +18,7 @@ const VictoryOverlay: React.FC = () => {
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl p-8 max-w-[520px] w-full text-center">
         <h1 className="text-3xl font-bold mb-2">🏆 {gameRoom.winner} wins!</h1>
-        <p className="text-gray-600 mb-6">First to {WIN_VP} victory points wins the game.</p>
+        <p className="text-gray-600 mb-6">First to {gameRoom.pointsToWin} victory points wins the game.</p>
         <div className="space-y-2 mb-6">
           {standings.map((p) => (
             <div

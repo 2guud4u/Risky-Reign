@@ -50,6 +50,7 @@ interface SocketContextType {
   startGame: (roomId: string) => void;
   resetGame: (roomId: string) => void;
   refreshMap: (roomId: string) => void;
+  updatePointsToWin: (roomId: string, pointsToWin: number) => void;
   editBoard: (roomId: string, layouts: HexLayout[]) => void;
   endTurn: (roomId: string) => void;
   undoBuild: (roomId: string) => void;
@@ -92,6 +93,7 @@ const SocketContext = createContext<SocketContextType>({
   startGame: () => { },
   resetGame: () => { },
   refreshMap: () => { },
+  updatePointsToWin: () => { },
   editBoard: () => { },
   endTurn: () => { },
   undoBuild: () => { },
@@ -196,6 +198,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const refreshMap = (roomId: string) => emitAction(socket, 'refreshMap', { roomId });
 
+  const updatePointsToWin = (roomId: string, pointsToWin: number) =>
+    emitAction(socket, 'updatePointsToWin', { roomId, pointsToWin });
   const editBoard = (roomId: string, layouts: HexLayout[]) =>
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
@@ -264,6 +268,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         startGame,
         resetGame,
         refreshMap,
+        updatePointsToWin,
         editBoard,
         leaveGame,
         endTurn,
