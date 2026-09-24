@@ -342,9 +342,6 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
           {missingNumbers > 0 ? ` · ${missingNumbers} missing number${missingNumbers > 1 ? 's' : ''}` : ''}
         </span>
       </div>
-      <p className="w-full max-w-[1200px] text-xs text-gray-500">
-        Toggle 🖌️ paint mode to click-place/paint terrain · drag a hex to move it · drag a number token to move it (swaps if the target has one) · drag a terrain/number from the toolbar to place it · drag a hex or number onto the 🗑️ to delete it · right-click (or double-click) a hex to delete
-      </p>
       <div className="w-full max-w-[1200px] flex gap-4 flex-col lg:flex-row">
         {/* Canvas */}
         <div className="flex-1 h-[650px] border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
@@ -370,17 +367,21 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
           {/* Terrain palette */}
           <div className="p-3 border border-gray-300 rounded-lg bg-white">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-gray-700">Terrain</h3>
+              <div className="flex flex-col">
+                <h3 className="text-sm font-semibold text-gray-700">Terrain</h3>
+                <p className="w-full max-w-[1200px] text-xs text-gray-500">
+                  Drag to place, right click to delete.</p>
+              </div>
               <button
                 onClick={() => setPaintMode((p) => !p)}
                 title={paintMode ? 'Paint mode ON: click a hex to paint it' : 'Paint mode OFF: click a hex to select it'}
-                className={`p-1 rounded-md border text-sm cursor-pointer ${
-                  paintMode ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-gray-100'
-                }`}
+                className={`p-1 rounded-md border text-sm cursor-pointer ${paintMode ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-gray-100'
+                  }`}
               >
                 🖌️
               </button>
             </div>
+
             <div className="grid grid-cols-2 gap-2">
               {TERRAIN_OPTIONS.map((t) => (
                 <button
@@ -411,9 +412,11 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
 
           {/* Number palette */}
           <div className="p-3 border border-gray-300 rounded-lg bg-white">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            <h3 className="text-sm font-semibold text-gray-700 ">
               Number
             </h3>
+                <p className="w-full max-w-[1200px] text-xs text-gray-500 mb-2">
+                  Drag to place or click hex and select a number.</p>
             <div className="flex flex-wrap gap-2">
               {NUMBER_OPTIONS.map((n) => (
                 <button
