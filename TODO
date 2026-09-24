@@ -28,7 +28,7 @@ port  connector should still show with 1 vertex - visual port update
 draft up map customization
 
 bug:
-fix soldier move out logic with injured soldiers
+port trade is broken
 
 
 Far future requests:
@@ -37,8 +37,8 @@ rule customization
 random late game join, allow random placement of settlement
 allow attack multigroup at the same time
 maybe lock the colors to only 10 colors-use nvidia gpu
-
-
+ports customization
+can not build on water tiles vertex that is not next to land hex
 shuffle tactic: equal or random or current 
 
 target: only empty or only filled or all

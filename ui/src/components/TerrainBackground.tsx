@@ -14,6 +14,7 @@ const terrainArt: Record<string, string> = {
   Brick: '/art/brick.svg',
   Ore: '/art/ore.svg',
   Desert: '/art/desert.svg',
+  Water: '/art/water.svg',
 };
 
 /** The SVG's hexagon radius, in its 1080×1080 coordinate space. */

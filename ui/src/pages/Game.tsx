@@ -37,9 +37,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               value={currentPlayer.color}
               onChange={(color) => onUpdatePlayerColor(gameRoom.id, color)}
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Your settlements and roads on the board will use this color.
-            </p>
+
           </div>
 
           {error && <p className="text-red-600 text-center mt-2">{error}</p>}

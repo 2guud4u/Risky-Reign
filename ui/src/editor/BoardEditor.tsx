@@ -72,6 +72,84 @@ function boardToMap(board: Board): EditorMap {
   return map;
 }
 
+/** 5-6 player expansion terrain breakdown (30 tiles, no Water). */
+const EXPANSION_TERRAIN_COUNTS: Record<Terrain, number> = {
+  Wood: 6,
+  Sheep: 6,
+  Wheat: 6,
+  Brick: 5,
+  Ore: 5,
+  Desert: 2,
+  Water: 0,
+  Nothing: 0,
+};
+
+/** 5-6 player expansion token distribution (28 tokens for the 28 resource hexes). */
+const EXPANSION_TOKENS: Record<number, number> = {
+  2: 2,
+  3: 3,
+  4: 3,
+  5: 3,
+  6: 3,
+  8: 3,
+  9: 3,
+  10: 3,
+  11: 3,
+  12: 2,
+};
+
+/**
+ * The 5-6 player expansion island: an elongated hex with 7 rows of
+ * 3-4-5-6-5-4-3 (30 hexes). Uses r = -2..4 so the even/odd row parity
+ * matches the odd/even row sizes (required for integer axial coords).
+ */
+function expansionCoords(): CubeCoord[] {
+  // q-range [start, end] for each row (r = -2..4), centered on x = 0.
+  const rowQRanges: Array<[number, number]> = [
+    [0, 2], // r=-2, 3 hexes
+    [-1, 2], // r=-1, 4 hexes
+    [-2, 2], // r=0, 5 hexes
+    [-3, 2], // r=1, 6 hexes
+    [-3, 1], // r=2, 5 hexes
+    [-3, 0], // r=3, 4 hexes
+    [-3, -1], // r=4, 3 hexes
+  ];
+  const coords: CubeCoord[] = [];
+  rowQRanges.forEach(([qStart, qEnd], i) => {
+    const r = i - 2;
+    for (let q = qStart; q <= qEnd; q++) {
+      coords.push({ q, r, s: -q - r });
+    }
+  });
+  return coords;
+}
+
+/** Seed an EditorMap from the 5-6 player expansion layout (shuffled terrain + tokens). */
+function expansionBoardMap(): EditorMap {
+  const coords = expansionCoords();
+  const terrains: Terrain[] = [];
+  (Object.keys(EXPANSION_TERRAIN_COUNTS) as Terrain[]).forEach((t) => {
+    for (let i = 0; i < EXPANSION_TERRAIN_COUNTS[t]; i++) terrains.push(t);
+  });
+  const shuffledTerrains = shuffle(terrains);
+  const tokens: number[] = [];
+  Object.keys(EXPANSION_TOKENS).forEach((k) => {
+    const n = EXPANSION_TOKENS[Number(k)];
+    for (let i = 0; i < n; i++) tokens.push(Number(k));
+  });
+  const shuffledTokens = shuffle(tokens);
+
+  const map: EditorMap = {};
+  let tokenIdx = 0;
+  coords.forEach((coord, i) => {
+    const terrain = shuffledTerrains[i];
+    // Desert / Water cannot carry a number.
+    const rollNumber = terrain === 'Desert' || terrain === 'Water' ? null : shuffledTokens[tokenIdx++];
+    map[coordKey(coord)] = { coord, terrain, rollNumber };
+  });
+  return map;
+}
+
 const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
 
 /**
@@ -270,6 +348,11 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
     setSelectedCoord(null);
   };
 
+  const resetToExpansion = () => {
+    setMap(expansionBoardMap());
+    setSelectedCoord(null);
+  };
+
   const generateRoomId = () => {
     setNewRoomId(Math.random().toString(36).substring(2, 8).toUpperCase());
   };
@@ -336,6 +419,12 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
           className="px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-sm cursor-pointer"
         >
           Reset to Standard
+        </button>
+        <button
+          onClick={resetToExpansion}
+          className="px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-sm cursor-pointer"
+        >
+          Reset to Expansion
         </button>
         <span className="text-sm text-gray-500">
           {Object.keys(map).length} hexes · {validation.allowed ? 'valid' : `invalid: ${validation.reason}`}

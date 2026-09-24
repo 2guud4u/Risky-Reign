@@ -311,7 +311,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
         )}
         {placed && placed.terrain === 'Desert' && (
           <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize={12} fill="#92400e">
-            🏜️
+            Desert
           </text>
         )}
       </g>

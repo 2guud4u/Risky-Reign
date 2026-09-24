@@ -127,21 +127,6 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
         </>
       )}
 
-      {/* Road indicator */}
-      {hasRoad && (
-        <text
-          x={(start.x + end.x) / 2}
-          y={(start.y + end.y) / 2}
-          textAnchor="middle"
-          fill="#8B4513"
-          fontSize="12"
-          fontWeight="bold"
-          pointerEvents="none"
-        >
-          🛤️
-        </text>
-      )}
-
     </g>
   );
 };
