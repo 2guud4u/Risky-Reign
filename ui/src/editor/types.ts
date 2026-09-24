@@ -1,4 +1,4 @@
-import { CubeCoord, Terrain } from 'common';
+import { CubeCoord, Terrain, Board } from 'common';
 
 /**
  * A single placed hex in the board editor draft.
@@ -15,14 +15,34 @@ export interface EditorHex {
  */
 export type EditorMap = Record<string, EditorHex>;
 
-/**
- * Convert an `EditorMap` to the `HexLayout[]` shape the backend expects.
- */
-export function toHexLayouts(map: EditorMap): { coord: CubeCoord; terrain: string; rollNumber: number | null }[] {
-  return Object.values(map).map((h) => ({ coord: h.coord, terrain: h.terrain, rollNumber: h.rollNumber }));
+/** Number-assignment strategy for the "Assign numbers" action. */
+export type Tactic = 'equal' | 'random' | 'current';
+
+/** Which hexes the number-assignment targets. */
+export type Target = 'only empty' | 'only filled' | 'all';
+
+/** Props for the board editor page. */
+export interface BoardEditorProps {
+  /** When set, the editor edits this existing room's board (Save → editBoard). */
+  roomId?: string;
+  /** The board to seed the draft from (defaults to a standard board). */
+  initialBoard?: Board;
+  onBack: () => void;
 }
 
-/**
- * Canonical cube-coord string key (matches `cubeCoordKey` in common).
- */
-export const coordKey = (c: CubeCoord): string => `${c.q},${c.r},${c.s}`;
+/** Props for the board editor canvas. */
+export interface BoardEditorCanvasProps {
+  map: EditorMap;
+  selectedTerrain: Terrain;
+  selectedCoord: string | null;
+  onSelect: (coordKey: string | null) => void;
+  onAdd: (coord: CubeCoord, terrain: Terrain) => void;
+  onRemove: (coordKey: string) => void;
+  onClearNumber: (coordKey: string) => void;
+  onMoveHex: (from: CubeCoord, to: CubeCoord) => void;
+  onMoveNumber: (from: CubeCoord, to: CubeCoord) => void;
+  onPlaceNumber: (coord: CubeCoord, number: number) => void;
+  onPaint: (coord: CubeCoord) => void;
+  paintMode: boolean;
+  toolbarDrag: { kind: 'terrain' | 'number'; value: Terrain | number } | null;
+}

@@ -1,8 +1,9 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { CubeCoord, Terrain, cubeToPixel } from 'common';
+import { CubeCoord, Terrain, cubeToPixel, terrainColors, hexCoordsForRadius } from 'common';
 import { hexPointsAt } from '../utils/hex';
-import { terrainColors } from 'common';
-import { EditorMap, coordKey } from './types';
+import { BoardEditorCanvasProps } from './types';
+import { HEX_SIZE, GRID_RADIUS, PAN_THRESHOLD, TOKEN_RADIUS } from './constants';
+import { pixelToCube, coordKey } from './utils';
 
 /**
  * The infinite-grid board editor canvas. Renders a window of the hex grid
@@ -10,53 +11,6 @@ import { EditorMap, coordKey } from './types';
  * cell adds a hex with the selected terrain; clicking a placed cell selects
  * it. Dragging (beyond a small threshold) pans the view; the wheel zooms.
  */
-
-const HEX_SIZE = 50; // board units per hex
-const GRID_RADIUS = 8; // window radius around the view center
-const PAN_THRESHOLD = 5; // screen px before a drag becomes a pan
-const TOKEN_RADIUS = 16; // board units; click within this of a hex center grabs its number
-
-interface BoardEditorCanvasProps {
-  map: EditorMap;
-  selectedTerrain: Terrain;
-  selectedCoord: string | null;
-  onSelect: (coordKey: string | null) => void;
-  onAdd: (coord: CubeCoord, terrain: Terrain) => void;
-  onRemove: (coordKey: string) => void;
-  onClearNumber: (coordKey: string) => void;
-  onMoveHex: (from: CubeCoord, to: CubeCoord) => void;
-  onMoveNumber: (from: CubeCoord, to: CubeCoord) => void;
-  onPlaceNumber: (coord: CubeCoord, number: number) => void;
-  onPaint: (coord: CubeCoord) => void;
-  paintMode: boolean;
-  toolbarDrag: { kind: 'terrain' | 'number'; value: Terrain | number } | null;
-}
-
-/** All cube coords in a hexagonal region of the given radius. */
-function coordsForRadius(radius: number): CubeCoord[] {
-  const out: CubeCoord[] = [];
-  for (let q = -radius; q <= radius; q++) {
-    for (let r = Math.max(-radius, -q - radius); r <= Math.min(radius, -q + radius); r++) {
-      out.push({ q, r, s: -q - r });
-    }
-  }
-  return out;
-}
-
-/** Inverse of cubeToPixel, with cube rounding to the nearest hex center. */
-function pixelToCube(px: number, py: number, size: number): CubeCoord {
-  const r = (2 / 3) * (py / size);
-  const q = px / (size * Math.sqrt(3)) - r / 2;
-  let rq = Math.round(q);
-  let rr = Math.round(r);
-  const rs = Math.round(-q - r);
-  const qDiff = Math.abs(rq - q);
-  const rDiff = Math.abs(rr - r);
-  const sDiff = Math.abs(rs - (-q - r));
-  if (qDiff > rDiff && qDiff > sDiff) rq = -rr - rs;
-  else if (rDiff > sDiff) rr = -rq - rs;
-  return { q: rq, r: rr, s: -rq - rr };
-}
 
 const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
   map,
@@ -93,7 +47,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
 
   // Re-center the grid window on the view center so it feels infinite.
   const centerCube = pixelToCube(center.x, center.y, HEX_SIZE);
-  const windowCoords = coordsForRadius(GRID_RADIUS).map(
+  const windowCoords = hexCoordsForRadius(GRID_RADIUS).map(
     (c) => ({ q: c.q + centerCube.q, r: c.r + centerCube.r, s: c.s + centerCube.s })
   );
 
