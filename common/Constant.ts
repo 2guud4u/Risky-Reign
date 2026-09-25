@@ -5,6 +5,7 @@
  * (the browser build gets real values via CRA's DefinePlugin).
  */
 declare const process: { env?: { [key: string]: string | undefined } } | undefined;
+declare const window: { location?: { origin?: string } } | undefined;
 import { Price } from './types/Logic';
 import { Resource, Terrain, LandTerrain } from './types/Hex';
 
@@ -28,9 +29,15 @@ export const MIN_PLAYERS = 2;
 /** Default victory threshold (standard Catan: first to 10 VP wins). */
 export const DEFAULT_POINTS_TO_WIN = 10;
 
-/** Default socket server url (override with REACT_APP_SOCKET_URL). */
+/**
+ * Socket server url. Resolution order:
+ * 1. REACT_APP_SOCKET_URL (CRA build-time override for dev / cross-origin setups)
+ * 2. Same origin as the page (single-origin deployments — the default)
+ * 3. Local dev fallback
+ */
 export const SOCKET_URL: string =
   (typeof process !== 'undefined' && process && process.env && process.env.REACT_APP_SOCKET_URL) ||
+  (typeof window !== 'undefined' && window && window.location && window.location.origin) ||
   'http://localhost:3001';
 
 /** Settlement build cost. */
