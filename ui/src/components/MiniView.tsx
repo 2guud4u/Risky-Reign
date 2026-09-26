@@ -2,8 +2,8 @@ import React, { RefObject } from 'react';
 import { Board, EdgeNode, GAME_HEX_SIZE, VertexNode, cubeToPixel } from 'common';
 import { hexPointsAt } from '../utils/hex';
 import TerrainBackground from './TerrainBackground';
-import { SOLDIERS_PER_ROW, groupSoldiersByOwner, ownerAngle } from '../utils/soldierPlacement';
-import { RANK_OFFSET, RANK_SPACING } from '../constants';
+import { groupSoldiersByOwner, ownerAngle } from '../utils/soldierPlacement';
+import { RANK_SPACING, SOLDIER_SPACING, REGION_SPACING, CLUSTER_MAX_RADIUS, AGGREGATE_MAX_VISIBLE, SEPARATION_FACTOR, SOLDIER_ART_HEIGHT } from '../constants';
 import { neighborNicknames } from '../utils/neighborLabels';
 import SoldierGroup from './SoldierGroup';
 
@@ -246,6 +246,7 @@ const MiniView: React.FC<MiniViewProps> = ({
     if (showGarrisonedSoldiers) {
       const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === id);
       const byOwner = groupSoldiersByOwner(soldiersAt);
+      const owners = Array.from(byOwner.keys());
 
       // 3×3 grid regions (in fill order): start from the corners (farthest
       // from center) and stack inward: top-right, bottom-left, top-left,
@@ -263,40 +264,68 @@ const MiniView: React.FC<MiniViewProps> = ({
         { dx: 0, dy: 0 },
       ];
 
-      // Assign each owner a direction: a grid region if ≤9 groups, otherwise
-      // fall back to the circular surround (evenly spaced angles).
-      const owners = Array.from(byOwner.keys());
-      const useGrid = owners.length <= REGIONS.length;
-
-      // Compute a global scale + spacing shrink if the formation is too large
-      // relative to the hex (prevents clipping / squishing).
-      const maxTroops = Math.max(1, ...Array.from(byOwner.values()).map((g) => g.length));
-      const estimatedSpread = RANK_OFFSET + (Math.ceil(maxTroops / SOLDIERS_PER_ROW) - 1) * RANK_SPACING;
-      const shrink = estimatedSpread > GAME_HEX_SIZE * 1.5 ? GAME_HEX_SIZE * 1.5 / estimatedSpread : 1;
-
-      Array.from(byOwner.entries()).forEach(([ownerName, group], idx) => {
-        let dx: number, dy: number;
-        if (useGrid) {
-          // A lone group sits above the vertex, in the middle.
-          const region = owners.length === 1 ? { dx: 0, dy: -1 } : REGIONS[idx];
-          dx = region.dx;
-          dy = region.dy;
+      // Compute each cluster's anchor (world coords) and radius. A lone group is
+      // centered on the vertex; otherwise each owner takes a region (≤9) or an
+      // evenly-spaced angle (>9), at REGION_SPACING from the vertex.
+      const entries = Array.from(byOwner.entries());
+      const anchors: { x: number; y: number }[] = [];
+      const radii: number[] = [];
+      entries.forEach(([, group], idx) => {
+        let anchor: { x: number; y: number };
+        if (owners.length === 1) {
+          anchor = { x: vertex.position.x, y: vertex.position.y };
+        } else if (owners.length <= REGIONS.length) {
+          const region = REGIONS[idx];
+          anchor = {
+            x: vertex.position.x + region.dx * REGION_SPACING,
+            y: vertex.position.y + region.dy * REGION_SPACING,
+          };
         } else {
           const angle = ownerAngle(idx, byOwner.size);
-          dx = Math.cos(angle);
-          dy = Math.sin(angle);
+          anchor = {
+            x: vertex.position.x + Math.cos(angle) * REGION_SPACING,
+            y: vertex.position.y + Math.sin(angle) * REGION_SPACING,
+          };
         }
+        // Radius from the visible count (aggregate caps the visible soldiers).
+        const visibleCount = Math.min(group.length, AGGREGATE_MAX_VISIBLE);
+        const cols = Math.max(1, Math.ceil(Math.sqrt(visibleCount)));
+        const rows = Math.max(1, Math.ceil(visibleCount / cols));
+        const extent = Math.max((rows - 1) * RANK_SPACING, (cols - 1) * SOLDIER_SPACING);
+        radii.push(Math.min(extent / 2, CLUSTER_MAX_RADIUS));
+        anchors.push(anchor);
+      });
+
+      // Collision separation: push overlapping clusters apart (deterministic).
+      for (let iter = 0; iter < 8; iter++) {
+        for (let i = 0; i < anchors.length; i++) {
+          for (let j = i + 1; j < anchors.length; j++) {
+            const dx = anchors[j].x - anchors[i].x;
+            const dy = anchors[j].y - anchors[i].y;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const minDist = (radii[i] + radii[j]) * SEPARATION_FACTOR;
+            if (dist < minDist) {
+              const push = (minDist - dist) / 2;
+              const ux = dx / dist;
+              const uy = dy / dist;
+              anchors[i].x -= ux * push;
+              anchors[i].y -= uy * push;
+              anchors[j].x += ux * push;
+              anchors[j].y += uy * push;
+            }
+          }
+        }
+      }
+
+      entries.forEach(([ownerName, group], idx) => {
         neighborhood.push(
           <SoldierGroup
             key={`g-${ownerName}`}
             group={group}
             ownerName={ownerName}
             playerColors={playerColors}
-            dx={dx}
-            dy={dy}
-            cx={vertex.position.x}
-            cy={vertex.position.y}
-            shrink={shrink}
+            anchor={anchors[idx]}
+            flip={anchors[idx].x < vertex.position.x}
             onSoldierClick={onSoldierClick}
             selectedSoldierIds={selectedSoldierIds}
             selectableSoldierIds={selectableSoldierIds}
@@ -361,7 +390,9 @@ const MiniView: React.FC<MiniViewProps> = ({
   // Size the view to fit everything while keeping the focus point centered.
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
-  const pad = 1;
+  // Pad by the soldier sprite's half-height so the sprite edges (which extend
+  // beyond the collected center points) aren't clipped at the view boundary.
+  const pad = SOLDIER_ART_HEIGHT / 2;
   const minX = Math.min(...xs) - pad;
   const maxX = Math.max(...xs) + pad;
   const minY = Math.min(...ys) - pad;

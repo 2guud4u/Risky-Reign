@@ -50,7 +50,32 @@ export const RANK_OFFSET = 50;
 export const RANK_SPACING = 70;
 
 /** Horizontal spacing between soldiers within a rank row. */
-export const SOLDIER_SPACING = 30;
+export const SOLDIER_SPACING = 60;
+/** Actual soldier-art width: the symbol viewBox (308.96 x 696.64) is letterboxed
+ * into the 66-tall <use>, so the art is 66 * 308.96/696.64 wide. The
+ * selection box must use this, not the 57-wide <use> viewport. */
+export const SOLDIER_ART_WIDTH = 29.27;
+/** Actual soldier-art height (the <use> viewport height). */
+export const SOLDIER_ART_HEIGHT = 66;
+
+/** Distance from the vertex center to a region's cluster anchor. */
+export const REGION_SPACING = 80;
+/** Maximum radius (world units) for an army cluster. */
+export const CLUSTER_MAX_RADIUS = 75;
+/** Max soldiers rendered individually in "full" mode. */
+export const FULL_MAX = 12;
+/** Max soldiers rendered individually in "compact" mode. */
+export const COMPACT_MAX = 30;
+/** Max representative soldiers rendered in "aggregate" mode. */
+export const AGGREGATE_MAX_VISIBLE = 12;
+/** Radius of the central count badge in "aggregate" mode. */
+export const AGGREGATE_BADGE_RADIUS = 18;
+/**
+ * Fraction of the combined radii used as the minimum distance between cluster
+ * centers in the separation pass. < 1 lets clusters sit closer (with some
+ * overlap) instead of just touching.
+ */
+export const SEPARATION_FACTOR = 0.7;
 
 // ── BoardView (scale) ─────────────────────────────────────────────────────
 

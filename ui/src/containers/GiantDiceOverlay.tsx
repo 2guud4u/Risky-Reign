@@ -17,10 +17,14 @@ const GiantDiceOverlay: React.FC = () => {
 
   if (!gameRoom || !currentPlayer) return null;
   const turn = gameRoom.turnState;
-  if (turn.phase !== 'Dice') return null;
+  const roll = gameRoom.roll;
+  // The overlay is only for rolling: once both dice are in, it's done. A 7
+  // holds the Dice phase (robber move + steal still pending), so we can't
+  // rely on the phase alone — hide as soon as the roll is complete.
+  const bothRolled = roll.die1 !== null && roll.die2 !== null;
+  if (turn.phase !== 'Dice' || bothRolled) return null;
 
   const isDicePlayer = turn.player === currentPlayer.name;
-  const roll = gameRoom.roll;
   const canRollDie1 = isDicePlayer && roll.die1 === null;
   const canRollDie2 = isDicePlayer && roll.die1 !== null && roll.die2 === null;
 

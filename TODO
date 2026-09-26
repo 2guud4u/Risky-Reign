@@ -19,7 +19,8 @@ allow dragging of soldiers in the mini map
 
 
 Feature:
-add soldier healing on own settlememt
+code should be animals or in the url if they join that link they join the room
+add soldier healing on own settlememt as an action 
 remove 10 resources and 
 
 mini map soldiers shouuld be draggable
@@ -32,7 +33,6 @@ port  connector should still show with 1 vertex - visual port update
 
 bug:
 soldier display is not correct 
-when drag robber, you should show you holding on to a robber instead of a black circle
 
 Far future requests:
 rule customization

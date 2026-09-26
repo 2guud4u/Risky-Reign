@@ -400,10 +400,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               const { x, y } = hex.position;
               return (
                 <foreignObject
-                  x={x - 90}
-                  y={y - PROJ_SIZE * ROBBER_Y_OFFSET_FRACTION - 50}
-                  width={180}
-                  height={110}
+                  x={x + 60}
+                  y={y - PROJ_SIZE * ROBBER_Y_OFFSET_FRACTION - 47}
+                  width={150}
+                  height={95}
                   style={{ pointerEvents: 'none', overflow: 'visible' }}
                 >
                   <RobberBagView />
