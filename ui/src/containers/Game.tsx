@@ -12,6 +12,9 @@ import ResourceGainLayer from '../components/ResourceGainLayer';
 import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
+import YourTurnToast from './YourTurnToast';
+import GiantDiceOverlay from './GiantDiceOverlay';
+import TurnDice from './TurnDice';
 import DraggablePanel from '../components/DraggablePanel';
 import { resetAllPanels } from '../components/DraggablePanel';
 import { GAME_HEX_SIZE } from 'common';
@@ -132,6 +135,12 @@ const Game: React.FC = () => {
       <BattleModal />
       {/* Turn overlay: phase + control on the board's bottom edge, colored by phase. */}
       <TurnOverlay />
+      {/* The two dice floating above the turn status pill. */}
+      <TurnDice />
+      {/* Your-turn pop-up: shown when it's the current player's turn. */}
+      <YourTurnToast />
+      {/* Giant dice: shown to everyone during the Dice phase. */}
+      <GiantDiceOverlay />
     </div>
   );
 };

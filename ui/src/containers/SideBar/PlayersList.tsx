@@ -24,6 +24,8 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         const hasRoad = bonuses?.hasLongestRoad?.[player.name] ?? false;
         const hasArmy = bonuses?.hasLargestArmy?.[player.name] ?? false;
         const roadLen = bonuses?.longestRoad?.[player.name] ?? 0;
+        // Total resource cards (other players' hands are hidden — only the count shows).
+        const totalResources = Object.values(player.resources).reduce((sum, v) => sum + v, 0);
         return (
           <div
             key={player.id}
@@ -65,12 +67,20 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
               <span className="mr-2.5" title="Soldiers on the board">
                 ⚔️ {soldiers}
               </span>
-              {player.id === currentPlayerId &&
+              {player.id === currentPlayerId ? (
                 Object.entries(player.resources).map(([resource, value]) => (
                   <span key={resource} className="mr-2.5">
                     {resource}: {value}
                   </span>
-                ))}
+                ))
+              ) : (
+                <span className="mr-2.5" title="Total resource cards">
+                  🃏 {totalResources}
+                </span>
+              )}
+              <span className="mr-2.5" title="Development cards">
+                🎴 {player.developmentCards.length}
+              </span>
             </div>
           </div>
         );

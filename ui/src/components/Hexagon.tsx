@@ -17,6 +17,8 @@ interface HexagonProps {
   robberDraggable?: boolean;
   /** Whether this hex's number matches the current roll (light it up). */
   litUp?: boolean;
+  /** Called when the robber on this hex is hovered/unhovered. */
+  onRobberHover?: (hexId: string, hovering: boolean) => void;
 }
 
 /**
@@ -24,7 +26,7 @@ interface HexagonProps {
  * adapter (BoardHex.position), so this component only projects the six
  * corners around that center — no cube-coord math here.
  */
-const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, robberDraggable, litUp }) => {
+const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, robberDraggable, litUp, onRobberHover }) => {
   const { x, y } = hex.position;
 
   const hexPoints = hexPointsAt(x, y, size);
@@ -37,7 +39,7 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
       {/* Terrain background (artwork, or flat-color fallback). */}
       <TerrainBackground x={x} y={y} size={size} terrain={hex.terrain} points={hexPoints} />
       {/* Hex border. */}
-      <polygon points={hexPoints} fill="none" stroke="#000" strokeWidth="2" />
+      <polygon points={hexPoints} fill="none" stroke={litUp ? '#FFD700' : '#000'} strokeWidth={litUp ? 3 : 2} />
 
       {hex.rollNumber !== null && (
         <text
@@ -63,6 +65,8 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           height={size * ROBBER_H_FRACTION}
           preserveAspectRatio="xMidYMax meet"
           onMouseDown={onRobberMouseDown}
+          onMouseEnter={() => onRobberHover?.(hex.id, true)}
+          onMouseLeave={() => onRobberHover?.(hex.id, false)}
           style={robberDraggable ? { cursor: 'grab' } : undefined}
         />
       )}

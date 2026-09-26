@@ -7,6 +7,7 @@ import { BoardVertex } from '../components/BoardVertex';
 import { PortDock } from '../components/PortDock';
 import { SoldierBadges } from '../components/SoldierBadges';
 import Hexagon from '../components/Hexagon';
+import RobberBagView from './SideBar/RobberBagView';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import {
   BOARD_MAX_SCALE,
@@ -14,6 +15,9 @@ import {
   DROP_TARGET_RING_R,
   DROP_THRESHOLD_FRACTION,
   PROJ_SIZE,
+  ROBBER_H_FRACTION,
+  ROBBER_W_FRACTION,
+  ROBBER_Y_OFFSET_FRACTION,
   SOLDIER_BADGE_R,
 } from '../constants';
 
@@ -53,6 +57,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   // Robber drag state: true while the user is dragging the robber.
   const [robberDrag, setRobberDrag] = useState(false);
+  // The hex whose robber is hovered (drives the robber-bag popup).
+  const [hoveredRobberHexId, setHoveredRobberHexId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Responsive sizing: track the available container size so the board can
@@ -77,7 +83,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // whose token matches, so players can see which tiles produced.
   const roll = gameRoom?.roll;
   const rollTotal = roll && roll.die1 !== null && roll.die2 !== null ? roll.die1 + roll.die2 : null;
-  const isDicePhase = gameRoom?.turnState.phase === 'Dice';
 
   // A pending robber move (a 7 roll or a played knight card) makes the
   // robber draggable for the pending player: dragging it to a valid hex
@@ -350,7 +355,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           {hexes.map((hex) => {
             const isRobberTarget = robberPending && hex.terrain !== 'Desert' && !hex.hasRobber;
             const litUp =
-              isDicePhase && rollTotal !== null && hex.rollNumber === rollTotal && hex.terrain !== 'Desert' && hex.terrain !== 'Water';
+              rollTotal !== null && hex.rollNumber === rollTotal && hex.terrain !== 'Desert' && hex.terrain !== 'Water';
             return (
               <Hexagon
                 key={hex.id}
@@ -360,6 +365,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                 onRobberMouseDown={robberPending ? startRobberDrag : undefined}
                 robberDraggable={robberPending}
                 litUp={litUp}
+                onRobberHover={(_id, hovering) => setHoveredRobberHexId(hovering ? _id : null)}
               />
             );
           })}
@@ -384,6 +390,26 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               onHover={setHoveredVertexId}
             />
           ))}
+
+          {/* Robber's bag: dialog popup over the hovered robber (top layer so
+              it isn't covered by the hexes). */}
+          {hoveredRobberHexId &&
+            (() => {
+              const hex = hexes.find((h) => h.id === hoveredRobberHexId);
+              if (!hex) return null;
+              const { x, y } = hex.position;
+              return (
+                <foreignObject
+                  x={x - 90}
+                  y={y - PROJ_SIZE * ROBBER_Y_OFFSET_FRACTION - 50}
+                  width={180}
+                  height={110}
+                  style={{ pointerEvents: 'none', overflow: 'visible' }}
+                >
+                  <RobberBagView />
+                </foreignObject>
+              );
+            })()}
 
           {/* Trade ports (harbors): one icon per dock, with a little road
               to each of the 1-2 vertices it serves. */}
@@ -436,12 +462,14 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           )}
           {/* Robber drag ghost following the cursor */}
           {robberDrag && mousePos && (
-            <circle
-              cx={mousePos.x}
-              cy={mousePos.y}
-              r={PROJ_SIZE / 5}
-              fill="#000"
-              fillOpacity={0.6}
+            <image
+              href="/art/robber.png"
+              x={mousePos.x - (PROJ_SIZE * ROBBER_W_FRACTION) / 2}
+              y={mousePos.y - (PROJ_SIZE * ROBBER_H_FRACTION) / 2}
+              width={PROJ_SIZE * ROBBER_W_FRACTION}
+              height={PROJ_SIZE * ROBBER_H_FRACTION}
+              preserveAspectRatio="xMidYMid meet"
+              opacity={0.85}
               pointerEvents="none"
             />
           )}

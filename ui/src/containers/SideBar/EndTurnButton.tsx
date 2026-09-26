@@ -26,7 +26,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
 
   const handleClick = () => {
     if (!gameRoom) return;
-    // Rolling the dice is done in DiceView (one die per click); this button
+    // Rolling the dice is done in the GiantDiceOverlay (one die per click);
     // only advances the phase. The server derives the acting player from the
     // socket, so no playerId is sent.
     onEndTurn(gameRoom.id);

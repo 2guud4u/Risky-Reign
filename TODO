@@ -20,11 +20,8 @@ allow dragging of soldiers in the mini map
 
 Feature:
 add soldier healing on own settlememt
-resources should be on  the side of the map and 
 remove 10 resources and 
-remove seeing other peoples resource- but can show number of cards you have
-announcement of dice rolled and who rolled it and also flash on screen saying your turn and the phase
-light up the number rolled on the board
+
 mini map soldiers shouuld be draggable
 when single group, we should still follow the number of row
 
@@ -35,6 +32,7 @@ port  connector should still show with 1 vertex - visual port update
 
 bug:
 soldier display is not correct 
+when drag robber, you should show you holding on to a robber instead of a black circle
 
 Far future requests:
 rule customization

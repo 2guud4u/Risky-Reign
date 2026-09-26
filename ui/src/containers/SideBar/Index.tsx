@@ -6,20 +6,16 @@ import Vertex from './Vertex';
 import Edge from './Edge';
 import TradeTab from './TradeTab';
 import PlayersList from './PlayersList';
-import ResourceCardsPanel from './ResourceCardsPanel';
-import DiceView from './DiceView';
-import RobberBagView from './RobberBagView';
 import { cardClass } from './styles';
-type Tab = 'board' | 'dice' | 'players' | 'cards' | 'trade';
+type Tab = 'board' | 'players' | 'trade';
 
 
 /**
  * Sidebar with tabs: Board (selected vertex/edge viewer, including soldier
- * selection & actions), Dice (dice roll and the end-turn control), Players
- * (all players' resources & bonuses), Cards (your resource & development
- * cards), and Trade (trade & accept offers on your turn). The current phase
- * & player live in the turn snackbar. The whole panel can be dragged by its
- * grip handle (see DraggablePanel).
+ * selection & actions), Players (all players' resources & bonuses), and Trade
+ * (trade & accept offers on your turn). The dice live in the turn snackbar
+ * (and as a giant overlay during the Dice phase). The whole panel can be
+ * dragged by its grip handle (see DraggablePanel).
  */
 interface SidebarProps {
   layout: DefaultRect | null;
@@ -35,18 +31,6 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
   useEffect(() => {
     if (selectedObject) setTab('board');
   }, [selectedObject]);
-
-  // When the game enters the Dice phase on our turn, jump the sidebar to
-  // the Dice tab so the acting player lands on the roll control. Fires on
-  // the transition only, so a manual tab switch during the Dice phase sticks.
-  const prevPhase = React.useRef<string | undefined>(gameRoom?.turnState.phase);
-  useEffect(() => {
-    const phase = gameRoom?.turnState.phase;
-    if (phase === 'Dice' && prevPhase.current !== 'Dice' && gameRoom?.turnState.player === currentPlayer?.name) {
-      setTab('dice');
-    }
-    prevPhase.current = phase;
-  }, [gameRoom?.turnState.phase, gameRoom?.turnState.player, currentPlayer?.name]);
 
 
   if (!gameRoom || !currentPlayer || !board) {
@@ -90,13 +74,6 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
     switch (tab) {
       case 'board':
         return renderBoardTab();
-      case 'dice':
-        return (
-          <div className="flex flex-col gap-3">
-            <DiceView />
-            <RobberBagView />
-          </div>
-        );
       case 'players':
         return (
           <PlayersList
@@ -106,8 +83,6 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
             currentPlayerId={currentPlayer.id}
           />
         );
-      case 'cards':
-        return <ResourceCardsPanel />;
       default:
         return <TradeTab />;
     }
@@ -118,12 +93,6 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
         <div className="flex -mt-1 shrink-0">
           <button type="button" className={tabClass(tab === 'board')} onClick={() => switchTab('board')}>
             Board
-          </button>
-          <button type="button" className={tabClass(tab === 'dice')} onClick={() => switchTab('dice')}>
-            Dice
-          </button>
-          <button type="button" data-cards-tab="true" className={tabClass(tab === 'cards')} onClick={() => switchTab('cards')}>
-            Cards
           </button>
           <button type="button" className={tabClass(tab === 'trade')} onClick={() => switchTab('trade')}>
             Trade{incomingCount > 0 && (
