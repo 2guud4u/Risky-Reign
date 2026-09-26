@@ -4,7 +4,7 @@
  * `process` is declared locally so this module type-checks without @types/node
  * (the browser build gets real values via CRA's DefinePlugin).
  */
-declare const process: { env?: { [key: string]: string | undefined } } | undefined;
+declare const process: { env: { [key: string]: string | undefined } };
 declare const window: { location?: { origin?: string } } | undefined;
 import { Price } from './types/Logic';
 import { Resource, Terrain, LandTerrain } from './types/Hex';
@@ -31,12 +31,15 @@ export const DEFAULT_POINTS_TO_WIN = 10;
 
 /**
  * Socket server url. Resolution order:
- * 1. REACT_APP_SOCKET_URL (CRA build-time override for dev / cross-origin setups)
- * 2. Same origin as the page (single-origin deployments — the default)
- * 3. Local dev fallback
+ * 1. REACT_APP_SOCKET_URL (CRA build-time override for dev / cross-origin setups).
+ *    Accessed directly (no `typeof process` guard) because CRA's DefinePlugin
+ *    inlines `process.env.REACT_APP_SOCKET_URL` as a literal — and `process`
+ *    is undefined in the browser, so any `process` check would skip the override.
+ * 2. Same origin as the page (single-origin deployments — the default).
+ * 3. Local dev fallback.
  */
 export const SOCKET_URL: string =
-  (typeof process !== 'undefined' && process && process.env && process.env.REACT_APP_SOCKET_URL) ||
+  process.env.REACT_APP_SOCKET_URL ||
   (typeof window !== 'undefined' && window && window.location && window.location.origin) ||
   'http://localhost:3001';
 
