@@ -47,6 +47,7 @@ interface SocketContextType {
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => void;
   updatePlayerColor: (roomId: string, color: string) => void;
+  updatePlayerName: (roomId: string, name: string) => void;
   startGame: (roomId: string) => void;
   resetGame: (roomId: string) => void;
   refreshMap: (roomId: string) => void;
@@ -90,6 +91,7 @@ const SocketContext = createContext<SocketContextType>({
   rollDice: () => { },
   joinRoom: () => { },
   updatePlayerColor: () => { },
+  updatePlayerName: () => { },
   startGame: () => { },
   resetGame: () => { },
   refreshMap: () => { },
@@ -191,6 +193,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const updatePlayerColor = (roomId: string, color: string) =>
     emitAction(socket, 'updatePlayerColor', { roomId, color });
+  const updatePlayerName = (roomId: string, name: string) =>
+    emitAction(socket, 'updatePlayerName', { roomId, name });
 
   const startGame = (roomId: string) => emitAction(socket, 'startGame', { roomId });
 
@@ -265,6 +269,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         rollDice,
         joinRoom,
         updatePlayerColor,
+        updatePlayerName,
         startGame,
         resetGame,
         refreshMap,

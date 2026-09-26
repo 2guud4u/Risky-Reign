@@ -2,7 +2,6 @@ import React from 'react';
 import { canAfford, DEVELOPMENT_CARD_META, DevelopmentCardPrice, Player } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 
 /**
  * Personal hand panel: shows the current player's resources as individual
@@ -42,25 +41,6 @@ const ResourceCardsPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3" data-resource-panel="true">
-      {/* Resource cards: one card per resource type. */}
-      <div data-resource-section="true">
-        <div className="text-[12px] font-semibold text-gray-600 mb-1">
-          Your Resources
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.entries(me.resources).map(([resource, count]) => (
-            <div
-              key={resource}
-              className="flex items-center gap-1 px-2 py-1 rounded-md border border-gray-300 bg-white text-[13px] shadow-sm"
-              title={`${resource}: ${count}`}
-            >
-              <span>{RESOURCE_ICONS[resource as keyof typeof RESOURCE_ICONS] ?? '❓'}</span>
-              <strong>{count}</strong>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Victory points, free roads and scoring-bonus indicators. */}
       {(me.victoryPoints > 0 || me.freeRoadsLeft > 0 || hasRoad || hasArmy) && (
         <div className="flex gap-2 text-[12px] flex-wrap">

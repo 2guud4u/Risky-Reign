@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LOBBY_HEX_SIZE, MIN_PLAYERS, DEFAULT_POINTS_TO_WIN } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -6,6 +6,7 @@ import ColorPicker from '../components/ColorPicker';
 import BoardView from '../containers/BoardView';
 import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
+import { saveSession } from '../utils/session';
 
 const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }> = ({ error, onCustomizeBoard }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -14,7 +15,16 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     refreshMap: onRefreshMap,
     updatePlayerColor: onUpdatePlayerColor,
     updatePointsToWin: onUpdatePointsToWin,
+    updatePlayerName: onUpdatePlayerName,
   } = useSocket();
+
+  const [nameInput, setNameInput] = useState('');
+  const handleSetName = () => {
+    const name = nameInput.trim();
+    if (!name || !gameRoom || !currentPlayer) return;
+    onUpdatePlayerName(gameRoom.id, name);
+    saveSession({ roomId: gameRoom.id, playerName: name, color: currentPlayer.color });
+  };
 
   if (!gameRoom || !currentPlayer) {
     return <p className="text-center text-gray-500">Loading game...</p>;
@@ -22,6 +32,45 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
 
   // Waiting room: players gather, pick their color, then the host starts the game.
   if (gameRoom.gameStatus === 'waiting') {
+    // Name-first: join is name-optional, so ask for the name before the color.
+    if (!currentPlayer.name.trim()) {
+      return (
+        <div className="flex items-center justify-center min-h-screen w-full p-4">
+          <div className="bg-white rounded-lg shadow p-6 w-full max-w-[420px]">
+            <h1 className="text-2xl font-bold text-center mb-2">Risky Reign</h1>
+            <p className="text-center text-gray-600 mb-4">Room {gameRoom.id}</p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSetName();
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div>
+                <label className="block text-[13px] font-semibold mb-1.5">Your Name</label>
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Enter your name"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!nameInput.trim()}
+                className={`py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white ${
+                  nameInput.trim() ? 'bg-blue-600 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Confirm
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
     const canStart = gameRoom.players.length >= MIN_PLAYERS;
     return (
       <div className="flex items-center justify-center min-h-screen w-full p-4">

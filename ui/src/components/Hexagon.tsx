@@ -15,6 +15,8 @@ interface HexagonProps {
   onRobberMouseDown?: (e: React.MouseEvent) => void;
   /** Whether the robber is draggable (changes cursor). */
   robberDraggable?: boolean;
+  /** Whether this hex's number matches the current roll (light it up). */
+  litUp?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ interface HexagonProps {
  * adapter (BoardHex.position), so this component only projects the six
  * corners around that center — no cube-coord math here.
  */
-const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, robberDraggable }) => {
+const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, robberDraggable, litUp }) => {
   const { x, y } = hex.position;
 
   const hexPoints = hexPointsAt(x, y, size);
@@ -43,9 +45,10 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           y={y}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#FFF"
+          fill={litUp ? '#FFD700' : '#FFF'}
           fontSize={size / 3}
           fontWeight="bold"
+          style={litUp ? { filter: 'drop-shadow(0 0 5px #FFD700)' } : undefined}
         >
           {hex.rollNumber}
         </text>

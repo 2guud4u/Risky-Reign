@@ -19,17 +19,22 @@ allow dragging of soldiers in the mini map
 
 
 Feature:
-1. clean up the ui
-1. try to host server on small pc now
+add soldier healing on own settlememt
+resources should be on  the side of the map and 
+remove 10 resources and 
+remove seeing other peoples resource- but can show number of cards you have
+announcement of dice rolled and who rolled it and also flash on screen saying your turn and the phase
+light up the number rolled on the board
+mini map soldiers shouuld be draggable
+when single group, we should still follow the number of row
+
 allow simple art view 
 port  connector should still show with 1 vertex - visual port update
 -play one with sister and try to host
 
-draft up map customization
 
 bug:
-port trade is broken
-
+soldier display is not correct 
 
 Far future requests:
 rule customization
@@ -39,6 +44,5 @@ allow attack multigroup at the same time
 maybe lock the colors to only 10 colors-use nvidia gpu
 ports customization
 can not build on water tiles vertex that is not next to land hex
-shuffle tactic: equal or random or current 
-
-target: only empty or only filled or all
+music
+for trade add option for wanted trade and other players can see 

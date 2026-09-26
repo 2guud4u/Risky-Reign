@@ -73,6 +73,11 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   }, []);
 
   const board = gameRoom?.board ?? null;
+  // The current roll total (both dice rolled) — used to light up the hexes
+  // whose token matches, so players can see which tiles produced.
+  const roll = gameRoom?.roll;
+  const rollTotal = roll && roll.die1 !== null && roll.die2 !== null ? roll.die1 + roll.die2 : null;
+  const isDicePhase = gameRoom?.turnState.phase === 'Dice';
 
   // A pending robber move (a 7 roll or a played knight card) makes the
   // robber draggable for the pending player: dragging it to a valid hex
@@ -344,6 +349,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           {/* Hex tiles layer (clickable while a robber move is pending) */}
           {hexes.map((hex) => {
             const isRobberTarget = robberPending && hex.terrain !== 'Desert' && !hex.hasRobber;
+            const litUp =
+              isDicePhase && rollTotal !== null && hex.rollNumber === rollTotal && hex.terrain !== 'Desert' && hex.terrain !== 'Water';
             return (
               <Hexagon
                 key={hex.id}
@@ -352,6 +359,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                 highlight={isRobberTarget}
                 onRobberMouseDown={robberPending ? startRobberDrag : undefined}
                 robberDraggable={robberPending}
+                litUp={litUp}
               />
             );
           })}

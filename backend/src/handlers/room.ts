@@ -34,7 +34,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       return;
     }
     // If the player is already in the room (reconnect / reload), just re-attach.
-    const existing = room.players.find((p) => p.name === playerName);
+    const existing = playerName ? room.players.find((p) => p.name === playerName) : undefined;
     if (existing) {
       // Re-attach: the player's id IS their socket id, so a reload (new
       // socket) must re-point it, or the client's syncCurrentPlayer (which
@@ -80,6 +80,19 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
         room.players.filter((pl) => pl.id !== socket.id).map((pl) => pl.color)
       );
       p.color = !taken.has(requested) ? requested : PLAYER_COLORS.find((c) => !taken.has(c)) ?? p.color;
+      io.to(roomId).emit('roomUpdate', room);
+    });
+    // Allow the player to set their name while still in the lobby (join is
+    // name-optional; the name is chosen after joining).
+    socket.on('updatePlayerName', (nData: { name: string }) => {
+      const p = room.players.find((pl) => pl.id === socket.id);
+      if (!p || room.gameStatus !== 'waiting') return;
+      const newName = nData.name.trim();
+      if (!newName) return;
+      const oldName = p.name;
+      p.name = newName;
+      room.turnState.playerOrder = room.players.map((pl) => pl.name);
+      if (room.turnState.player === oldName) room.turnState.player = newName;
       io.to(roomId).emit('roomUpdate', room);
     });
   });

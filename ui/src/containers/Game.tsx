@@ -11,6 +11,7 @@ import DevCardPrompt from './DevCardPrompt';
 import ResourceGainLayer from '../components/ResourceGainLayer';
 import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
+import ResourceDisplay from './ResourceDisplay';
 import DraggablePanel from '../components/DraggablePanel';
 import { resetAllPanels } from '../components/DraggablePanel';
 import { GAME_HEX_SIZE } from 'common';
@@ -103,7 +104,12 @@ const Game: React.FC = () => {
         className="bg-white rounded-lg shadow"
         layout={layouts.board}
       >
-        <BoardView hexSize={GAME_HEX_SIZE} />
+        <div className="relative w-full h-full">
+          <BoardView hexSize={GAME_HEX_SIZE} />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+            <ResourceDisplay />
+          </div>
+        </div>
       </DraggablePanel>
 
       <Sidebar layout={layouts.sidebar} />

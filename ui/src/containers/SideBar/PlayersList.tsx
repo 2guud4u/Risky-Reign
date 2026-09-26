@@ -65,11 +65,12 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
               <span className="mr-2.5" title="Soldiers on the board">
                 ⚔️ {soldiers}
               </span>
-              {Object.entries(player.resources).map(([resource, value]) => (
-                <span key={resource} className="mr-2.5">
-                  {resource}: {value}
-                </span>
-              ))}
+              {player.id === currentPlayerId &&
+                Object.entries(player.resources).map(([resource, value]) => (
+                  <span key={resource} className="mr-2.5">
+                    {resource}: {value}
+                  </span>
+                ))}
             </div>
           </div>
         );

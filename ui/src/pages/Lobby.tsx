@@ -9,16 +9,16 @@ interface LobbyProps {
 }
 
 const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
-  const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
   const { isConnected, joinRoom: onJoinRoom } = useSocket();
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
-    if (playerName.trim() && roomId.trim()) {
-      onJoinRoom(playerName.trim(), roomId.trim());
-      // Persist the join so a reload auto-rejoins instead of returning to the lobby.
-      saveSession({ roomId: roomId.trim(), playerName: playerName.trim() });
+    if (roomId.trim()) {
+      onJoinRoom('', roomId.trim());
+      // Persist the join so a reload auto-rejoins. The name is chosen after
+      // joining; the session is updated once the name is set.
+      saveSession({ roomId: roomId.trim(), playerName: '' });
     }
   };
 
@@ -27,7 +27,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
     setRoomId(randomId);
   };
 
-  const canJoin = isConnected && !!playerName.trim() && !!roomId.trim();
+  const canJoin = isConnected && !!roomId.trim();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -35,18 +35,6 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
         <h1 className="text-[28px] font-bold text-center mb-6">Risky Reign Lobby</h1>
 
         <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-[13px] font-semibold mb-1.5">Your Name</label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
-              required
-              className={inputClass}
-            />
-          </div>
-
           <div>
             <label className="block text-[13px] font-semibold mb-1.5">Room ID</label>
             <div className="flex gap-2">
