@@ -182,25 +182,34 @@ Rollback: `sudo tailscale funnel reset` — back to private instantly.
 
 1. [x] `riskyreign.com` registered on Cloudflare Registrar 2026-09-27
    (expires 2027-09-27, $10.46/yr at-cost; NS `celine`/`cleo.ns.cloudflare.com`).
-2. Zero Trust → Networks → Tunnels → create tunnel → copy token.
-   Public hostname `riskyreign.com` → service `http://catan:3001`.
-3. Remove **all** `ports:` from `catan` (no host exposure at all) and add:
-   ```yaml
-     cloudflared:
-       image: cloudflare/cloudflared:latest
-       command: tunnel --no-autoupdate run
-       env_file: .env            # TUNNEL_TOKEN=..., chmod 600, never committed
-       restart: unless-stopped
-       read_only: true
-       cap_drop: [ALL]
-       security_opt: [no-new-privileges:true]
-   ```
-   Rename the service key to `catan` so the hostname resolves.
-4. Cloudflare dashboard: SSL/TLS **Full**; Security → Bots → Bot Fight Mode on;
+2. [x] Tunnel `riskyreign` created (id `88277e44-a865-4978-8c06-6f65045c7809`).
+   Public hostname `riskyreign.com` → HTTP `catan:3001`; Cloudflare DNS
+   record live (proxied). Until a connector runs, the domain answers **530**.
+3. [x] Token stored in `/opt/catan/.env` (`chmod 600`, gitignored).
+   - [ ] **Refresh the token before go-live** — the current one was pasted in
+     a chat. Tunnels → riskyreign → Refresh token, then replace the value in
+     `.env`.
+4. [x] `cloudflared` service added to `/opt/catan/docker-compose.yml` as
+   container `catan-tunnel`: pinned `cloudflare/cloudflared:2026.9.3`,
+   read-only, `cap_drop: ALL`, 128 MB, rotated logs.
+   It sits behind compose profile **`public`**, so plain `docker compose up`
+   and every `server riskyreign` command leave it **off** (verified
+   2026-09-27). The game answers the tunnel at `catan:3001` on the compose
+   network (verified: HTTP 200 + socket.io handshake).
+5. [ ] Cloudflare dashboard: SSL/TLS **Full**; Security → Bots → Bot Fight Mode on;
    one rate-limit rule (e.g. 60 req / 10 s per IP on `/socket.io/*`).
-5. Set `CORS_ORIGIN=https://riskyreign.com`; key IP limits on `CF-Connecting-IP`.
 
-Rollback: `docker compose stop cloudflared` (or delete the public hostname).
+### Go-live switch (only after Phase 2A blockers + token refresh)
+
+1. In `docker-compose.yml`, `catan` service:
+   - delete the whole `ports:` block (the tunnel becomes the only way in),
+   - set `CORS_ORIGIN=https://riskyreign.com`.
+2. `cd /opt/catan && docker compose --profile public up -d`
+3. Confirm: `docker logs catan-tunnel` shows `Registered tunnel connection`
+   (four of them), and `https://riskyreign.com` returns the game instead of 530.
+
+Rollback: `docker compose --profile public stop cloudflared` — the domain
+returns 530 immediately; the game keeps running privately.
 
 ---
 
