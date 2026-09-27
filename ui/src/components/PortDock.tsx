@@ -2,13 +2,16 @@ import React from 'react';
 import { PortType, PixelCoord } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import {
+  PORT_FACE_FILL,
   PORT_GENERIC_FILL,
+  PORT_LABEL_FILL,
   PORT_OFFSET,
   PORT_PIER,
   PORT_PIER_EDGE,
   PORT_PLANK_GAP,
   PORT_PLANK_W,
   PORT_RADIUS,
+  PORT_RATIO_TEXT,
   PORT_SPECIAL_FILL,
   PORT_STROKE,
   PORT_TEXT,
@@ -103,16 +106,38 @@ const PortDockInner: React.FC<{
   const y = dist > 0 ? anchor.y + (anchor.y / dist) * offset : anchor.y;
   const isGeneric = port === 'generic';
   const r = size * PORT_RADIUS;
+  const ring = isGeneric ? PORT_GENERIC_FILL : PORT_SPECIAL_FILL;
+  const glyph = isGeneric ? '⛵' : RESOURCE_ICONS[port as keyof typeof RESOURCE_ICONS];
+  const ratio = isGeneric ? '3:1' : '2:1';
   return (
     <g>
       {/* Plank bridges from the harbor badge to each vertex it serves. */}
       {vertices.length === 2 &&
         vertices.map((v, i) => <PlankBridge key={i} from={{ x, y }} to={v} size={size} />)}
-      {/* Dock badge: white ring for contrast, soft fill, top highlight, glyph. */}
-      <circle cx={x} cy={y} r={r} fill={isGeneric ? PORT_GENERIC_FILL : PORT_SPECIAL_FILL} stroke={PORT_STROKE} strokeWidth={1} />
-      <ellipse cx={x} cy={y - r * 0.45} rx={r * 0.55} ry={r * 0.32} fill="#ffffff" opacity={0.22} />
-      <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={size * PORT_TEXT}>
-        {isGeneric ? '⛵' : RESOURCE_ICONS[port as keyof typeof RESOURCE_ICONS]}
+      {/* Harbor medallion: soft drop shadow, colored ring, white coin face. */}
+      <ellipse cx={x} cy={y + r * 0.12} rx={r} ry={r * 0.92} fill="#0a2434" opacity={0.18} />
+      <circle cx={x} cy={y} r={r} fill={ring} stroke={PORT_STROKE} strokeWidth={1} />
+      <circle cx={x} cy={y} r={r * 0.8} fill={PORT_FACE_FILL} />
+      {/* Resource glyph on top, trade ratio beneath. */}
+      <text
+        x={x}
+        y={y - r * 0.18}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={size * PORT_TEXT}
+      >
+        {glyph}
+      </text>
+      <text
+        x={x}
+        y={y + r * 0.52}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={size * PORT_RATIO_TEXT}
+        fontWeight={700}
+        fill={PORT_LABEL_FILL}
+      >
+        {ratio}
       </text>
     </g>
   );

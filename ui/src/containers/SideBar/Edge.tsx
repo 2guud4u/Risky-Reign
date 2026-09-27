@@ -5,7 +5,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import MiniView from '../../components/MiniView';
 import { useBuildRules } from './useBuildRules';
 import { priceLabel } from '../../utils/price';
-import { buildButtonClass, hexChipClass } from './styles';
+import { buildButtonClass, hexChipClass, panelTitleClass, sectionTitleClass } from './styles';
 import { playerColorMap } from '../../utils/soldierPlacement';
 import { triggerBuildAnimation } from '../../components/ResourceSpendLayer';
 
@@ -38,7 +38,7 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="m-0 text-base">Edge {edge.id}</h3>
+      <h3 className={panelTitleClass}>Edge {edge.id}</h3>
 
       <MiniView board={board} type="edge" id={edge.id} playerColors={playerColorMap(gameRoom)} />
 
@@ -70,7 +70,7 @@ const Edge: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
       )}
 
       <div>
-        <div className="text-[13px] font-semibold mb-1.5">Endpoints</div>
+        <div className={`${sectionTitleClass} mb-1.5`}>Endpoints</div>
         <div className="flex flex-col gap-1.5">
           {endpoints.map(({ vertex, settlement }) =>
             vertex ? (

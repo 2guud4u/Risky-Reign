@@ -44,7 +44,7 @@ export interface DiceMatch {
   a: number;
   /** Defender's roll. */
   d: number;
-  /** Outcome label (e.g. "3 killed", "flee", "tie"). */
+  /** Outcome label (e.g. "Attacker killed", "Defender injured", "Defender escapes"). */
   text: string;
   /** Tailwind class colouring the outcome label. */
   cls: string;

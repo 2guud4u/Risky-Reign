@@ -4,7 +4,7 @@ import { useSocket } from '../contexts/SocketContext';
 import BoardView from './BoardView';
 import Sidebar from './SideBar/Index';
 import TurnOverlay from './TurnOverlay';
-import RobberPrompt from './RobberPrompt';
+import NoticeRail from './NoticeRail';
 import StealPrompt from './StealPrompt';
 import DiscardPrompt from './DiscardPrompt';
 import DevCardPrompt from './DevCardPrompt';
@@ -12,16 +12,13 @@ import ResourceGainLayer from '../components/ResourceGainLayer';
 import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
-import YourTurnToast from './YourTurnToast';
-import GiantDiceOverlay from './GiantDiceOverlay';
-import TurnDice from './TurnDice';
+import DiceDisplay from './DiceDisplay';
 import DraggablePanel from '../components/DraggablePanel';
 import { resetAllPanels } from '../utils/panelLayout';
 import { GAME_HEX_SIZE } from 'common';
 import { DefaultRect } from '../types/draggablePanel';
 import { SIDEBAR_W } from '../constants';
 import { clearSavedSession } from '../utils/session';
-
 /**
  * The game screen. Everything is floating: the board panel filling the
  * left area edge-to-edge, and the sidebar in its own column (with tabs
@@ -85,6 +82,16 @@ const Game: React.FC = () => {
               type="button"
               onClick={() => {
                 setMenuOpen(false);
+                resetAllPanels();
+              }}
+              className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-gray-100 text-gray-700 cursor-pointer hover:bg-gray-200 mb-1.5"
+            >
+              {'⟲'} Reset displays
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
                 leaveGame();
               }}
               className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-red-600 text-white cursor-pointer hover:bg-red-700"
@@ -104,15 +111,6 @@ const Game: React.FC = () => {
           {'☰'}
         </button>
       </div>
-      <RobberPrompt />
-      <button
-        type="button"
-        onClick={resetAllPanels}
-        className="fixed top-3 right-3 z-40 px-3 py-1.5 text-[12px] font-semibold rounded-md border border-gray-300 bg-white shadow cursor-pointer hover:bg-gray-100"
-        title="Restore every panel to its default position"
-      >
-        {'⟲'} Reset displays
-      </button>
 
       <DraggablePanel
         id="board"
@@ -147,12 +145,10 @@ const Game: React.FC = () => {
       <BattleModal />
       {/* Turn overlay: phase + control on the board's bottom edge, colored by phase. */}
       <TurnOverlay />
-      {/* The two dice floating above the turn status pill. */}
-      <TurnDice />
-      {/* Your-turn pop-up: shown when it's the current player's turn. */}
-      <YourTurnToast />
-      {/* Giant dice: shown to everyone during the Dice phase. */}
-      <GiantDiceOverlay />
+      {/* Top-center notice rail: your-turn toast + all waiting/action notices. */}
+      <NoticeRail />
+      {/* The dice: giant while rolling, compact above the turn pill after. */}
+      <DiceDisplay />
     </div>
   );
 };

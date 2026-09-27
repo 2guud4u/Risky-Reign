@@ -14,6 +14,7 @@ import VertexGroupPanel from './VertexGroupPanel';
 import VertexDefenderSelect from './VertexDefenderSelect';
 import VertexBattleNotice from './VertexBattleNotice';
 import VertexAdjacentEdges from './VertexAdjacentEdges';
+import { panelTitleClass, mutedTextClass } from './styles';
 
 /**
  * Sidebar panel for a selected vertex: mini view of the vertex and its
@@ -100,7 +101,7 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="m-0 text-base">Vertex {vertex.id}</h3>
+      <h3 className={panelTitleClass}>Vertex {vertex.id}</h3>
 
       <MiniView
         board={board}
@@ -161,7 +162,7 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
 
       {/* Hint before any selection, when troops are present here. */}
       {selectedGroup.length === 0 && soldiersHere.length > 0 && (
-        <p className="text-[13px] m-0">
+        <p className={`${mutedTextClass} m-0`}>
           {groupActionsAllowed
             ? 'Click your soldiers in the map above to select a group, then move, attack, or capture with it.'
             : 'Soldiers act during your Action phase.'}

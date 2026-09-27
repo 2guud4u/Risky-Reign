@@ -266,16 +266,17 @@ export function computeDiceMatchup(
         // Injured fight: the injured defender wins only on a strictly higher
         // roll (they flee, stay injured); a tie or loss kills them.
         if (dr > ar) {
-          [text, cls] = ['defender escapes', 'text-blue-600'];
+          [text, cls] = ['Defender escapes', 'text-blue-600'];
         } else {
-          [text, cls] = ['defender is lost', 'text-red-600'];
+          [text, cls] = ['Defender killed', 'text-red-600'];
         }
       } else if (ar > dr) {
-        [text, cls] = ar - dr >= 2 ? ['defender killed', 'text-red-600'] : ['defender injured', 'text-amber-600'];
+        [text, cls] = ar - dr >= 2 ? ['Defender killed', 'text-red-600'] : ['Defender injured', 'text-amber-600'];
       } else if (dr > ar) {
-        [text, cls] = dr - ar >= 2 ? ['attacker killed', 'text-red-600'] : ['attacker injured', 'text-amber-600'];
+        [text, cls] = dr - ar >= 2 ? ['Attacker killed', 'text-red-600'] : ['Attacker injured', 'text-amber-600'];
       } else {
-        [text, cls] = ['tie — nobody hurt', 'text-gray-500'];
+        // Defender wins ties: an equal roll injures the attacker.
+        [text, cls] = ['Attacker injured', 'text-amber-600'];
       }
       matchup.push({ a: ar, d: dr, text, cls });
     }

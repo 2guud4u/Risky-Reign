@@ -1,6 +1,6 @@
 import React from 'react';
 import { SoldierObj, VertexId } from 'common';
-import { buildButtonClass } from './styles';
+import { buildButtonClass, sectionTitleClass } from './styles';
 import { HEAL_COST_LABEL } from './constants';
 
 interface VertexGroupPanelProps {
@@ -55,11 +55,11 @@ const VertexGroupPanel: React.FC<VertexGroupPanelProps> = ({
   return (
     <div className="border border-blue-200 bg-blue-50/60 rounded-md p-2.5 flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <div className="text-[13px] font-semibold">Your Group ({group.length})</div>
+        <div className={sectionTitleClass}>Your Group ({group.length})</div>
         <button
           type="button"
           onClick={onClearGroup}
-          className="text-[11px] text-gray-100 hover:text-gray-700"
+          className="text-[11px] text-gray-400 hover:text-gray-700"
         >
           ✕ Clear
         </button>

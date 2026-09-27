@@ -3,6 +3,7 @@ import { Board, VertexNode } from 'common';
 import { adjacentEdges } from '../../utils/vertexAdjacency';
 import { neighborNicknames } from '../../utils/neighborLabels';
 import { SETTLEMENT_OWNER_COLOR } from './constants';
+import { sectionTitleClass } from './styles';
 
 interface VertexAdjacentEdgesProps {
   board: Board;
@@ -22,7 +23,7 @@ const VertexAdjacentEdges: React.FC<VertexAdjacentEdgesProps> = ({ board, vertex
 
   return (
     <div>
-      <div className="text-[13px] font-semibold mb-1.5">Adjacent Edges</div>
+      <div className={`${sectionTitleClass} mb-1.5`}>Adjacent Edges</div>
       <div className="flex flex-col gap-1.5">
         {adjacentEdges(board, vertex).map(({ edge, otherId }) => {
           if (!edge || otherId === null) return null;

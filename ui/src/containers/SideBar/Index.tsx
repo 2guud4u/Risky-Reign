@@ -6,7 +6,7 @@ import Vertex from './Vertex';
 import Edge from './Edge';
 import TradeTab from './TradeTab';
 import PlayersList from './PlayersList';
-import { cardClass } from './styles';
+import { cardClass, mutedTextClass } from './styles';
 type Tab = 'board' | 'players' | 'trade';
 
 
@@ -53,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
   const renderBoardTab = () => {
     if (!selectedObject) {
       return (
-        <p className="text-[13px] text-gray-500 m-0">
+        <p className={`${mutedTextClass} m-0`}>
           Click a vertex or edge on the board to see its details and build options.
         </p>
       );

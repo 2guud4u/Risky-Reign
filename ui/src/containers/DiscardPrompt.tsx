@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { backdropClass, modalCardClass } from '../styles';
 import { RESOURCES, ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 
@@ -37,16 +38,8 @@ const DiscardPrompt: React.FC = () => {
   if (pendingNames.length === 0) return null;
   const required: number | undefined = gameRoom.discards[currentPlayer.name];
 
-  // Other players see a notice that someone must discard.
-  if (required === undefined) {
-    return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-300 bg-amber-50 shadow-lg">
-        <span className="text-[13px] font-semibold text-amber-800">
-          {pendingNames.join(', ')} must discard cards
-        </span>
-      </div>
-    );
-  }
+  // Other players see the "must discard" notice in the shared NoticeRail.
+  if (required === undefined) return null;
 
   const handTotal = RESOURCES.reduce((sum, r) => sum + currentPlayer.resources[r], 0);
   const total = RESOURCES.reduce((sum, r) => sum + (counts[r] ?? 0), 0);
@@ -68,8 +61,8 @@ const DiscardPrompt: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-4 w-[520px] max-w-full">
+    <div className={backdropClass}>
+      <div className={`${modalCardClass} max-w-[520px]`}>
         <h2 className="text-lg font-bold text-gray-800 mb-1">A 7 was rolled</h2>
         <p className="text-sm text-gray-500 mb-3">
           You have {handTotal} resource cards. Discard {required} (half, rounded down) — choose

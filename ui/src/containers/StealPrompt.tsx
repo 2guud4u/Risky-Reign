@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { backdropClass, modalCardClass } from '../styles';
 
 /**
  * Steal prompt. Shown after the robber is placed and there is at least one
@@ -27,23 +28,15 @@ const StealPrompt: React.FC = () => {
   if (!gameRoom || !currentPlayer || !gameRoom.steal) return null;
   const { thief, victims, reason } = gameRoom.steal;
 
-  // Other players see a notice that the thief is choosing.
-  if (thief !== currentPlayer.name) {
-    return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-300 bg-amber-50 shadow-lg">
-        <span className="text-[13px] font-semibold text-amber-800">
-          {thief} is choosing a card to steal
-        </span>
-      </div>
-    );
-  }
+  // Other players see the "choosing a card" notice in the shared NoticeRail.
+  if (thief !== currentPlayer.name) return null;
 
   const selectedPlayer = gameRoom.players.find((p) => p.name === selectedVictim);
   const cardCount = selectedPlayer?.resourceCount ?? 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-4 w-[480px] max-w-full">
+    <div className={backdropClass}>
+      <div className={`${modalCardClass} max-w-[480px]`}>
         <h2 className="text-lg font-bold text-gray-800 mb-1">Choose a card to steal</h2>
         <p className="text-sm text-gray-500 mb-3">
           {reason === 'knight'

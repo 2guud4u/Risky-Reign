@@ -35,7 +35,7 @@ add buy confirmation for dev card
 bug:
 for setupphase dont need to show spending of resources
 
-when roll last number let it linger there for 3 seconds 
+when roll last number let it linger there for 2 seconds 
 for glowing number, you dont need to make number yellow just keep the glowing affect
 Far future requests:
 rule customization
@@ -48,10 +48,6 @@ can not build on water tiles vertex that is not next to land hex
 music
 for trade add option for wanted trade and other players can see - auction
 
-Attacker vs Defder
-6vs6→ tie
-2vs4→ Attacker killed
-1vs2→ Attacker injured
 
 defnders win ties
 

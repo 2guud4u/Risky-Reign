@@ -172,7 +172,7 @@ const BattleModal: React.FC = () => {
 
         {/* Between rounds / finished: show how the dice compared. */}
         {(phase === 'betweenRounds' || phase === 'finished') && (
-          <DiceMatchupPanel round={battle.round} matchup={matchup} />
+          <DiceMatchupPanel round={battle.round} matchup={matchup} attacker={battle.attacker} defender={battle.defender} />
         )}
 
         {/* Battle over: show the outcome and let players exit. In the

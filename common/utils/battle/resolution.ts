@@ -24,7 +24,8 @@ function resolveRobberFight(
 /**
  * Compare the rolled dice highest-vs-lowest and mark casualties in place:
  * the highest roll fights the highest roll, the second highest the second,
- * and so on (ties have no effect). A win by >=2 kills the loser, by 1 injures.
+ * and so on. A win by >=2 kills the loser, by 1 injures. The defender wins
+ * ties: an equal roll injures the attacker.
  */
 function resolvePairs(
   battle: BattleState,
@@ -63,6 +64,10 @@ function resolvePairs(
         atk.injured = true;
         injuredSoldierIds.push(atk.soldier.id);
       }
+    } else {
+      // Defender wins ties: an equal roll injures the attacker.
+      atk.injured = true;
+      injuredSoldierIds.push(atk.soldier.id);
     }
   }
 }

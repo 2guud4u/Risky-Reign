@@ -225,17 +225,21 @@ export const PANEL_MIN_H = 80;
 /** How far past the vertex the badge sits (into the water). */
 export const PORT_OFFSET = 5;
 /** Badge radius. */
-export const PORT_RADIUS = 2.2;
-/** White ring around the badge, as an extra radius (contrast vs. water). */
-export const PORT_RING = 1.4;
+export const PORT_RADIUS = 2.4;
+/** Ratio font size (the "2:1"/"3:1" under the glyph). */
+export const PORT_RATIO_TEXT = 1.25;
 /** Glyph font size. */
-export const PORT_TEXT = 1.7;
-/** Generic port fill (3:1) — warm amber. */
-export const PORT_GENERIC_FILL = '#c9971f';
-/** Special port fill (2:1) — pleasant blue. */
+export const PORT_TEXT = 1.5;
+/** Generic port ring (3:1) — warm amber. */
+export const PORT_GENERIC_FILL = '#e0a32e';
+/** Special port ring (2:1) — pleasant blue. */
 export const PORT_SPECIAL_FILL = '#4a90d9';
-/** Port outline. */
+/** Port ring + label stroke. */
 export const PORT_STROKE = '#2a3a4a';
+/** Badge face fill — white coin. */
+export const PORT_FACE_FILL = '#ffffff';
+/** Ratio label color. */
+export const PORT_LABEL_FILL = '#33475b';
 /** Pier (dock road) fill — wood. */
 export const PORT_PIER = '#b08d57';
 /** Pier edge — darker wood. */
