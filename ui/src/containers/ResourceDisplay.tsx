@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Player, canAfford, DevelopmentCardPrice, DEVELOPMENT_CARD_META } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -14,11 +14,10 @@ import { RESOURCE_ICONS } from '../utils/resourceIcons';
 const ResourceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { drawDevelopmentCard, playDevelopmentCard } = useSocket();
-  if (!gameRoom || !currentPlayer) return null;
+  const [confirmingBuy, setConfirmingBuy] = useState(false);
 
-  const me: Player = currentPlayer;
-  const isMyTurn = gameRoom.turnState.player === me.name;
-
+  const me: Player | null = currentPlayer;
+  const isMyTurn = !!me && !!gameRoom && gameRoom.turnState.player === me.name;
   // Buying is only allowed during the Build phase on your own turn (the
   // server enforces this too; hiding the button avoids a server error).
   const canBuyDevCard =
@@ -26,6 +25,14 @@ const ResourceDisplay: React.FC = () => {
     gameRoom.turnState.phase === 'Build' &&
     canAfford(me.resources, DevelopmentCardPrice) &&
     gameRoom.devCardDeckCount > 0;
+
+  // If buying stops being allowed mid-confirmation (turn/phase flips), close
+  // the prompt so a stale "Buy" can't be clicked.
+  useEffect(() => {
+    if (!canBuyDevCard) setConfirmingBuy(false);
+  }, [canBuyDevCard]);
+
+  if (!gameRoom || !me) return null;
 
   const handleDrawDevCard = () => drawDevelopmentCard(me.id, gameRoom.id);
   const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(me.id, gameRoom.id, cardIndex);
@@ -93,17 +100,41 @@ const ResourceDisplay: React.FC = () => {
         })
       )}
 
-      {/* Buy a development card ("+" button, under the dev-card UI). */}
-      {canBuyDevCard && (
-        <button
-          type="button"
-          onClick={handleDrawDevCard}
-          className="mt-1 self-center w-7 h-7 flex items-center justify-center text-[18px] leading-none font-bold rounded-full border border-purple-700 bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
-          title={`Buy a development card (🌾1 🧱1 ⛏️1). ${gameRoom.devCardDeckCount} cards left in deck.`}
-        >
-          +
-        </button>
-      )}
+      {/* Buy a development card ("+" button, under the dev-card UI). Clicking
+          opens a small confirm so the spend is never accidental. */}
+      {canBuyDevCard &&
+        (confirmingBuy ? (
+          <div className="mt-1 flex flex-col items-center gap-1">
+            <div className="text-[11px] text-gray-600 text-center">
+              Buy a dev card for 🌾1 🧱1 ⛏️1?
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={handleDrawDevCard}
+                className="px-2 py-0.5 text-[11px] font-semibold rounded bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
+              >
+                Buy
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingBuy(false)}
+                className="px-2 py-0.5 text-[11px] font-semibold rounded bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingBuy(true)}
+            className="mt-1 self-center w-7 h-7 flex items-center justify-center text-[18px] leading-none font-bold rounded-full border border-purple-700 bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
+            title={`Buy a development card (🌾1 🧱1 ⛏️1). ${gameRoom.devCardDeckCount} cards left in deck.`}
+          >
+            +
+          </button>
+        ))}
     </div>
   );
 };
