@@ -5,9 +5,16 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 /**
  * Pan/zoom for the board SVG. The viewBox is expressed in board coordinates, so
- * zooming and panning are just moving a window over that space: zoom resizes
- * the window (center-anchored) and panning shifts its center. Attach the
- * returned `onMouseDown` / `onWheel` / `onDoubleClick` to the `<svg>` element.
+ * zooming and panning are just moving a window over that space: zoom resizes the
+ * window (center-anchored) and panning shifts its center. Attach the returned
+ * `onMouseDown` / `onDoubleClick` to the `<svg>` element.
+ *
+ * Pan/zoom are driven imperatively (writing the `viewBox` attribute on the svg
+ * element) rather than through React state: a per-frame `setState` would
+ * re-render the whole SVG subtree on every wheel tick and mousemove. React only
+ * re-renders when `isDirty` flips (to show/hide the reset button). Because the
+ * `viewBox` prop passed to the `<svg>` never changes after mount, React's
+ * reconciler never overwrites the imperatively-set attribute.
  *
  * Panning is a left-button drag on empty board space. Vertices, edges, and
  * soldier badges all stopPropagation on mousedown, so they keep their own
@@ -15,15 +22,27 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * Shift+double-click (or the reset button) restores the fit view.
  */
 export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSize: number) {
-  const [zoom, setZoom] = useState(1);
-  const [center, setCenter] = useState({ x: 0, y: 0 });
-  const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean } | null>(null);
-
-  // Keep the latest zoom readable from the (once-registered) move listener.
+  // Source of truth lives in refs so pan/zoom never triggers a React render.
   const zoomRef = useRef(1);
-  zoomRef.current = zoom;
+  const centerRef = useRef({ x: 0, y: 0 });
+  const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean } | null>(null);
+  // Only the "viewport differs from fit" flag is React state (drives the
+  // reset button). It flips at most once per gesture.
+  const [isDirty, setIsDirty] = useState(false);
 
   const half = baseSize / 2;
+
+  /** Write the current zoom/center to the svg's viewBox attribute. */
+  const applyViewBox = useCallback(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const zoom = zoomRef.current;
+    const { x, y } = centerRef.current;
+    svg.setAttribute(
+      'viewBox',
+      `${x - half / zoom} ${y - half / zoom} ${(2 * half) / zoom} ${(2 * half) / zoom}`
+    );
+  }, [svgRef, half]);
 
   /** Screen pixels per board unit at the current zoom. */
   const pxPerBoard = () => {
@@ -31,14 +50,21 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
     return rect && rect.width > 0 ? rect.width / ((2 * half) / zoomRef.current) : 1;
   };
 
-  const zoomBy = useCallback((factor: number) => {
-    setZoom((z) => clamp(z * factor, MIN_ZOOM, MAX_ZOOM));
-  }, []);
+  const zoomBy = useCallback(
+    (factor: number) => {
+      zoomRef.current = clamp(zoomRef.current * factor, MIN_ZOOM, MAX_ZOOM);
+      applyViewBox();
+      setIsDirty(true);
+    },
+    [applyViewBox]
+  );
 
   const reset = useCallback(() => {
-    setZoom(1);
-    setCenter({ x: 0, y: 0 });
-  }, []);
+    zoomRef.current = 1;
+    centerRef.current = { x: 0, y: 0 };
+    applyViewBox();
+    setIsDirty(false);
+  }, [applyViewBox]);
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -48,13 +74,16 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
     [reset, zoomBy]
   );
 
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.button !== 0) return;
-      panRef.current = { startX: e.clientX, startY: e.clientY, originX: center.x, originY: center.y, active: false };
-    },
-    [center]
-  );
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    panRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: centerRef.current.x,
+      originY: centerRef.current.y,
+      active: false,
+    };
+  }, []);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -65,10 +94,12 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
         pan.active = true;
       }
       const scale = pxPerBoard();
-      setCenter({
+      centerRef.current = {
         x: pan.originX - (e.clientX - pan.startX) / scale,
         y: pan.originY - (e.clientY - pan.startY) / scale,
-      });
+      };
+      applyViewBox();
+      setIsDirty(true);
     };
     const onUp = () => {
       panRef.current = null;
@@ -93,13 +124,14 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
     // pxPerBoard reads zoomRef (always current); zoomBy is a stable callback.
     // Re-runs only if the svg element or base size changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [svgRef, half, zoomBy]);
+  }, [svgRef, half, zoomBy, applyViewBox]);
 
   return {
-    zoom,
     reset,
-    isDirty: zoom !== 1 || center.x !== 0 || center.y !== 0,
-    viewBox: `${center.x - half / zoom} ${center.y - half / zoom} ${(2 * half) / zoom} ${(2 * half) / zoom}`,
+    isDirty,
+    // Initial viewBox only; after mount the attribute is driven imperatively
+    // (React leaves it alone because this prop value never changes).
+    viewBox: `${-half} ${-half} ${2 * half} ${2 * half}`,
     onDoubleClick,
     onMouseDown,
   };

@@ -7,7 +7,7 @@ interface BoardEdgeProps extends BoardEdgeType {
   ownerColor?: string;
 }
 
-export const BoardEdge: React.FC<BoardEdgeProps> = ({
+const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   id,
   start,
   end,
@@ -130,3 +130,4 @@ export const BoardEdge: React.FC<BoardEdgeProps> = ({
     </g>
   );
 };
+export const BoardEdge = React.memo(BoardEdgeInner);

@@ -20,7 +20,7 @@ import {
  * serves. Positioned radially outward from the board center so it sits in
  * the water, never on top of a hex.
  */
-export const PortDock: React.FC<{
+const PortDockInner: React.FC<{
   vertices: PixelCoord[];
   port: PortType;
   size: number;
@@ -54,3 +54,4 @@ export const PortDock: React.FC<{
     </g>
   );
 };
+export const PortDock = React.memo(PortDockInner);

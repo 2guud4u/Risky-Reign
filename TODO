@@ -29,8 +29,10 @@ when single group, we should still follow the number of row
 allow simple art view 
 port  connector should still show with 1 vertex - visual port update
 -play one with sister and try to host
-
-
+make solder above settlement on rendering in mini map
+little energy bolt on top of soldier instead of pulsing whne can do an action
+can only buy dev card in build phase
+add buy confirmation for dev card
 bug:
 for setupphase dont need to show spending of resources
 
@@ -45,7 +47,7 @@ maybe lock the colors to only 10 colors-use nvidia gpu
 ports customization
 can not build on water tiles vertex that is not next to land hex
 music
-for trade add option for wanted trade and other players can see 
+for trade add option for wanted trade and other players can see - auction
 
 
 

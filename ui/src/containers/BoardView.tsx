@@ -126,28 +126,45 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     [setSelectedObject]
   );
 
-  // `board` is non-null whenever `base` is (the memo derives from it).
-  if (!base || !gameRoom || !board) {
-    return <div className="text-center text-gray-500">Loading board...</div>;
-  }
   // Map owner name -> chosen color so settlements/roads render in the
-  // player's color.
-  const colorOf = (ownerId: string | null): string | undefined =>
-    !ownerId ? undefined : gameRoom.players.find((p) => p.name === ownerId)?.color;
-
-  // Layer ephemeral interaction state (hover/select) and owner colors onto
-  // the presentation.
-  const { vertices, edges, hexes } = layerBoardInteraction(
-    base,
-    selectedObject,
-    hoveredVertexId,
-    hoveredEdgeId,
-    colorOf
+  // player's color. Memoized so the layer components (React.memo) get a
+  // stable function reference and don't re-render on pan/zoom. Null-safe so it
+  // can run before the early return below.
+  const colorOf = useCallback(
+    (ownerId: string | null): string | undefined =>
+      !ownerId ? undefined : gameRoom?.players.find((p) => p.name === ownerId)?.color,
+    [gameRoom?.players]
   );
 
-  const handleEdgeClick = (edgeId: string) => {
-    setSelectedObject({ type: 'edge', id: edgeId });
-  };
+  // Layer ephemeral interaction state (hover/select) and owner colors onto
+  // the presentation. Memoized: without it every render produced fresh
+  // hex/edge/vertex arrays, defeating the memoized layer components.
+  const layered = useMemo(
+    () =>
+      base
+        ? layerBoardInteraction(base, selectedObject, hoveredVertexId, hoveredEdgeId, colorOf)
+        : null,
+    [base, selectedObject, hoveredVertexId, hoveredEdgeId, colorOf]
+  );
+
+  const handleEdgeClick = useCallback(
+    (edgeId: string) => {
+      setSelectedObject({ type: 'edge', id: edgeId });
+    },
+    [setSelectedObject]
+  );
+
+  const onRobberHover = useCallback(
+    (hexId: string, hovering: boolean) => setHoveredRobberHexId(hovering ? hexId : null),
+    []
+  );
+
+  // `board` is non-null whenever `base` is (the memo derives from it). This
+  // early return must stay below every hook call above.
+  if (!base || !gameRoom || !board || !layered) {
+    return <div className="text-center text-gray-500">Loading board...</div>;
+  }
+  const { vertices, edges, hexes } = layered;
 
   // The margin leaves room past the hex ring so the coast trade ports are not clipped.
   const naturalSize = BOARD_RENDER_MARGIN * hexSize * span;
@@ -202,7 +219,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             robberPending={robberPending}
             rollTotal={rollTotal}
             onRobberMouseDown={startRobberDrag}
-            onRobberHover={(hexId, hovering) => setHoveredRobberHexId(hovering ? hexId : null)}
+            onRobberHover={onRobberHover}
           />
 
           {/* Edges layer */}

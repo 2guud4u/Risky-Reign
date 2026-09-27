@@ -24,60 +24,63 @@ interface SoldierBadgesProps {
 
 /**
  * Soldiers layer: count badges for each vertex, rendered as a horizontal row
- * below the vertex (so they don't cover the building image).
+ * below the vertex (so they don't cover the building image). Memoized so the
+ * per-frame drag-ghost render doesn't redraw every badge.
  */
-export const SoldierBadges: React.FC<SoldierBadgesProps> = ({
+export const SoldierBadges = React.memo(function SoldierBadges({
   soldierGroups,
   vertices,
   colorOf,
   canDragSoldier,
   onDragStart,
   onSelect,
-}) => (
-  <>
-    {Array.from(soldierGroups.entries()).map(([vertexId, byOwner]) => {
-      const v = vertices[vertexId];
-      if (!v) return null;
-      const entries = Array.from(byOwner.entries());
-      return (entries as [string, number][]).map(([ownerName, count], i) => {
-        // Horizontal row of badges below the vertex (so they don't cover
-        // the building image); centered under the vertex.
-        const badgeDiameter = 2 * SOLDIER_BADGE_R;
-        const totalWidth = entries.length * badgeDiameter + (entries.length - 1) * SOLDIER_BADGE_GAP;
-        const startX = v.position.x - totalWidth / 2 + badgeDiameter / 2;
-        const cx = startX + i * (badgeDiameter + SOLDIER_BADGE_GAP);
-        const cy = v.position.y + PROJ_SIZE * SOLDIER_BADGE_ROW_OFFSET_FRACTION;
-        const color = colorOf(ownerName);
-        const draggable = canDragSoldier(ownerName, vertexId);
-        return (
-          <g
-            key={`${vertexId}-${ownerName}`}
-            onMouseDown={(e) => onDragStart(e, ownerName, vertexId)}
-            onClick={() => onSelect({ type: 'vertex', id: vertexId })}
-            style={{ cursor: draggable ? 'grab' : 'pointer' }}
-          >
-            <circle
-              cx={cx}
-              cy={cy}
-              r={SOLDIER_BADGE_R}
-              fill={color ?? '#888'}
-              stroke="#222"
-              strokeWidth={1.5}
-            />
-            <text
-              x={cx}
-              y={cy + 4}
-              textAnchor="middle"
-              fontSize={11}
-              fontWeight="bold"
-              fill="white"
-              pointerEvents="none"
+}: SoldierBadgesProps) {
+  return (
+    <>
+      {Array.from(soldierGroups.entries()).map(([vertexId, byOwner]) => {
+        const v = vertices[vertexId];
+        if (!v) return null;
+        const entries = Array.from(byOwner.entries());
+        return (entries as [string, number][]).map(([ownerName, count], i) => {
+          // Horizontal row of badges below the vertex (so they don't cover
+          // the building image); centered under the vertex.
+          const badgeDiameter = 2 * SOLDIER_BADGE_R;
+          const totalWidth = entries.length * badgeDiameter + (entries.length - 1) * SOLDIER_BADGE_GAP;
+          const startX = v.position.x - totalWidth / 2 + badgeDiameter / 2;
+          const cx = startX + i * (badgeDiameter + SOLDIER_BADGE_GAP);
+          const cy = v.position.y + PROJ_SIZE * SOLDIER_BADGE_ROW_OFFSET_FRACTION;
+          const color = colorOf(ownerName);
+          const draggable = canDragSoldier(ownerName, vertexId);
+          return (
+            <g
+              key={`${vertexId}-${ownerName}`}
+              onMouseDown={(e) => onDragStart(e, ownerName, vertexId)}
+              onClick={() => onSelect({ type: 'vertex', id: vertexId })}
+              style={{ cursor: draggable ? 'grab' : 'pointer' }}
             >
-              {count}
-            </text>
-          </g>
-        );
-      });
-    })}
-  </>
-);
+              <circle
+                cx={cx}
+                cy={cy}
+                r={SOLDIER_BADGE_R}
+                fill={color ?? '#888'}
+                stroke="#222"
+                strokeWidth={1.5}
+              />
+              <text
+                x={cx}
+                y={cy + 4}
+                textAnchor="middle"
+                fontSize={11}
+                fontWeight="bold"
+                fill="white"
+                pointerEvents="none"
+              >
+                {count}
+              </text>
+            </g>
+          );
+        });
+      })}
+    </>
+  );
+});

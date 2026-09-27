@@ -12,9 +12,14 @@ import {
 
 /**
  * The robber's bag: dialog popup over the hovered robber (rendered on the top
- * layer so it isn't covered by the hexes).
+ * layer so it isn't covered by the hexes). Memoized so it only re-renders when
+ * the hovered hex changes.
  */
-export const RobberBagPopup: React.FC<{ hex: BoardHex | null }> = ({ hex }) => {
+export const RobberBagPopup = React.memo(function RobberBagPopup({
+  hex,
+}: {
+  hex: BoardHex | null;
+}) {
   if (!hex) return null;
   const { x, y } = hex.position;
   return (
@@ -28,4 +33,4 @@ export const RobberBagPopup: React.FC<{ hex: BoardHex | null }> = ({ hex }) => {
       <RobberBagView />
     </foreignObject>
   );
-};
+});

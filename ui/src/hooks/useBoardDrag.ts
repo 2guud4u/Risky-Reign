@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Board, BoardUIState, PublicGameRoom, PixelCoord, Player } from 'common';
 import { DROP_THRESHOLD_FRACTION, PROJ_SIZE } from '../constants';
 import { SelectableObject } from '../types';
@@ -16,6 +16,11 @@ import {
  * vertices during the Action phase, and dragging the robber while a robber
  * move is pending. Also owns Escape handling (clears the selection and
  * cancels any in-progress drag) and the drop-resolution math.
+ *
+ * The callbacks are memoized and read current drag state through `stateRef`
+ * so the memoized layer components (SoldierBadges etc.) get stable function
+ * props — only the tiny drag-ghost overlay re-renders per mousemove, not the
+ * whole board tree.
  */
 export function useBoardDrag(opts: {
   board: Board | null;
@@ -36,11 +41,16 @@ export function useBoardDrag(opts: {
   // Robber drag state: true while the user is dragging the robber.
   const [robberDrag, setRobberDrag] = useState(false);
 
-  const cancelDrag = () => {
+  // Latest-values ref so the memoized callbacks read current drag state
+  // without those values being in their dependency lists.
+  const stateRef = useRef({ drag, mousePos, robberDrag });
+  stateRef.current = { drag, mousePos, robberDrag };
+
+  const cancelDrag = useCallback(() => {
     setDrag(null);
     setRobberDrag(false);
     setMousePos(null);
-  };
+  }, []);
 
   // Escape clears the selection and cancels any in-progress soldier drag.
   useEffect(() => {
@@ -51,50 +61,65 @@ export function useBoardDrag(opts: {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [setSelectedObject]);
+  }, [setSelectedObject, cancelDrag]);
 
   // A pending robber move (a 7 roll or a played knight card) makes the
   // robber draggable for the pending player: dragging it to a valid hex
   // places it there.
   const robberPending = !!gameRoom?.robberMove && gameRoom.robberMove.player === currentPlayer?.name;
-  const startRobberDrag = (e: React.MouseEvent) => {
-    if (!robberPending) return;
-    e.stopPropagation();
-    setRobberDrag(true);
-  };
+  const startRobberDrag = useCallback(
+    (e: React.MouseEvent) => {
+      if (!robberPending) return;
+      e.stopPropagation();
+      setRobberDrag(true);
+    },
+    [robberPending]
+  );
 
   /** Whether the current player may drag this owner's soldiers at a vertex. */
-  const canDragSoldier = (ownerName: string, vertexId: string): boolean =>
-    isSoldierDraggable(gameRoom, currentPlayer?.name, ownerName, vertexId);
+  const canDragSoldier = useCallback(
+    (ownerName: string, vertexId: string): boolean =>
+      isSoldierDraggable(gameRoom, currentPlayer?.name, ownerName, vertexId),
+    [gameRoom, currentPlayer]
+  );
 
   /** Start dragging the first movable soldier this owner has at the vertex. */
-  const startDrag = (e: React.MouseEvent, ownerName: string, vertexId: string) => {
-    if (!board || !gameRoom) return;
-    const soldier = movableSoldierAt(board, gameRoom, vertexId, ownerName);
-    if (!soldier) return;
-    e.stopPropagation();
-    setDrag({
-      soldierId: soldier.id,
-      ownerName,
-      fromVertexId: vertexId,
-      validTargets: validSoldierTargets(board, vertexId),
-    });
-  };
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!drag && !robberDrag) return;
-    setMousePos(mouseToSvgPoint(e, svgRef.current));
-  };
+  const startDrag = useCallback(
+    (e: React.MouseEvent, ownerName: string, vertexId: string) => {
+      if (!board || !gameRoom) return;
+      const soldier = movableSoldierAt(board, gameRoom, vertexId, ownerName);
+      if (!soldier) return;
+      e.stopPropagation();
+      setDrag({
+        soldierId: soldier.id,
+        ownerName,
+        fromVertexId: vertexId,
+        validTargets: validSoldierTargets(board, vertexId),
+      });
+    },
+    [board, gameRoom]
+  );
 
-  const handleMouseUp = () => {
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const { drag: d, robberDrag: r } = stateRef.current;
+      if (!d && !r) return;
+      setMousePos(mouseToSvgPoint(e, svgRef.current));
+    },
+    [svgRef]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    const { drag: d, mousePos: mp, robberDrag: rd } = stateRef.current;
     // Handle robber drag.
-    if (robberDrag) {
+    if (rd) {
       setRobberDrag(false);
-      if (mousePos && board && currentPlayer && gameRoom) {
+      if (mp && board && currentPlayer && gameRoom) {
         // Drop on the nearest valid hex (non-Desert, no robber) within reach.
         const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
         const target = nearestWithin(
           Object.values(base?.hexes ?? {}).filter((h) => h.terrain !== 'Desert' && !h.hasRobber),
-          mousePos,
+          mp,
           threshold,
           (hex) => hex.position
         );
@@ -106,23 +131,23 @@ export function useBoardDrag(opts: {
       return;
     }
     // Handle soldier drag.
-    if (!drag || !mousePos || !board || !currentPlayer || !gameRoom) {
+    if (!d || !mp || !board || !currentPlayer || !gameRoom) {
       cancelDrag();
       return;
     }
     // Drop on the nearest valid target vertex within reach.
     const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
     const target = nearestWithin(
-      drag.validTargets,
-      mousePos,
+      d.validTargets,
+      mp,
       threshold,
       (tid) => board.vertices[tid]?.position ?? null
     );
     if (target) {
-      moveSoldier(currentPlayer.id, drag.soldierId, target, gameRoom.id);
+      moveSoldier(currentPlayer.id, d.soldierId, target, gameRoom.id);
     }
     cancelDrag();
-  };
+  }, [board, base, gameRoom, currentPlayer, moveRobber, moveSoldier, cancelDrag]);
 
   return {
     drag,

@@ -84,4 +84,4 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
   );
 };
 
-export default Hexagon;
+export default React.memo(Hexagon);
