@@ -15,9 +15,9 @@ Sources: host audit of `jia-server` and a code security review of this repo
 |---|---|---|
 | App binding | `100.127.5.96:3001` (tailnet) + `192.168.8.208:3001` (LAN playtest) | OK |
 | Container | non-root `node`, read-only rootfs, `no-new-privileges` | OK |
-| Container limits | memory / CPU / pids **unlimited**, caps **not dropped** | ❌ fix |
-| Docker logs | `json-file`, **no rotation** | ❌ fix |
-| ufw | default-deny; rules `4164/udp`, `22/tcp` LAN, `3001/tcp` LAN | ⚠ stale — see below |
+| Container limits | `cap_drop: ALL`, 512 MB, 1.5 CPU, 128 pids (applied 2026-09-26) | OK |
+| Docker logs | `json-file`, rotated 10 MB × 3 (applied 2026-09-26) | OK |
+| ufw | default-deny; only `3001/tcp` from `192.168.8.0/24` (dead rules removed 2026-09-26) | OK |
 | SSH | **no sshd installed**; access is Tailscale SSH (`RunSSH: true`) | OK, reduce scope |
 | OS updates | unattended-upgrades on, 0 security updates pending | OK |
 | Tailscale | v1.102.4, key expiry 2027-03-24, Funnel **not enabled** in ACL | — |
@@ -52,7 +52,7 @@ Both edges are **outbound-only**: no router port forwarding, home IP hidden.
 | | 3A Tailscale Funnel | 3B Cloudflare Tunnel |
 |---|---|---|
 | Cost | free | free (+ ~$10/yr domain) |
-| URL | `https://jia-server.tailfb115d.ts.net` | `https://yourgame.com` |
+| URL | `https://jia-server.tailfb115d.ts.net` | `https://riskyreign.com` |
 | Edge rate limiting / WAF | none | 1 free rate-limit rule, bot fight mode |
 | Real client IP | `X-Forwarded-For` | `CF-Connecting-IP` |
 | Host port needed | `127.0.0.1:3001` | **none** (container network) |
@@ -126,7 +126,7 @@ Ordered by risk removed per effort. **2A-1 through 2A-4 are blockers.**
 - [ ] 2A-9 (low) Undo floor check after robber fight (F10); `crypto.randomInt`
       for dice and shuffles (F11).
 
-### 2B. Container hardening — `/opt/catan/docker-compose.yml`
+### 2B. Container hardening — `/opt/catan/docker-compose.yml` ✅ applied 2026-09-26
 
 ```yaml
     cap_drop: [ALL]
@@ -144,14 +144,13 @@ the desktop stay up); logs are capped at 30 MB.
 ### 2C. Host hardening — `jia-server`
 
 - [ ] **Rotate the sudo password** (it was shared in a chat session).
-- [ ] Clean ufw to what actually matters:
-      `sudo ufw delete allow 4164/udp`, `sudo ufw delete allow 22/tcp`
-      (both dead — see corrections above). Keep default-deny.
-- [ ] Remove `jia` from the `docker` group (`sudo gpasswd -d jia docker`);
+- [x] Clean ufw: removed dead `4164/udp` and `22/tcp` rules (2026-09-26).
+      Default-deny kept; only the LAN playtest rule `3001/tcp` remains.
+- [ ] (deferred by owner) Remove `jia` from the `docker` group (`sudo gpasswd -d jia docker`);
       the `server` command then runs its docker calls via `sudo`. Docker group
       membership is root-equivalent.
 - [ ] Restrict Tailscale SSH in the ACL to your own devices only.
-- [ ] Disable unneeded network daemons: `cups-browsed`, `avahi-daemon`,
+- [ ] (deferred by owner) Disable unneeded network daemons: `cups-browsed`, `avahi-daemon`,
       `wsdd` (listening on every interface including tailnet). Not reachable
       via Funnel, but less to patch.
 - [ ] Reserve a static DHCP lease for `192.168.8.208` in the router.
@@ -181,9 +180,10 @@ Rollback: `sudo tailscale funnel reset` — back to private instantly.
 
 ## Phase 3B — Go public: Cloudflare Tunnel (custom domain)
 
-1. Buy a domain; move its DNS to Cloudflare (free plan).
+1. Buy `riskyreign.com` on Cloudflare Registrar ($10.46/yr at-cost, same on
+   renewal; Namecheap renews at $18.48). DNS is on Cloudflare automatically.
 2. Zero Trust → Networks → Tunnels → create tunnel → copy token.
-   Public hostname `yourgame.com` → service `http://catan:3001`.
+   Public hostname `riskyreign.com` → service `http://catan:3001`.
 3. Remove **all** `ports:` from `catan` (no host exposure at all) and add:
    ```yaml
      cloudflared:
@@ -198,7 +198,7 @@ Rollback: `sudo tailscale funnel reset` — back to private instantly.
    Rename the service key to `catan` so the hostname resolves.
 4. Cloudflare dashboard: SSL/TLS **Full**; Security → Bots → Bot Fight Mode on;
    one rate-limit rule (e.g. 60 req / 10 s per IP on `/socket.io/*`).
-5. Set `CORS_ORIGIN=https://yourgame.com`; key IP limits on `CF-Connecting-IP`.
+5. Set `CORS_ORIGIN=https://riskyreign.com`; key IP limits on `CF-Connecting-IP`.
 
 Rollback: `docker compose stop cloudflared` (or delete the public hostname).
 
