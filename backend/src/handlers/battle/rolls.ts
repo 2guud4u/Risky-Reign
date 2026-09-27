@@ -6,6 +6,7 @@ import {
   applyBonuses,
 } from 'common';
 import { gameRooms } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 import { applyRobberFightOutcome, initialRepositionTurn } from './resolution';
 
@@ -64,7 +65,7 @@ export function registerBattleRollHandlers(ctx: HandlerContext): void {
       }
 
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 }

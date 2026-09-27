@@ -7,6 +7,7 @@ import {
 } from 'common';
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 
 /**
@@ -85,6 +86,6 @@ export function registerDiceHandlers(ctx: HandlerContext): void {
     }
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 }

@@ -40,7 +40,7 @@ export function addPrice(resources: Price, price: Price): Price {
 }
 
 /** The player who rolled the dice this round (the turn owner). */
-export function diceOwner(room: GameRoom): string {
+export function diceOwner(room: Pick<GameRoom, 'turnState'>): string {
   return room.turnState.playerOrder[room.turnState.dicePlayerIndex];
 }
 
@@ -101,7 +101,7 @@ export function applyTrade(room: GameRoom, offer: TradeOffer): void {
 }
 
 /** Find a player by name (helper for handlers). */
-export function findPlayer(room: GameRoom, name: string): Player | undefined {
+export function findPlayer(room: Pick<GameRoom, 'players'>, name: string): Player | undefined {
   return room.players.find((p) => p.name === name);
 }
 
@@ -156,7 +156,7 @@ function hasSettlementOnVertex(board: Board, v: VertexNode, player: Player): boo
  * @param supply - the global supply of resources (optional; if omitted, no supply check)
  */
 export function canBankTrade(
-  room: GameRoom,
+  room: Pick<GameRoom, 'turnState' | 'players' | 'board'>,
   playerName: string,
   giveResource: ResourceKey,
   wantResource: ResourceKey,

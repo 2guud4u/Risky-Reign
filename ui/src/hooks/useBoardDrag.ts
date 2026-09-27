@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Board, BoardUIState, GameRoom, PixelCoord, Player } from 'common';
+import { Board, BoardUIState, PublicGameRoom, PixelCoord, Player } from 'common';
 import { DROP_THRESHOLD_FRACTION, PROJ_SIZE } from '../constants';
 import { SelectableObject } from '../types';
 import { SoldierDragState } from '../types/board';
@@ -20,7 +20,7 @@ import {
 export function useBoardDrag(opts: {
   board: Board | null;
   base: BoardUIState | null;
-  gameRoom: GameRoom | null;
+  gameRoom: PublicGameRoom | null;
   currentPlayer: Player | null;
   svgRef: React.RefObject<SVGSVGElement>;
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;

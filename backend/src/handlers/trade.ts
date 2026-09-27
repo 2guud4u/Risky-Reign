@@ -10,6 +10,7 @@ import {
   RESOURCES,
 } from 'common';
 import { gameRooms } from '../store';
+import { broadcastRoom } from '../broadcast';
 import { HandlerContext, blockIfFinished } from './context';
 
 /**
@@ -52,7 +53,7 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
         status: 'pending',
       });
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 
@@ -82,7 +83,7 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     applyTrade(room, offer);
     offer.status = 'accepted';
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   socket.on('declineTrade', (data: { roomId: string; tradeId: string }) => {
@@ -103,7 +104,7 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     if (offer && offer.to === player.name && offer.status === 'pending') {
       offer.status = 'declined';
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   });
 
@@ -125,7 +126,7 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     if (offer && offer.from === player.name && offer.status === 'pending') {
       offer.status = 'cancelled';
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   });
 
@@ -182,6 +183,6 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
       room.bankSupply
     );
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 }

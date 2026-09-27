@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { EditorHistorySnapshot, SavePanelProps } from './types';
 import { inputClass } from './constants';
-import { cloneMap, randomRoomId, toHexLayouts } from './utils';
+import { cloneMap, toHexLayouts } from './utils';
+import { generateRoomCode } from '../utils/roomCode';
 
 /**
  * Save & Start panel: for a new room it collects a player name and room id and
@@ -62,7 +63,7 @@ const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, validation, missingN
                 className={`${inputClass} flex-1`}
               />
               <button
-                onClick={() => setNewRoomId(randomRoomId())}
+                onClick={() => setNewRoomId(generateRoomCode())}
                 title="Generate random room ID"
                 className="px-3 border border-gray-300 rounded-md bg-gray-100 cursor-pointer"
               >

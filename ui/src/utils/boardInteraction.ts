@@ -1,4 +1,4 @@
-import { Board, GameRoom, PixelCoord, SoldierObj } from 'common';
+import { Board, PublicGameRoom, PixelCoord, SoldierObj } from 'common';
 
 /**
  * Pure helpers for board pointer interaction: drag eligibility, drop-target
@@ -6,7 +6,7 @@ import { Board, GameRoom, PixelCoord, SoldierObj } from 'common';
  */
 
 /** True while this soldier may still take an action this turn. */
-export const soldierMovableThisTurn = (s: SoldierObj, gameRoom: GameRoom): boolean =>
+export const soldierMovableThisTurn = (s: SoldierObj, gameRoom: PublicGameRoom): boolean =>
   !gameRoom.turnState.soldiersActedThisTurn.includes(s.id) &&
   !gameRoom.turnState.soldiersCreatedThisTurn.includes(s.id) &&
   !gameRoom.turnState.soldiersHealedThisTurn.includes(s.id);
@@ -17,7 +17,7 @@ export const soldierMovableThisTurn = (s: SoldierObj, gameRoom: GameRoom): boole
  * move (mirrors the flags canMoveSoldierTo enforces on the backend).
  */
 export function isSoldierDraggable(
-  gameRoom: GameRoom | null,
+  gameRoom: PublicGameRoom | null,
   playerName: string | undefined,
   ownerName: string,
   vertexId: string
@@ -37,7 +37,7 @@ export function isSoldierDraggable(
  */
 export function movableSoldierAt(
   board: Board,
-  gameRoom: GameRoom,
+  gameRoom: PublicGameRoom,
   vertexId: string,
   ownerName: string
 ): SoldierObj | null {

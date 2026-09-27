@@ -17,4 +17,6 @@ export interface SavedSession {
   roomId: string;
   playerName: string;
   color?: string;
+  /** Server-issued seat token: proves ownership when re-attaching after a reload. */
+  token?: string;
 }

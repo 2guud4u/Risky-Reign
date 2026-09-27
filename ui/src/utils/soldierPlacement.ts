@@ -1,7 +1,7 @@
-import { Board, GameRoom, SoldierObj } from 'common';
+import { Board, PublicGameRoom, SoldierObj } from 'common';
 
 /** Map of player name -> chosen color (for tinting pieces per owner). */
-export const playerColorMap = (gameRoom: GameRoom | null): Record<string, string> =>
+export const playerColorMap = (gameRoom: PublicGameRoom | null): Record<string, string> =>
   Object.fromEntries((gameRoom?.players ?? []).map((p) => [p.name, p.color]));
 
 /** Number of soldiers per rank row in the mini view. */

@@ -1,5 +1,6 @@
 import { applyBonuses } from 'common';
 import { gameRooms } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 
 /**
@@ -74,7 +75,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       soldier.stationed = false;
       room.battleState.injuredSettled = { ...room.battleState.injuredSettled, [soldierId]: targetVertexId };
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 
@@ -133,7 +134,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       turn === 'attacker' ? (hasInjured(room.battleState.defender) ? 'defender' : null) : null;
     room.battleState = { ...room.battleState, repositionTurn: next };
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   // A player can dismiss the battle window once they have seen the outcome.
@@ -153,7 +154,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       room.battleState = null;
       room.robberDefeatedBy = null;
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   });
 }

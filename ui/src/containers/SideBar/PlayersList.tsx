@@ -1,8 +1,8 @@
 import React from 'react';
-import { Board, Player } from 'common';
+import { Board, PublicPlayer } from 'common';
 
 interface PlayersListProps {
-  players: Player[];
+  players: PublicPlayer[];
   board?: Board | null;
   bonuses?: {
     longestRoad: Record<string, number>;
@@ -24,8 +24,8 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         const hasRoad = bonuses?.hasLongestRoad?.[player.name] ?? false;
         const hasArmy = bonuses?.hasLargestArmy?.[player.name] ?? false;
         const roadLen = bonuses?.longestRoad?.[player.name] ?? 0;
-        // Total resource cards (other players' hands are hidden — only the count shows).
-        const totalResources = Object.values(player.resources).reduce((sum, v) => sum + v, 0);
+        // Opponents' hands are masked server-side; the public total is all we show.
+        const totalResources = player.resourceCount;
         return (
           <div
             key={player.id}
@@ -79,7 +79,7 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
                 </span>
               )}
               <span className="mr-2.5" title="Development cards">
-                🎴 {player.developmentCards.length}
+                🎴 {player.devCardCount}
               </span>
             </div>
           </div>

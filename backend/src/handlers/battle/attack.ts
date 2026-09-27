@@ -1,5 +1,6 @@
 import { canStartBattle, createBattleState } from 'common';
 import { gameRooms } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 
 /**
@@ -56,7 +57,7 @@ export function registerBattleAttackHandlers(ctx: HandlerContext): void {
         turnState.soldiersActedThisTurn.push(sid);
       }
 
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 }

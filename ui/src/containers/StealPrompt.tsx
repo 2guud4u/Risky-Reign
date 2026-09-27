@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import { expandCards } from 'common';
 
 /**
  * Steal prompt. Shown after the robber is placed and there is at least one
@@ -10,8 +9,8 @@ import { expandCards } from 'common';
  *  - the thief picks a victim, then one of their cards (rendered face-down,
  *    in the same fixed order the backend uses, so the card at index `i` is
  *    the same in both).
- * The cards are face-down ("?"), but the thief can infer which resource a
- * tile is from the victim's visible resource counts + position.
+ * The cards are face-down ("?"): the victim's hand is masked server-side, so
+ * only their public `resourceCount` is known — every card is equally likely.
  */
 const StealPrompt: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -40,7 +39,7 @@ const StealPrompt: React.FC = () => {
   }
 
   const selectedPlayer = gameRoom.players.find((p) => p.name === selectedVictim);
-  const cards = selectedPlayer ? expandCards(selectedPlayer.resources) : [];
+  const cardCount = selectedPlayer?.resourceCount ?? 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -57,9 +56,7 @@ const StealPrompt: React.FC = () => {
         <div className="flex gap-2 mb-3 flex-wrap">
           {victims.map((name) => {
             const player = gameRoom.players.find((p) => p.name === name);
-            const count = player
-              ? Object.values(player.resources).reduce((a, b) => a + b, 0)
-              : 0;
+            const count = player ? player.resourceCount : 0;
             return (
               <button
                 key={name}
@@ -81,11 +78,11 @@ const StealPrompt: React.FC = () => {
         {selectedPlayer ? (
           <div>
             <p className="text-xs text-gray-400 mb-2">
-              Take one of {selectedPlayer.name}&apos;s {cards.length} card
-              {cards.length === 1 ? '' : 's'}:
+              Take one of {selectedPlayer.name}&apos;s {cardCount} card
+              {cardCount === 1 ? '' : 's'}:
             </p>
             <div className="flex gap-2 flex-wrap">
-              {cards.map((_, i) => (
+              {Array.from({ length: cardCount }, (_, i) => (
                 <button
                   key={i}
                   type="button"

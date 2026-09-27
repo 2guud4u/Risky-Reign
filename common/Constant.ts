@@ -147,3 +147,11 @@ export const MAX_BANK_TRADE_PER_TURN = 4;
 
 /** Maximum soldiers that may fight on a side in a single battle round. */
 export const MAX_PER_ROUND = 3;
+/** Room codes are this many uppercase alphanumeric characters (unguessable). */
+export const ROOM_CODE_LENGTH = 10;
+/** Allowed characters in a room code. */
+export const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/** Player names are this many characters at most. */
+export const PLAYER_NAME_MAX = 20;
+/** A custom board may carry at most this many hexes (caps memory per room). */
+export const MAX_BOARD_HEXES = 200;

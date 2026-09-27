@@ -10,6 +10,7 @@ import {
   type UndoEntry,
 } from 'common';
 import { gameRooms, freshResourceCount } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 
 /**
@@ -85,7 +86,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
     }
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   // The attacker may end the battle after any resolved round (betweenRounds),
@@ -122,7 +123,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
     room.battleState = { ...battle, phase: 'repositioning', injuredSettled, repositionTurn: initialRepositionTurn(battle) };
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   // The winner of a robber fight moves the robber to a hex adjacent to its
@@ -176,7 +177,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
       }
       room.robberDefeatedBy = null;
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 }

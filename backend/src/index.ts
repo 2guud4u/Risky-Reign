@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
 import { setupSocketHandlers } from './sockets';
+import { startRoomSweep } from './roomSweep';
 
 const app = express();
 const server = createServer(app);
@@ -27,7 +28,15 @@ app.get('*', (req, res, next) => {
 
 // Wire up all socket event handlers (see sockets.ts).
 setupSocketHandlers(io);
-
+startRoomSweep();
+// Last-resort guards: a handler throwing through the socket wrapper (or any
+// stray async rejection) must not take the process down. Log and keep serving.
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception (kept alive):', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection (kept alive):', reason);
+});
 const PORT = process.env.PORT || 3001;
 console.log('Server is starting...');
 server.listen(PORT, () => {

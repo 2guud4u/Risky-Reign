@@ -12,6 +12,7 @@ import {
   applyBonuses,
 } from 'common';
 import { gameRooms, freshResourceCount } from '../store';
+import { broadcastRoom } from '../broadcast';
 import { HandlerContext, blockIfFinished } from './context';
 
 /**
@@ -67,7 +68,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     turnState.soldiersActedThisTurn.push(soldierId);
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   socket.on(
@@ -132,7 +133,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       }
 
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 
@@ -177,7 +178,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     turnState.soldiersActedThisTurn.push(soldierId);
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   socket.on('fightRobber', (data: { roomId: string; soldierId: string; vertexId: string }) => {
@@ -217,6 +218,6 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     turnState.soldiersActedThisTurn.push(soldierId);
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 }

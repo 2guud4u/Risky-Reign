@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GameRoom, Player } from 'common';
+import { PublicGameRoom, PublicPlayer } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
@@ -14,9 +14,9 @@ import { TOAST_DURATION_MS } from '../constants';
  * still in the room; false otherwise (caller should clear the saved session).
  */
 function syncCurrentPlayer(
-  room: GameRoom,
+  room: PublicGameRoom,
   socketId: string | undefined,
-  setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>
+  setCurrentPlayer: React.Dispatch<React.SetStateAction<PublicPlayer | null>>
 ): boolean {
   const player = room.players.find((p) => p.id === socketId);
   setCurrentPlayer(player ?? null);
@@ -59,7 +59,7 @@ const GameLogic: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('roomUpdate', (room: GameRoom) => {
+    socket.on('roomUpdate', (room: PublicGameRoom) => {
       setGameRoom(room);
       if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer)) {
         // No longer in this room — clear the saved session.
@@ -68,7 +68,7 @@ const GameLogic: React.FC = () => {
       setError(null);
     });
 
-    socket.on('gameUpdate', (room: GameRoom) => {
+    socket.on('gameUpdate', (room: PublicGameRoom) => {
       setGameRoom(room);
       syncCurrentPlayer(room, socket.id, setCurrentPlayer);
       setError(null);

@@ -8,6 +8,7 @@ import {
   RESOURCES,
 } from 'common';
 import { gameRooms } from '../store';
+import { broadcastRoom } from '../broadcast';
 import { HandlerContext, blockIfFinished } from './context';
 
 /**
@@ -66,7 +67,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
     }
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   /**
@@ -168,7 +169,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
     }
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   // Resolve a pending development-card choice (Year of Plenty / Monopoly).
@@ -243,7 +244,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       player.developmentCards.splice(room.devCardChoice.cardIndex, 1);
       room.devCardChoice = null;
       applyBonuses(room);
-      io.to(roomId).emit('gameUpdate', { ...room });
+      broadcastRoom(io, room);
     }
   );
 }

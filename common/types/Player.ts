@@ -19,4 +19,20 @@ export interface Player {
    * "at most 4 of one resource type per turn" bank-trade limit).
    */
   bankTradesThisTurn: ResourceCount;
+  /**
+   * Server-issued secret used to re-attach to this seat on reconnect. Never
+   * sent to other players; it proves ownership of the seat (a name alone must
+   * not let a stranger take over a player mid-game).
+   */
+  token?: string;
+  /**
+   * Public hand size seen by other players (their `resources` are masked).
+   * Always present on the sanitized view; equals the real hand size.
+   */
+  resourceCount?: number;
+  /**
+   * Public dev-card count seen by other players (their card list is masked).
+   * Always present on the sanitized view.
+   */
+  devCardCount?: number;
 }

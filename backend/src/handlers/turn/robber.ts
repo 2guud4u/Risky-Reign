@@ -9,6 +9,7 @@ import {
 } from 'common';
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 
 /**
@@ -80,7 +81,7 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
     room.robberMove = null;
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   // Resolve a pending steal: the thief takes the face-down card at
@@ -125,7 +126,7 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
     if (reason === 'seven') advanceTurn(room);
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   // Resolve a pending 7-discard: the player hands in exactly `required`
@@ -173,6 +174,6 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
     }
     delete room.discards[player.name];
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 }

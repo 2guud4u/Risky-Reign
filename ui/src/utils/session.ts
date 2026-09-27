@@ -24,7 +24,7 @@ export function readSavedSession(): SavedSession | null {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.roomId && parsed.playerName) return parsed as SavedSession;
+    if (parsed && parsed.roomId) return { playerName: '', ...parsed } as SavedSession;
     return null;
   } catch {
     return null;

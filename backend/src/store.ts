@@ -85,6 +85,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     robberBag: freshResourceCount(0),
     bankSupply: freshBankSupply(),
     bonuses: emptyBonuses(),
+    lastActivityAt: Date.now(),
   };
   gameRooms.set(roomId, room);
   return room;
@@ -126,6 +127,7 @@ export function resetRoom(room: GameRoom): void {
   room.robberBag = freshResourceCount(0);
   room.bankSupply = freshBankSupply();
   room.bonuses = emptyBonuses();
+  room.lastActivityAt = Date.now();
   for (const p of room.players) {
     p.resources = freshResourceCount(10);
     p.victoryPoints = 0;

@@ -6,7 +6,7 @@ import ColorPicker from '../components/ColorPicker';
 import BoardView from '../containers/BoardView';
 import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
-import { saveSession } from '../utils/session';
+import { readSavedSession, saveSession } from '../utils/session';
 
 const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }> = ({ error, onCustomizeBoard }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -23,7 +23,14 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     const name = nameInput.trim();
     if (!name || !gameRoom || !currentPlayer) return;
     onUpdatePlayerName(gameRoom.id, name);
-    saveSession({ roomId: gameRoom.id, playerName: name, color: currentPlayer.color });
+    // Keep the seat token so a reload re-attaches to this same player.
+    const saved = readSavedSession();
+    saveSession({
+      ...(saved && saved.roomId === gameRoom.id ? { token: saved.token } : {}),
+      roomId: gameRoom.id,
+      playerName: name,
+      color: currentPlayer.color,
+    });
   };
 
   if (!gameRoom || !currentPlayer) {

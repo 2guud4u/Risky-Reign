@@ -11,6 +11,7 @@ import {
 } from 'common';
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
+import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
 
 /** Remove a soldier id from the per-turn tracking arrays (used by undo). */
@@ -83,7 +84,7 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
     advanceTurn(room);
     // Notify all players in the room about the turn end.
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', room);
+    broadcastRoom(io, room);
   });
 
   // Undo the acting player's most recent action this phase (build or action).
@@ -223,6 +224,6 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
     }
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 }

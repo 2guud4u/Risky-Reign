@@ -99,5 +99,3 @@ export const EDITOR_COLORS = {
   desertLabel: '#92400e',
 } as const;
 
-/** Length of a generated room id (base-36 random string). */
-export const ROOM_ID_LENGTH = 6;

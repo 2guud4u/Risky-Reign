@@ -1,5 +1,6 @@
 import { Terrain } from '../types/Hex';
 import { HexLayout } from '../types/BoardGenerator';
+import { MAX_BOARD_HEXES } from '../Constant';
 
 /**
  * Validation for a custom board layout (shared by the UI editor and the
@@ -47,6 +48,9 @@ const coordKey = (c: { q: number; r: number; s: number }): string =>
 export function validateLayouts(layouts: HexLayout[]): ValidationResult {
   if (!Array.isArray(layouts) || layouts.length === 0) {
     return { allowed: false, reason: 'Board must have at least one hex' };
+  }
+  if (layouts.length > MAX_BOARD_HEXES) {
+    return { allowed: false, reason: `Board cannot exceed ${MAX_BOARD_HEXES} hexes` };
   }
 
   const seenCoords = new Set<string>();

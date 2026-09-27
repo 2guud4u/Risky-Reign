@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState } from 'react';
-import { GameRoom, Player } from 'common';
+import { PublicGameRoom, PublicPlayer } from 'common';
 import { SelectableObject } from '../types';
 interface GameRoomContextValue {
-  gameRoom: GameRoom | null;
-  setGameRoom: React.Dispatch<React.SetStateAction<GameRoom | null>>;
-  currentPlayer: Player | null;
-  setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
+  gameRoom: PublicGameRoom | null;
+  setGameRoom: React.Dispatch<React.SetStateAction<PublicGameRoom | null>>;
+  currentPlayer: PublicPlayer | null;
+  setCurrentPlayer: React.Dispatch<React.SetStateAction<PublicPlayer | null>>;
   selectedObject: SelectableObject | null;
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
 }
@@ -13,8 +13,8 @@ interface GameRoomContextValue {
 const GameRoomContext = createContext<GameRoomContextValue | undefined>(undefined);
 
 export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [gameRoom, setGameRoom] = useState<PublicGameRoom | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<PublicPlayer | null>(null);
   const [selectedObject, setSelectedObject] = useState<SelectableObject | null>(null);
   return (
     <GameRoomContext.Provider

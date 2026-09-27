@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Price, SOCKET_URL, HexLayout } from 'common';
+import { readSavedSession, saveSession } from '../utils/session';
 
 /**
  * Generic emit helper: guards against a missing socket/roomId and validates
@@ -188,7 +189,11 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const joinRoom = (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => {
     if (!socket) return;
-    socket.emit('joinRoom', { roomId, playerName, color, ...(layouts && layouts.length > 0 ? { layouts } : {}) });
+    // Re-attach to our seat after a reload: send the saved token (only when
+    // the session is for this exact room — never leak a stale token).
+    const saved = readSavedSession();
+    const token = saved && saved.roomId === roomId ? saved.token : undefined;
+    socket.emit('joinRoom', { roomId, playerName, color, ...(token ? { token } : {}), ...(layouts && layouts.length > 0 ? { layouts } : {}) });
   };
 
   const updatePlayerColor = (roomId: string, color: string) =>
@@ -234,6 +239,13 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     newSocket.on('disconnect', () => {
       setIsConnected(false);
       console.log('Disconnected from server');
+    });
+
+    // The server hands each joined socket a secret seat token; persist it so
+    // a reload can re-attach to the same seat instead of joining as new.
+    newSocket.on('joined', (data: { token: string }) => {
+      const saved = readSavedSession();
+      if (saved) saveSession({ ...saved, token: data.token });
     });
 
     return () => {

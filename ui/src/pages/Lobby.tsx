@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
-import { saveSession } from '../utils/session';
+import { readSavedSession, saveSession } from '../utils/session';
+import { generateRoomCode } from '../utils/roomCode';
 
 const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
 
@@ -18,13 +19,13 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
       onJoinRoom('', roomId.trim());
       // Persist the join so a reload auto-rejoins. The name is chosen after
       // joining; the session is updated once the name is set.
-      saveSession({ roomId: roomId.trim(), playerName: '' });
+      const saved = readSavedSession();
+      saveSession({ roomId: roomId.trim(), playerName: '', ...(saved?.roomId === roomId.trim() ? { token: saved.token } : {}) });
     }
   };
 
   const generateRoomId = () => {
-    const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setRoomId(randomId);
+    setRoomId(generateRoomCode());
   };
 
   const canJoin = isConnected && !!roomId.trim();

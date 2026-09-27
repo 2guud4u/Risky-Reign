@@ -32,8 +32,10 @@ port  connector should still show with 1 vertex - visual port update
 
 
 bug:
-soldier display is not correct 
+for setupphase dont need to show spending of resources
 
+when roll last number let it linger there for 3 seconds 
+for glowing number, you dont need to make number yellow just keep the glowing affect
 Far future requests:
 rule customization
 - unlimited property
@@ -64,4 +66,3 @@ for trade add option for wanted trade and other players can see
 
  server should plan out on device database 
 
- 

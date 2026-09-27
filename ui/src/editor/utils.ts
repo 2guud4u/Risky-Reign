@@ -11,7 +11,7 @@ import {
   cubeCoordKey,
 } from 'common';
 import { EditorHex, EditorMap, Tactic, Target } from './types';
-import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, NUMBER_OPTIONS, ROOM_ID_LENGTH, TERRAIN_OPTIONS } from './constants';
+import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, NUMBER_OPTIONS, TERRAIN_OPTIONS } from './constants';
 
 /** Canonical cube-coord string key — re-export of `cubeCoordKey` from common. */
 export const coordKey = cubeCoordKey;
@@ -181,10 +181,6 @@ export function cloneMap(map: EditorMap): EditorMap {
   return JSON.parse(JSON.stringify(map)) as EditorMap;
 }
 
-/** A random uppercase base-36 room id for "Save & Start". */
-export function randomRoomId(): string {
-  return Math.random().toString(36).substring(2, 2 + ROOM_ID_LENGTH).toUpperCase();
-}
 
 /** Number of placeable hexes still missing a roll number (blocks saving). */
 export function countMissingNumbers(map: EditorMap): number {

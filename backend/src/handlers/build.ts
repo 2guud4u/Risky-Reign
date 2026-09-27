@@ -12,6 +12,7 @@ import {
 } from 'common';
 import { advanceTurn } from '../turn';
 import { gameRooms } from '../store';
+import { broadcastRoom } from '../broadcast';
 import { HandlerContext, blockIfFinished } from './context';
 
 /**
@@ -96,7 +97,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       advanceTurn(room);
     }
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   socket.on('buildRoad', (data: { roomId: string; edgeId: string }) => {
@@ -172,7 +173,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       advanceTurn(room);
     }
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   socket.on('upgradeSettlementToCity', (data: { roomId: string; vertexId: string }) => {
@@ -235,7 +236,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     });
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 
   socket.on('recruitSoldier', (data: { roomId: string; vertexId: string }) => {
@@ -291,6 +292,6 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     });
 
     applyBonuses(room);
-    io.to(roomId).emit('gameUpdate', { ...room });
+    broadcastRoom(io, room);
   });
 }

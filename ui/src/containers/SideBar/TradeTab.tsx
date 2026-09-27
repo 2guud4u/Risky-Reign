@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, canAcceptTradeOffer, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
+import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
@@ -124,7 +124,8 @@ const TradeTab: React.FC = () => {
   const offers = gameRoom.tradeOffers ?? [];
   const incoming = offers.filter((o) => o.to === currentPlayer.name && o.status === 'pending');
   const outgoing = offers.filter((o) => o.from === currentPlayer.name && o.status === 'pending');
-  const isTurnOwner = diceOwner(gameRoom) === currentPlayer.name;
+  const turnOwner = diceOwner(gameRoom);
+  const isTurnOwner = turnOwner === currentPlayer.name;
 
   // Bank ratio for the selected give resource (port-aware).
   const bankRatio = gameRoom.board ? bestBankTradeRatio(gameRoom.board, currentPlayer, bankGive) : 4;
@@ -255,8 +256,24 @@ const TradeTab: React.FC = () => {
         <p className="text-[12px] text-gray-500 m-0">No pending offers for you.</p>
       ) : (
         incoming.map((o) => {
-          // Use the exact same check as the backend so the button state matches server rules.
-          const check = canAcceptTradeOffer(gameRoom, o, currentPlayer.name);
+          const from = gameRoom.players.find((p) => p.name === o.from);
+          const to = gameRoom.players.find((p) => p.name === o.to);
+          // Mirror of the backend's canAcceptTradeOffer using only public
+          // data: an opponent's hand is masked, so their exact resources
+          // can't be checked — resourceCount is the only affordability
+          // signal available (the server still enforces the real check).
+          const canAfford = (p: typeof from, price: Price) =>
+            !!p && (p.id === currentPlayer.id
+              ? covers(p.resources, price)
+              : p.resourceCount >= Object.values(price).reduce((a, b) => a + b, 0));
+          const check = {
+            allowed:
+              o.to === currentPlayer.name &&
+              o.status === 'pending' &&
+              (turnOwner === o.from || turnOwner === o.to) &&
+              canAfford(from, o.give) &&
+              canAfford(to, o.want),
+          };
           return (
             <OfferRow
               key={o.id}

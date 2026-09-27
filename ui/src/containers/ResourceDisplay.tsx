@@ -21,7 +21,7 @@ const ResourceDisplay: React.FC = () => {
 
   // Buying is only allowed on your own turn (enforced server-side too).
   const canBuyDevCard =
-    isMyTurn && canAfford(me.resources, DevelopmentCardPrice) && gameRoom.devCardDeck.length > 0;
+    isMyTurn && canAfford(me.resources, DevelopmentCardPrice) && gameRoom.devCardDeckCount > 0;
 
   const handleDrawDevCard = () => drawDevelopmentCard(me.id, gameRoom.id);
   const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(me.id, gameRoom.id, cardIndex);
@@ -95,7 +95,7 @@ const ResourceDisplay: React.FC = () => {
           type="button"
           onClick={handleDrawDevCard}
           className="mt-1 self-center w-7 h-7 flex items-center justify-center text-[18px] leading-none font-bold rounded-full border border-purple-700 bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
-          title={`Buy a development card (🌾1 🧱1 ⛏️1). ${gameRoom.devCardDeck.length} cards left in deck.`}
+          title={`Buy a development card (🌾1 🧱1 ⛏️1). ${gameRoom.devCardDeckCount} cards left in deck.`}
         >
           +
         </button>

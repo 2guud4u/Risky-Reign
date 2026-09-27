@@ -113,4 +113,28 @@ export interface GameRoom {
   bankSupply: ResourceCount;
   /** Recomputed scoring bonuses (longest road / largest army). */
   bonuses: RoomBonuses;
+  /** Last activity timestamp (ms). Used to sweep idle rooms and free memory. */
+  lastActivityAt: number;
 }
+/**
+ * A player as broadcast to clients: the secret `token` is stripped, and other
+ * players' `resources`/`developmentCards` are masked (zeroed/empty) so only
+ * the seat owner sees their hand. `resourceCount`/`devCardCount` carry the
+ * public totals the UI shows for opponents.
+ */
+export type PublicPlayer = Omit<Player, 'token' | 'resources' | 'developmentCards'> & {
+  resources: Player['resources'];
+  developmentCards: Player['developmentCards'];
+  resourceCount: number;
+  devCardCount: number;
+};
+
+/**
+ * The room as broadcast to a given client: the shared `devCardDeck` draw order
+ * is hidden (only its size is public) and every player is a `PublicPlayer`.
+ */
+export type PublicGameRoom = Omit<GameRoom, 'players' | 'devCardDeck'> & {
+  players: PublicPlayer[];
+  /** Face-down cards remaining in the shared deck (order hidden). */
+  devCardDeckCount: number;
+};

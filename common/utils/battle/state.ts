@@ -108,7 +108,7 @@ export function canStartBattle(
  * - The robber is on one of the vertex's hexes (the soldier is "nearby")
  */
 export function canFightRobber(
-  room: GameRoom,
+  room: Pick<GameRoom, 'turnState' | 'battleState' | 'board'>,
   playerName: string,
   soldierId: string,
   vertexId: string
