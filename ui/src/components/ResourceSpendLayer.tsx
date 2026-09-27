@@ -1,17 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CityPrice, RoadPrice, SettlementPrice, SoldierPrice, ResourceKey, RESOURCES } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
-import { SPEND_DURATION, SPEND_STAGGER } from '../constants';
-import { FlyIcon, nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyIcon';
-
-export type BuildType = 'settlement' | 'city' | 'road' | 'soldier';
-
-export interface BuildAnimationInfo {
-  type: BuildType;
-  locationId: string;
-}
-
-export const BUILD_ANIMATION_EVENT = 'build:animation';
+import { SPEND_DURATION, SPEND_STAGGER, BUILD_ANIMATION_EVENT } from '../constants';
+import { FlyIcon } from '../types/flyIcon';
+import { BuildType, BuildAnimationInfo } from '../types/buildAnimation';
+import { nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyIcon';
 
 /**
  * Dispatch a build animation event so the ResourceSpendLayer can animate the

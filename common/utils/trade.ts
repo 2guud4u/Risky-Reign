@@ -178,7 +178,11 @@ export function canBankTrade(
   if (!player) return { allowed: false, reason: 'Unknown player' };
   if (!room.board) return { allowed: false, reason: 'No board' };
   const ratio = bestBankTradeRatio(room.board, player, giveResource);
-  const wantCount = Math.floor(giveCount / ratio);
+  // Reject partial batches so the bank never keeps an untraded remainder.
+  if (giveCount % ratio !== 0) {
+    return { allowed: false, reason: `${giveResource} trades at ${ratio}:1 — give a multiple of ${ratio}` };
+  }
+  const wantCount = giveCount / ratio;
   if (wantCount < 1) {
     return { allowed: false, reason: `Need at least ${ratio} ${giveResource} for a 1:1 trade at ${ratio}:1` };
   }

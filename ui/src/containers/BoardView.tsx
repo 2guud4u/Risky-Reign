@@ -1,30 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { BOARD_RADIUS, domainToPresentation, BoardUIState, PortType, PixelCoord } from 'common';
+import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import { BoardEdge } from '../components/BoardEdge';
-import { BoardVertex } from '../components/BoardVertex';
-import { PortDock } from '../components/PortDock';
 import { SoldierBadges } from '../components/SoldierBadges';
-import Hexagon from '../components/Hexagon';
-import RobberBagView from './SideBar/RobberBagView';
+import { HexLayer } from '../components/board/HexLayer';
+import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
+import { PortLayer } from '../components/board/PortLayer';
+import { RobberBagPopup } from '../components/board/RobberBagPopup';
+import { DragOverlays } from '../components/board/DragOverlays';
 import { useBoardViewport } from '../hooks/useBoardViewport';
+import { useBoardDrag } from '../hooks/useBoardDrag';
 import {
   BOARD_MAX_SCALE,
   BOARD_MIN_SCALE,
-  DROP_TARGET_RING_R,
-  DROP_THRESHOLD_FRACTION,
+  BOARD_RENDER_MARGIN,
+  BOARD_VIEWBOX_MARGIN,
   PROJ_SIZE,
-  ROBBER_H_FRACTION,
-  ROBBER_W_FRACTION,
-  ROBBER_Y_OFFSET_FRACTION,
-  SOLDIER_BADGE_R,
 } from '../constants';
-
-interface BoardViewProps {
-  /** On-screen render size (lobby preview vs. full game). */
-  hexSize: number;
-}
+import { BoardViewProps } from '../types/board';
+import {
+  countSoldiersByVertexAndOwner,
+  groupPortVertices,
+  layerBoardInteraction,
+} from '../utils/boardPresentation';
 
 /**
  * Renders the board as an SVG of hexes / edges / vertices.
@@ -46,17 +44,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-
-  // Soldier drag-and-drop state.
-  const [drag, setDrag] = useState<{
-    soldierId: string;
-    ownerName: string;
-    fromVertexId: string;
-    validTargets: string[];
-  } | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  // Robber drag state: true while the user is dragging the robber.
-  const [robberDrag, setRobberDrag] = useState(false);
   // The hex whose robber is hovered (drives the robber-bag popup).
   const [hoveredRobberHexId, setHoveredRobberHexId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -84,17 +71,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const roll = gameRoom?.roll;
   const rollTotal = roll && roll.die1 !== null && roll.die2 !== null ? roll.die1 + roll.die2 : null;
 
-  // A pending robber move (a 7 roll or a played knight card) makes the
-  // robber draggable for the pending player: dragging it to a valid hex
-  // places it there.
-  const robberMove = gameRoom?.robberMove ?? null;
-  const robberPending = !!robberMove && robberMove.player === currentPlayer?.name;
-  const startRobberDrag = (e: React.MouseEvent) => {
-    if (!robberPending) return;
-    e.stopPropagation();
-    setRobberDrag(true);
-  };
-
   // Presentation state: projected vertices/edges/hexes. The board is always
   // fully selectable — building is done from the sidebar, so nothing is
   // gated here.
@@ -106,63 +82,43 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     return state;
   }, [board]);
 
-  // Group boundary vertices into docks. A dock serves 1-2 adjacent coastal
-  // vertices and renders as a single PortDock (one icon, with a little road
-  // to each vertex it serves). Vertices are grouped by port type in angular
-  // order, capped at 2 per group: the board stores only the port type per
-  // vertex (not dock identity), so adjacent same-type docks (e.g. two
-  // generic harbors) can merge into one long run — capping at 2 keeps each
-  // rendered port to 1-2 vertices, matching a single harbor.
-  const portGroups = useMemo(() => {
-    if (!base) return [];
-    const withPort = Object.values(base.vertices).filter((v) => v.port !== null);
-    const sorted = withPort.slice().sort(
-      (a, b) => Math.atan2(a.position.y, a.position.x) - Math.atan2(b.position.y, b.position.x)
-    );
-    const groups: { port: PortType; vertices: PixelCoord[] }[] = [];
-    for (const v of sorted) {
-      const last = groups[groups.length - 1];
-      if (last && last.port === v.port && last.vertices.length < 2) last.vertices.push(v.position);
-      else groups.push({ port: v.port as PortType, vertices: [v.position] });
-    }
-    return groups;
-  }, [base]);
+  // Trade ports grouped into docks of 1-2 adjacent coastal vertices.
+  const portGroups = useMemo(() => groupPortVertices(base), [base]);
 
-  // Group soldiers by vertex, then by owner (for count badges).
-  const soldierGroups = useMemo(() => {
-    const map = new Map<string, Map<string, number>>();
-    if (!board) return map;
-    for (const s of Object.values(board.soldiers)) {
-      let byOwner = map.get(s.vertexId);
-      if (!byOwner) {
-        byOwner = new Map();
-        map.set(s.vertexId, byOwner);
-      }
-      byOwner.set(s.owner, (byOwner.get(s.owner) ?? 0) + 1);
-    }
-    return map;
-  }, [board]);
-
+  // Soldiers grouped by vertex, then by owner (for count badges).
+  const soldierGroups = useMemo(() => countSoldiersByVertexAndOwner(board), [board]);
 
   // Pan/zoom over the board's coordinate space (viewBox-based).
-  const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
-  // 1.2 leaves margin past the hex ring so the trade ports (which sit in the
-  // water beyond the board edge) are not clipped by the viewBox.
-  const baseSize = 1.2 * PROJ_SIZE * boardSpan;
+  const span = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
+  // The margin leaves room past the hex ring so the trade ports (which sit in
+  // the water beyond the board edge) are not clipped by the viewBox.
+  const baseSize = BOARD_VIEWBOX_MARGIN * PROJ_SIZE * span;
   const viewport = useBoardViewport(svgRef, baseSize);
 
-  // Escape clears the selection and cancels any in-progress soldier drag.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      setDrag(null);
-      setRobberDrag(false);
-      setMousePos(null);
-      setSelectedObject(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [setSelectedObject]);
+  // Drag state machine: soldier drags between adjacent vertices, the pending
+  // robber move, Escape cancellation and drop resolution.
+  const {
+    drag,
+    robberDrag,
+    mousePos,
+    robberPending,
+    canDragSoldier,
+    startDrag,
+    startRobberDrag,
+    handleMouseMove,
+    handleMouseUp,
+    cancelDrag,
+  } = useBoardDrag({
+    board,
+    base,
+    gameRoom,
+    currentPlayer,
+    svgRef,
+    setSelectedObject,
+    moveSoldier,
+    moveRobber,
+  });
+
   const handleVertexClick = useCallback(
     (vertexId: string) => {
       setSelectedObject({ type: 'vertex', id: vertexId });
@@ -174,149 +130,27 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   if (!base || !gameRoom || !board) {
     return <div className="text-center text-gray-500">Loading board...</div>;
   }
-
   // Map owner name -> chosen color so settlements/roads render in the
   // player's color.
-  const colorOf = (ownerId: string | null): string | undefined => {
-    if (!ownerId || !gameRoom) return undefined;
-    return gameRoom.players.find((p) => p.name === ownerId)?.color;
-  };
+  const colorOf = (ownerId: string | null): string | undefined =>
+    !ownerId ? undefined : gameRoom.players.find((p) => p.name === ownerId)?.color;
 
   // Layer ephemeral interaction state (hover/select) and owner colors onto
   // the presentation.
-  const vertices = Object.values(base.vertices).map((v) => ({
-    ...v,
-    isSelected: v.id === (selectedObject?.type === 'vertex' ? selectedObject.id : null),
-    isHovered: v.id === hoveredVertexId,
-    ownerColor: colorOf(v.settlementOwnerId),
-  }));
-  const edges = Object.values(base.edges).map((e) => ({
-    ...e,
-    isSelected: e.id === (selectedObject?.type === 'edge' ? selectedObject.id : null),
-    isHovered: e.id === hoveredEdgeId,
-    ownerColor: colorOf(e.roadOwnerId),
-  }));
-  const hexes = Object.values(base.hexes);
-
+  const { vertices, edges, hexes } = layerBoardInteraction(
+    base,
+    selectedObject,
+    hoveredVertexId,
+    hoveredEdgeId,
+    colorOf
+  );
 
   const handleEdgeClick = (edgeId: string) => {
     setSelectedObject({ type: 'edge', id: edgeId });
   };
 
-  // A soldier badge is draggable only during the current player's Action phase,
-  // and only when at least one of that owner's soldiers at the vertex can still
-  // move (mirrors the flags canMoveSoldierTo enforces on the backend).
-  const canDragSoldier = (ownerName: string, vertexId: string): boolean => {
-    if (gameRoom.turnState.phase !== 'Action') return false;
-    if (gameRoom.turnState.player !== currentPlayer?.name) return false;
-    if (currentPlayer?.name !== ownerName) return false;
-    return Object.values(board?.soldiers ?? {}).some(
-      (s) =>
-        s.vertexId === vertexId &&
-        s.owner === ownerName &&
-        !gameRoom.turnState.soldiersActedThisTurn.includes(s.id) &&
-        !gameRoom.turnState.soldiersCreatedThisTurn.includes(s.id) &&
-        !gameRoom.turnState.soldiersHealedThisTurn.includes(s.id)
-    );
-  };
-
-  const startDrag = (e: React.MouseEvent, ownerName: string, vertexId: string) => {
-    if (!board) return;
-    // Drag the first soldier here that can actually move (skip ones that
-    // already acted / were just built / were just healed this turn).
-    const soldier = Object.values(board.soldiers).find(
-      (s) =>
-        s.vertexId === vertexId &&
-        s.owner === ownerName &&
-        !gameRoom.turnState.soldiersActedThisTurn.includes(s.id) &&
-        !gameRoom.turnState.soldiersCreatedThisTurn.includes(s.id) &&
-        !gameRoom.turnState.soldiersHealedThisTurn.includes(s.id)
-    );
-    if (!soldier) return;
-    e.stopPropagation();
-    const validTargets: string[] = [];
-    const v = board.vertices[vertexId];
-    if (v) {
-      for (const edgeId of v.roadIds) {
-        const edge = board.edges[edgeId];
-        if (!edge || edge.roadId === null) continue; // no road on this edge
-        const other = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
-        validTargets.push(other);
-      }
-    }
-    setDrag({ soldierId: soldier.id, ownerName, fromVertexId: vertexId, validTargets });
-  };
-
-
-  const toSvgCoords = (e: React.MouseEvent): { x: number; y: number } | null => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return null;
-    const p = pt.matrixTransform(ctm.inverse());
-    return { x: p.x, y: p.y };
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!drag && !robberDrag) return;
-    setMousePos(toSvgCoords(e));
-  };
-
-  const handleMouseUp = () => {
-    // Handle robber drag.
-    if (robberDrag) {
-      setRobberDrag(false);
-      if (mousePos && board && currentPlayer && gameRoom) {
-        // Find the nearest valid hex (non-Desert, no robber) within reach.
-        let best: string | null = null;
-        let bestDist = Infinity;
-        for (const hex of Object.values(base.hexes)) {
-          if (hex.terrain === 'Desert' || hex.hasRobber) continue;
-          const d = Math.hypot(hex.position.x - mousePos.x, hex.position.y - mousePos.y);
-          if (d < bestDist) {
-            bestDist = d;
-            best = hex.id;
-          }
-        }
-        const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
-        if (best && bestDist <= threshold) {
-          moveRobber(currentPlayer.id, best, gameRoom.id);
-        }
-      }
-      setMousePos(null);
-      return;
-    }
-    // Handle soldier drag.
-    if (!drag || !mousePos || !board || !currentPlayer) {
-      setDrag(null);
-      setMousePos(null);
-      return;
-    }
-    // Drop on the nearest valid target vertex within reach.
-    let best: string | null = null;
-    let bestDist = Infinity;
-    for (const tid of drag.validTargets) {
-      const v = board.vertices[tid];
-      if (!v) continue;
-      const d = Math.hypot(v.position.x - mousePos.x, v.position.y - mousePos.y);
-      if (d < bestDist) {
-        bestDist = d;
-        best = tid;
-      }
-    }
-    const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
-    if (best && bestDist <= threshold) {
-      moveSoldier(currentPlayer.id, drag.soldierId, best, gameRoom.id);
-    }
-    setDrag(null);
-    setMousePos(null);
-  };
-
-  // 1.1 leaves margin past the hex ring so the coast trade ports are not clipped.
-  const naturalSize = 1.1 * hexSize * boardSpan;
+  // The margin leaves room past the hex ring so the coast trade ports are not clipped.
+  const naturalSize = BOARD_RENDER_MARGIN * hexSize * span;
 
   // Size the board to fit its container, clamped so it never becomes too
   // small or too large relative to its natural size. (Zooming on top of this
@@ -358,80 +192,32 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           className="block w-full"
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={() => {
-            setDrag(null);
-            setRobberDrag(false);
-            setMousePos(null);
-          }}
+          onMouseLeave={cancelDrag}
           onMouseDown={viewport.onMouseDown}
           onDoubleClick={viewport.onDoubleClick}
         >
-
           {/* Hex tiles layer (clickable while a robber move is pending) */}
-          {hexes.map((hex) => {
-            const isRobberTarget = robberPending && hex.terrain !== 'Desert' && !hex.hasRobber;
-            const litUp =
-              rollTotal !== null && hex.rollNumber === rollTotal && hex.terrain !== 'Desert' && hex.terrain !== 'Water';
-            return (
-              <Hexagon
-                key={hex.id}
-                hex={hex}
-                size={PROJ_SIZE}
-                highlight={isRobberTarget}
-                onRobberMouseDown={robberPending ? startRobberDrag : undefined}
-                robberDraggable={robberPending}
-                litUp={litUp}
-                onRobberHover={(_id, hovering) => setHoveredRobberHexId(hovering ? _id : null)}
-              />
-            );
-          })}
+          <HexLayer
+            hexes={hexes}
+            robberPending={robberPending}
+            rollTotal={rollTotal}
+            onRobberMouseDown={startRobberDrag}
+            onRobberHover={(hexId, hovering) => setHoveredRobberHexId(hovering ? hexId : null)}
+          />
 
           {/* Edges layer */}
-          {edges.map((edge) => (
-            <BoardEdge
-              key={edge.id}
-              {...edge}
-              onClick={handleEdgeClick}
-              onHover={setHoveredEdgeId}
-            />
-          ))}
+          <EdgeLayer edges={edges} onClick={handleEdgeClick} onHover={setHoveredEdgeId} />
 
           {/* Vertices layer */}
-          {vertices.map((vertex) => (
-            <BoardVertex
-              key={vertex.id}
-              {...vertex}
-              size={8}
-              onClick={handleVertexClick}
-              onHover={setHoveredVertexId}
-            />
-          ))}
+          <VertexLayer vertices={vertices} onClick={handleVertexClick} onHover={setHoveredVertexId} />
 
           {/* Robber's bag: dialog popup over the hovered robber (top layer so
               it isn't covered by the hexes). */}
-          {hoveredRobberHexId &&
-            (() => {
-              const hex = hexes.find((h) => h.id === hoveredRobberHexId);
-              if (!hex) return null;
-              const { x, y } = hex.position;
-              return (
-                <foreignObject
-                  x={x + 60}
-                  y={y - PROJ_SIZE * ROBBER_Y_OFFSET_FRACTION - 47}
-                  width={150}
-                  height={95}
-                  style={{ pointerEvents: 'none', overflow: 'visible' }}
-                >
-                  <RobberBagView />
-                </foreignObject>
-              );
-            })()}
+          <RobberBagPopup hex={hexes.find((h) => h.id === hoveredRobberHexId) ?? null} />
 
           {/* Trade ports (harbors): one icon per dock, with a little road
               to each of the 1-2 vertices it serves. */}
-          {portGroups.map((g, i) => (
-            <PortDock key={`port-${i}`} vertices={g.vertices} port={g.port} size={8} />
-          ))}
+          <PortLayer portGroups={portGroups} />
 
           {/* Soldiers layer: count badges below each vertex */}
           <SoldierBadges
@@ -443,51 +229,14 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             onSelect={setSelectedObject}
           />
 
-          {/* Drag feedback: highlight valid drop targets */}
-          {drag &&
-            drag.validTargets.map((tid) => {
-              const v = board.vertices[tid];
-              if (!v) return null;
-              return (
-                <circle
-                  key={tid}
-                  cx={v.position.x}
-                  cy={v.position.y}
-                  r={DROP_TARGET_RING_R}
-                  fill="none"
-                  stroke="#22c55e"
-                  strokeWidth={3}
-                  strokeDasharray="4,3"
-                />
-              );
-            })}
-
-          {/* Drag ghost following the cursor */}
-          {drag && mousePos && (
-            <circle
-              cx={mousePos.x}
-              cy={mousePos.y}
-              r={SOLDIER_BADGE_R}
-              fill={colorOf(drag.ownerName) ?? '#888'}
-              opacity={0.6}
-              stroke="#222"
-              strokeWidth={1.5}
-              pointerEvents="none"
-            />
-          )}
-          {/* Robber drag ghost following the cursor */}
-          {robberDrag && mousePos && (
-            <image
-              href="/art/robber.png"
-              x={mousePos.x - (PROJ_SIZE * ROBBER_W_FRACTION) / 2}
-              y={mousePos.y - (PROJ_SIZE * ROBBER_H_FRACTION) / 2}
-              width={PROJ_SIZE * ROBBER_W_FRACTION}
-              height={PROJ_SIZE * ROBBER_H_FRACTION}
-              preserveAspectRatio="xMidYMid meet"
-              opacity={0.85}
-              pointerEvents="none"
-            />
-          )}
+          {/* Drag feedback: drop-target rings and the cursor-following ghost */}
+          <DragOverlays
+            drag={drag}
+            robberDrag={robberDrag}
+            mousePos={mousePos}
+            vertices={board.vertices}
+            colorOf={colorOf}
+          />
         </svg>
         {/* <image  href="/art/settlement.svg#settlement-shape" enableBackground={}/> */}
 

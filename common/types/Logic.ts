@@ -134,11 +134,13 @@ export interface BattleState {
   /** 1-based round number (increments each time the attacker continues). */
   round: number;
   /**
-   * True when this battle is a "fight an injured soldier" (Rules.md line 28):
-   * the target vertex held only injured enemy troops, so the defenders are
-   * already injured and DO roll (unlike a normal battle, where injured troops
-   * are out of the fight). Resolution is a roll-off: if the injured defender
-   * rolls higher they flee (stay injured, can move); otherwise they die.
+   * True while the injured defenders roll off against the attacker's
+   * survivors (Rules.md lines 9, 30): set when the target vertex held only
+   * injured enemy troops, or when a mixed group's last healthy defender fell
+   * mid-battle. Injured defenders DO roll (unlike a normal battle, where
+   * injured troops are out of the fight). Resolution is a roll-off: if the
+   * injured defender rolls higher they flee (stay injured, can move);
+   * otherwise they die.
    */
   injuredFight?: boolean;
   /**

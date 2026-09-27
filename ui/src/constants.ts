@@ -41,6 +41,30 @@ export const ROBBER_Y_OFFSET_FRACTION = 1.05;
 export const ROBBER_BATTLE_W = 2.8;
 /** Battle HUD: robber image height, as a multiple of TROOP_R. */
 export const ROBBER_BATTLE_H = 2.8;
+
+/** Fraction of the natural board size added to the viewBox so coast trade ports aren't clipped. */
+export const BOARD_VIEWBOX_MARGIN = 1.2;
+/** Fraction of the natural board size added on-screen so the hex ring isn't clipped. */
+export const BOARD_RENDER_MARGIN = 1.1;
+/** Radius of vertex markers on the main board (SVG units). */
+export const BOARD_VERTEX_SIZE = 8;
+/** Render size of a port-dock icon (SVG units). */
+export const PORT_DOCK_SIZE = 8;
+/** Max coastal vertices served by one port dock. */
+export const PORT_DOCK_MAX_VERTICES = 2;
+/** Robber's-bag popup: horizontal offset right of the hex center (SVG units). */
+export const ROBBER_BAG_X_OFFSET = 60;
+/** Robber's-bag popup: extra upward offset past the robber art (SVG units). */
+export const ROBBER_BAG_Y_OFFSET = 47;
+/** Robber's-bag popup size (SVG units). */
+export const ROBBER_BAG_WIDTH = 150;
+export const ROBBER_BAG_HEIGHT = 95;
+/** Stroke width of the valid drop-target highlight ring. */
+export const DROP_TARGET_STROKE_W = 3;
+/** Opacity of the soldier drag ghost. */
+export const DRAG_GHOST_OPACITY = 0.6;
+/** Opacity of the robber drag ghost. */
+export const ROBBER_GHOST_OPACITY = 0.85;
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
 /** Distance from the vertex center to the first soldier rank row. */
@@ -76,6 +100,35 @@ export const AGGREGATE_BADGE_RADIUS = 18;
  * overlap) instead of just touching.
  */
 export const SEPARATION_FACTOR = 0.7;
+
+/** Iterations of the garrison cluster-separation pass. */
+export const SEPARATION_ITERATIONS = 8;
+/**
+ * 3×3 grid regions (in fill order) around a vertex for multiple owners'
+ * garrison clusters: corners first (farthest from center), stacking inward.
+ */
+export const GARRISON_REGION_ORDER: ReadonlyArray<{ dx: number; dy: number }> = [
+  { dx: 1, dy: -1 },
+  { dx: -1, dy: 1 },
+  { dx: -1, dy: -1 },
+  { dx: 1, dy: 1 },
+  { dx: 0, dy: -1 },
+  { dx: 0, dy: 1 },
+  { dx: 1, dy: 0 },
+  { dx: -1, dy: 0 },
+  { dx: 0, dy: 0 },
+];
+/** Endpoint vertex circle radius when an edge is selected in the MiniView. */
+export const MINI_ENDPOINT_R = 9;
+/** Vertex marker radius a settlement/city glyph is sized from in the MiniView. */
+export const MINI_SETTLEMENT_MARKER_R = 10;
+/** Distance from a neighbor circle to its letter label in the MiniView. */
+export const MINI_LABEL_DIST = 20;
+/** Half-extent of a letter label glyph in the MiniView (for viewBox fitting). */
+export const MINI_LABEL_HALF_W = 6;
+export const MINI_LABEL_HALF_H = 9;
+/** Letter label font size in the MiniView. */
+export const MINI_LABEL_FONT = 15;
 
 // ── BoardView (scale) ─────────────────────────────────────────────────────
 
@@ -134,6 +187,9 @@ export const GAIN_STAGGER = 1100;
 export const SPEND_DURATION = 5000;
 /** ms offset between successive cards for the spend animation. */
 export const SPEND_STAGGER = 1100;
+/** Event that animates a build's spent resources flying to the location. */
+export const BUILD_ANIMATION_EVENT = 'build:animation';
+
 /** Board center (the desert hex). */
 export const BOARD_CENTER = { q: 0, r: 0, s: 0 };
 
@@ -141,6 +197,15 @@ export const BOARD_CENTER = { q: 0, r: 0, s: 0 };
 
 /** Minimum pointer movement (px) before a press counts as a drag. */
 export const DRAG_THRESHOLD = 5;
+
+/** Event that returns every panel to its home rect (see `resetAllPanels`). */
+export const RESET_PANELS_EVENT = 'panel-layout:reset';
+
+/** Minimum panel width in px when resizing. */
+export const PANEL_MIN_W = 160;
+
+/** Minimum panel height in px when resizing. */
+export const PANEL_MIN_H = 80;
 
 // ── BoardVertex (port) ─────────────────────────────────────────────────────
 

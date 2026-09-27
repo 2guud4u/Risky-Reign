@@ -16,9 +16,9 @@ import YourTurnToast from './YourTurnToast';
 import GiantDiceOverlay from './GiantDiceOverlay';
 import TurnDice from './TurnDice';
 import DraggablePanel from '../components/DraggablePanel';
-import { resetAllPanels } from '../components/DraggablePanel';
+import { resetAllPanels } from '../utils/panelLayout';
 import { GAME_HEX_SIZE } from 'common';
-import { DefaultRect } from '../types';
+import { DefaultRect } from '../types/draggablePanel';
 import { SIDEBAR_W } from '../constants';
 import { clearSavedSession } from '../utils/session';
 

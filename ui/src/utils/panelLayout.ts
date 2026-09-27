@@ -4,7 +4,13 @@
  * private mode / SSR, and that must never break the app).
  */
 
-import { SavedPanelLayout } from '../types';
+import { RESET_PANELS_EVENT } from '../constants';
+import { SavedPanelLayout } from '../types/draggablePanel';
+
+/** Return every DraggablePanel to its home rect (clears persisted layouts). */
+export const resetAllPanels = (): void => {
+  window.dispatchEvent(new Event(RESET_PANELS_EVENT));
+};
 
 const PREFIX = 'panelLayout:';
 

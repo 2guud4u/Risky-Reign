@@ -3,7 +3,6 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
-import connectDB from './config/db';
 import { setupSocketHandlers } from './sockets';
 
 const app = express();
@@ -28,9 +27,6 @@ app.get('*', (req, res, next) => {
 
 // Wire up all socket event handlers (see sockets.ts).
 setupSocketHandlers(io);
-
-// connectDB() — wire up persistent storage once the DB schema is ready.
-void connectDB;
 
 const PORT = process.env.PORT || 3001;
 console.log('Server is starting...');

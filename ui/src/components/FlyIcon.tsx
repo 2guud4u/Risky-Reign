@@ -1,17 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
-
-/** A single resource icon flying from a source point to a target point. */
-export interface FlyIcon {
-  id: number;
-  resource: ResourceKey;
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-  delay: number;
-}
+import { FlyIcon } from '../types/flyIcon';
 
 let nextId = 0;
 export const nextIconId = (): number => nextId++;

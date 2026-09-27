@@ -10,8 +10,8 @@ import {
   terrainColors,
   cubeCoordKey,
 } from 'common';
-import { EditorMap } from './types';
-import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS } from './constants';
+import { EditorHex, EditorMap, Tactic, Target } from './types';
+import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, NUMBER_OPTIONS, ROOM_ID_LENGTH, TERRAIN_OPTIONS } from './constants';
 
 /** Canonical cube-coord string key — re-export of `cubeCoordKey` from common. */
 export const coordKey = cubeCoordKey;
@@ -161,4 +161,118 @@ export function pixelToCube(px: number, py: number, size: number): CubeCoord {
   if (qDiff > rDiff && qDiff > sDiff) rq = -rr - rs;
   else if (rDiff > sDiff) rr = -rq - rs;
   return { q: rq, r: rr, s: -rq - rr };
+}
+
+/** True when a terrain can carry a roll number (Desert / Water cannot). */
+export function canCarryNumber(terrain: Terrain): boolean {
+  return terrain !== 'Desert' && terrain !== 'Water';
+}
+
+/**
+ * Return `hex` with `terrain` applied, clearing its roll number when the new
+ * terrain cannot carry one (Desert / Water).
+ */
+export function applyTerrain(hex: EditorHex, terrain: Terrain): EditorHex {
+  return { ...hex, terrain, rollNumber: canCarryNumber(terrain) ? hex.rollNumber : null };
+}
+
+/** Deep-copy an `EditorMap` (history snapshots and restores). */
+export function cloneMap(map: EditorMap): EditorMap {
+  return JSON.parse(JSON.stringify(map)) as EditorMap;
+}
+
+/** A random uppercase base-36 room id for "Save & Start". */
+export function randomRoomId(): string {
+  return Math.random().toString(36).substring(2, 2 + ROOM_ID_LENGTH).toUpperCase();
+}
+
+/** Number of placeable hexes still missing a roll number (blocks saving). */
+export function countMissingNumbers(map: EditorMap): number {
+  return Object.values(map).filter((h) => canCarryNumber(h.terrain) && h.rollNumber === null).length;
+}
+
+/** Per-terrain placed-hex counts for the palette badges. */
+export function countTerrain(map: EditorMap): Record<Terrain, number> {
+  return TERRAIN_OPTIONS.reduce(
+    (acc, t) => ({ ...acc, [t]: Object.values(map).filter((h) => h.terrain === t).length }),
+    {} as Record<Terrain, number>
+  );
+}
+
+/** Per-token placed-number counts for the palette badges. */
+export function countRollNumbers(map: EditorMap): Record<number, number> {
+  return NUMBER_OPTIONS.reduce(
+    (acc, n) => ({ ...acc, [n]: Object.values(map).filter((h) => h.rollNumber === n).length }),
+    {} as Record<number, number>
+  );
+}
+
+/**
+ * Return a new map with roll numbers assigned to the hexes selected by
+ * `target`, according to `tactic`:
+ * - 'equal'   — the standard Catan token ratio scaled to the target count.
+ * - 'random'  — a uniform random token per target.
+ * - 'current' — the existing numbers reshuffled, padded with random tokens
+ *               when there are fewer current numbers than targets.
+ */
+export function assignNumbers(map: EditorMap, tactic: Tactic, target: Target): EditorMap {
+  // Hexes that can carry a number (not Desert/Water).
+  const eligible = Object.entries(map).filter(([, hex]) => canCarryNumber(hex.terrain));
+  // Narrow by target.
+  let targets: [string, EditorHex][];
+  if (target === 'only empty') targets = eligible.filter(([, hex]) => hex.rollNumber === null);
+  else if (target === 'only filled') targets = eligible.filter(([, hex]) => hex.rollNumber !== null);
+  else targets = eligible;
+
+  // Build the number pool based on the tactic.
+  let pool: number[];
+  if (tactic === 'equal') {
+    pool = balancedNumbers(targets.length);
+  } else if (tactic === 'current') {
+    pool = shuffle(
+      Object.values(map)
+        .filter((hex) => hex.rollNumber !== null)
+        .map((hex) => hex.rollNumber as number)
+    );
+    // Pad with random if there are fewer current numbers than targets.
+    while (pool.length < targets.length) {
+      pool.push(NUMBER_OPTIONS[Math.floor(Math.random() * NUMBER_OPTIONS.length)]);
+    }
+    pool = pool.slice(0, targets.length);
+  } else {
+    // 'random'
+    pool = targets.map(() => NUMBER_OPTIONS[Math.floor(Math.random() * NUMBER_OPTIONS.length)]);
+  }
+
+  const next = { ...map };
+  targets.forEach(([key], i) => {
+    next[key] = { ...next[key], rollNumber: pool[i] };
+  });
+  return next;
+}
+
+/**
+ * Convert a mouse/drag event to board-space (px, py) by inverting the SVG's
+ * screen transform. Using getScreenCTM (rather than scaling by rect.width/
+ * rect.height) stays correct even when the container's aspect ratio doesn't
+ * match the viewBox's and the renderer letterboxes the drawing.
+ */
+export function eventToBoardPoint(
+  svg: SVGSVGElement,
+  e: { clientX: number; clientY: number }
+): { px: number; py: number } | null {
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const p = pt.matrixTransform(ctm.inverse());
+  return { px: p.x, py: p.y };
+}
+
+/** True when the client-space point is inside the element's bounding rect. */
+export function isClientPointInside(el: Element | null, e: { clientX: number; clientY: number }): boolean {
+  const rect = el?.getBoundingClientRect();
+  if (!rect) return false;
+  return e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
 }

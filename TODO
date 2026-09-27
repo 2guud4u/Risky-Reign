@@ -44,3 +44,24 @@ ports customization
 can not build on water tiles vertex that is not next to land hex
 music
 for trade add option for wanted trade and other players can see 
+
+
+
+
+ Game code, from a read-only review with file and line references in the plan:
+   - Critical: one bad message crashes the server.
+   - High:
+     - Anyone with the room code can take over another player's seat mid-game just by using their name.
+     - Anyone who knows a code can reset or force-start someone else's game.
+     - Rooms are never deleted and nothing limits how many get created or how big custom boards are, so it can be flooded until it runs out of memory.
+   - Medium:
+     - Every player is sent the full game state, including the dev-card deck in draw order and everyone's hand.
+     - Room codes are short and guessable.
+     - A player can pick a name or color that breaks things. A crafted color makes every opponent's browser contact the attacker's site, which reveals their IP.
+   - Checked and fine: turn order is enforced, trade amounts are validated, and there's no XSS.
+ - Server machine: the container has no memory, CPU or process limits, so a flood can take down the whole machine, and its logs grow without limit.
+
+
+ server should plan out on device database 
+
+ 

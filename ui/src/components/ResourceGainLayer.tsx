@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { cubeToPixel, ResourceKey, RESOURCES } from 'common';
 import { BOARD_CENTER, GAIN_DURATION, GAIN_STAGGER, PROJ_SIZE } from '../constants';
-import { FlyIcon, nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyIcon';
+import { FlyIcon } from '../types/flyIcon';
+import { nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyIcon';
 
 
 /**
