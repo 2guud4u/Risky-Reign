@@ -21,8 +21,8 @@ import { HandlerContext, blockIfFinished } from './context';
 export function registerBuildHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
-  socket.on('buildSettlement', (data: { roomId: string; playerId: string; vertexId: string }) => {
-    const { roomId, playerId, vertexId } = data;
+  socket.on('buildSettlement', (data: { roomId: string; vertexId: string }) => {
+    const { roomId, vertexId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -35,7 +35,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
@@ -99,8 +99,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('gameUpdate', { ...room });
   });
 
-  socket.on('buildRoad', (data: { roomId: string; playerId: string; edgeId: string }) => {
-    const { roomId, playerId, edgeId } = data;
+  socket.on('buildRoad', (data: { roomId: string; edgeId: string }) => {
+    const { roomId, edgeId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -113,7 +113,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
@@ -175,8 +175,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('gameUpdate', { ...room });
   });
 
-  socket.on('upgradeSettlementToCity', (data: { roomId: string; playerId: string; vertexId: string }) => {
-    const { roomId, playerId, vertexId } = data;
+  socket.on('upgradeSettlementToCity', (data: { roomId: string; vertexId: string }) => {
+    const { roomId, vertexId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -189,7 +189,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
@@ -238,8 +238,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('gameUpdate', { ...room });
   });
 
-  socket.on('recruitSoldier', (data: { roomId: string; playerId: string; vertexId: string }) => {
-    const { roomId, playerId, vertexId } = data;
+  socket.on('recruitSoldier', (data: { roomId: string; vertexId: string }) => {
+    const { roomId, vertexId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -252,7 +252,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;

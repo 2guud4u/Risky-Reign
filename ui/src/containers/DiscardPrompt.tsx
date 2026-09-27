@@ -27,7 +27,7 @@ const DiscardPrompt: React.FC = () => {
 
   // Reset the selection when the prompt closes, so a stale discard selection
   // from a previous 7 can't pre-enable the confirm.
-  const active = !!gameRoom?.discards;
+  const active = Object.keys(gameRoom?.discards ?? {}).length > 0;
   useEffect(() => {
     if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   }, [active]);

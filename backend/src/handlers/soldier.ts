@@ -21,8 +21,8 @@ import { HandlerContext, blockIfFinished } from './context';
 export function registerSoldierHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
-  socket.on('moveSoldier', (data: { roomId: string; playerId: string; soldierId: string; targetVertexId: string }) => {
-    const { roomId, playerId, soldierId, targetVertexId } = data;
+  socket.on('moveSoldier', (data: { roomId: string; soldierId: string; targetVertexId: string }) => {
+    const { roomId, soldierId, targetVertexId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -35,7 +35,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
@@ -72,8 +72,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
 
   socket.on(
     'captureSettlement',
-    (data: { roomId: string; playerId: string; soldierIds: string[]; vertexId: string }) => {
-      const { roomId, playerId, soldierIds, vertexId } = data;
+    (data: { roomId: string; soldierIds: string[]; vertexId: string }) => {
+      const { roomId, soldierIds, vertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -86,7 +86,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
         return;
       }
       const turnState = room.turnState;
-      const currentPlayer = room.players.find((p) => p.id === playerId);
+      const currentPlayer = room.players.find((p) => p.id === socket.id);
       if (!currentPlayer) {
         socket.emit('error', { message: 'Player not found' });
         return;
@@ -136,8 +136,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     }
   );
 
-  socket.on('healSoldier', (data: { roomId: string; playerId: string; soldierId: string }) => {
-    const { roomId, playerId, soldierId } = data;
+  socket.on('healSoldier', (data: { roomId: string; soldierId: string }) => {
+    const { roomId, soldierId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -150,7 +150,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
@@ -180,8 +180,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     io.to(roomId).emit('gameUpdate', { ...room });
   });
 
-  socket.on('fightRobber', (data: { roomId: string; playerId: string; soldierId: string; vertexId: string }) => {
-    const { roomId, playerId, soldierId, vertexId } = data;
+  socket.on('fightRobber', (data: { roomId: string; soldierId: string; vertexId: string }) => {
+    const { roomId, soldierId, vertexId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -194,7 +194,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;

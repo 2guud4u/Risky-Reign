@@ -688,7 +688,7 @@ const BattleModal: React.FC = () => {
               (() => {
                 const isAttacker = currentPlayer?.name === battle.attacker;
                 const isDefender = currentPlayer?.name === battle.defender;
-                if (!isAttacker || !isDefender) return null;
+                if (!isAttacker && !isDefender) return null;
                 if (battle.repositionTurn !== (isAttacker ? 'attacker' : 'defender')) return null;
                 // All of this side's injured troops must be moved (off the
                 // battle vertex) before the player can confirm.

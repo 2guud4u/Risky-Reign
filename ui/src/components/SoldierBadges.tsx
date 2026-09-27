@@ -14,12 +14,10 @@ interface SoldierBadgesProps {
   vertices: Record<string, VertexNode>;
   /** Owner name -> chosen color (tints the badge). */
   colorOf: (ownerName: string) => string | undefined;
-  /** Whether the current player may drag this owner's soldiers. */
-  canDragSoldier: (ownerName: string) => boolean;
-  /** (vertexId, ownerName) -> first soldier id (the drag handle). */
-  soldierDragId: Map<string, string>;
-  /** Start a soldier drag. */
-  onDragStart: (e: React.MouseEvent, soldierId: string, ownerName: string, vertexId: string) => void;
+  /** Whether the current player may drag this owner's soldiers at a vertex. */
+  canDragSoldier: (ownerName: string, vertexId: string) => boolean;
+  /** Start a soldier drag (picks an eligible soldier). */
+  onDragStart: (e: React.MouseEvent, ownerName: string, vertexId: string) => void;
   /** Select a vertex. */
   onSelect: (obj: { type: 'vertex'; id: string }) => void;
 }
@@ -33,7 +31,6 @@ export const SoldierBadges: React.FC<SoldierBadgesProps> = ({
   vertices,
   colorOf,
   canDragSoldier,
-  soldierDragId,
   onDragStart,
   onSelect,
 }) => (
@@ -51,14 +48,11 @@ export const SoldierBadges: React.FC<SoldierBadgesProps> = ({
         const cx = startX + i * (badgeDiameter + SOLDIER_BADGE_GAP);
         const cy = v.position.y + PROJ_SIZE * SOLDIER_BADGE_ROW_OFFSET_FRACTION;
         const color = colorOf(ownerName);
-        const draggable = canDragSoldier(ownerName);
-        const dragId = soldierDragId.get(`${vertexId}|${ownerName}`);
+        const draggable = canDragSoldier(ownerName, vertexId);
         return (
           <g
             key={`${vertexId}-${ownerName}`}
-            onMouseDown={(e) => {
-              if (dragId) onDragStart(e, dragId, ownerName, vertexId);
-            }}
+            onMouseDown={(e) => onDragStart(e, ownerName, vertexId)}
             onClick={() => onSelect({ type: 'vertex', id: vertexId })}
             style={{ cursor: draggable ? 'grab' : 'pointer' }}
           >

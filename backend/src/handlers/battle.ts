@@ -27,8 +27,8 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
 
   socket.on(
     'startAttack',
-    (data: { roomId: string; playerId: string; soldierIds: string[]; targetVertexId: string; defenderName?: string }) => {
-      const { roomId, playerId, soldierIds, targetVertexId, defenderName } = data;
+    (data: { roomId: string; soldierIds: string[]; targetVertexId: string; defenderName?: string }) => {
+      const { roomId, soldierIds, targetVertexId, defenderName } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -41,7 +41,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
         return;
       }
       const turnState = room.turnState;
-      const currentPlayer = room.players.find((p) => p.id === playerId);
+      const currentPlayer = room.players.find((p) => p.id === socket.id);
       if (!currentPlayer) {
         socket.emit('error', { message: 'Player not found' });
         return;
@@ -78,8 +78,8 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
 
   socket.on(
     'rollBattleDie',
-    (data: { roomId: string; playerId: string; soldierId: string }) => {
-      const { roomId, playerId, soldierId } = data;
+    (data: { roomId: string; soldierId: string }) => {
+      const { roomId, soldierId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -91,7 +91,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'No battle in progress' });
         return;
       }
-      const currentPlayer = room.players.find((p) => p.id === playerId);
+      const currentPlayer = room.players.find((p) => p.id === socket.id);
       if (!currentPlayer) {
         socket.emit('error', { message: 'Player not found' });
         return;
@@ -188,8 +188,8 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   // casualties to the board, then either ends the battle (if a side has no
   // living troops left, entering repositioning) or resets all rolls and
   // starts the next round.
-  socket.on('continueBattle', (data: { roomId: string; playerId: string }) => {
-    const { roomId, playerId } = data;
+  socket.on('continueBattle', (data: { roomId: string }) => {
+    const { roomId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -204,7 +204,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
 
     // Only the attacker can continue a battle (Rules.md line 7), and only
     // once the round has been resolved (betweenRounds).
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer || currentPlayer.name !== room.battleState.attacker) {
       socket.emit('error', { message: 'Only the attacker can continue this battle' });
       return;
@@ -254,8 +254,8 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   // The attacker may end the battle after any resolved round (betweenRounds),
   // at their choosing — even while both sides still have troops. Casualties
   // are committed to the board and the battle moves to repositioning.
-  socket.on('endBattle', (data: { roomId: string; playerId: string }) => {
-    const { roomId, playerId } = data;
+  socket.on('endBattle', (data: { roomId: string }) => {
+    const { roomId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -270,7 +270,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
 
     // Only the attacker can end a battle, and only once the round has been
     // resolved (betweenRounds).
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer || currentPlayer.name !== room.battleState.attacker) {
       socket.emit('error', { message: 'Only the attacker can end this battle' });
       return;
@@ -293,15 +293,15 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   // resting place. The board and the repositioning map are updated.
   socket.on(
     'repositionSoldier',
-    (data: { roomId: string; playerId: string; soldierId: string; targetVertexId: string }) => {
-      const { roomId, playerId, soldierId, targetVertexId } = data;
+    (data: { roomId: string; soldierId: string; targetVertexId: string }) => {
+      const { roomId, soldierId, targetVertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room || !room.board || !room.battleState) {
         socket.emit('error', { message: 'No battle in progress' });
         return;
       }
       if (blockIfFinished(room, socket)) return;
-      const currentPlayer = room.players.find((p) => p.id === playerId);
+      const currentPlayer = room.players.find((p) => p.id === socket.id);
       if (!currentPlayer) {
         socket.emit('error', { message: 'Player not found' });
         return;
@@ -359,15 +359,15 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   // The side whose repositioning turn it is signals they are done moving
   // their injured troops; the turn passes to the other side if they have
   // injured troops to settle (Rules.md: the attacker moves first).
-  socket.on('finishRepositioning', (data: { roomId: string; playerId: string }) => {
-    const { roomId, playerId } = data;
+  socket.on('finishRepositioning', (data: { roomId: string }) => {
+    const { roomId } = data;
     const room = gameRooms.get(roomId);
     if (!room || !room.battleState) {
       socket.emit('error', { message: 'No battle in progress' });
       return;
     }
     if (blockIfFinished(room, socket)) return;
-    const currentPlayer = room.players.find((p) => p.id === playerId);
+    const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
       return;
@@ -419,8 +419,8 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
   // can move the robber to any adjacent hex").
   socket.on(
     'moveRobberAfterWin',
-    (data: { roomId: string; playerId: string; hexId: string }) => {
-      const { roomId, playerId, hexId } = data;
+    (data: { roomId: string; hexId: string }) => {
+      const { roomId, hexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -432,7 +432,7 @@ export function registerBattleHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Game board is not available' });
         return;
       }
-      const player = room.players.find((p) => p.id === playerId);
+      const player = room.players.find((p) => p.id === socket.id);
       if (!player) {
         socket.emit('error', { message: 'Player not found' });
         return;

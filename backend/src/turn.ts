@@ -34,6 +34,9 @@ export function advanceTurn(room: GameRoom): void {
           player: turnState.playerOrder[0],
           phase: 'Dice',
           offset: 0,
+          // Reset the round's dice owner explicitly (was a dead write on the
+          // stale object after the spread).
+          dicePlayerIndex: 0,
           placedSettlement: null,
           placedRoad: null,
           soldiersCreatedThisTurn: [],
@@ -41,7 +44,6 @@ export function advanceTurn(room: GameRoom): void {
           undoLog: [],
         };
         room.roll = { die1: null, die2: null };
-        turnState.dicePlayerIndex = 0;
         // A new round: bank-trade counts reset (per-turn limit).
         for (const p of room.players) p.bankTradesThisTurn = freshResourceCount(0);
       } else {

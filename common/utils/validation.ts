@@ -89,9 +89,7 @@ export function canBuildRoadOn(
   
   // Must touch one of your settlements OR extend from one of your roads.
   const owned = playerSettlementVertexIds(board, playerName);
-  if (owned.includes(edge.vertexAId) || owned.includes(edge.vertexBId)) {
-    return { allowed: true, reason: null };
-  }
+  const touchesSettlement = owned.includes(edge.vertexAId) || owned.includes(edge.vertexBId);
   const myRoads = playerRoadEdgeIds(board, playerName);
   const touchesMyRoad = myRoads.some((roadEdgeId) => {
     const roadEdge = board.edges[roadEdgeId];
@@ -103,17 +101,18 @@ export function canBuildRoadOn(
       roadEdge.vertexBId === edge.vertexBId
     );
   });
-  if (!touchesMyRoad) {
+  if (!touchesSettlement && !touchesMyRoad) {
     return { allowed: false, reason: 'Must build from your settlement or extend an existing road' };
   }
-  
-  // Check resources in Build phase
+
+  // Check resources in Build phase (applies whether the road touches a
+  // settlement or extends a road — the settlement branch must not skip it).
   if (turn.phase === 'Build') {
     if (playerResources && !canAfford(playerResources, RoadPrice)) {
       return { allowed: false, reason: 'Not enough resources for a road' };
     }
   }
-  
+
   return { allowed: true, reason: null };
 }
 
@@ -216,6 +215,11 @@ export function canMoveSoldierTo(
   // Rule 25: healed soldiers cannot move on the same turn they were healed.
   if (turn.soldiersHealedThisTurn.includes(soldierId))
     return { allowed: false, reason: 'A freshly healed soldier cannot move this turn' };
+  // Rule 49: a stationed cannon must be unstationed before it can move. (Only
+  // cannons station/unstation; infantry's stationed flag is incidental.)
+  if (soldier.type === 'cannon' && soldier.stationed) {
+    return { allowed: false, reason: 'A stationed cannon must be unstationed before moving' };
+  }
 
   const targetVertex = board.vertices[targetVertexId];
   if (!targetVertex) return { allowed: false, reason: 'Target vertex not found' };

@@ -34,8 +34,6 @@ interface SoldierGroupProps {
   selectableSoldierIds?: ReadonlySet<string>;
   /** Soldier ids with an unspent action (pulsed to show they can still be used). */
   canActSoldierIds?: ReadonlySet<string>;
-  /** Collect the rendered soldier positions (for viewBox sizing). */
-  onPoints?: (points: { x: number; y: number }[]) => void;
 }
 
 /**
@@ -58,7 +56,6 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
   selectedSoldierIds,
   selectableSoldierIds,
   canActSoldierIds,
-  onPoints,
 }) => {
   const count = group.length;
   const isAggregate = count > COMPACT_MAX;
@@ -74,7 +71,6 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
   const colSpacing = SOLDIER_SPACING * scale;
   const rowSpacing = RANK_SPACING * scale;
 
-  const points: { x: number; y: number }[] = [];
   const elements: React.ReactNode[] = [];
 
   for (let k = 0; k < visibleCount; k++) {
@@ -84,7 +80,6 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
     const countInRow = Math.min(cols, visibleCount - row * cols);
     const x = anchor.x + (col - (countInRow - 1) / 2) * colSpacing;
     const y = anchor.y + (row - (rows - 1) / 2) * rowSpacing;
-    points.push({ x, y });
     const selectable = selectableSoldierIds?.has(s.id) ?? false;
     const isSel = selectedSoldierIds?.has(s.id) ?? false;
     const canAct = canActSoldierIds?.has(s.id) ?? false;
@@ -160,7 +155,6 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
     );
   }
 
-  if (onPoints) onPoints(points);
 
   return <>{elements}</>;
 };

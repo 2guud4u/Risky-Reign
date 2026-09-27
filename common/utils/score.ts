@@ -50,21 +50,34 @@ export function longestRoadLength(board: Board, playerName: string): number {
     adjacency.get(edge.vertexBId)!.add(edge.vertexAId);
   }
 
-  // Longest path (counted in roads) starting from each vertex.
+  // A vertex is passable unless an opponent's settlement/city sits on it
+  // (Rules.md: an enemy building breaks the road chain). The enemy vertex can
+  // still END a path (count the road to it) but can't be traversed through.
+  const passable = (vertexId: string): boolean => {
+    const settlementId = board.vertices[vertexId]?.settlementId;
+    if (!settlementId) return true;
+    return board.settlements[settlementId]?.ownerId === playerName;
+  };
+
+  // Longest simple path (no vertex revisited), counted in roads. Per-path
+  // visited set so branches/cycles don't prematurely block each other.
   let best = 0;
-  for (const start of adjacency.keys()) {
-    const visited = new Set<string>([start]);
-    const stack: [string, number][] = [[start, 0]];
-    while (stack.length > 0) {
-      const [vertex, depth] = stack.pop()!;
-      best = Math.max(best, depth);
-      for (const next of adjacency.get(vertex) ?? []) {
-        if (!visited.has(next)) {
-          visited.add(next);
-          stack.push([next, depth + 1]);
-        }
+  const dfs = (vertex: string, depth: number, visited: Set<string>): void => {
+    best = Math.max(best, depth);
+    for (const next of adjacency.get(vertex) ?? []) {
+      if (visited.has(next)) continue;
+      visited.add(next);
+      if (passable(next)) {
+        dfs(next, depth + 1, visited);
+      } else {
+        // Enemy building: count the road to it, but the chain can't continue.
+        best = Math.max(best, depth + 1);
       }
+      visited.delete(next);
     }
+  };
+  for (const start of adjacency.keys()) {
+    dfs(start, 0, new Set([start]));
   }
   return best;
 }

@@ -7,6 +7,7 @@ import {
   applyBankTrade,
   applyBonuses,
   ResourceKey,
+  RESOURCES,
 } from 'common';
 import { gameRooms } from '../store';
 import { HandlerContext, blockIfFinished } from './context';
@@ -144,6 +145,20 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
+    // Validate the untyped payload before touching state: the resource names must
+    // be real (else an invalid key writes NaN into resources while still draining
+    // the bank) and the count must be a positive integer.
+    if (
+      !RESOURCES.includes(giveResource as ResourceKey) ||
+      !RESOURCES.includes(wantResource as ResourceKey)
+    ) {
+      socket.emit('error', { message: 'Invalid resource' });
+      return;
+    }
+    if (!Number.isInteger(giveCount) || giveCount <= 0) {
+      socket.emit('error', { message: 'Give count must be a positive integer' });
       return;
     }
     const check = canBankTrade(

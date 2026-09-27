@@ -42,6 +42,20 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       return;
     }
     if (blockIfFinished(room, socket)) return;
+    // Only the acting player may end their turn, and not mid-battle.
+    const caller = room.players.find((p) => p.id === socket.id);
+    if (!caller) {
+      socket.emit('error', { message: 'Player not found' });
+      return;
+    }
+    if (caller.name !== room.turnState.player) {
+      socket.emit('error', { message: 'Not your turn' });
+      return;
+    }
+    if (room.battleState) {
+      socket.emit('error', { message: 'A battle is in progress' });
+      return;
+    }
     // Setup cannot be skipped: the current player must place both a
     // settlement and a road before their setup turn may end.
     if (
@@ -87,6 +101,17 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       return;
     }
     if (blockIfFinished(room, socket)) return;
+    // Only the acting player may undo, and never mid-battle (an undo could
+    // teleport a soldier that's committed to an in-progress fight).
+    const caller = room.players.find((p) => p.id === socket.id);
+    if (!caller || caller.name !== room.turnState.player) {
+      socket.emit('error', { message: 'Only the acting player can undo' });
+      return;
+    }
+    if (room.battleState) {
+      socket.emit('error', { message: 'A battle is in progress' });
+      return;
+    }
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -283,8 +308,8 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
   // card. After the robber is placed, the thief chooses which card to steal
   // from a face-down card of an adjacent player (the `chooseSteal` event);
   // a 7 holds the Dice phase until the steal resolves.
-  socket.on('moveRobber', (data: { roomId: string; playerId: string; hexId: string }) => {
-    const { roomId, playerId, hexId } = data;
+  socket.on('moveRobber', (data: { roomId: string; hexId: string }) => {
+    const { roomId, hexId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -296,7 +321,7 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Game board is not available' });
       return;
     }
-    const player = room.players.find((p) => p.id === playerId);
+    const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
       return;
@@ -346,15 +371,15 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
 
   // Resolve a pending steal: the thief takes the face-down card at
   // `cardIndex` from `victimName`. A 7 completes the Dice phase afterward.
-  socket.on('chooseSteal', (data: { roomId: string; playerId: string; victimName: string; cardIndex: number }) => {
-    const { roomId, playerId, victimName, cardIndex } = data;
+  socket.on('chooseSteal', (data: { roomId: string; victimName: string; cardIndex: number }) => {
+    const { roomId, victimName, cardIndex } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
     if (blockIfFinished(room, socket)) return;
-    const player = room.players.find((p) => p.id === playerId);
+    const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
       return;
@@ -370,6 +395,10 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
     const victim = room.players.find((p) => p.name === victimName);
     if (!victim) {
       socket.emit('error', { message: 'Steal target not found' });
+      return;
+    }
+    if (!Number.isInteger(cardIndex)) {
+      socket.emit('error', { message: 'Invalid card selection' });
       return;
     }
     const stolen = stealCard(player, victim, cardIndex);
@@ -388,24 +417,29 @@ export function registerTurnHandlers(ctx: HandlerContext): void {
   // resource cards (the floor of half their hand), choosing which ones.
   socket.on(
     'resolveDiscard',
-    (data: { roomId: string; playerId: string; discards: Record<string, number> }) => {
-      const { roomId, playerId, discards } = data;
+    (data: { roomId: string; discards: Record<string, number> }) => {
+      const { roomId, discards } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
       if (blockIfFinished(room, socket)) return;
-      const player = room.players.find((p) => p.id === playerId);
+      const player = room.players.find((p) => p.id === socket.id);
       if (!player) {
         socket.emit('error', { message: 'Player not found in room' });
         return;
       }
-      const required = room.discards[player.name];
-      if (required === undefined) {
+      const storedRequired = room.discards[player.name];
+      if (storedRequired === undefined) {
         socket.emit('error', { message: 'You have no pending discard' });
         return;
       }
+      // If the player traded cards away after the 7, the original requirement
+      // could exceed half their current hand; cap it so a legal resolution
+      // stays possible (otherwise the Dice phase could wedge forever).
+      const handTotal = RESOURCES.reduce((sum, r) => sum + player.resources[r], 0);
+      const required = Math.min(storedRequired, Math.floor(handTotal / 2));
       let total = 0;
       for (const r of RESOURCES) {
         const n = Math.floor(discards[r] ?? 0);

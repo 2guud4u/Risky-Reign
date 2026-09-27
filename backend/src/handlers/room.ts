@@ -29,20 +29,24 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
         room.robberMove = null;
       }
     }
-    if (room.players.length >= MAX_PLAYERS) {
-      socket.emit('error', { message: 'Room is full' });
-      return;
-    }
-    // If the player is already in the room (reconnect / reload), just re-attach.
+    // If the player is already in the room (reconnect / reload), re-attach
+    // BEFORE the full/started checks — a full room or a started game must not
+    // strand a player who is merely reloading (their id IS their socket id).
     const existing = playerName ? room.players.find((p) => p.name === playerName) : undefined;
     if (existing) {
-      // Re-attach: the player's id IS their socket id, so a reload (new
-      // socket) must re-point it, or the client's syncCurrentPlayer (which
-      // matches p.id === socket.id) fails and the session is cleared.
       existing.id = socket.id;
       socket.join(roomId);
       applyBonuses(room);
       io.to(roomId).emit('roomUpdate', room);
+      return;
+    }
+    // New players only join a waiting lobby, and only if there's room.
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'The game has already started' });
+      return;
+    }
+    if (room.players.length >= MAX_PLAYERS) {
+      socket.emit('error', { message: 'Room is full' });
       return;
     }
     // Assign a color: the requested one if free, otherwise the first available.
@@ -88,6 +92,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       const p = room.players.find((pl) => pl.id === socket.id);
       if (!p || room.gameStatus !== 'waiting') return;
       const newName = nData.name.trim();
+      if (room.players.some((pl) => pl.name === newName)) return; // names must stay unique
       if (!newName) return;
       const oldName = p.name;
       p.name = newName;
@@ -102,6 +107,16 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    // Only a member may regenerate the map, and only before the game starts —
+    // mid-game this would wipe every settlement, road, and soldier.
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'The game has already started' });
+      return;
+    }
+    if (!room.players.some((p) => p.id === socket.id)) {
+      socket.emit('error', { message: 'You are not in this room' });
       return;
     }
     // Regenerate the game board.
@@ -143,6 +158,16 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     const ok = validateLayouts(layouts);
     if (!ok.allowed) {
       socket.emit('error', { message: ok.reason ?? 'Invalid board layout' });
+      return;
+    }
+    // Only a member may replace the board, and only before the game starts —
+    // mid-game this would wipe every settlement, road, and soldier.
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'The game has already started' });
+      return;
+    }
+    if (!room.players.some((p) => p.id === socket.id)) {
+      socket.emit('error', { message: 'You are not in this room' });
       return;
     }
     // Rebuild the board from the custom layout. Pre-game (waiting) this is
@@ -207,6 +232,32 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
         room.turnState.playerOrder.length > 0
           ? room.turnState.playerOrder[orderIndex % room.turnState.playerOrder.length]
           : 'X';
+    }
+    // The round's dice owner is an index into playerOrder; removing the leaver
+    // shifts everyone after them left, so re-point it at the same owner. If the
+    // leaver WAS the owner, the next player in order inherits the index.
+    if (orderIndex >= 0 && orderIndex < room.turnState.dicePlayerIndex) {
+      room.turnState.dicePlayerIndex -= 1;
+    }
+    if (room.turnState.playerOrder.length > 0) {
+      room.turnState.dicePlayerIndex %= room.turnState.playerOrder.length;
+    } else {
+      room.turnState.dicePlayerIndex = 0;
+    }
+    // Clear any state owned by the leaver so it can't wedge the game (a pending
+    // 7-discard or robber move would otherwise block the Dice phase forever).
+    delete room.discards[leavingName];
+    if (room.robberMove?.player === leavingName) room.robberMove = null;
+    if (room.steal?.thief === leavingName) room.steal = null;
+    if (room.devCardChoice?.player === leavingName) room.devCardChoice = null;
+    if (room.robberDefeatedBy?.playerName === leavingName) room.robberDefeatedBy = null;
+    room.tradeOffers = room.tradeOffers.filter(
+      (o) => o.from !== leavingName && o.to !== leavingName
+    );
+    // If the leaver was in an in-progress battle, drop it (it can never resolve
+    // once a participant is gone).
+    if (room.battleState && (room.battleState.attacker === leavingName || room.battleState.defender === leavingName)) {
+      room.battleState = null;
     }
     socket.leave(roomId);
     applyBonuses(room);

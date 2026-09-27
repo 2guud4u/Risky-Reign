@@ -316,6 +316,18 @@ const MiniView: React.FC<MiniViewProps> = ({
           }
         }
       }
+      // Register each cluster's bounding corners so the viewBox sizes to fit
+      // them. (SoldierGroup's render runs after the size is computed, so its
+      // positions can't influence the viewBox; the anchor+radii here can.)
+      anchors.forEach((a, i) => {
+        const r = radii[i];
+        points.push(
+          { x: a.x - r, y: a.y - r },
+          { x: a.x + r, y: a.y - r },
+          { x: a.x - r, y: a.y + r },
+          { x: a.x + r, y: a.y + r }
+        );
+      });
 
       entries.forEach(([ownerName, group], idx) => {
         neighborhood.push(
@@ -330,7 +342,6 @@ const MiniView: React.FC<MiniViewProps> = ({
             selectedSoldierIds={selectedSoldierIds}
             selectableSoldierIds={selectableSoldierIds}
             canActSoldierIds={canActSoldierIds}
-            onPoints={(pts) => pts.forEach((p) => points.push(p))}
           />
         );
       });

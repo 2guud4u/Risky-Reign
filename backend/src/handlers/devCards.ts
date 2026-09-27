@@ -20,15 +20,15 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
 
   // Draw a development card from the shared deck. Costs 1 wheat, 1 brick and
   // 1 ore (DevelopmentCardPrice) — the standard Catan price.
-  socket.on('drawDevelopmentCard', (data: { roomId: string; playerId: string }) => {
-    const { roomId, playerId } = data;
+  socket.on('drawDevelopmentCard', (data: { roomId: string }) => {
+    const { roomId } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
     if (blockIfFinished(room, socket)) return;
-    const player = room.players.find((p) => p.id === playerId);
+    const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
       return;
@@ -73,15 +73,15 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
    * Play a development card from your hand. Only allowed on your own turn.
    * Effects vary by card type (see Rules.md).
    */
-  socket.on('playDevelopmentCard', (data: { roomId: string; playerId: string; cardIndex: number }) => {
-    const { roomId, playerId, cardIndex } = data;
+  socket.on('playDevelopmentCard', (data: { roomId: string; cardIndex: number }) => {
+    const { roomId, cardIndex } = data;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
     if (blockIfFinished(room, socket)) return;
-    const player = room.players.find((p) => p.id === playerId);
+    const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
       return;
@@ -174,15 +174,15 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
   // Resolve a pending development-card choice (Year of Plenty / Monopoly).
   socket.on(
     'resolveDevCardChoice',
-    (data: { roomId: string; playerId: string; resources: string[] }) => {
-      const { roomId, playerId, resources } = data;
+    (data: { roomId: string; resources: string[] }) => {
+      const { roomId, resources } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
       if (blockIfFinished(room, socket)) return;
-      const player = room.players.find((p) => p.id === playerId);
+      const player = room.players.find((p) => p.id === socket.id);
       if (!player) {
         socket.emit('error', { message: 'Player not found in room' });
         return;
@@ -197,15 +197,23 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
           socket.emit('error', { message: 'Choose exactly 2 resources' });
           return;
         }
+        // Validate every pick first (valid resource + enough bank supply),
+        // THEN apply — a mid-loop failure must not leave resources granted.
+        const demand = new Map<ResourceKey, number>();
         for (const r of resources) {
           if (!RESOURCES.includes(r as ResourceKey)) {
             socket.emit('error', { message: 'Invalid resource' });
             return;
           }
-          if (room.bankSupply[r as ResourceKey] < 1) {
+          demand.set(r as ResourceKey, (demand.get(r as ResourceKey) ?? 0) + 1);
+        }
+        for (const [r, n] of demand) {
+          if (room.bankSupply[r] < n) {
             socket.emit('error', { message: `Not enough ${r} in the bank` });
             return;
           }
+        }
+        for (const r of resources) {
           room.bankSupply[r as ResourceKey]--;
           player.resources[r as ResourceKey]++;
         }

@@ -51,23 +51,29 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = ({
     (c) => ({ q: c.q + centerCube.q, r: c.r + centerCube.r, s: c.s + centerCube.s })
   );
 
+  // Board units per screen pixel. With preserveAspectRatio=meet (the default),
+  // the drawn view is the larger of the two dimension ratios, so pan must use
+  // that — not just w/rect.width, which under-reads when letterboxed.
   const boardUnitsPerScreenPx = useCallback(() => {
     const rect = svgRef.current?.getBoundingClientRect();
-    return rect ? w / rect.width : 1;
-  }, [w]);
-
-  // Convert a mouse event to board-space (px, py). The viewBox top-left in
-  // board space is (center - size/2), so offset from there.
-  const eventToBoard = useCallback(
-    (e: React.MouseEvent) => {
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) return null;
-      const px = center.x - w / 2 + (e.clientX - rect.left) * boardUnitsPerScreenPx();
-      const py = center.y - h / 2 + (e.clientY - rect.top) * (h / rect.height);
-      return { px, py };
-    },
-    [center, w, h, boardUnitsPerScreenPx]
-  );
+    if (!rect) return 1;
+    return Math.max(w / rect.width, h / rect.height);
+  }, [w, h]);
+  // Convert a mouse event to board-space (px, py) by inverting the SVG's
+  // screen transform. Using getScreenCTM (rather than scaling by rect.width/
+  // rect.height) stays correct even when the container's aspect ratio doesn't
+  // match the viewBox's and the renderer letterboxes the drawing.
+  const eventToBoard = useCallback((e: React.MouseEvent) => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const p = pt.matrixTransform(ctm.inverse());
+    return { px: p.x, py: p.y };
+  }, []);
 
   // True when the pointer is over the trash-can overlay (screen coords).
   const isOverTrash = useCallback((e: React.MouseEvent) => {

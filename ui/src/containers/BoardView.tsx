@@ -143,16 +143,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     return map;
   }, [board]);
 
-  // First soldier id per (vertex, owner) pair — used as the drag handle.
-  const soldierDragId = useMemo(() => {
-    const map = new Map<string, string>();
-    if (!board) return map;
-    for (const s of Object.values(board.soldiers)) {
-      const key = `${s.vertexId}|${s.owner}`;
-      if (!map.has(key)) map.set(key, s.id);
-    }
-    return map;
-  }, [board]);
 
   // Pan/zoom over the board's coordinate space (viewBox-based).
   const boardSpan = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
@@ -213,11 +203,36 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     setSelectedObject({ type: 'edge', id: edgeId });
   };
 
-  const canDragSoldier = (ownerName: string): boolean =>
-    gameRoom.turnState.phase === 'Action' && currentPlayer?.name === ownerName;
+  // A soldier badge is draggable only during the current player's Action phase,
+  // and only when at least one of that owner's soldiers at the vertex can still
+  // move (mirrors the flags canMoveSoldierTo enforces on the backend).
+  const canDragSoldier = (ownerName: string, vertexId: string): boolean => {
+    if (gameRoom.turnState.phase !== 'Action') return false;
+    if (gameRoom.turnState.player !== currentPlayer?.name) return false;
+    if (currentPlayer?.name !== ownerName) return false;
+    return Object.values(board?.soldiers ?? {}).some(
+      (s) =>
+        s.vertexId === vertexId &&
+        s.owner === ownerName &&
+        !gameRoom.turnState.soldiersActedThisTurn.includes(s.id) &&
+        !gameRoom.turnState.soldiersCreatedThisTurn.includes(s.id) &&
+        !gameRoom.turnState.soldiersHealedThisTurn.includes(s.id)
+    );
+  };
 
-  const startDrag = (e: React.MouseEvent, soldierId: string, ownerName: string, vertexId: string) => {
-    if (!canDragSoldier(ownerName) || !board) return;
+  const startDrag = (e: React.MouseEvent, ownerName: string, vertexId: string) => {
+    if (!board) return;
+    // Drag the first soldier here that can actually move (skip ones that
+    // already acted / were just built / were just healed this turn).
+    const soldier = Object.values(board.soldiers).find(
+      (s) =>
+        s.vertexId === vertexId &&
+        s.owner === ownerName &&
+        !gameRoom.turnState.soldiersActedThisTurn.includes(s.id) &&
+        !gameRoom.turnState.soldiersCreatedThisTurn.includes(s.id) &&
+        !gameRoom.turnState.soldiersHealedThisTurn.includes(s.id)
+    );
+    if (!soldier) return;
     e.stopPropagation();
     const validTargets: string[] = [];
     const v = board.vertices[vertexId];
@@ -229,8 +244,9 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         validTargets.push(other);
       }
     }
-    setDrag({ soldierId, ownerName, fromVertexId: vertexId, validTargets });
+    setDrag({ soldierId: soldier.id, ownerName, fromVertexId: vertexId, validTargets });
   };
+
 
   const toSvgCoords = (e: React.MouseEvent): { x: number; y: number } | null => {
     const svg = svgRef.current;
@@ -423,7 +439,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             vertices={board.vertices}
             colorOf={colorOf}
             canDragSoldier={canDragSoldier}
-            soldierDragId={soldierDragId}
             onDragStart={startDrag}
             onSelect={setSelectedObject}
           />
