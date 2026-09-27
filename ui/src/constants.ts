@@ -94,6 +94,18 @@ export const COMPACT_MAX = 30;
 export const AGGREGATE_MAX_VISIBLE = 12;
 /** Radius of the central count badge in "aggregate" mode. */
 export const AGGREGATE_BADGE_RADIUS = 18;
+/** Energy bolt marking a soldier with an unspent action (mini-map). */
+/** Bolt height as a fraction of the soldier art height. */
+export const ACTION_BOLT_H_FRAC = 0.5;
+/** Bolt width as a fraction of its own height. */
+export const ACTION_BOLT_W_FRAC = 0.55;
+/** Bolt center offset: x + art width * this (right of center). */
+export const ACTION_BOLT_X_OFF = 0.45;
+/** Bolt center offset: y - art height * this (upper body). */
+export const ACTION_BOLT_Y_OFF = 0.42;
+/** Bolt fill / outline colors. */
+export const ACTION_BOLT_FILL = '#facc15';
+export const ACTION_BOLT_STROKE = '#92680e';
 /**
  * Fraction of the combined radii used as the minimum distance between cluster
  * centers in the separation pass. < 1 lets clusters sit closer (with some
@@ -228,6 +240,10 @@ export const PORT_STROKE = '#2a3a4a';
 export const PORT_PIER = '#b08d57';
 /** Pier edge — darker wood. */
 export const PORT_PIER_EDGE = '#6e5230';
+/** Plank spacing along a dock pier, as a fraction of the port size. */
+export const PORT_PLANK_GAP = 0.9;
+/** Plank slat stroke width, as a fraction of the port size. */
+export const PORT_PLANK_W = 0.16;
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 

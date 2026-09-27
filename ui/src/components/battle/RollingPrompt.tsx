@@ -11,10 +11,10 @@ interface RollingPromptProps {
  */
 export const RollingPrompt: React.FC<RollingPromptProps> = ({ waitingLines }) => (
   <div className="text-[13px] text-gray-600 bg-amber-50 border border-amber-200 rounded-md p-2">
-    Click your troops to roll — one die each. Rolled troops advance to
-    the center line. Highest rolls fight highest rolls.
+    Click a highlighted troop to roll its die — each front-line troop rolls once.
+    Your strongest rolls face their strongest.
     {waitingLines.length > 0 && (
-      <div className="text-gray-500 mt-1">Waiting: {waitingLines.join(' · ')}</div>
+      <div className="text-gray-500 mt-1">Waiting on: {waitingLines.join(', ')}</div>
     )}
   </div>
 );

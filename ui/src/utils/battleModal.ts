@@ -213,7 +213,7 @@ export function computeWaitingLines(battle: BattleState, phase: BattlePhase): st
           if (s.soldier.owner === name && s.rollNum === null) n++;
         }
       }
-      if (n > 0) waitingLines.push(`${name} to roll ${n} die${n > 1 ? 's' : ''}`);
+      if (n > 0) waitingLines.push(`${name} still has ${n} troop${n > 1 ? 's' : ''} to roll`);
     }
   }
   return waitingLines;
@@ -266,16 +266,16 @@ export function computeDiceMatchup(
         // Injured fight: the injured defender wins only on a strictly higher
         // roll (they flee, stay injured); a tie or loss kills them.
         if (dr > ar) {
-          [text, cls] = ['flee', 'text-blue-600'];
+          [text, cls] = ['defender escapes', 'text-blue-600'];
         } else {
-          [text, cls] = ['dies', 'text-red-600'];
+          [text, cls] = ['defender is lost', 'text-red-600'];
         }
       } else if (ar > dr) {
-        [text, cls] = ar - dr >= 2 ? [`${dr} killed`, 'text-red-600'] : [`${dr} injured`, 'text-amber-600'];
+        [text, cls] = ar - dr >= 2 ? ['defender killed', 'text-red-600'] : ['defender injured', 'text-amber-600'];
       } else if (dr > ar) {
-        [text, cls] = dr - ar >= 2 ? [`${ar} killed`, 'text-red-600'] : [`${ar} injured`, 'text-amber-600'];
+        [text, cls] = dr - ar >= 2 ? ['attacker killed', 'text-red-600'] : ['attacker injured', 'text-amber-600'];
       } else {
-        [text, cls] = ['tie', 'text-gray-500'];
+        [text, cls] = ['tie — nobody hurt', 'text-gray-500'];
       }
       matchup.push({ a: ar, d: dr, text, cls });
     }

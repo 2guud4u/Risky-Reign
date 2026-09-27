@@ -19,9 +19,13 @@ const ResourceDisplay: React.FC = () => {
   const me: Player = currentPlayer;
   const isMyTurn = gameRoom.turnState.player === me.name;
 
-  // Buying is only allowed on your own turn (enforced server-side too).
+  // Buying is only allowed during the Build phase on your own turn (the
+  // server enforces this too; hiding the button avoids a server error).
   const canBuyDevCard =
-    isMyTurn && canAfford(me.resources, DevelopmentCardPrice) && gameRoom.devCardDeckCount > 0;
+    isMyTurn &&
+    gameRoom.turnState.phase === 'Build' &&
+    canAfford(me.resources, DevelopmentCardPrice) &&
+    gameRoom.devCardDeckCount > 0;
 
   const handleDrawDevCard = () => drawDevelopmentCard(me.id, gameRoom.id);
   const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(me.id, gameRoom.id, cardIndex);

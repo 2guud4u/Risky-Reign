@@ -12,10 +12,10 @@ interface DiceMatchupPanelProps {
 export const DiceMatchupPanel: React.FC<DiceMatchupPanelProps> = ({ round, matchup }) => (
   <div className="border border-gray-200 rounded-lg p-3">
     <div className="text-[13px] font-semibold mb-1.5">
-      Round {round} — dice compared (highest vs highest)
+      Round {round} results — highest die fights highest die
     </div>
     {matchup.length === 0 ? (
-      <div className="text-gray-400 text-xs">No dice were compared</div>
+      <div className="text-gray-400 text-xs">No dice were rolled this round</div>
     ) : (
       <div className="flex flex-col gap-1">
         {matchup.map((m, i) => (

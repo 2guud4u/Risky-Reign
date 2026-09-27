@@ -50,20 +50,17 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
 
       {phase === 'repositioning' && (
         <div className="text-[12px] text-gray-700 bg-amber-50 border border-amber-200 rounded-md p-2">
-          {battle.repositionTurn === null ? (
-            <span>
-              Repositioning is done.
-            </span>
+          {battle.repositionTurn == null ? (
+            <span>All troops have been repositioned.</span>
           ) : (
             <>
               <strong>
                 {battle.repositionTurn === 'attacker'
-                  ? `${battle.attacker} (attacker) moves first`
-                  : `${battle.defender || 'Defender'} moves next`}
+                  ? `${battle.attacker} (attacker) repositions first`
+                  : `${battle.defender || 'The defender'} repositions next`}
               </strong>{' '}
-              — drag the yellow-ringed injured troops to a neighboring
-              vertex connected by a road to settle them. Any you leave
-              stay put. You can exit at any time.
+              — drag each highlighted (injured) troop onto a neighboring vertex
+              connected by a road. Any troop left behind stays where it fell.
             </>
           )}
         </div>
@@ -71,7 +68,7 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
 
       {phase === 'finished' && (
         <div className="text-[11px] text-gray-400">
-          Healthy troops stay where the fight ended.
+          Surviving troops remain where the battle ended.
         </div>
       )}
 
@@ -105,9 +102,9 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
-              title={allMoved ? 'Confirm your troop moves' : 'Move all your injured troops before confirming'}
+              title={allMoved ? 'Confirm your troop moves' : 'Move every injured troop off the battle site first'}
             >
-              Confirm Move Troops
+              Confirm Moves
             </button>
           );
         })()}

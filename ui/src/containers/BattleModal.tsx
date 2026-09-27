@@ -31,7 +31,7 @@ import { BATTLE_MINI_MIN_VIEW_SIZE } from '../components/battle/constants';
  */
 
 const BattleModal: React.FC = () => {
-  const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameRoom();
   const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier, finishRepositioning, moveRobberAfterWin } = useSocket();
 
   const battle = gameRoom?.battleState ?? null;
@@ -162,16 +162,10 @@ const BattleModal: React.FC = () => {
             )}
           </MiniView>
         )}
-
-        <button
-          type="button"
-          className="text-left text-[13px] hover:underline cursor-pointer"
-          onClick={() => setSelectedObject({ type: 'vertex', id: battle.vertexId })}
-          title="Show the battle location on the board"
-        >
-          ⚔ <strong>{battle.attacker}</strong> vs <strong>{battle.defender || 'defender'}</strong> at{' '}
-          vertex {battle.vertexId} — click to view on the board
-        </button>
+        {/* Attacker vs defender (no location link — the mini-map shows it). */}
+        <div className="text-[13px] text-gray-700">
+          <strong>{battle.attacker}</strong> attacks <strong>{battle.defender || 'the defender'}</strong>
+        </div>
 
         {/* Rolling phase: players roll their own dice, one per troop. */}
         {phase === 'rolling' && <RollingPrompt waitingLines={waitingLines} />}

@@ -96,6 +96,9 @@ const DevCardPrompt: React.FC = () => {
               >
                 <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
                 <span className="text-sm font-semibold text-gray-700">{r}</span>
+                <span className="text-[11px] text-gray-400">
+                  you have {currentPlayer.resources[r] ?? 0}
+                </span>
                 {isYearOfPlenty ? (
                   <div className="flex items-center gap-2 mt-1">
                     <button

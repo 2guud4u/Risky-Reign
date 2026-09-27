@@ -9,6 +9,12 @@ import {
   COMPACT_MAX,
   AGGREGATE_MAX_VISIBLE,
   AGGREGATE_BADGE_RADIUS,
+  ACTION_BOLT_H_FRAC,
+  ACTION_BOLT_W_FRAC,
+  ACTION_BOLT_X_OFF,
+  ACTION_BOLT_Y_OFF,
+  ACTION_BOLT_FILL,
+  ACTION_BOLT_STROKE,
 } from '../constants';
 
 interface SoldierGroupProps {
@@ -32,7 +38,7 @@ interface SoldierGroupProps {
   selectedSoldierIds?: ReadonlySet<string>;
   /** Soldier ids the current player may click to select for a group action. */
   selectableSoldierIds?: ReadonlySet<string>;
-  /** Soldier ids with an unspent action (pulsed to show they can still be used). */
+  /** Soldier ids with an unspent action (marked with an energy bolt). */
   canActSoldierIds?: ReadonlySet<string>;
 }
 
@@ -91,10 +97,25 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
     // tightly wraps it.
     const aw = SOLDIER_ART_WIDTH * sScale;
     const ah = SOLDIER_ART_HEIGHT * sScale;
+    // Energy bolt marking a soldier that can still act: a small zigzag pinned
+    // to the soldier's upper-right. Drawn above the sprite and selection box,
+    // non-interactive, and scaled with the art (injured soldiers get a smaller
+    // bolt). Replaces the old scale-pulse animation.
+    const bh = ah * ACTION_BOLT_H_FRAC;
+    const bw = bh * ACTION_BOLT_W_FRAC;
+    const bx = x + aw * ACTION_BOLT_X_OFF;
+    const by = y - ah * ACTION_BOLT_Y_OFF;
+    const boltPoints = [
+      `${bx + bw * 0.3},${by - bh / 2}`,
+      `${bx - bw * 0.35},${by + bh * 0.05}`,
+      `${bx - bw * 0.05},${by + bh * 0.05}`,
+      `${bx - bw * 0.3},${by + bh / 2}`,
+      `${bx + bw * 0.35},${by - bh * 0.05}`,
+      `${bx + bw * 0.05},${by - bh * 0.05}`,
+    ].join(' ');
     elements.push(
       <g
         key={`s-${s.id}`}
-        className={canAct ? 'pulse-soldier' : undefined}
         style={{ cursor: selectable && onSoldierClick ? 'pointer' : undefined }}
         onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
       >
@@ -121,6 +142,16 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
             fill="none"
             stroke="#facc15"
             strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
+          />
+        )}
+        {canAct && (
+          <polygon
+            points={boltPoints}
+            fill={ACTION_BOLT_FILL}
+            stroke={ACTION_BOLT_STROKE}
+            strokeWidth={Math.max(1, sScale * 1.4)}
+            strokeLinejoin="round"
+            pointerEvents="none"
           />
         )}
       </g>

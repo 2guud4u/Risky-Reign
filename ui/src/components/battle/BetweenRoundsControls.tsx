@@ -35,7 +35,7 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
             onClick={onContinue}
             className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
           >
-            Continue Battle (round {battle.round + 1})
+            Continue to Round {battle.round + 1}
           </button>
           <button
             type="button"
@@ -45,7 +45,7 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
             End Battle Now
           </button>
           <div className="text-[12px] text-gray-500 text-center">
-            You can keep attacking while you have troops left, or end the battle now.
+            Keep fighting while you have troops standing, or end the battle now.
           </div>
         </>
       ) : (
@@ -54,15 +54,15 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
           onClick={onEnd}
           className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
         >
-          End Battle — a side is defeated
+          End Battle
         </button>
       )}
     </div>
   ) : (
     <div className="text-[13px] text-gray-500">
       {currentPlayer && battle.attacker !== currentPlayer.name
-        ? `Waiting for ${battle.attacker} to continue or end the battle...`
-        : 'Battle in progress...'}
+        ? `Waiting for ${battle.attacker} to continue or end the battle…`
+        : 'Waiting for the attacker…'}
     </div>
   );
 };

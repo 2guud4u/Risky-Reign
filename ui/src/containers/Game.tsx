@@ -41,6 +41,18 @@ const Game: React.FC = () => {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // Browser tab title: flag when it's the player's turn so a backgrounded tab
+  // is easy to spot. Restores the app title when it isn't / on unmount.
+  const APP_TITLE = 'Risky Reign';
+  useEffect(() => {
+    const isMyTurn =
+      !!gameRoom && !!currentPlayer && gameRoom.turnState.player === currentPlayer.name;
+    document.title = isMyTurn ? `🎲 Your turn — ${APP_TITLE}` : APP_TITLE;
+    return () => {
+      document.title = APP_TITLE;
+    };
+  }, [gameRoom, currentPlayer]);
   const layouts = useMemo(() => {
     const { vw, vh } = vp;
     const out: Record<string, DefaultRect | null> = {};
