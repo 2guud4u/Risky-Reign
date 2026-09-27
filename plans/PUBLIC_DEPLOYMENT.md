@@ -1,74 +1,235 @@
 # Public Deployment Plan — Risky Reign
 
-Goal: let anyone with the URL join a game, while keeping the home box as
-exposed as possible to nothing else.
+Goal: anyone with the URL can play; nothing else on `jia-server` is reachable,
+and a hostile player can at worst end their own session — not the server,
+not other games, not the box.
 
-## Current state (verified 2026-09-25)
+Sources: host audit of `jia-server` and a code security review of this repo
+(2026-09-26). Findings F1–F11 cite exact file:line evidence in that review.
 
-- Docker container `catan-server` (non-root, read-only rootfs, no-new-privileges)
-- Port 3001 bound to the Tailscale IP only (`100.127.5.96`) — LAN and internet refused
-- ufw: default-deny incoming; only `4164/udp` (Tailscale) + `22/tcp` from `192.168.8.0/24`
-- No router port forwarding; Tailscale is userspace (unaffected by ufw)
-- Game has **no authentication** — the room code is the only barrier (fine for tailnet, relevant once public)
-- Measured draw: ~25 W idle / ~32 W under full load
+---
 
-## Phase 1 — Home LAN test (do first)
+## 0. Current state (audited)
 
-1. Temporarily expose to the home LAN:
-   - `docker-compose.yml`: add a second port entry `192.168.8.208:3001:3001`
-   - `sudo ufw allow from 192.168.8.0/24 to any port 3001 proto tcp`
-   - `docker compose up -d`
-2. Playtest from a home device at **http://192.168.8.208:3001**:
-   - [ ] UI loads, board renders
-   - [ ] 2+ players join one room and complete a full turn
-   - [ ] Refresh mid-game — state persists while the container runs
-   - [ ] Note any latency / bugs to fix before going public
-3. Optional cleanup before Phase 2 (keeps surface minimal):
-   - remove the LAN binding from `docker-compose.yml`
-   - `sudo ufw delete allow from 192.168.8.0/24 to any port 3001 proto tcp`
-   - `docker compose up -d`
+| Area | State | Verdict |
+|---|---|---|
+| App binding | `100.127.5.96:3001` (tailnet) + `192.168.8.208:3001` (LAN playtest) | OK |
+| Container | non-root `node`, read-only rootfs, `no-new-privileges` | OK |
+| Container limits | memory / CPU / pids **unlimited**, caps **not dropped** | ❌ fix |
+| Docker logs | `json-file`, **no rotation** | ❌ fix |
+| ufw | default-deny; rules `4164/udp`, `22/tcp` LAN, `3001/tcp` LAN | ⚠ stale — see below |
+| SSH | **no sshd installed**; access is Tailscale SSH (`RunSSH: true`) | OK, reduce scope |
+| OS updates | unattended-upgrades on, 0 security updates pending | OK |
+| Tailscale | v1.102.4, key expiry 2027-03-24, Funnel **not enabled** in ACL | — |
+| Game code | **F1 crash reproduced** — one empty `joinRoom` exits the server | ❌ blocker |
 
-## Phase 2 — Go public via Tailscale Funnel
+**Corrections to the previous version of this plan:**
+- `4164/udp` is wrong; Tailscale listens on **`41641/udp`** and already admits
+  itself via its own `ts-input` iptables chain. The ufw rule is dead weight.
+- `22/tcp` is dead weight: no sshd is installed.
+- **Docker bypasses ufw.** Published ports are DNAT'd in the `DOCKER` chain
+  before ufw's INPUT rules run. The `3001/tcp` LAN rule is not what protects
+  the LAN binding — the private address is. Never rely on ufw for Docker ports;
+  control exposure with the bind address (or with no published port at all).
+- **Funnel cannot use a custom domain** — `*.ts.net` only, ports 443/8443/10000,
+  still beta. A custom domain requires Cloudflare Tunnel (Phase 3B).
 
-1. Enable (persistent across reboots, no router changes):
-   ```
-   sudo tailscale funnel 3001
-   ```
-   This prints the public URL: `https://<machine>-<id>.ts.net`
-2. Verify from **outside the home network** (phone on cellular data):
-   - [ ] UI loads over HTTPS
-   - [ ] Two players in one room, one on cellular — WebSocket works, no dropped connections
-   - [ ] Latency acceptable for turn-based play
-3. Share the URL.
+---
 
-### Optional: custom domain (later)
+## Architecture decision
 
-- Buy a domain (~$10/yr), then:
-  ```
-  sudo tailscale funnel 3001 --www yourdomain.com
-  ```
-- DNS: CNAME `yourdomain.com` → `<machine>.ts.net`; Tailscale provisions the cert.
-
-## Security checklist (public)
-
-- [x] No router port forwarding — inbound traffic enters via Tailscale infrastructure
-- [x] ufw default-deny; only 4164/udp + LAN-scoped SSH
-- [x] Container hardening (non-root, read-only, no-new-privileges)
-- [ ] **No auth by design** — strangers can join; room code is the only barrier
-- [ ] **No rate limiting** — a malicious actor can open many connections; watch CPU
-- [ ] Tailscale free plan limits: 3 users / 100 devices (Funnel allowed on free)
-
-## Rollback (take it down, one command)
-
-```
-sudo tailscale funnel --close 3001
+```mermaid
+flowchart LR
+  P[Players] -->|HTTPS/WSS| E{Edge}
+  E -->|3A: Tailscale Funnel<br/>*.ts.net| T[tailscaled]
+  E -->|3B: Cloudflare Tunnel<br/>your domain + rate limit| C[cloudflared container]
+  T -->|127.0.0.1:3001| G[catan-server]
+  C -->|docker network, no host port| G
 ```
 
-The game immediately returns to tailnet-only; nothing else changes.
+Both edges are **outbound-only**: no router port forwarding, home IP hidden.
 
-## Monitoring while public
+| | 3A Tailscale Funnel | 3B Cloudflare Tunnel |
+|---|---|---|
+| Cost | free | free (+ ~$10/yr domain) |
+| URL | `https://jia-server.tailfb115d.ts.net` | `https://yourgame.com` |
+| Edge rate limiting / WAF | none | 1 free rate-limit rule, bot fight mode |
+| Real client IP | `X-Forwarded-For` | `CF-Connecting-IP` |
+| Host port needed | `127.0.0.1:3001` | **none** (container network) |
+| Status | beta | GA |
 
-- `docker stats catan-server --no-stream` — CPU / memory
-- `tailscale status` — peer count
-- If abused: close the funnel, `docker restart catan-server`
-  (in-memory state resets — expected, no DB yet)
+**Recommendation:** start with **3A** for the first public weekend (zero cost,
+one command, one-command rollback). Move to **3B** once you want a real domain
+or see abuse — edge rate limiting is the only thing 3A can't give you.
+
+---
+
+## Phase 1 — Home LAN playtest (active now)
+
+Open `http://192.168.8.208:3001` from any device on the home WiFi.
+
+- [ ] UI loads, board renders
+- [ ] 2+ players join one room and complete full turns
+- [ ] Trade, robber, dev cards, battle each exercised once
+- [ ] Note bugs to fix before Phase 2
+
+---
+
+## Phase 2 — Hardening (all required before any public exposure)
+
+### 2A. App fixes — in this repo, pushed, deployed with `server riskyreign update`
+
+Ordered by risk removed per effort. **2A-1 through 2A-4 are blockers.**
+
+- [ ] **2A-1 Crash guard (F1, Critical — reproduced).** One empty
+      `socket.emit('joinRoom')` exits Node (exit 1, all games lost).
+      In `backend/src/sockets.ts`, register every listener through a wrapper:
+      reject non-object payloads, `try/catch` the handler, emit a generic
+      `error` to the caller. Add `process.on('uncaughtException')` as a logged
+      backstop. Longer term: zod schemas per event.
+- [ ] **2A-2 Resource caps (F4, High).**
+      `new Server(server, { maxHttpBufferSize: 16_000 })`;
+      validate layouts **before** `createGameRoom` (≤100 hexes, integer
+      coords `|q|,|r|,|s| ≤ 10`, `q+r+s===0`); cap total rooms (~500);
+      delete rooms with no connected sockets after 30 min (disconnect handler
+      is currently empty, `gameRooms` never shrinks); cap `tradeOffers` (≤20);
+      per-socket token-bucket event limit; per-IP connection limit keyed on
+      `X-Forwarded-For` (3A) or `CF-Connecting-IP` (3B) with
+      `app.set('trust proxy', 1)`.
+- [ ] **2A-3 Seat ownership (F2, High).** `joinRoom` re-binds a seat by
+      **name match only**, before the started/full checks — anyone with the
+      code can steal a seat mid-game. Issue a `crypto.randomBytes(16)` reconnect
+      token on first join (stored client-side), require it to re-attach.
+- [ ] **2A-4 Admin authorization (F3, High).** `startGame`, `resetGame`,
+      `updatePointsToWin`, `exitBattle` have no membership check — any socket
+      that knows a code can wipe a running game. Add the same
+      `room.players.some(p => p.id === socket.id)` guard `refreshMap` uses;
+      restrict start/reset to host; require `gameStatus` preconditions.
+- [ ] **2A-5 Room codes (F7).** Generate server-side with `crypto.randomInt`,
+      ≥10 chars, no look-alike characters. `joinRoom` joins only (no implicit
+      creation). One generic "Room not available" error (current distinct
+      "not found" / "not a member" messages are an existence oracle).
+- [ ] **2A-6 Input validation (F6, F8).** Names: string, 1–24 printable chars,
+      reject `__proto__`/`constructor`/`prototype`. Colors:
+      `/^#[0-9a-fA-F]{6}$/` or `PLAYER_COLORS` (today `url(...)` makes every
+      opponent's browser fetch an attacker URL). All ID lookups via
+      `Object.hasOwn` — `moveRobber('__proto__')` currently pollutes
+      `Object.prototype` process-wide.
+- [ ] **2A-7 Hidden state (F5).** Every update broadcasts the raw room,
+      including `devCardDeck` in draw order and every hand. Emit a per-socket
+      `viewFor(room, socketId)`: deck length only, opponents' hands as counts,
+      no socket ids.
+- [ ] **2A-8 HTTP layer (F9).** `app.disable('x-powered-by')`; `helmet` with
+      CSP `default-src 'self'` and `frame-ancestors 'none'`; set
+      `CORS_ORIGIN` to the public hostname and drop `app.use(cors())`;
+      build UI with `GENERATE_SOURCEMAP=false`.
+- [ ] 2A-9 (low) Undo floor check after robber fight (F10); `crypto.randomInt`
+      for dice and shuffles (F11).
+
+### 2B. Container hardening — `/opt/catan/docker-compose.yml`
+
+```yaml
+    cap_drop: [ALL]
+    mem_limit: 512m
+    cpus: "1.5"
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+```
+
+Effect: a flood can exhaust the container, not the host (SSH, Tailscale, and
+the desktop stay up); logs are capped at 30 MB.
+
+### 2C. Host hardening — `jia-server`
+
+- [ ] **Rotate the sudo password** (it was shared in a chat session).
+- [ ] Clean ufw to what actually matters:
+      `sudo ufw delete allow 4164/udp`, `sudo ufw delete allow 22/tcp`
+      (both dead — see corrections above). Keep default-deny.
+- [ ] Remove `jia` from the `docker` group (`sudo gpasswd -d jia docker`);
+      the `server` command then runs its docker calls via `sudo`. Docker group
+      membership is root-equivalent.
+- [ ] Restrict Tailscale SSH in the ACL to your own devices only.
+- [ ] Disable unneeded network daemons: `cups-browsed`, `avahi-daemon`,
+      `wsdd` (listening on every interface including tailnet). Not reachable
+      via Funnel, but less to patch.
+- [ ] Reserve a static DHCP lease for `192.168.8.208` in the router.
+
+---
+
+## Phase 3A — Go public: Tailscale Funnel
+
+1. Tailscale admin console → Access controls → add the `funnel` node attribute
+   for `jia-server` (currently absent).
+2. Re-bind the app to loopback only (Funnel proxies to localhost; the tailnet
+   and LAN bindings are no longer needed):
+   ```yaml
+   ports:
+     - "127.0.0.1:3001:3001"
+   ```
+   `docker compose up -d`
+3. Enable (persists across reboots):
+   ```
+   sudo tailscale funnel --bg 3001
+   sudo tailscale funnel status
+   ```
+   Public URL: `https://jia-server.tailfb115d.ts.net`
+4. Set `CORS_ORIGIN=https://jia-server.tailfb115d.ts.net` in compose.
+
+Rollback: `sudo tailscale funnel reset` — back to private instantly.
+
+## Phase 3B — Go public: Cloudflare Tunnel (custom domain)
+
+1. Buy a domain; move its DNS to Cloudflare (free plan).
+2. Zero Trust → Networks → Tunnels → create tunnel → copy token.
+   Public hostname `yourgame.com` → service `http://catan:3001`.
+3. Remove **all** `ports:` from `catan` (no host exposure at all) and add:
+   ```yaml
+     cloudflared:
+       image: cloudflare/cloudflared:latest
+       command: tunnel --no-autoupdate run
+       env_file: .env            # TUNNEL_TOKEN=..., chmod 600, never committed
+       restart: unless-stopped
+       read_only: true
+       cap_drop: [ALL]
+       security_opt: [no-new-privileges:true]
+   ```
+   Rename the service key to `catan` so the hostname resolves.
+4. Cloudflare dashboard: SSL/TLS **Full**; Security → Bots → Bot Fight Mode on;
+   one rate-limit rule (e.g. 60 req / 10 s per IP on `/socket.io/*`).
+5. Set `CORS_ORIGIN=https://yourgame.com`; key IP limits on `CF-Connecting-IP`.
+
+Rollback: `docker compose stop cloudflared` (or delete the public hostname).
+
+---
+
+## Phase 4 — Verify before announcing
+
+From a phone on **cellular** (outside the home network):
+
+- [ ] UI loads over HTTPS, valid certificate
+- [ ] Two players in one room, one on cellular — WebSocket stays connected
+- [ ] `curl -I https://<public-host>/` has no `X-Powered-By`, has CSP
+- [ ] `https://<public-host>/static/js/*.map` → 404
+- [ ] Crash regression: empty `joinRoom` emit → error event, server stays up
+- [ ] Unknown room code → generic error, no room created
+- [ ] From the internet, nothing else answers: only 443 on the public host;
+      `192.168.8.208:3001` and `100.127.5.96:3001` no longer bound (3A/3B)
+- [ ] `docker inspect catan-server` shows memory/pids limits and `CapDrop=[ALL]`
+
+## Phase 5 — Operate
+
+- Watch: `docker stats catan-server --no-stream`,
+  `docker logs --since 1h catan-server`, `sudo tailscale funnel status`.
+- Deploy: `server riskyreign update`.
+- Incident: `server riskyreign close` (3A: also `sudo tailscale funnel reset`),
+  inspect logs, fix, redeploy. In-memory state resets — expected until
+  persistence to `/data` exists.
+
+## Residual risk (accepted)
+
+- No accounts: room code + reconnect token are the only credentials.
+- In-memory state: any restart ends all games.
+- Single home box: ISP or power outage = downtime.
+- 3A has no edge rate limiting; app-level limits (2A-2) are the only brake.
