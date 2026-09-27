@@ -229,23 +229,36 @@ From a phone on **cellular** (outside the home network):
 
 ## Phase 5 — Operate
 
-- Watch: `docker stats catan-server --no-stream`,
-  `docker logs --since 1h catan-server`, `sudo tailscale funnel status`.
-- Deploy: `server riskyreign update` — never drops a game in progress:
-  - Pulls and builds while the current server keeps running.
+`server` (menu) or `server rr <command>` (`rr` = `riskyreign`):
+
+| Command | What it does |
+|---|---|
+| `status` | Running/stopped, version vs repo, players connected, CPU/memory, whether riskyreign.com answers, pending update |
+| `logs [game\|tunnel\|deploy\|all] [-f] [N]` | Game log by default; `-f` follows live (Ctrl-C returns to the menu) |
+| `update` | Pull + build; applies now if nobody is playing, otherwise when games end |
+| `start` / `restart` / `close` | `restart` asks first if players are connected; `close` takes the site offline before stopping the game |
+| `public on\|off` | Start/stop the Cloudflare tunnel; the game keeps running locally either way |
+
+- Deploy: `server rr update` — never drops a game in progress:
+  - **Builds from committed files only** (`git archive HEAD`), never the
+    working tree. Leftover `node_modules`/`dist` in `/opt/catan` once made the
+    build compile against stale `common` code (2026-09-27); that can't recur.
+    The compose file has no `build:` section, so `docker compose` can't
+    build from the working tree either.
+  - Pulls and builds while the current server keeps running; a failed build
+    leaves the running server untouched.
   - No players connected → applies immediately.
   - Players connected → a background waiter applies the new build once
     **no players have been connected for 5 min** or **no game action has
     happened for 60 min** (idle tabs only send heartbeats; any move resets
-    the timer). Progress: `~/.local/state/riskyreign/deploy.log`.
-  - `server riskyreign close` cancels the wait; the next `start` runs the new build.
+    the timer). Watch: `server rr logs deploy -f`.
+  - `server rr close` cancels the wait; the next `start` runs the new build.
   - Tunables (env): `RR_EMPTY_SECS` (300), `RR_IDLE_SECS` (3600), `RR_POLL` (30).
-  - Needs to see the players' real connections. With a tunnel in front
-    (Phase 3), the tunnel holds one connection per player to the container,
-    so detection still works; re-verify after Phase 3.
-- Incident: `server riskyreign close` (3A: also `sudo tailscale funnel reset`),
-  inspect logs, fix, redeploy. In-memory state resets — expected until
-  persistence to `/data` exists.
+  - Player detection works through the tunnel: it holds one connection per
+    player to the container (verified 2026-09-27, 2 players seen via riskyreign.com).
+- Incident: `server rr public off` (site offline in seconds, games keep
+  running privately), then `server rr logs`, fix, `server rr update`.
+  In-memory state resets on restart — expected until persistence to `/data` exists.
 
 ## Residual risk (accepted)
 
