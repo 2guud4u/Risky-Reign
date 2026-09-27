@@ -222,7 +222,18 @@ From a phone on **cellular** (outside the home network):
 
 - Watch: `docker stats catan-server --no-stream`,
   `docker logs --since 1h catan-server`, `sudo tailscale funnel status`.
-- Deploy: `server riskyreign update`.
+- Deploy: `server riskyreign update` — never drops a game in progress:
+  - Pulls and builds while the current server keeps running.
+  - No players connected → applies immediately.
+  - Players connected → a background waiter applies the new build once
+    **no players have been connected for 5 min** or **no game action has
+    happened for 60 min** (idle tabs only send heartbeats; any move resets
+    the timer). Progress: `~/.local/state/riskyreign/deploy.log`.
+  - `server riskyreign close` cancels the wait; the next `start` runs the new build.
+  - Tunables (env): `RR_EMPTY_SECS` (300), `RR_IDLE_SECS` (3600), `RR_POLL` (30).
+  - Needs to see the players' real connections. With a tunnel in front
+    (Phase 3), the tunnel holds one connection per player to the container,
+    so detection still works; re-verify after Phase 3.
 - Incident: `server riskyreign close` (3A: also `sudo tailscale funnel reset`),
   inspect logs, fix, redeploy. In-memory state resets — expected until
   persistence to `/data` exists.
