@@ -180,8 +180,8 @@ Rollback: `sudo tailscale funnel reset` — back to private instantly.
 
 ## Phase 3B — Go public: Cloudflare Tunnel (custom domain)
 
-1. Buy `riskyreign.com` on Cloudflare Registrar ($10.46/yr at-cost, same on
-   renewal; Namecheap renews at $18.48). DNS is on Cloudflare automatically.
+1. [x] `riskyreign.com` registered on Cloudflare Registrar 2026-09-27
+   (expires 2027-09-27, $10.46/yr at-cost; NS `celine`/`cleo.ns.cloudflare.com`).
 2. Zero Trust → Networks → Tunnels → create tunnel → copy token.
    Public hostname `riskyreign.com` → service `http://catan:3001`.
 3. Remove **all** `ports:` from `catan` (no host exposure at all) and add:
