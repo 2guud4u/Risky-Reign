@@ -13,7 +13,7 @@ import VertexBuildActions from './VertexBuildActions';
 import VertexGroupPanel from './VertexGroupPanel';
 import VertexDefenderSelect from './VertexDefenderSelect';
 import VertexBattleNotice from './VertexBattleNotice';
-import VertexAdjacentEdges from './VertexAdjacentEdges';
+import VertexHealPanel from './VertexHealPanel';
 import { panelTitleClass, mutedTextClass } from './styles';
 
 /**
@@ -25,21 +25,21 @@ import { panelTitleClass, mutedTextClass } from './styles';
  * enemy group (adjacent vertex) to hit. No per-soldier card list is shown.
  */
 const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
-  const { gameRoom, currentPlayer, setSelectedObject } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameRoom();
   const { buildSettlement, upgradeSettlementToCity, recruitSoldier } = useSocket();
   const buildRules = useBuildRules(board);
-  const { canBuildSettlementAt, canUpgradeToCityAt, canRecruitSoldierAt } = buildRules;
+  const { settlementCheck, cityCheck, soldierCheck, canHealSoldierAt } = buildRules;
 
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   const owner = settlement
     ? gameRoom?.players.find((p) => p.name === settlement.ownerId) ?? null
     : null;
   const hexes = vertex.hexIds.map((hid) => board.hexes[hid]).filter(Boolean);
-  const canBuildSettlement = canBuildSettlementAt(vertex.id);
-  const canUpgradeToCity =
-    !!settlement && settlement.level === 'settlement' && canUpgradeToCityAt(vertex.id);
-  const canRecruitSoldier =
-    !!settlement && settlement.ownerId === currentPlayer?.name && canRecruitSoldierAt(vertex.id);
+  // The action buttons stay visible but grey out with a reason; the check
+  // objects (from `useBuildRules`, the backend's own rules) drive that.
+  const settlementOk = settlementCheck(vertex.id);
+  const cityOk = cityCheck(vertex.id);
+  const recruitOk = soldierCheck(vertex.id);
 
   const {
     soldiersHere,
@@ -115,12 +115,25 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
         currentPlayer={currentPlayer?.name}
       />
 
+      {/* Direct heal action on a settlement you own (Action phase): each
+          injured soldier pays 1 of either Wheat or Sheep. */}
+      {groupActionsAllowed &&
+        settlement &&
+        settlement.ownerId === currentPlayer?.name && (
+          <VertexHealPanel
+            injured={soldiersHere.filter((s) => s.owner === currentPlayer?.name && s.injured)}
+            canHeal={canHealSoldierAt}
+            resources={currentPlayer.resources}
+            onHeal={handleHealSoldier}
+          />
+        )}
+
       <VertexInfo settlement={settlement} owner={owner} hexes={hexes} />
 
       <VertexBuildActions
-        canBuildSettlement={canBuildSettlement}
-        canUpgradeToCity={canUpgradeToCity}
-        canRecruitSoldier={canRecruitSoldier}
+        settlementCheck={settlementOk}
+        cityCheck={cityOk}
+        recruitCheck={recruitOk}
         onBuildSettlement={handleBuildSettlement}
         onUpgradeToCity={handleUpgradeToCity}
         onRecruitSoldier={handleRecruitSoldier}
@@ -170,12 +183,6 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
       )}
 
       {battle && <VertexBattleNotice battle={battle} />}
-
-      <VertexAdjacentEdges
-        board={board}
-        vertex={vertex}
-        onSelectEdge={(edgeId) => setSelectedObject({ type: 'edge', id: edgeId })}
-      />
     </div>
   );
 };

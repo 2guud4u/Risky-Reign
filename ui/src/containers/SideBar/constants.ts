@@ -9,4 +9,6 @@ export const UNKNOWN_OWNER_COLOR = '#999';
 export const SETTLEMENT_OWNER_COLOR = '#8B4513';
 
 /** Human-readable heal cost shown on heal buttons. */
-export const HEAL_COST_LABEL = '2 Wheat, 2 Sheep';
+export const HEAL_COST_LABEL = '1 Wheat or 1 Sheep';
+/** The two resources a heal can be paid with. */
+export const HEAL_PAY_OPTIONS: ReadonlyArray<'Wheat' | 'Sheep'> = ['Wheat', 'Sheep'];

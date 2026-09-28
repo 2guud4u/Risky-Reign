@@ -20,18 +20,12 @@ allow dragging of soldiers in the mini map
 
 Feature:
 code should be animals or in the url if they join that link they join the room
-add soldier healing on own settlememt as an action 
 remove 10 resources and 
 
-mini map soldiers shouuld be draggable
-when single group, we should still follow the number of row
-
 allow simple art view 
-port  connector should still show with 1 vertex - visual port update
 -play one with sister and try to host
 make solder above settlement on rendering in mini map
-can only buy dev card in build phase
-add buy confirmation for dev card
+
 bug:
 for setupphase dont need to show spending of resources
 
@@ -49,7 +43,6 @@ music
 for trade add option for wanted trade and other players can see - auction
 
 
-defnders win ties
 
 injured soldiers screen logic needs to be fixed
 

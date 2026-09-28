@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Price, SOCKET_URL, HexLayout } from 'common';
+import { Price, SOCKET_URL, HexLayout, ResourceKey } from 'common';
 import { readSavedSession, saveSession } from '../utils/session';
 
 /**
@@ -36,7 +36,7 @@ interface SocketContextType {
   chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
   resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
   resolveDevCardChoice: (playerId: string, resources: string[], roomId: string) => void;
-  healSoldier: (playerId: string, soldierId: string, roomId: string) => void;
+  healSoldier: (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => void;
   rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
   repositionSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
@@ -58,10 +58,11 @@ interface SocketContextType {
   undoBuild: (roomId: string) => void;
   drawDevelopmentCard: (playerId: string, roomId: string) => void;
   playDevelopmentCard: (playerId: string, roomId: string, cardIndex: number) => void;
-  createTradeOffer: (roomId: string, to: string, give: Price, want: Price) => void;
+  createTradeOffer: (roomId: string, to: string | null, give: Price, want: Price) => void;
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
   cancelTrade: (roomId: string, tradeId: string) => void;
+  takeTrade: (roomId: string, tradeId: string) => void;
   bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => void;
   leaveGame: (roomId: string) => void;
 }
@@ -106,6 +107,7 @@ const SocketContext = createContext<SocketContextType>({
   acceptTrade: () => { },
   declineTrade: () => { },
   cancelTrade: () => { },
+  takeTrade: () => { },
   bankTrade: () => { },
   leaveGame: () => { },
 });
@@ -143,8 +145,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const resolveDevCardChoice = (playerId: string, resources: string[], roomId: string) =>
     emitAction(socket, 'resolveDevCardChoice', { roomId, playerId, resources }, { requirePlayerId: true });
 
-  const healSoldier = (playerId: string, soldierId: string, roomId: string) =>
-    emitAction(socket, 'healSoldier', { roomId, playerId, soldierId }, { requirePlayerId: true });
+  const healSoldier = (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) =>
+    emitAction(socket, 'healSoldier', { roomId, playerId, soldierId, payWith }, { requirePlayerId: true });
 
   const startAttack = (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) =>
     emitAction(socket, 'startAttack', { roomId, playerId, soldierIds, targetVertexId, defenderName }, { requirePlayerId: true });
@@ -213,7 +215,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
 
-  const createTradeOffer = (roomId: string, to: string, give: Price, want: Price) =>
+  const createTradeOffer = (roomId: string, to: string | null, give: Price, want: Price) =>
     emitAction(socket, 'createTradeOffer', { roomId, to, give, want });
 
   const acceptTrade = (roomId: string, tradeId: string) =>
@@ -224,6 +226,9 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const cancelTrade = (roomId: string, tradeId: string) =>
     emitAction(socket, 'cancelTrade', { roomId, tradeId });
+
+  const takeTrade = (roomId: string, tradeId: string) =>
+    emitAction(socket, 'takeTrade', { roomId, tradeId });
 
   const bankTrade = (roomId: string, giveResource: string, wantResource: string, giveCount: number) =>
     emitAction(socket, 'bankTrade', { roomId, giveResource, wantResource, giveCount });
@@ -296,6 +301,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         acceptTrade,
         declineTrade,
         cancelTrade,
+        takeTrade,
         bankTrade,
       }}
     >

@@ -18,6 +18,7 @@ import { BattleOutcomePanel } from '../components/battle/BattleOutcomePanel';
 import { BetweenRoundsControls } from '../components/battle/BetweenRoundsControls';
 import { DiceMatchupPanel } from '../components/battle/DiceMatchupPanel';
 import { RepositionOverlay } from '../components/battle/RepositionOverlay';
+import { RepositionRail } from '../components/battle/RepositionRail';
 import { RollingPrompt } from '../components/battle/RollingPrompt';
 import { BATTLE_MINI_MIN_VIEW_SIZE } from '../components/battle/constants';
 
@@ -40,13 +41,12 @@ const BattleModal: React.FC = () => {
   // Hooks must run unconditionally, before the early return below.
   const {
     svgRef,
-    drag,
-    mousePos,
-    injuredTroops,
-    startRepositionDrag,
-    handleMiniMouseMove,
-    handleMiniMouseUp,
-    handleMiniMouseLeave,
+    stagedTroops,
+    placedTroops,
+    selected,
+    selectTroop,
+    assignTo,
+    isMyRepositionTurn,
   } = useBattleReposition({
     board,
     battle,
@@ -123,44 +123,56 @@ const BattleModal: React.FC = () => {
           <span className="text-[13px] text-gray-500">Round {battle.round}</span>
         </div>
         {/* The battle arena: the vertex mini-map with both armies on it. In the
-            repositioning phase it instead shows each player's injured troops so
-            they can be dragged along a road to a neighboring vertex. */}
+            repositioning phase it instead shows a left staging rail of injured
+            troops; the active player picks one and clicks a lit vertex to
+            place it (placed troops stack on the vertex). */}
         {vertex && (
-          <MiniView
-            board={board}
-            type="vertex"
-            id={battle.vertexId}
-            playerColors={colors}
-            showGarrisonedSoldiers={false}
-            svgRef={svgRef}
-            onMouseMove={handleMiniMouseMove}
-            onMouseUp={handleMiniMouseUp}
-            onMouseLeave={handleMiniMouseLeave}
-            minViewSize={BATTLE_MINI_MIN_VIEW_SIZE}
-          >
-            {phase === 'repositioning' ? (
-              <RepositionOverlay
-                board={board}
-                injuredTroops={injuredTroops}
-                drag={drag}
-                mousePos={mousePos}
+          <div className="flex items-stretch gap-3">
+            {phase === 'repositioning' && (
+              <RepositionRail
+                stagedTroops={stagedTroops}
+                selectedSoldierId={selected?.soldierId ?? null}
+                selectedTargetCount={selected?.validTargets.length ?? 0}
                 currentPlayerName={currentPlayer?.name}
                 colors={colors}
-                onStartDrag={startRepositionDrag}
-              />
-            ) : (
-              <BattleArmies
-                center={center}
-                phase={phase}
-                attackerSlots={attackerSlots}
-                defenderSlots={defenderSlots}
-                troopSpread={troopSpread}
-                canRoll={canRoll}
-                colors={colors}
-                onRoll={handleRoll}
+                isMyRepositionTurn={isMyRepositionTurn()}
+                onSelect={selectTroop}
               />
             )}
-          </MiniView>
+            <div className="flex-1 min-w-0">
+              <MiniView
+                board={board}
+                type="vertex"
+                id={battle.vertexId}
+                playerColors={colors}
+                showGarrisonedSoldiers={false}
+                svgRef={svgRef}
+                minViewSize={BATTLE_MINI_MIN_VIEW_SIZE}
+              >
+                {phase === 'repositioning' ? (
+                  <RepositionOverlay
+                    board={board}
+                    placedTroops={placedTroops}
+                    selectedTargets={selected?.validTargets ?? []}
+                    currentPlayerName={currentPlayer?.name}
+                    colors={colors}
+                    onAssign={assignTo}
+                  />
+                ) : (
+                  <BattleArmies
+                    center={center}
+                    phase={phase}
+                    attackerSlots={attackerSlots}
+                    defenderSlots={defenderSlots}
+                    troopSpread={troopSpread}
+                    canRoll={canRoll}
+                    colors={colors}
+                    onRoll={handleRoll}
+                  />
+                )}
+              </MiniView>
+            </div>
+          </div>
         )}
         {/* Attacker vs defender (no location link — the mini-map shows it). */}
         <div className="text-[13px] text-gray-700">

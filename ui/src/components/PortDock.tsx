@@ -111,9 +111,8 @@ const PortDockInner: React.FC<{
   const ratio = isGeneric ? '3:1' : '2:1';
   return (
     <g>
-      {/* Plank bridges from the harbor badge to each vertex it serves. */}
-      {vertices.length === 2 &&
-        vertices.map((v, i) => <PlankBridge key={i} from={{ x, y }} to={v} size={size} />)}
+      {/* Plank bridges from the harbor badge to each vertex it serves (one or two). */}
+      {vertices.map((v, i) => <PlankBridge key={i} from={{ x, y }} to={v} size={size} />)}
       {/* Harbor medallion: soft drop shadow, colored ring, white coin face. */}
       <ellipse cx={x} cy={y + r * 0.12} rx={r} ry={r * 0.92} fill="#0a2434" opacity={0.18} />
       <circle cx={x} cy={y} r={r} fill={ring} stroke={PORT_STROKE} strokeWidth={1} />

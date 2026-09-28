@@ -1,8 +1,8 @@
 import { Board, VertexId } from '../types/Board';
-import { TurnState, ResourceCount, BuildCheck } from '../types/Logic';
+import { TurnState, ResourceCount, BuildCheck, ResourceKey } from '../types/Logic';
 import { playerSettlementVertexIds } from './placement';
 import { canAfford } from './logic';
-import { SoldierPrice, HealSoldierPrice } from '../Constant';
+import { SoldierPrice, HealSoldierResources } from '../Constant';
 
 /**
  * Authoritative soldier recruitment check, shared by the UI and the backend:
@@ -39,14 +39,15 @@ export function canRecruitSoldierAt(
 /**
  * Authoritative soldier heal check (Rules.md line 27): only during Action phase,
  * on your turn, for one of your own injured soldiers standing on a settlement you
- * own, and you must afford the heal cost (2 of each creation resource).
+ * own, and you must afford the heal cost — 1 card of either Wheat or Sheep.
  */
 export function canHealSoldierAt(
   board: Board,
   turn: TurnState,
   playerName: string,
   soldierId: string,
-  playerResources?: ResourceCount
+  playerResources?: ResourceCount,
+  payWith?: ResourceKey
 ): BuildCheck {
   if (turn.player !== playerName) return { allowed: false, reason: 'Not your turn' };
   if (turn.phase !== 'Action')
@@ -74,8 +75,17 @@ export function canHealSoldierAt(
   if (settlement.ownerId !== playerName)
     return { allowed: false, reason: 'You can only heal soldiers on your own settlements' };
 
-  if (playerResources && !canAfford(playerResources, HealSoldierPrice))
-    return { allowed: false, reason: 'Not enough resources to heal a soldier (2 Wheat, 2 Sheep)' };
+  // Heal costs 1 card of either Wheat or Sheep — the player's choice.
+  if (playerResources) {
+    if (payWith !== undefined) {
+      if (!HealSoldierResources.includes(payWith))
+        return { allowed: false, reason: 'Heal is paid with Wheat or Sheep' };
+      if ((playerResources[payWith] ?? 0) < 1)
+        return { allowed: false, reason: `Not enough ${payWith} to heal` };
+    } else if (!HealSoldierResources.some((r) => (playerResources[r] ?? 0) > 0)) {
+      return { allowed: false, reason: 'You need 1 Wheat or 1 Sheep to heal' };
+    }
+  }
 
   return { allowed: true, reason: null };
 }

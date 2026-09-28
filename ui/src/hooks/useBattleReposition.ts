@@ -1,15 +1,15 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { BattleState, Board, Player } from 'common';
-import { RepositionDrag, RepositionTroop } from '../types/battleModal';
+import { RepositionTroop } from '../types/battleModal';
 import { adjacentViaRoad, injuredTroopsOf } from '../utils/battleModal';
-import { DROP_THRESHOLD_FRACTION, PROJ_SIZE } from '../constants';
 
 /**
- * Post-battle repositioning: drag injured soldiers to adjacent vertices along
- * existing roads. Owns the mini-map svg ref, the in-flight drag state, the
- * cursor position (for the drag ghost), and the mouse handlers that resolve a
- * drop onto the nearest valid target vertex. Injured survivors are exposed as
- * `injuredTroops`, keyed by their current resting vertex.
+ * Post-battle repositioning (click-to-assign): injured survivors collect in a
+ * staging column on the left of the battle window. The active player clicks a
+ * troop to select it — its valid destinations (road-adjacent vertices) light up
+ * on the mini-map — then clicks a lit vertex to place the troop. Troops already
+ * moved stack on their target vertex. Owns the mini-map svg ref and the
+ * selection state; `injuredTroops` lists survivors keyed by their resting vertex.
  */
 export function useBattleReposition(opts: {
   board: Board | null;
@@ -21,89 +21,55 @@ export function useBattleReposition(opts: {
   const { board, battle, currentPlayer, roomId, repositionSoldier } = opts;
 
   const svgRef = useRef<SVGSVGElement>(null);
-  const [drag, setDrag] = useState<RepositionDrag | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  // The currently-selected staged troop and the vertices it may move to.
+  const [selected, setSelected] = useState<{ soldierId: string; validTargets: string[] } | null>(null);
 
   const injuredTroops: RepositionTroop[] =
     battle && board ? injuredTroopsOf(battle, board) : [];
 
-  const startRepositionDrag = (
-    e: React.MouseEvent,
-    soldierId: string,
-    ownerName: string,
-    vertexId: string
-  ) => {
-    // Only the owner may reposition their own injured troops, and only
-    // while it is their side's repositioning turn (attacker first).
-    if (!battle || !board || currentPlayer?.name !== ownerName) return;
+  // Troops still waiting at the battle vertex — shown in the left staging rail.
+  const stagedTroops = injuredTroops.filter((t) => t.vertexId === battle?.vertexId);
+  // Troops already placed on a different vertex — stacked on the map.
+  const placedTroops = injuredTroops.filter((t) => t.vertexId !== battle?.vertexId);
+
+  /** Whether it's this player's turn to reposition (attacker moves first). */
+  const isMyRepositionTurn = (): boolean => {
+    if (!battle || !currentPlayer) return false;
     const turn = battle.repositionTurn;
-    if (turn !== undefined && turn !== null) {
-      const isAttacker = currentPlayer.name === battle.attacker;
-      const isDefender = currentPlayer.name === battle.defender;
-      if (!isAttacker && !isDefender) return;
-      if (turn !== (isAttacker ? 'attacker' : 'defender')) return;
-    }
-    e.stopPropagation();
-    setDrag({ soldierId, ownerName, fromVertexId: vertexId, validTargets: adjacentViaRoad(board, vertexId) });
+    if (turn === undefined || turn === null) return true;
+    const isAttacker = currentPlayer.name === battle.attacker;
+    const isDefender = currentPlayer.name === battle.defender;
+    if (!isAttacker && !isDefender) return false;
+    return turn === (isAttacker ? 'attacker' : 'defender');
   };
 
-  // Map a mouse event to the mini-map SVG's world coordinates.
-  const toMiniSvgCoords = (e: React.MouseEvent): { x: number; y: number } | null => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const ctm = svg.getScreenCTM();
-    if (!ctm) return null;
-    const p = pt.matrixTransform(ctm.inverse());
-    return { x: p.x, y: p.y };
-  };
-
-  const handleMiniMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!drag) return;
-    setMousePos(toMiniSvgCoords(e));
-  };
-
-  const handleMiniMouseUp = () => {
-    if (!drag || !mousePos || !currentPlayer || !board || !roomId) {
-      setDrag(null);
-      setMousePos(null);
+  /** Select a staged troop (owner + turn gated). Toggles off if re-clicked. */
+  const selectTroop = (troop: RepositionTroop) => {
+    if (!battle || !board || !isMyRepositionTurn()) return;
+    if (currentPlayer?.name !== troop.ownerName) return;
+    if (selected?.soldierId === troop.soldierId) {
+      setSelected(null);
       return;
     }
-    // Drop on the nearest valid target vertex within reach.
-    let best: string | null = null;
-    let bestDist = Infinity;
-    for (const tid of drag.validTargets) {
-      const v = board.vertices[tid];
-      if (!v) continue;
-      const d = Math.hypot(v.position.x - mousePos.x, v.position.y - mousePos.y);
-      if (d < bestDist) {
-        bestDist = d;
-        best = tid;
-      }
-    }
-    const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
-    if (best && bestDist <= threshold) {
-      repositionSoldier(currentPlayer.id, drag.soldierId, best, roomId);
-    }
-    setDrag(null);
-    setMousePos(null);
+    setSelected({ soldierId: troop.soldierId, validTargets: adjacentViaRoad(board, troop.vertexId) });
   };
 
-  const handleMiniMouseLeave = () => {
-    setDrag(null);
-    setMousePos(null);
+  /** Place the selected troop onto a target vertex. */
+  const assignTo = (vertexId: string) => {
+    if (!selected || !currentPlayer || !roomId) return;
+    if (!selected.validTargets.includes(vertexId)) return;
+    repositionSoldier(currentPlayer.id, selected.soldierId, vertexId, roomId);
+    setSelected(null);
   };
 
   return {
     svgRef,
-    drag,
-    mousePos,
     injuredTroops,
-    startRepositionDrag,
-    handleMiniMouseMove,
-    handleMiniMouseUp,
-    handleMiniMouseLeave,
+    stagedTroops,
+    placedTroops,
+    selected,
+    selectTroop,
+    assignTo,
+    isMyRepositionTurn,
   };
 }

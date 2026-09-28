@@ -31,7 +31,16 @@ export function freshBankSupply(): ResourceCount {
   };
 }
 
-/** A resource count with every resource set to `value` (0 for a fresh bag, 10 for a fresh hand). */
+/** Per-player starting resources: 20 each in dev, 0 in production. Override
+    with `STARTING_RESOURCES`. */
+const envStart = Number(process.env.STARTING_RESOURCES);
+export const STARTING_RESOURCES = Number.isFinite(envStart)
+  ? Math.max(0, Math.trunc(envStart))
+  : process.env.NODE_ENV === 'production'
+    ? 0
+    : 20;
+
+/** A resource count with every resource set to `value` (0 for a fresh bag, `STARTING_RESOURCES` for a fresh hand). */
 export function freshResourceCount(value: number): ResourceCount {
   return {
     Wood: value,
@@ -129,7 +138,7 @@ export function resetRoom(room: GameRoom): void {
   room.bonuses = emptyBonuses();
   room.lastActivityAt = Date.now();
   for (const p of room.players) {
-    p.resources = freshResourceCount(10);
+    p.resources = freshResourceCount(STARTING_RESOURCES);
     p.victoryPoints = 0;
     p.developmentCards = [];
     p.freeRoadsLeft = 0;

@@ -6,7 +6,7 @@
  */
 declare const process: { env: { [key: string]: string | undefined } };
 declare const window: { location?: { origin?: string } } | undefined;
-import { Price } from './types/Logic';
+import { Price, ResourceKey } from './types/Logic';
 import { Resource, Terrain, LandTerrain } from './types/Hex';
 
 /** Hex render size (px) used during active play (matches legacy common). */
@@ -55,10 +55,18 @@ export const CityPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 2, Ore: 3 
 export const DevelopmentCardPrice: Price = { Wood: 0, Brick: 1, Sheep: 0, Wheat: 1, Ore: 1 };
 
 /**
- * Healing cost: twice the soldier creation cost (Rules.md line 27: "paying 2 of
- * each card used to create the soldier. No duplicates.").
+ * Healing cost (Rules.md "Soldier"): the player pays one card of either Wheat
+ * or Sheep — their choice. Resources that can pay the heal.
  */
-export const HealSoldierPrice: Price = { Wood: 0, Brick: 0, Sheep: 2, Wheat: 2, Ore: 0 };
+export const HealSoldierResources: readonly ResourceKey[] = ['Wheat', 'Sheep'];
+/** How many of the chosen resource a heal costs. */
+export const HealSoldierAmount = 1;
+/** Build a Price paying `HealSoldierAmount` of the chosen heal resource. */
+export function healPriceFor(payWith: ResourceKey): Price {
+  const price: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
+  if (HealSoldierResources.includes(payWith)) price[payWith] = HealSoldierAmount;
+  return price;
+}
 
 /** Default player color palette, cycled by join order when a player picks none. */
 export const PLAYER_COLORS: string[] = [

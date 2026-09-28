@@ -14,7 +14,7 @@ import {
   PLAYER_NAME_MAX,
 } from 'common';
 
-import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount } from '../store';
+import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
 import { broadcastRoom } from '../broadcast';
 import { MAX_ROOMS } from '../constants';
 import { HandlerContext } from './context';
@@ -123,7 +123,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       name: playerName,
       color: assigned,
       token: seatToken,
-      resources: freshResourceCount(10),
+      resources: freshResourceCount(STARTING_RESOURCES),
       victoryPoints: 0,
       developmentCards: [],
       freeRoadsLeft: 0,

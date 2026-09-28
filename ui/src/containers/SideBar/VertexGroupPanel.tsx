@@ -1,7 +1,7 @@
 import React from 'react';
 import { SoldierObj, VertexId } from 'common';
 import { buildButtonClass, sectionTitleClass } from './styles';
-import { HEAL_COST_LABEL } from './constants';
+import { HEAL_PAY_OPTIONS } from './constants';
 
 interface VertexGroupPanelProps {
   group: SoldierObj[];
@@ -18,7 +18,7 @@ interface VertexGroupPanelProps {
   enemyTroopCount: number;
   settlementIsCity: boolean;
   onClearGroup: () => void;
-  onHealSoldier: (soldierId: string) => void;
+  onHealSoldier: (soldierId: string, payWith?: 'Wheat' | 'Sheep') => void;
   onGroupMove: (targetVertexId: string) => void;
   onConfirmAttack: () => void;
   onCaptureSettlement: () => void;
@@ -86,18 +86,25 @@ const VertexGroupPanel: React.FC<VertexGroupPanelProps> = ({
         <div className="text-gray-100 text-[11px]">A battle is already in progress.</div>
       )}
 
-      {/* Heal actions for injured members. */}
+      {/* Heal actions for injured members — the player pays 1 of either Wheat or Sheep. */}
       {injured.length > 0 && (
         <div className="flex flex-col gap-1">
           {healableSoldiers.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => onHealSoldier(s.id)}
-              className={buildButtonClass}
-              title={`Heal ${s.owner} (${HEAL_COST_LABEL})`}
-            >
-              ✚ Heal {s.owner}
-            </button>
+            <div key={s.id} className="flex items-center justify-between gap-2">
+              <span className="text-[12px] text-gray-700">✚ {s.owner}</span>
+              <div className="flex gap-1.5">
+                {HEAL_PAY_OPTIONS.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => onHealSoldier(s.id, r)}
+                    title={`Heal ${s.owner} for 1 ${r}`}
+                    className="px-1.5 py-0.5 text-[11px] font-semibold rounded border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                  >
+                    1 {r === 'Wheat' ? '🌾' : '🐑'}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

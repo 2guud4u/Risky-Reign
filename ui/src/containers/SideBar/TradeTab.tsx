@@ -38,57 +38,94 @@ const ResourceStepper: React.FC<{
 /** A single trade offer row with its action buttons. */
 const OfferRow: React.FC<{
   offer: TradeOffer;
-  mine: boolean;
-  canAccept: boolean; // turn-owner gate AND both players can afford their parts
-}> = ({ offer, mine, canAccept }) => {
-  const { gameRoom } = useGameRoom();
-  const { acceptTrade, declineTrade, cancelTrade } = useSocket();
-  if (!gameRoom) return null;
+  canAccept: boolean;
+  canTake: boolean;
+}> = ({ offer, canAccept, canTake }) => {
+  const { gameRoom, currentPlayer } = useGameRoom();
+  const { acceptTrade, declineTrade, cancelTrade, takeTrade } = useSocket();
+  if (!gameRoom || !currentPlayer) return null;
 
+  const me = currentPlayer.name;
   const roomId = gameRoom.id;
   const btn = 'px-2 py-1 text-[12px] rounded border cursor-pointer';
+  const isOpen = offer.to === null;
+  const iAmCreator = offer.from === me;
+  const iAmClaimer = offer.claimer === me;
+  const iAmRecipient = offer.to === me;
+
+  let description: React.ReactNode;
+  if (isOpen && !offer.claimer) {
+    description = (
+      <><strong>{offer.from}</strong> offers <strong>{priceLabel(offer.give)}</strong> for <strong>{priceLabel(offer.want)}</strong> <span className="text-gray-400">(open to anyone)</span></>
+    );
+  } else if (isOpen && iAmClaimer) {
+    description = (
+      <>You took <strong>{offer.from}</strong>'s offer: they give <strong>{priceLabel(offer.give)}</strong>, you give <strong>{priceLabel(offer.want)}</strong></>
+    );
+  } else if (isOpen && iAmCreator) {
+    description = (
+      <><strong>{offer.claimer}</strong> took your offer: you give <strong>{priceLabel(offer.give)}</strong>, they give <strong>{priceLabel(offer.want)}</strong></>
+    );
+  } else if (iAmCreator) {
+    description = (
+      <>You offer <strong>{priceLabel(offer.give)}</strong> for <strong>{priceLabel(offer.want)}</strong> from <strong>{offer.to}</strong></>
+    );
+  } else {
+    description = (
+      <><strong>{offer.from}</strong> offers you <strong>{priceLabel(offer.give)}</strong> for your <strong>{priceLabel(offer.want)}</strong></>
+    );
+  }
 
   return (
     <div className="border border-gray-200 rounded-md p-2 mb-2 bg-white">
-      <p className="text-[13px] m-0">
-        {mine ? (
-          <>You offer <strong>{priceLabel(offer.give)}</strong> for <strong>{priceLabel(offer.want)}</strong> from <strong>{offer.to}</strong></>
-        ) : (
-          <><strong>{offer.from}</strong> offers you <strong>{priceLabel(offer.give)}</strong> for your <strong>{priceLabel(offer.want)}</strong></>
-        )}
-      </p>
+      <p className="text-[13px] m-0">{description}</p>
 
       {offer.status === 'pending' && (
         <div className="flex gap-2 mt-1.5">
-          {mine ? (
-            <button
-              type="button"
-              className={`${btn} border-gray-300 bg-gray-100`}
-              onClick={() => cancelTrade(roomId, offer.id)}
-            >
-              Cancel
+          {iAmCreator ? (
+            <>
+              {/* Open offer that someone took: creator accepts or declines. */}
+              {isOpen && offer.claimer && (
+                <>
+                  {canAccept && (
+                    <button type="button" className={`${btn} border-green-700 bg-green-600 text-white`} onClick={() => acceptTrade(roomId, offer.id)}>
+                      Accept {offer.claimer}
+                    </button>
+                  )}
+                  <button type="button" className={`${btn} border-red-300 bg-red-50 text-red-700`} onClick={() => declineTrade(roomId, offer.id)}>
+                    Decline
+                  </button>
+                </>
+              )}
+              <button type="button" className={`${btn} border-gray-300 bg-gray-100`} onClick={() => cancelTrade(roomId, offer.id)}>
+                Cancel
+              </button>
+            </>
+          ) : isOpen && !offer.claimer ? (
+            // Open offer I haven't taken: take it.
+            canTake && (
+              <button type="button" className={`${btn} border-blue-700 bg-blue-600 text-white`} onClick={() => takeTrade(roomId, offer.id)}>
+                Take offer
+              </button>
+            )
+          ) : iAmClaimer ? (
+            // I took an open offer; withdraw my claim.
+            <button type="button" className={`${btn} border-gray-300 bg-gray-100`} onClick={() => declineTrade(roomId, offer.id)}>
+              Withdraw
             </button>
-          ) : (
+          ) : iAmRecipient ? (
+            // Directed offer to me.
             <>
               {canAccept && (
-                <button
-                  type="button"
-                  className={`${btn} border-green-700 bg-green-600 text-white`}
-                  title="Accept this trade"
-                  onClick={() => acceptTrade(roomId, offer.id)}
-                >
+                <button type="button" className={`${btn} border-green-700 bg-green-600 text-white`} title="Accept this trade" onClick={() => acceptTrade(roomId, offer.id)}>
                   Accept
                 </button>
               )}
-              <button
-                type="button"
-                className={`${btn} border-red-300 bg-red-50 text-red-700`}
-                onClick={() => declineTrade(roomId, offer.id)}
-              >
+              <button type="button" className={`${btn} border-red-300 bg-red-50 text-red-700`} onClick={() => declineTrade(roomId, offer.id)}>
                 Decline
               </button>
             </>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -120,12 +157,22 @@ const TradeTab: React.FC = () => {
   if (!gameRoom || !currentPlayer) return null;
 
   const isBank = counterparty === 'Bank';
+  const isOpenTarget = counterparty === 'Anyone';
   const others = gameRoom.players.filter((p) => p.name !== currentPlayer.name);
   const offers = gameRoom.tradeOffers ?? [];
-  const incoming = offers.filter((o) => o.to === currentPlayer.name && o.status === 'pending');
-  const outgoing = offers.filter((o) => o.from === currentPlayer.name && o.status === 'pending');
+  const me = currentPlayer.name;
+  const isOpenOffer = (o: TradeOffer) => o.to === null && o.status === 'pending';
+  // Needing my decision: a direct offer to me, or an open offer I made that
+  // someone has taken (I then accept or decline the taker).
+  const incoming = offers.filter(
+    (o) => o.status === 'pending' && (o.to === me || (isOpenOffer(o) && o.from === me && !!o.claimer))
+  );
+  // Open offers posted by others that no one has taken yet.
+  const openOffers = offers.filter((o) => isOpenOffer(o) && o.from !== me && !o.claimer);
+  // My pending offers (directed + open, claimed or not).
+  const outgoing = offers.filter((o) => o.from === me && o.status === 'pending');
   const turnOwner = diceOwner(gameRoom);
-  const isTurnOwner = turnOwner === currentPlayer.name;
+  const isTurnOwner = turnOwner === me;
 
   // Bank ratio for the selected give resource (port-aware).
   const bankRatio = gameRoom.board ? bestBankTradeRatio(gameRoom.board, currentPlayer, bankGive) : 4;
@@ -143,7 +190,8 @@ const TradeTab: React.FC = () => {
   };
   const submitOffer = () => {
     if (!isTurnOwner || !counterparty || isBank || !hasAnyResource(give)) return;
-    createTradeOffer(gameRoom.id, counterparty, give, want);
+    // 'Anyone' posts an open offer (to === null) any player can take.
+    createTradeOffer(gameRoom.id, isOpenTarget ? null : counterparty, give, want);
     setGive({ ...emptyPrice });
     setWant({ ...emptyPrice });
   };
@@ -161,6 +209,7 @@ const TradeTab: React.FC = () => {
       >
         <option value="">Trade with...</option>
         <option value="Bank">Bank</option>
+        <option value="Anyone">Anyone (post offer)</option>
         {others.map((p) => (
           <option key={p.id} value={p.name}>
             {p.name}
@@ -257,37 +306,46 @@ const TradeTab: React.FC = () => {
       ) : (
         incoming.map((o) => {
           const from = gameRoom.players.find((p) => p.name === o.from);
-          const to = gameRoom.players.find((p) => p.name === o.to);
-          // Mirror of the backend's canAcceptTradeOffer using only public
-          // data: an opponent's hand is masked, so their exact resources
-          // can't be checked — resourceCount is the only affordability
-          // signal available (the server still enforces the real check).
+          // Counterparty: the directed recipient, or the player who took an
+          // open offer.
+          const cpName = o.to ?? o.claimer ?? null;
+          const counter = cpName ? gameRoom.players.find((p) => p.name === cpName) : undefined;
+          // Mirror of the backend's affordability check using only public
+          // data: an opponent's hand is masked, so exact resources can't be
+          // checked — resourceCount is the only affordability signal
+          // available (the server still enforces the real check).
           const canAfford = (p: typeof from, price: Price) =>
             !!p && (p.id === currentPlayer.id
               ? covers(p.resources, price)
               : p.resourceCount >= Object.values(price).reduce((a, b) => a + b, 0));
-          const check = {
-            allowed:
-              o.to === currentPlayer.name &&
-              o.status === 'pending' &&
-              (turnOwner === o.from || turnOwner === o.to) &&
-              canAfford(from, o.give) &&
-              canAfford(to, o.want),
-          };
+          const openClaimed = isOpenOffer(o) && o.from === me && !!o.claimer;
+          const canAccept =
+            o.status === 'pending' &&
+            (o.to === me ? (turnOwner === o.from || turnOwner === o.to) : openClaimed) &&
+            canAfford(from, o.give) &&
+            canAfford(counter, o.want);
           return (
             <OfferRow
               key={o.id}
               offer={o}
-              mine={false}
-              canAccept={check.allowed}
+              canAccept={canAccept}
+              canTake={false}
             />
           );
         })
       )}
-      {incoming.length > 0 && (
-        <p className="text-[12px] text-gray-500 m-0">
-          You can accept an offer during the turn owner's turn.
-        </p>
+
+      {/* Open offers: anyone can take; the poster then accepts or declines. */}
+      <h4 className="text-[13px] font-semibold m-0 mt-4 mb-2">Open offers ({openOffers.length})</h4>
+      {openOffers.length === 0 ? (
+        <p className="text-[12px] text-gray-500 m-0">No open offers right now.</p>
+      ) : (
+        openOffers.map((o) => {
+          const canTake = o.status === 'pending' && !o.claimer && covers(currentPlayer.resources, o.want);
+          return (
+            <OfferRow key={o.id} offer={o} canAccept={false} canTake={canTake} />
+          );
+        })
       )}
 
       {/* Outgoing */}
@@ -296,7 +354,7 @@ const TradeTab: React.FC = () => {
         <p className="text-[12px] text-gray-500 m-0">No pending offers from you.</p>
       ) : (
         outgoing.map((o) => (
-          <OfferRow key={o.id} offer={o} mine canAccept={false} />
+          <OfferRow key={o.id} offer={o} canAccept={false} canTake={false} />
         ))
       )}
     </div>

@@ -1,61 +1,56 @@
-import React from 'react';
-import { CityPrice, SettlementPrice, SoldierPrice } from 'common';
-import { buildButtonClass } from './styles';
+import React, { useState } from 'react';
+import { CityPrice, SettlementPrice, SoldierPrice, BuildCheck } from 'common';
 import { priceLabel } from '../../utils/price';
+import { ActionButton, ReasonNotice } from './ActionButton';
 
-interface VertexBuildActionsProps {
-  canBuildSettlement: boolean;
-  canUpgradeToCity: boolean;
-  canRecruitSoldier: boolean;
+interface VertexActionsProps {
+  settlementCheck: BuildCheck;
+  cityCheck: BuildCheck;
+  recruitCheck: BuildCheck;
   onBuildSettlement: () => void;
   onUpgradeToCity: () => void;
   onRecruitSoldier: () => void;
 }
 
 /**
- * Build-action buttons for the vertex sidebar: build a settlement, upgrade a
- * settlement to a city, and recruit a soldier. Each button renders only when
- * its eligibility flag (from `useBuildRules`) is set.
+ * The vertex's action buttons — always shown, greyed out when unavailable.
+ * Clicking a greyed button surfaces the reason it can't be done here. The
+ * checks come from `useBuildRules`, the same functions the backend enforces.
  */
-const VertexBuildActions: React.FC<VertexBuildActionsProps> = ({
-  canBuildSettlement,
-  canUpgradeToCity,
-  canRecruitSoldier,
+const VertexBuildActions: React.FC<VertexActionsProps> = ({
+  settlementCheck,
+  cityCheck,
+  recruitCheck,
   onBuildSettlement,
   onUpgradeToCity,
   onRecruitSoldier,
-}) => (
-  <>
-    {canBuildSettlement && (
-      <button
-        onClick={onBuildSettlement}
-        className={buildButtonClass}
-        title={`Build settlement (${priceLabel(SettlementPrice)})`}
-      >
-        Build Settlement <span className="text-white text-xs">({priceLabel(SettlementPrice)})</span>
-      </button>
-    )}
+}) => {
+  const [notice, setNotice] = useState<string | null>(null);
+  const blocked = (reason: string) => setNotice(reason);
 
-    {canUpgradeToCity && (
-      <button
-        onClick={onUpgradeToCity}
-        className={buildButtonClass}
-        title={`Upgrade to city (${priceLabel(CityPrice)})`}
-      >
-        Upgrade to City <span className="text-white text-xs">({priceLabel(CityPrice)})</span>
-      </button>
-    )}
-
-    {canRecruitSoldier && (
-      <button
-        onClick={onRecruitSoldier}
-        className={buildButtonClass}
-        title={`Recruit a soldier here (${priceLabel(SoldierPrice)})`}
-      >
-        ⚔ Recruit Soldier <span className="text-white text-xs">({priceLabel(SoldierPrice)})</span>
-      </button>
-    )}
-  </>
-);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <ActionButton
+        label={<>Build Settlement <span className="text-xs opacity-80">({priceLabel(SettlementPrice)})</span></>}
+        check={settlementCheck}
+        onDo={onBuildSettlement}
+        onBlocked={blocked}
+      />
+      <ActionButton
+        label={<>Upgrade to City <span className="text-xs opacity-80">({priceLabel(CityPrice)})</span></>}
+        check={cityCheck}
+        onDo={onUpgradeToCity}
+        onBlocked={blocked}
+      />
+      <ActionButton
+        label={<>⚔ Recruit Soldier <span className="text-xs opacity-80">({priceLabel(SoldierPrice)})</span></>}
+        check={recruitCheck}
+        onDo={onRecruitSoldier}
+        onBlocked={blocked}
+      />
+      {notice && <ReasonNotice reason={notice} onDismiss={() => setNotice(null)} />}
+    </div>
+  );
+};
 
 export default VertexBuildActions;

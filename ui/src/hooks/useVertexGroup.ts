@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Board, SoldierObj, VertexId, VertexNode } from 'common';
+import { Board, SoldierObj, VertexId, VertexNode, ResourceKey } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { SoldierActionRules } from '../types/vertex';
@@ -116,9 +116,9 @@ export function useVertexGroup(board: Board, vertex: VertexNode, rules: SoldierA
     );
   };
 
-  const handleHealSoldier = (soldierId: string) => {
+  const handleHealSoldier = (soldierId: string, payWith?: ResourceKey) => {
     if (!gameRoom || !currentPlayer) return;
-    healSoldier(currentPlayer.id, soldierId, gameRoom.id);
+    healSoldier(currentPlayer.id, soldierId, gameRoom.id, payWith);
   };
 
   // Move every selected soldier to the target vertex (one action each).

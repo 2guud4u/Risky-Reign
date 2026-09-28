@@ -2,6 +2,7 @@ import {
   normalizePrice,
   canCreateTradeOffer,
   canAcceptTradeOffer,
+  canTakeTradeOffer,
   applyTrade,
   canBankTrade,
   applyBankTrade,
@@ -24,7 +25,7 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
 
   socket.on(
     'createTradeOffer',
-    (data: { roomId: string; to: string; give?: unknown; want?: unknown }) => {
+    (data: { roomId: string; to: string | null; give?: unknown; want?: unknown }) => {
       const { roomId, to } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
@@ -47,9 +48,10 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
       room.tradeOffers.push({
         id: `t_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         from: sender.name,
-        to,
+        to: to ?? null,
         give,
         want,
+        claimer: null,
         status: 'pending',
       });
       applyBonuses(room);
@@ -86,6 +88,36 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     broadcastRoom(io, room);
   });
 
+  // Take an open offer (to === null): any player who isn't the creator may
+  // claim it; the creator then accepts or declines the taker.
+  socket.on('takeTrade', (data: { roomId: string; tradeId: string }) => {
+    const { roomId, tradeId } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (blockIfFinished(room, socket)) return;
+    const player = room.players.find((p) => p.id === socket.id);
+    if (!player) {
+      socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
+    const offer = room.tradeOffers.find((o) => o.id === tradeId);
+    if (!offer) {
+      socket.emit('error', { message: 'Trade offer not found' });
+      return;
+    }
+    const check = canTakeTradeOffer(room, offer, player.name);
+    if (!check.allowed) {
+      socket.emit('error', { message: check.reason ?? 'Cannot take this offer' });
+      return;
+    }
+    offer.claimer = player.name;
+    applyBonuses(room);
+    broadcastRoom(io, room);
+  });
+
   socket.on('declineTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
     const room = gameRooms.get(roomId);
@@ -100,12 +132,25 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
       return;
     }
     const offer = room.tradeOffers.find((o) => o.id === tradeId);
-    // Only the recipient may decline, and only while pending.
-    if (offer && offer.to === player.name && offer.status === 'pending') {
+    if (!offer || offer.status !== 'pending') return;
+    if (offer.to === null) {
+      // Open offer: the creator declines the taker (clears the claim, leaving
+      // the offer open), or the taker retracts their claim.
+      if (offer.claimer && offer.from === player.name) {
+        offer.claimer = null;
+      } else if (offer.claimer === player.name) {
+        offer.claimer = null;
+      } else {
+        return;
+      }
+    } else if (offer.to === player.name) {
+      // Directed offer: the recipient declines it.
       offer.status = 'declined';
-      applyBonuses(room);
-      broadcastRoom(io, room);
+    } else {
+      return;
     }
+    applyBonuses(room);
+    broadcastRoom(io, room);
   });
 
   socket.on('cancelTrade', (data: { roomId: string; tradeId: string }) => {
@@ -129,7 +174,6 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
       broadcastRoom(io, room);
     }
   });
-
   socket.on('bankTrade', (data: {
     roomId: string;
     giveResource: string;

@@ -7,8 +7,8 @@ import {
   createRobberBattleState,
   rollDie,
   subtractPrice,
-  HealSoldierPrice,
-  RESOURCES,
+  healPriceFor,
+  ResourceKey,
   applyBonuses,
 } from 'common';
 import { gameRooms, freshResourceCount } from '../store';
@@ -137,8 +137,9 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     }
   );
 
-  socket.on('healSoldier', (data: { roomId: string; soldierId: string }) => {
+  socket.on('healSoldier', (data: { roomId: string; soldierId: string; payWith?: string }) => {
     const { roomId, soldierId } = data;
+    const payWith = data.payWith as ResourceKey | undefined;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -157,15 +158,18 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
 
-    // Authoritative rules live in common (shared with the UI).
-    const check = canHealSoldierAt(board, turnState, currentPlayer.name, soldierId, currentPlayer.resources);
+    // Authoritative rules live in common (shared with the UI), including the
+    // heal payment choice: 1 card of either Wheat or Sheep.
+    const check = canHealSoldierAt(board, turnState, currentPlayer.name, soldierId, currentPlayer.resources, payWith);
     if (!check.allowed) {
       socket.emit('error', { message: check.reason ?? 'Cannot heal this soldier' });
       return;
     }
 
-    // Deduct healing cost and restore the soldier (Rules.md line 27).
-    currentPlayer.resources = subtractPrice(currentPlayer.resources, HealSoldierPrice);
+    // Deduct the chosen heal resource (default to Wheat if unspecified) and
+    // restore the soldier (Rules.md line 27).
+    const cost = healPriceFor(payWith ?? (currentPlayer.resources.Wheat > 0 ? 'Wheat' : 'Sheep'));
+    currentPlayer.resources = subtractPrice(currentPlayer.resources, cost);
     const soldier = board.soldiers[soldierId];
     if (soldier) {
       soldier.injured = false;

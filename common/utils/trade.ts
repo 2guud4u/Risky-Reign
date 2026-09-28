@@ -51,7 +51,7 @@ export function diceOwner(room: Pick<GameRoom, 'turnState'>): string {
 export function canCreateTradeOffer(
   room: GameRoom,
   fromName: string,
-  toName: string,
+  toName: string | null,
   give: Price,
   want: Price
 ): TradeCheck {
@@ -59,9 +59,13 @@ export function canCreateTradeOffer(
     return { allowed: false, reason: 'You can only trade during your turn' };
   const from = room.players.find((p) => p.name === fromName);
   if (!from) return { allowed: false, reason: 'You are not in this room' };
-  if (fromName === toName) return { allowed: false, reason: 'Cannot trade with yourself' };
-  const to = room.players.find((p) => p.name === toName);
-  if (!to) return { allowed: false, reason: 'Recipient not found in this room' };
+  // An open offer (toName null) is posted for anyone to take; otherwise the
+  // offer is directed at a specific recipient.
+  if (toName !== null) {
+    if (fromName === toName) return { allowed: false, reason: 'Cannot trade with yourself' };
+    const to = room.players.find((p) => p.name === toName);
+    if (!to) return { allowed: false, reason: 'Recipient not found in this room' };
+  }
   if (!hasAnyResource(give)) return { allowed: false, reason: 'Offer at least one resource' };
   if (!covers(from.resources, give)) return { allowed: false, reason: 'You cannot afford that offer' };
   return { allowed: true, reason: null };
@@ -74,18 +78,46 @@ export function canCreateTradeOffer(
  * player in the trade is the turn owner (the player who rolled the dice).
  */
 export function canAcceptTradeOffer(room: GameRoom, offer: TradeOffer, playerName: string): TradeCheck {
-  if (offer.to !== playerName) return { allowed: false, reason: 'Only the recipient can accept this trade' };
   if (offer.status !== 'pending') return { allowed: false, reason: 'This trade is no longer pending' };
   const owner = diceOwner(room);
-  if (owner !== offer.from && owner !== offer.to)
-    return { allowed: false, reason: 'You can only accept trades during the turn owner\'s turn' };
   const from = room.players.find((p) => p.name === offer.from);
-  const to = room.players.find((p) => p.name === offer.to);
-  if (!from || !to) return { allowed: false, reason: 'A trade participant is missing' };
+  if (!from) return { allowed: false, reason: 'A trade participant is missing' };
   if (!covers(from.resources, offer.give))
     return { allowed: false, reason: `${offer.from} can no longer afford their part of the trade` };
+
+  // Open offer: the CREATOR decides once someone has taken it.
+  if (offer.to === null) {
+    if (playerName !== offer.from)
+      return { allowed: false, reason: 'Only the offer creator can accept this trade' };
+    if (!offer.claimer) return { allowed: false, reason: 'No one has taken this offer yet' };
+    const claimer = room.players.find((p) => p.name === offer.claimer);
+    if (!claimer) return { allowed: false, reason: 'The taker is no longer in this room' };
+    if (!covers(claimer.resources, offer.want))
+      return { allowed: false, reason: `${offer.claimer} cannot afford their part of the trade` };
+    return { allowed: true, reason: null };
+  }
+
+  // Directed offer: the recipient accepts.
+  if (offer.to !== playerName) return { allowed: false, reason: 'Only the recipient can accept this trade' };
+  if (owner !== offer.from && owner !== offer.to)
+    return { allowed: false, reason: 'You can only accept trades during the turn owner\'s turn' };
+  const to = room.players.find((p) => p.name === offer.to);
+  if (!to) return { allowed: false, reason: 'A trade participant is missing' };
   if (!covers(to.resources, offer.want))
     return { allowed: false, reason: 'You cannot afford your part of the trade' };
+  return { allowed: true, reason: null };
+}
+
+/** Whether a player may take an open (to === null) trade offer. */
+export function canTakeTradeOffer(room: GameRoom, offer: TradeOffer, playerName: string): TradeCheck {
+  if (offer.to !== null) return { allowed: false, reason: 'Only an open offer can be taken' };
+  if (offer.status !== 'pending') return { allowed: false, reason: 'This trade is no longer pending' };
+  if (offer.claimer) return { allowed: false, reason: `${offer.claimer} already took this offer` };
+  if (offer.from === playerName) return { allowed: false, reason: 'You cannot take your own offer' };
+  const taker = room.players.find((p) => p.name === playerName);
+  if (!taker) return { allowed: false, reason: 'You are not in this room' };
+  if (!covers(taker.resources, offer.want))
+    return { allowed: false, reason: 'You cannot afford what this offer wants' };
   return { allowed: true, reason: null };
 }
 
@@ -93,8 +125,9 @@ export function canAcceptTradeOffer(room: GameRoom, offer: TradeOffer, playerNam
  * Apply an accepted trade: transfer resources both ways. Mutates players in place.
  */
 export function applyTrade(room: GameRoom, offer: TradeOffer): void {
+  const counterpartyName = offer.to ?? offer.claimer ?? null;
   const from = room.players.find((p) => p.name === offer.from);
-  const to = room.players.find((p) => p.name === offer.to);
+  const to = counterpartyName ? room.players.find((p) => p.name === counterpartyName) : undefined;
   if (!from || !to) return;
   from.resources = addPrice(subtractPrice(from.resources, offer.give), offer.want);
   to.resources = addPrice(subtractPrice(to.resources, offer.want), offer.give);

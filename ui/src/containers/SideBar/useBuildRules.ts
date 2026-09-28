@@ -75,6 +75,14 @@ export function useBuildRules(board: Board) {
     fightRobberCheck(soldierId, vertexId).allowed;
 
   return {
+    settlementCheck,
+    roadCheck,
+    cityCheck,
+    soldierCheck,
+    moveSoldierCheck,
+    healSoldierCheck,
+    captureCheck,
+    fightRobberCheck,
     canBuildSettlementAt,
     canBuildRoadOn,
     canUpgradeToCityAt,

@@ -92,13 +92,15 @@ export type UndoEntry =
       robberMoved?: { fromHexId: string; toHexId: string };
     };
 
-/** A pending resource trade between two players. */
+/** A pending resource trade between two players (or an open offer to anyone). */
 export interface TradeOffer {
   id: string;
   from: string; // player who created the offer
-  to: string; // recipient of the offer
+  to: string | null; // recipient, or null for an open offer anyone may take
   give: Price; // resources 'from' offers to hand over
   want: Price; // resources 'from' requests in return
+  /** The player who took an open offer, awaiting the creator's decision. */
+  claimer?: string | null;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled';
 }
 

@@ -57,6 +57,10 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
       gameRoom.turnState.placedRoad ? null : 'road',
     ].filter(Boolean);
 
+    // Round 1 = offsets 0..N-1, round 2 = offsets N..2N-1 (the reverse pass).
+    const playerCount = gameRoom.turnState.playerOrder.length || 1;
+    const setupRound = Math.min(2, Math.floor(gameRoom.turnState.offset / playerCount) + 1);
+
     return (
       <div
         className={
@@ -68,10 +72,11 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
         {isMyTurn ? (
           needs.length > 0 ? (
             <>
-              Place: {needs.join(' + ')}
+              Place ({setupRound}/2): {needs.join(' + ')}
               {!snack && (
                 <span className="block text-xs text-blue-600 mt-0.5">
-                  Setup ends automatically once both are placed.
+                  Setup places two settlements + two roads per player
+                  {setupRound === 2 ? ' — this is your last one.' : '.'}
                 </span>
               )}
             </>
@@ -79,7 +84,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
             'Setup complete — advancing...'
           )
         ) : (
-          <>Waiting on {gameRoom.turnState.player} to place their settlement & road</>
+          <>Waiting on {gameRoom.turnState.player} to place their settlement &amp; road</>
         )}
       </div>
     );
