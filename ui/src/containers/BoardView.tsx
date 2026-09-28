@@ -206,7 +206,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           width={renderSize}
           height={renderSize}
           viewBox={viewport.viewBox}
-          className="block w-full"
+          className="block w-full select-none"
+          onDragStart={(e) => e.preventDefault()}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={cancelDrag}

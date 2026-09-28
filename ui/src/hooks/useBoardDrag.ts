@@ -70,6 +70,7 @@ export function useBoardDrag(opts: {
   const startRobberDrag = useCallback(
     (e: React.MouseEvent) => {
       if (!robberPending) return;
+      e.preventDefault(); // stop native drag + text selection highlight
       e.stopPropagation();
       setRobberDrag(true);
     },
@@ -89,6 +90,7 @@ export function useBoardDrag(opts: {
       if (!board || !gameRoom) return;
       const soldier = movableSoldierAt(board, gameRoom, vertexId, ownerName);
       if (!soldier) return;
+      e.preventDefault(); // stop native drag + text selection highlight
       e.stopPropagation();
       setDrag({
         soldierId: soldier.id,
