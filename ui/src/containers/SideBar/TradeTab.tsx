@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Price, RESOURCES, ResourceKey, TradeOffer, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
+import { Price, RESOURCES, ResourceKey, TradeOffer, BuildCheck, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
+import { ReasonNotice } from './ActionButton';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
@@ -137,6 +138,26 @@ const OfferRow: React.FC<{
 };
 
 
+/** A trade action button: always visible, greyed out (keeps normal text) when
+ *  unavailable; clicking a greyed one reports the reason. */
+const TradeButton: React.FC<{
+  label: React.ReactNode;
+  check: BuildCheck;
+  color: string; // enabled tailwind classes, e.g. 'bg-green-600 border-green-600'
+  onDo: () => void;
+  onBlocked: (reason: string) => void;
+}> = ({ label, check, color, onDo, onBlocked }) => (
+  <button
+    type="button"
+    onClick={() => (check.allowed ? onDo() : onBlocked(check.reason ?? 'Not allowed'))}
+    aria-disabled={!check.allowed}
+    className={`w-full py-1.5 text-[13px] font-semibold rounded-md border text-white ${
+      check.allowed ? `${color} cursor-pointer` : 'bg-gray-300 border-gray-300 cursor-not-allowed'
+    }`}
+  >
+    {label}
+  </button>
+);
 /**
  * Trade tab: a single form to trade with the bank or another player. The
  * counterparty is picked from one dropdown ("Bank" or a player). Trades are
@@ -154,6 +175,7 @@ const TradeTab: React.FC = () => {
   // Player-offer form: multi-resource give/want.
   const [give, setGive] = useState<Price>({ ...emptyPrice });
   const [want, setWant] = useState<Price>({ ...emptyPrice });
+  const [notice, setNotice] = useState<string | null>(null);
   if (!gameRoom || !currentPlayer) return null;
 
   const isBank = counterparty === 'Bank';
@@ -176,28 +198,31 @@ const TradeTab: React.FC = () => {
 
   // Bank ratio for the selected give resource (port-aware).
   const bankRatio = gameRoom.board ? bestBankTradeRatio(gameRoom.board, currentPlayer, bankGive) : 4;
-  const bankCanTrade =
-    isTurnOwner && !!gameRoom.board &&
-    canBankTrade(gameRoom, currentPlayer.name, bankGive, bankWant, bankCount, gameRoom.bankSupply).allowed;
-
+  const bankCheck: BuildCheck = !isTurnOwner
+    ? { allowed: false, reason: 'Not your turn' }
+    : !gameRoom.board
+    ? { allowed: false, reason: 'Board not ready' }
+    : canBankTrade(gameRoom, currentPlayer.name, bankGive, bankWant, bankCount, gameRoom.bankSupply);
+  const offerCheck: BuildCheck = !isTurnOwner
+    ? { allowed: false, reason: 'Not your turn' }
+    : !hasAnyResource(give)
+    ? { allowed: false, reason: 'Pick at least one resource to give' }
+    : { allowed: true, reason: null };
   const setGiveAmount = (k: ResourceKey, v: number) => setGive({ ...give, [k]: v });
   const setWantAmount = (k: ResourceKey, v: number) => setWant({ ...want, [k]: v });
 
   const submitBank = () => {
-    if (!bankCanTrade) return;
+    if (!bankCheck.allowed) return;
     bankTrade(gameRoom.id, bankGive, bankWant, bankCount);
     setBankCount(4);
   };
   const submitOffer = () => {
-    if (!isTurnOwner || !counterparty || isBank || !hasAnyResource(give)) return;
+    if (!offerCheck.allowed || !counterparty || isBank) return;
     // 'Anyone' posts an open offer (to === null) any player can take.
     createTradeOffer(gameRoom.id, isOpenTarget ? null : counterparty, give, want);
     setGive({ ...emptyPrice });
     setWant({ ...emptyPrice });
   };
-
-  const primaryBtn = (active: string) =>
-    `w-full py-1.5 text-[13px] font-semibold rounded-md border ${active} text-white cursor-pointer`;
 
   return (
     <div>
@@ -255,15 +280,14 @@ const TradeTab: React.FC = () => {
               <button type="button" onClick={() => setBankCount((c) => Math.min(currentPlayer.resources[bankGive], c + 1))} className={stepperBtn}>+</button>
             </div>
           </div>
-          {bankCanTrade && (
-            <button
-              type="button"
-              onClick={submitBank}
-              className={primaryBtn('bg-green-600 border-green-600')}
-            >
-              Trade with Bank
-            </button>
-          )}
+          <TradeButton
+            label="Trade with Bank"
+            check={bankCheck}
+            color="bg-green-600 border-green-600"
+            onDo={submitBank}
+            onBlocked={setNotice}
+          />
+          {notice && <ReasonNotice reason={notice} onDismiss={() => setNotice(null)} />}
         </div>
       )}
 
@@ -287,15 +311,14 @@ const TradeTab: React.FC = () => {
             </div>
           </div>
 
-          {isTurnOwner && hasAnyResource(give) && (
-            <button
-              type="button"
-              onClick={submitOffer}
-              className={primaryBtn('bg-blue-600 border-blue-600')}
-            >
-              Send Offer
-            </button>
-          )}
+          <TradeButton
+            label="Send Offer"
+            check={offerCheck}
+            color="bg-blue-600 border-blue-600"
+            onDo={submitOffer}
+            onBlocked={setNotice}
+          />
+          {notice && <ReasonNotice reason={notice} onDismiss={() => setNotice(null)} />}
         </div>
       )}
 

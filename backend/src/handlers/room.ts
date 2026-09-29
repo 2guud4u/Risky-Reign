@@ -161,10 +161,16 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       const newName = typeof nData.name === 'string' ? nData.name.trim() : '';
       if (!newName || newName.length > PLAYER_NAME_MAX || !PLAYER_NAME_RE.test(newName)) return;
       if (room.players.some((pl) => pl.name === newName)) return; // names must stay unique
-      const oldName = p.name;
+      // Re-point the turn only if the renamed seat is the one holding it.
+      // Comparing names is wrong: nameless seats all share "" (a player who
+      // names first would otherwise steal the creator's first setup turn and,
+      // via the setup snake order, get three turns in a row). Capture the turn
+      // holder's seat from the OLD order before renaming, then match by index.
+      const seatIndex = room.players.indexOf(p);
+      const turnSeatIndex = room.turnState.playerOrder.indexOf(room.turnState.player);
       p.name = newName;
       room.turnState.playerOrder = room.players.map((pl) => pl.name);
-      if (room.turnState.player === oldName) room.turnState.player = newName;
+      if (turnSeatIndex === seatIndex) room.turnState.player = newName;
       broadcastRoom(io, room, 'roomUpdate');
     });
   });
@@ -322,8 +328,11 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     const leavingName = player.name;
     const orderIndex = room.turnState.playerOrder.indexOf(leavingName);
+    const seatIndex = room.players.indexOf(player);
     room.players = room.players.filter((p) => p.id !== socket.id);
-    room.turnState.playerOrder = room.turnState.playerOrder.filter((n) => n !== leavingName);
+    // Remove the leaver's seat by index, not by name — nameless seats share
+    // "" so a name filter would drop more than one order entry.
+    room.turnState.playerOrder.splice(seatIndex, 1);
     if (room.turnState.player === leavingName) {
       room.turnState.player =
         room.turnState.playerOrder.length > 0
