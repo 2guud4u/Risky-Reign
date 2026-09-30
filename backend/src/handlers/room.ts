@@ -96,7 +96,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       broadcastRoom(io, room, 'roomUpdate');
       return;
     }
-    if (playerName && room.players.some((p) => p.name === playerName)) {
+    if (playerName && room.players.some((p) => p.name.toLowerCase() === playerName.toLowerCase())) {
       socket.emit('error', { message: 'Seat taken' });
       return;
     }
@@ -159,8 +159,14 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       const p = room.players.find((pl) => pl.id === socket.id);
       if (!p || room.gameStatus !== 'waiting') return;
       const newName = typeof nData.name === 'string' ? nData.name.trim() : '';
-      if (!newName || newName.length > PLAYER_NAME_MAX || !PLAYER_NAME_RE.test(newName)) return;
-      if (room.players.some((pl) => pl.name === newName)) return; // names must stay unique
+      if (!newName || newName.length > PLAYER_NAME_MAX || !PLAYER_NAME_RE.test(newName)) {
+        socket.emit('error', { message: 'Invalid player name' });
+        return;
+      }
+      if (room.players.some((pl) => pl.name.toLowerCase() === newName.toLowerCase())) {
+        socket.emit('error', { message: 'That name is taken' });
+        return;
+      }
       // Re-point the turn only if the renamed seat is the one holding it.
       // Comparing names is wrong: nameless seats all share "" (a player who
       // names first would otherwise steal the creator's first setup turn and,

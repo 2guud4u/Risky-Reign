@@ -6,7 +6,7 @@ import ConnectionBanner from './ConnectionBanner';
 import GamePage from '../pages/Game';
 import LobbyPage from '../pages/Lobby';
 import BoardEditorPage from '../editor/BoardEditor';
-import { clearSavedSession, readSavedSession } from '../utils/session';
+import { clearSavedSession, readSavedSession, saveSession, joinCodeFromUrl } from '../utils/session';
 import { TOAST_DURATION_MS } from '../constants';
 
 /**
@@ -44,6 +44,15 @@ const GameLogic: React.FC = () => {
   const { socket, isConnected, joinRoom: onJoinRoom } = useSocket();
   const { setGameRoom, setCurrentPlayer, gameRoom } = useGameRoom();
   const autoJoinedRef = useRef(false);
+  // Capture a shareable join link (riskyreign.com/join?id=CODE) once on mount,
+  // before the auto-rejoin effect below reads the saved session: persist the
+  // code so it auto-joins, then clean the URL.
+  useEffect(() => {
+    const code = joinCodeFromUrl();
+    if (!code) return;
+    saveSession({ roomId: code, playerName: '' });
+    window.history.replaceState({}, '', '/');
+  }, []);
 
   // Auto-rejoin the saved room once the socket is connected.
   useEffect(() => {

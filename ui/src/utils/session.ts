@@ -5,6 +5,7 @@
  * break the app.
  */
 
+import { ROOM_CODE_CHARS, ROOM_CODE_LENGTH } from 'common';
 import { SavedSession } from '../types';
 
 const SESSION_KEY = 'joinedRoom';
@@ -37,5 +38,25 @@ export function clearSavedSession(): void {
     sessionStorage.removeItem(SESSION_KEY);
   } catch {
     // ignore
+  }
+}
+/** Read a shareable join code from the URL. Accepts `/join?id=CODE` and
+    `/?id=CODE` / `/?room=CODE` (so a copied link works even if `/join` isn't
+    SPA-served and the SPA lands on the root). */
+export function joinCodeFromUrl(): string | null {
+  try {
+    const url = new URL(window.location.href);
+    const raw =
+      url.searchParams.get('id') ??
+      url.searchParams.get('room') ??
+      (url.pathname.startsWith('/join')
+        ? url.searchParams.get('id') ?? url.pathname.replace('/join/', '')
+        : null);
+    const id = (raw ?? '').toUpperCase().trim();
+    if (id.length !== ROOM_CODE_LENGTH) return null;
+    if (![...id].every((c) => ROOM_CODE_CHARS.includes(c))) return null;
+    return id;
+  } catch {
+    return null;
   }
 }

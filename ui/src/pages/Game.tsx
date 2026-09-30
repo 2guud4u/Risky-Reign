@@ -6,19 +6,72 @@ import ColorPicker from '../components/ColorPicker';
 import BoardView from '../containers/BoardView';
 import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
-import { readSavedSession, saveSession } from '../utils/session';
+import { readSavedSession, saveSession, clearSavedSession } from '../utils/session';
+
+/** Bottom-left menu (hamburger) shared by the waiting room: leave the lobby. */
+const LobbyMenu: React.FC<{
+  open: boolean;
+  onToggle: () => void;
+  onLeave: () => void;
+  roomId: string;
+}> = ({ open, onToggle, onLeave, roomId }) => (
+  <div className="fixed bottom-3 left-3 z-50">
+    {open && (
+      <div className="absolute bottom-full left-0 mb-2 w-44 rounded-md border border-gray-300 bg-white shadow-lg p-2 text-gray-800">
+        <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">Room {roomId}</div>
+        <button
+          type="button"
+          onClick={onLeave}
+          className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-red-600 text-white cursor-pointer hover:bg-red-700"
+        >
+          Leave game
+        </button>
+      </div>
+    )}
+    <button
+      type="button"
+      onClick={onToggle}
+      className="px-3 py-2 text-[20px] leading-none font-semibold rounded-md border border-gray-300 bg-white shadow cursor-pointer hover:bg-gray-100"
+      title="Menu"
+      aria-label="Menu"
+      aria-expanded={open}
+    >
+      {'☰'}
+    </button>
+  </div>
+);
+
+/** Legacy clipboard fallback for non-secure origins (no navigator.clipboard). */
+function fallbackCopyText(text: string): boolean {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }> = ({ error, onCustomizeBoard }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer } = useGameRoom();
   const {
     startGame: onStartGame,
     refreshMap: onRefreshMap,
     updatePlayerColor: onUpdatePlayerColor,
     updatePointsToWin: onUpdatePointsToWin,
     updatePlayerName: onUpdatePlayerName,
+    leaveGame: emitLeaveGame,
   } = useSocket();
 
   const [nameInput, setNameInput] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const handleSetName = () => {
     const name = nameInput.trim();
     if (!name || !gameRoom || !currentPlayer) return;
@@ -31,6 +84,25 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
       playerName: name,
       color: currentPlayer.color,
     });
+  };
+  const leaveLobby = () => {
+    if (gameRoom && currentPlayer) emitLeaveGame(gameRoom.id);
+    clearSavedSession();
+    setGameRoom(null);
+    setCurrentPlayer(null);
+    setMenuOpen(false);
+  };
+  const copyJoinLink = async () => {
+    if (!gameRoom) return;
+    const url = `${window.location.origin}/join?id=${gameRoom.id}`;
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+      else if (!fallbackCopyText(url)) return;
+    } catch {
+      if (!fallbackCopyText(url)) return;
+    }
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1600);
   };
 
   if (!gameRoom || !currentPlayer) {
@@ -75,6 +147,12 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               </button>
             </form>
           </div>
+          <LobbyMenu
+            open={menuOpen}
+            onToggle={() => setMenuOpen((o) => !o)}
+            onLeave={leaveLobby}
+            roomId={gameRoom.id}
+          />
         </div>
       );
     }
@@ -85,7 +163,19 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
           <div />
           <div className="bg-white rounded-lg shadow p-4 max-w-[520px]">
           <h1 className="text-2xl font-bold text-center mb-4">Waiting for Players</h1>
-          <p className="text-center text-gray-600">Current Room ID: {gameRoom.id}</p>
+          <p className="text-center text-gray-600">
+            Current Room ID: <strong>{gameRoom.id}</strong>
+            <button
+              type="button"
+              onClick={copyJoinLink}
+              title="Copy join link"
+              aria-label="Copy join link"
+              className="ml-1.5 align-middle text-[13px] text-gray-500 hover:text-gray-800 cursor-pointer"
+            >
+              {linkCopied ? '✓' : '🔗'}
+            </button>
+            {linkCopied && <span className="text-[11px] text-green-600"> link copied</span>}
+          </p>
           <p className="text-center text-gray-600">
             Players: {gameRoom.players.map((p) => p.name).join(', ')}
           </p>
@@ -149,6 +239,12 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
           </button>
         </div>
         </div>
+        <LobbyMenu
+          open={menuOpen}
+          onToggle={() => setMenuOpen((o) => !o)}
+          onLeave={leaveLobby}
+          roomId={gameRoom.id}
+        />
       </div>
     );
   }

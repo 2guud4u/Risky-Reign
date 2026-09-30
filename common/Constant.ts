@@ -155,8 +155,9 @@ export const MAX_BANK_TRADE_PER_TURN = 4;
 
 /** Maximum soldiers that may fight on a side in a single battle round. */
 export const MAX_PER_ROUND = 3;
-/** Room codes are this many uppercase alphanumeric characters (unguessable). */
-export const ROOM_CODE_LENGTH = 10;
+/** Room codes are this many uppercase alphanumeric characters. 6 of the 32-char
+    alphabet below is ~1e9 combos — easy to type, still unguessable. */
+export const ROOM_CODE_LENGTH = 6;
 /** Allowed characters in a room code. */
 export const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 /** Player names are this many characters at most. */

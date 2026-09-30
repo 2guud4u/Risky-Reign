@@ -24,8 +24,12 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
     }
   };
 
-  const generateRoomId = () => {
-    setRoomId(generateRoomCode());
+  // Creating a game = joining a fresh, server-free room code (the server
+  // creates the room on first join). The code is surfaced in-game to share.
+  const handleCreateRoom = () => {
+    const code = generateRoomCode();
+    onJoinRoom('', code);
+    saveSession({ roomId: code, playerName: '' });
   };
 
   const canJoin = isConnected && !!roomId.trim();
@@ -35,29 +39,37 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
       <div className="bg-white rounded-lg shadow p-4 w-full max-w-[420px]">
         <h1 className="text-[28px] font-bold text-center mb-6">Risky Reign Lobby</h1>
 
+        {/* Create a brand-new game: generates a fresh room code. */}
+        <button
+          type="button"
+          onClick={handleCreateRoom}
+          disabled={!isConnected}
+          className={`w-full py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white mb-4 ${
+            isConnected ? 'bg-green-600 cursor-pointer hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {isConnected ? 'Create Game' : 'Connecting...'}
+        </button>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-gray-300" />
+          <span className="text-[12px] text-gray-400 font-semibold">or</span>
+          <div className="flex-1 h-px bg-gray-300" />
+        </div>
+
         <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
           <div>
             <label className="block text-[13px] font-semibold mb-1.5">Room ID</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                placeholder="Enter room ID"
-                required
-                className={`${inputClass} flex-1`}
-              />
-              <button
-                type="button"
-                onClick={generateRoomId}
-                title="Generate random room ID"
-                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-pointer"
-              >
-                🎲
-              </button>
-            </div>
+            <input
+              type="text"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+              placeholder="Enter room ID"
+              required
+              className={inputClass}
+            />
             <p className="text-xs text-gray-400 mt-1">
-              Share this room ID with a friend to play together
+              Enter the code a friend shared to join their game
             </p>
           </div>
 
@@ -65,7 +77,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
             type="submit"
             disabled={!canJoin}
             className={`py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white ${
-              isConnected ? 'bg-blue-600 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'
+              canJoin ? 'bg-blue-600 cursor-pointer hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
             }`}
           >
             {isConnected ? 'Join Game' : 'Connecting...'}
@@ -84,25 +96,11 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
               isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'
             }`}
           >
-            <span
-              className={`w-2 h-2 rounded-full mr-2 ${
-                isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            {isConnected ? 'Connected' : 'Disconnected'}
+            
+            {isConnected ? '✓ Connected to server!' : 'Disconnected'}
           </span>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-semibold text-blue-900 mb-2">How to Play:</h3>
-          <ul className="text-[13px] text-blue-950 pl-[18px] m-0">
-            <li>Enter your name and create/join a room</li>
-            <li>Pick your color in the waiting room</li>
-            <li>Share the room ID with a friend</li>
-            <li>Take turns placing settlements and roads</li>
-            <li>Roll the dice, trade, and build each turn</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
