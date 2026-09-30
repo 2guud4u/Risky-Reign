@@ -46,8 +46,6 @@ export interface MiniViewProps {
    * the battle arena so a wide troop formation isn't zoomed in too much.
    */
   minViewSize?: number;
-  /** The current player's name (used to separate own troops from enemy groups). */
-  currentPlayer?: string;
 }
 
 /** Stroke style for an edge line in the mini map (thicker when a road is built). */

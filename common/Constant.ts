@@ -1,11 +1,6 @@
 /**
  * Shared constants for the clean v2 layer.
- *
- * `process` is declared locally so this module type-checks without @types/node
- * (the browser build gets real values via CRA's DefinePlugin).
  */
-declare const process: { env: { [key: string]: string | undefined } };
-declare const window: { location?: { origin?: string } } | undefined;
 import { Price, ResourceKey } from './types/Logic';
 import { Resource, Terrain, LandTerrain } from './types/Hex';
 
@@ -28,20 +23,6 @@ export const MIN_PLAYERS = 2;
 
 /** Default victory threshold (standard Catan: first to 10 VP wins). */
 export const DEFAULT_POINTS_TO_WIN = 10;
-
-/**
- * Socket server url. Resolution order:
- * 1. REACT_APP_SOCKET_URL (CRA build-time override for dev / cross-origin setups).
- *    Accessed directly (no `typeof process` guard) because CRA's DefinePlugin
- *    inlines `process.env.REACT_APP_SOCKET_URL` as a literal — and `process`
- *    is undefined in the browser, so any `process` check would skip the override.
- * 2. Same origin as the page (single-origin deployments — the default).
- * 3. Local dev fallback.
- */
-export const SOCKET_URL: string =
-  process.env.REACT_APP_SOCKET_URL ||
-  (typeof window !== 'undefined' && window && window.location && window.location.origin) ||
-  'http://localhost:3001';
 
 /** Settlement build cost. */
 export const SettlementPrice: Price = { Wood: 1, Brick: 1, Sheep: 1, Wheat: 1, Ore: 0 };

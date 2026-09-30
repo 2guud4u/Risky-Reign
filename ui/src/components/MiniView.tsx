@@ -28,7 +28,6 @@ const MiniView: React.FC<MiniViewProps> = ({
   onMouseUp,
   onMouseLeave,
   minViewSize,
-  currentPlayer,
 }) => {
   const vertexLayout =
     type === 'vertex' ? vertexMiniLayout(board, id, showGarrisonedSoldiers) : null;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Price, SOCKET_URL, HexLayout, ResourceKey } from 'common';
+import { Price, HexLayout, ResourceKey } from 'common';
+import { SOCKET_URL } from '../config';
 import { readSavedSession, saveSession } from '../utils/session';
 
 /**

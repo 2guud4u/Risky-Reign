@@ -112,7 +112,6 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
         selectedSoldierIds={new Set(selectedGroup)}
         selectableSoldierIds={selectableIds}
         canActSoldierIds={canActIds}
-        currentPlayer={currentPlayer?.name}
       />
 
       {/* Direct heal action on a settlement you own (Action phase): each
