@@ -49,9 +49,13 @@ export function healPriceFor(payWith: ResourceKey): Price {
   return price;
 }
 
-/** Default player color palette, cycled by join order when a player picks none. */
+/**
+ * Preset player colors: quick picks in the lobby and the default assigned on
+ * join. Players may also pick any custom color (see `utils/color.ts`); every
+ * preset is at least `MIN_COLOR_DISTANCE` from the others.
+ */
 export const PLAYER_COLORS: string[] = [
-  '#e6194B',
+  '#e6194b',
   '#3cb44b',
   '#4363d8',
   '#f58231',
@@ -60,7 +64,7 @@ export const PLAYER_COLORS: string[] = [
   '#f032e6',
   '#bfef45',
   '#469990',
-  '#ee8434',
+  '#800000',
 ];
 
 /** Standard Catan token distribution (roll -> count). */

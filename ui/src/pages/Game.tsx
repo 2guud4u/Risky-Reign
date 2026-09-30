@@ -184,9 +184,11 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
             <label className="block text-[13px] font-semibold mb-1.5">Your Color</label>
             <ColorPicker
               value={currentPlayer.color}
+              others={gameRoom.players
+                .filter((p) => p.id !== currentPlayer.id)
+                .map((p) => ({ name: p.name || 'Unnamed player', color: p.color }))}
               onChange={(color) => onUpdatePlayerColor(gameRoom.id, color)}
             />
-
           </div>
 
           {error && <p className="text-red-600 text-center mt-2">{error}</p>}

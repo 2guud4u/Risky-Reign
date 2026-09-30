@@ -1,6 +1,9 @@
 import { randomBytes } from 'crypto';
 import {
   PLAYER_COLORS,
+  isHexColor,
+  normalizeColor,
+  playerColorError,
   Player,
   applyBonuses,
   MAX_PLAYERS,
@@ -55,7 +58,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Invalid player name' });
       return;
     }
-    if (color !== undefined && !PLAYER_COLORS.includes(color)) {
+    if (color !== undefined && !isHexColor(color)) {
       socket.emit('error', { message: 'Invalid color' });
       return;
     }
@@ -109,12 +112,13 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room is full' });
       return;
     }
-    // Assign a color: the requested one if free, otherwise the first available.
-    const used = new Set(room.players.map((p) => p.color));
-    let assigned = color;
-    if (!assigned || used.has(assigned)) {
-      assigned = PLAYER_COLORS.find((c) => !used.has(c)) ?? PLAYER_COLORS[0];
-    }
+    // Assign a color: the requested one if it's distinct from everyone else's,
+    // otherwise the first preset that is.
+    const used = room.players.map((p) => p.color);
+    const assigned =
+      color && playerColorError(color, used) === null
+        ? normalizeColor(color)
+        : PLAYER_COLORS.find((c) => playerColorError(c, used) === null) ?? PLAYER_COLORS[0];
     // The seat token is a server-issued secret the client echoes back on every
     // joinRoom to prove ownership of this seat across reconnects.
     const seatToken = randomBytes(16).toString('hex');
@@ -140,45 +144,53 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     // Send updated room state to all players.
     applyBonuses(room);
     broadcastRoom(io, room, 'roomUpdate');
+  });
+  // Change your color while still in the lobby. Registered at the top level
+  // (not inside joinRoom) so it works for sockets that re-attached to a seat
+  // via token after a reload — those return early from joinRoom.
+  socket.on('updatePlayerColor', (data: { roomId: string; color: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room || room.gameStatus !== 'waiting') return;
+    const p = room.players.find((pl) => pl.id === socket.id);
+    if (!p) return;
+    const requested = typeof data.color === 'string' ? data.color : '';
+    const others = room.players.filter((pl) => pl.id !== socket.id).map((pl) => pl.color);
+    const err = playerColorError(requested, others);
+    if (err) {
+      socket.emit('error', { message: err });
+      return;
+    }
+    p.color = normalizeColor(requested);
+    broadcastRoom(io, room, 'roomUpdate');
+  });
 
-    // Allow the player to change their color while still in the lobby.
-    socket.on('updatePlayerColor', (cData: { color: string }) => {
-      const p = room.players.find((pl) => pl.id === socket.id);
-      if (!p) return;
-      const requested = cData.color;
-      if (!PLAYER_COLORS.includes(requested)) return;
-      const taken = new Set(
-        room.players.filter((pl) => pl.id !== socket.id).map((pl) => pl.color)
-      );
-      p.color = !taken.has(requested) ? requested : PLAYER_COLORS.find((c) => !taken.has(c)) ?? p.color;
-      broadcastRoom(io, room, 'roomUpdate');
-    });
-    // Allow the player to set their name while still in the lobby (join is
-    // name-optional; the name is chosen after joining).
-    socket.on('updatePlayerName', (nData: { name: string }) => {
-      const p = room.players.find((pl) => pl.id === socket.id);
-      if (!p || room.gameStatus !== 'waiting') return;
-      const newName = typeof nData.name === 'string' ? nData.name.trim() : '';
-      if (!newName || newName.length > PLAYER_NAME_MAX || !PLAYER_NAME_RE.test(newName)) {
-        socket.emit('error', { message: 'Invalid player name' });
-        return;
-      }
-      if (room.players.some((pl) => pl.name.toLowerCase() === newName.toLowerCase())) {
-        socket.emit('error', { message: 'That name is taken' });
-        return;
-      }
-      // Re-point the turn only if the renamed seat is the one holding it.
-      // Comparing names is wrong: nameless seats all share "" (a player who
-      // names first would otherwise steal the creator's first setup turn and,
-      // via the setup snake order, get three turns in a row). Capture the turn
-      // holder's seat from the OLD order before renaming, then match by index.
-      const seatIndex = room.players.indexOf(p);
-      const turnSeatIndex = room.turnState.playerOrder.indexOf(room.turnState.player);
-      p.name = newName;
-      room.turnState.playerOrder = room.players.map((pl) => pl.name);
-      if (turnSeatIndex === seatIndex) room.turnState.player = newName;
-      broadcastRoom(io, room, 'roomUpdate');
-    });
+  // Set your name while still in the lobby (join is name-optional; the name
+  // is chosen after joining). Top-level for the same reason as above.
+  socket.on('updatePlayerName', (data: { roomId: string; name: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room || room.gameStatus !== 'waiting') return;
+    const p = room.players.find((pl) => pl.id === socket.id);
+    if (!p) return;
+    const newName = typeof data.name === 'string' ? data.name.trim() : '';
+    if (!newName || newName.length > PLAYER_NAME_MAX || !PLAYER_NAME_RE.test(newName)) {
+      socket.emit('error', { message: 'Invalid player name' });
+      return;
+    }
+    if (room.players.some((pl) => pl.name.toLowerCase() === newName.toLowerCase())) {
+      socket.emit('error', { message: 'That name is taken' });
+      return;
+    }
+    // Re-point the turn only if the renamed seat is the one holding it.
+    // Comparing names is wrong: nameless seats all share "" (a player who
+    // names first would otherwise steal the creator's first setup turn and,
+    // via the setup snake order, get three turns in a row). Capture the turn
+    // holder's seat from the OLD order before renaming, then match by index.
+    const seatIndex = room.players.indexOf(p);
+    const turnSeatIndex = room.turnState.playerOrder.indexOf(room.turnState.player);
+    p.name = newName;
+    room.turnState.playerOrder = room.players.map((pl) => pl.name);
+    if (turnSeatIndex === seatIndex) room.turnState.player = newName;
+    broadcastRoom(io, room, 'roomUpdate');
   });
 
   socket.on('refreshMap', (data: { roomId: string }) => {

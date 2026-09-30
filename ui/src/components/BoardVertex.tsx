@@ -46,16 +46,15 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
     return '#999';
   };
   
-  // House art sizing; cities render at a different size than settlements
-  // (larger, with a different aspect ratio — not just a uniform scale).
-  const houseW = settlementLevel === 'city' ? size * 16.875 : size * 7.5;
-  const houseH = settlementLevel === 'city' ? size * 17.8125 : size * 8.8125;
-
-  // Move the house slightly above the vertex center.
-  const yOffset = settlementLevel === 'city' ? size * .5 : size * 1.5;
-
-
-
+  // House art sizing, in multiples of the vertex dot size. The art's viewBox
+  // is cropped to the visible piece, so width/height match the drawn house
+  // and the center offset positions it slightly above the vertex. The numbers
+  // reproduce the board's look from before the art was cropped.
+  const isCity = settlementLevel === 'city';
+  const houseW = size * (isCity ? 12.9 : 5.85);
+  const houseH = size * (isCity ? 13.61 : 5.99);
+  const houseCx = position.x + size * (isCity ? 0.31 : 0.04);
+  const houseCy = position.y - size * (isCity ? 2.41 : 1.15);
   return (
     <g
       onClick={handleClick}
@@ -78,8 +77,8 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
           owner's color (via currentColor). */}
       {hasSettlement && (
         <svg
-          x={position.x - houseW / 2}
-          y={position.y - houseH / 2 - yOffset}
+          x={houseCx - houseW / 2}
+          y={houseCy - houseH / 2}
           width={houseW}
           height={houseH}
           style={{
@@ -90,7 +89,7 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
           }}
         >
           <use
-            href={settlementLevel === 'city' ? '/art/city.svg#city-shape' : '/art/settlement.svg#settlement-shape'}
+            href={isCity ? '/art/city.svg#city-shape' : '/art/settlement.svg#settlement-shape'}
             width={houseW}
             height={houseH}
           />
