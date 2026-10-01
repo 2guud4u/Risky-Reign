@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useGameRoom } from '../../contexts/GameContext';
-import DraggablePanel from '../../components/DraggablePanel';
-import { DefaultRect } from '../../types/draggablePanel';
+import { SIDEBAR_W } from '../../constants';
 import Vertex from './Vertex';
 import Edge from './Edge';
 import TradeTab from './TradeTab';
@@ -9,20 +8,14 @@ import PlayersList from './PlayersList';
 import { cardClass, mutedTextClass } from './styles';
 type Tab = 'board' | 'players' | 'trade';
 
-
 /**
  * Sidebar with tabs: Board (selected vertex/edge viewer, including soldier
  * selection & actions), Players (all players' resources & bonuses), and Trade
  * (trade & accept offers on your turn). The dice live in the turn snackbar
- * (and as a giant overlay during the Dice phase). The whole panel can be
- * dragged by its grip handle (see DraggablePanel).
+ * (and as a giant overlay during the Dice phase). A fixed-width, full-height
+ * column on the right of the game screen.
  */
-interface SidebarProps {
-  layout: DefaultRect | null;
-  onMeasure?: (size: { w: number; h: number }) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
+const Sidebar: React.FC = () => {
   const [tab, setTab] = React.useState<Tab>('board');
   const { gameRoom, currentPlayer, selectedObject } = useGameRoom();
   const board = gameRoom?.board ?? null;
@@ -88,7 +81,10 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
     }
   };
   return (
-    <DraggablePanel id="sidebar" layout={layout} onMeasure={onMeasure} minHeight={110} className={`${cardClass} w-[420px]`}>
+    <aside
+      className={`${cardClass} h-full shrink-0 rounded-none border-y-0 border-r-0 overflow-hidden`}
+      style={{ width: SIDEBAR_W }}
+    >
       <div className="flex flex-col h-full min-h-0">
         <div className="flex -mt-1 shrink-0">
           <button type="button" className={tabClass(tab === 'board')} onClick={() => switchTab('board')}>
@@ -110,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ layout, onMeasure }) => {
           {renderTab()}
         </div>
       </div>
-    </DraggablePanel>
+    </aside>
   );
 };
 

@@ -3,7 +3,7 @@
  *
  * Domain entities (GameRoom, Player, Board, ...) live in `common/types/*` and
  * are imported from there — only client-side shapes belong here. Larger
- * domains have their own files under `types/` (e.g. `types/draggablePanel`).
+ * domains have their own files under `types/` (e.g. `types/board`).
  */
 
 /** A board object selected in the sidebar (vertex or edge panel). */

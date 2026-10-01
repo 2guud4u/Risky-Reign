@@ -205,20 +205,6 @@ export const BUILD_ANIMATION_EVENT = 'build:animation';
 /** Board center (the desert hex). */
 export const BOARD_CENTER = { q: 0, r: 0, s: 0 };
 
-// ── DraggablePanel ─────────────────────────────────────────────────────────
-
-/** Minimum pointer movement (px) before a press counts as a drag. */
-export const DRAG_THRESHOLD = 5;
-
-/** Event that returns every panel to its home rect (see `resetAllPanels`). */
-export const RESET_PANELS_EVENT = 'panel-layout:reset';
-
-/** Minimum panel width in px when resizing. */
-export const PANEL_MIN_W = 160;
-
-/** Minimum panel height in px when resizing. */
-export const PANEL_MIN_H = 80;
-
 // ── BoardVertex (port) ─────────────────────────────────────────────────────
 
 /** Port (harbor) presentation — all sized relative to the vertex `size`. */

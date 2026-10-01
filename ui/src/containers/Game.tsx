@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import BoardView from './BoardView';
@@ -13,32 +13,18 @@ import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
-import DraggablePanel from '../components/DraggablePanel';
-import { resetAllPanels } from '../utils/panelLayout';
 import { GAME_HEX_SIZE } from 'common';
-import { DefaultRect } from '../types/draggablePanel';
-import { SIDEBAR_W } from '../constants';
 import { clearSavedSession } from '../utils/session';
-/**
- * The game screen. Everything is floating: the board panel filling the
- * left area edge-to-edge, and the sidebar in its own column (with tabs
- * for board, turn, players, cards, trade, and battle). The board and
- * sidebar are positioned from the viewport, so they track window resizes.
- * Dragging a panel moves only that panel — the others never reflow.
- */
 
+/**
+ * The game screen: the board fills the left area and the sidebar is a fixed
+ * column on the right (`SideBar/Index`). Modals and overlays (battle, prompts,
+ * turn pill, dice) float above both.
+ */
 const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer } = useGameRoom();
   const { leaveGame: emitLeaveGame } = useSocket();
-  const [vp, setVp] = useState({ vw: window.innerWidth, vh: window.innerHeight });
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const onResize = () => setVp({ vw: window.innerWidth, vh: window.innerHeight });
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
   // Browser tab title: flag when it's the player's turn so a backgrounded tab
   // is easy to spot. Restores the app title when it isn't / on unmount.
   const APP_TITLE = 'Risky Reign';
@@ -50,15 +36,6 @@ const Game: React.FC = () => {
       document.title = APP_TITLE;
     };
   }, [gameRoom, currentPlayer]);
-  const layouts = useMemo(() => {
-    const { vw, vh } = vp;
-    const out: Record<string, DefaultRect | null> = {};
-    // Board: fills the left area edge-to-edge (the board SVG scales to fit).
-    out.board = { x: 0, y: 0, w: Math.max(200, vw - SIDEBAR_W), h: vh };
-    // Sidebar: its own column, full height.
-    out.sidebar = { x: vw - SIDEBAR_W, y: 0, w: SIDEBAR_W, h: vh };
-    return out;
-  }, [vp]);
 
   const leaveGame = () => {
     if (gameRoom && currentPlayer) emitLeaveGame(gameRoom.id);
@@ -71,23 +48,13 @@ const Game: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div>
       <div className="fixed bottom-3 left-3 z-50">
         {menuOpen && (
           <div className="absolute bottom-full left-0 mb-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg p-2 text-gray-800">
             <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
               Room {gameRoom.id}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpen(false);
-                resetAllPanels();
-              }}
-              className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-gray-100 text-gray-700 cursor-pointer hover:bg-gray-200 mb-1.5"
-            >
-              {'⟲'} Reset displays
-            </button>
             <button
               type="button"
               onClick={() => {
@@ -112,20 +79,15 @@ const Game: React.FC = () => {
         </button>
       </div>
 
-      <DraggablePanel
-        id="board"
-        className="bg-white rounded-lg shadow"
-        layout={layouts.board}
-      >
-        <div className="relative w-full h-full">
+      <div className="fixed inset-0 flex">
+        <div className="relative flex-1 min-w-0 bg-white">
           <BoardView hexSize={GAME_HEX_SIZE} />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
             <ResourceDisplay />
           </div>
         </div>
-      </DraggablePanel>
-
-      <Sidebar layout={layouts.sidebar} />
+        <Sidebar />
+      </div>
 
       {/* Steal prompt: the thief picks a face-down card from a victim. */}
       <StealPrompt />
