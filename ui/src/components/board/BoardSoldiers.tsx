@@ -2,7 +2,7 @@ import React from 'react';
 import { Board } from 'common';
 import SoldierGroup from '../SoldierGroup';
 import { layoutGarrisonClusters } from '../../utils/miniMap';
-import { BOARD_SOLDIER_SCALE } from '../../constants';
+import { BOARD_SOLDIER_SCALE, BOARD_SOLDIER_Y_OFFSET } from '../../constants';
 
 interface BoardSoldiersProps {
   board: Board;
@@ -33,8 +33,9 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
         return (
           <g
             key={vertexId}
-            // Scale the mini-view layout about the vertex.
-            transform={`translate(${x} ${y}) scale(${BOARD_SOLDIER_SCALE}) translate(${-x} ${-y})`}
+            // Scale the mini-view layout about the vertex, then drop it just
+            // below the vertex so the soldiers stand in front of the house.
+            transform={`translate(${x} ${y + BOARD_SOLDIER_Y_OFFSET}) scale(${BOARD_SOLDIER_SCALE}) translate(${-x} ${-y})`}
             onClick={() => onSelect({ type: 'vertex', id: vertexId })}
             style={{ cursor: 'pointer' }}
           >

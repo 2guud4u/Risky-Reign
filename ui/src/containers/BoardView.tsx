@@ -138,6 +138,13 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     [setSelectedObject, base, isPlaying, focusOn]
   );
 
+  // Clicking a soldier badge or sprite behaves like clicking its vertex
+  // (select + glide in), so the zoomed-in soldiers come into view.
+  const handleSoldierSelect = useCallback(
+    (obj: { type: 'vertex'; id: string }) => handleVertexClick(obj.id),
+    [handleVertexClick]
+  );
+
   // Map owner name -> chosen color so settlements/roads render in the
   // player's color. Memoized so the layer components (React.memo) get a
   // stable function reference and don't re-render on pan/zoom. Null-safe so it
@@ -258,7 +265,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           {/* Soldiers: count badges when zoomed out; individual soldiers
               (mini-view style) once zoomed in past DETAIL_ZOOM_IN. */}
           {viewport.detailed ? (
-            <BoardSoldiers board={board} playerColors={playerColors} onSelect={setSelectedObject} />
+            <BoardSoldiers board={board} playerColors={playerColors} onSelect={handleSoldierSelect} />
           ) : (
             <SoldierBadges
               soldierGroups={soldierGroups}
@@ -266,7 +273,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               colorOf={colorOf}
               canDragSoldier={canDragSoldier}
               onDragStart={startDrag}
-              onSelect={setSelectedObject}
+              onSelect={handleSoldierSelect}
             />
           )}
 

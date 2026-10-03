@@ -2,26 +2,28 @@ import React from 'react';
 import { terrainColors } from 'common';
 
 /**
- * Terrain → background artwork (served from /public/art). Each SVG is a
- * self-contained 1080×1080 doc whose embedded image is already clipped to a
- * regular pointy-top hexagon (R = 518.4 in that space), so it can be placed
- * directly as the hex background.
+ * Terrain → background artwork (served from /public/art). Each image is a
+ * square WebP whose hexagon is already cut out (transparent outside), with the
+ * same geometry as the original 1080×1080 artwork, downscaled to 720 px (about
+ * the largest a hex is drawn at max zoom). A plain raster is far cheaper to
+ * draw than the old SVG wrappers (embedded 1080 px PNG + clip-path), which
+ * made pan/zoom lag.
  */
 const terrainArt: Record<string, string> = {
-  Wood: '/art/forest.svg',
-  Sheep: '/art/pasture.svg',
-  Wheat: '/art/field.svg',
-  Brick: '/art/brick.svg',
-  Ore: '/art/ore.svg',
-  Desert: '/art/desert.svg',
-  Water: '/art/water.svg',
+  Wood: '/art/forest.webp',
+  Sheep: '/art/pasture.webp',
+  Wheat: '/art/field.webp',
+  Brick: '/art/brick.webp',
+  Ore: '/art/ore.webp',
+  Desert: '/art/desert.webp',
+  Water: '/art/water.webp',
 };
 
-/** The SVG's hexagon radius, in its 1080×1080 coordinate space. */
+/** The artwork's hexagon radius, in the original 1080×1080 artwork space. */
 const ART_HEX_RADIUS = 518.4;
-/** The SVG's hexagon center, in its 1080×1080 coordinate space. */
+/** The artwork's hexagon center, in the original 1080×1080 artwork space. */
 const ART_CENTER = 540;
-/** The SVG's full square side, in its 1080×1080 coordinate space. */
+/** The artwork's full square side, in the original 1080×1080 artwork space. */
 const ART_SIDE = 1080;
 
 interface TerrainBackgroundProps {

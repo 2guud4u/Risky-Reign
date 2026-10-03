@@ -268,6 +268,12 @@ export const DETAIL_ZOOM_OUT = 1.8;
  * are 100 units apart, so clusters are scaled down to stay near their vertex.
  */
 export const BOARD_SOLDIER_SCALE = 0.4;
+/**
+ * How far below its vertex (board units) a zoomed-in garrison is centered, so
+ * soldiers stand in front of the settlement instead of on top of it — same
+ * idea as the count badges sitting below the vertex.
+ */
+export const BOARD_SOLDIER_Y_OFFSET = 34;
 
 // ── useBuildRules ──────────────────────────────────────────────────────────
 

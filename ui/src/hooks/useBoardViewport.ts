@@ -41,12 +41,22 @@ export function useBoardViewport(
   // Source of truth lives in refs so pan/zoom never triggers a React render.
   const zoomRef = useRef(1);
   const centerRef = useRef({ x: 0, y: 0 });
-  const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean } | null>(null);
+  // `scale` = screen px per board unit, measured once when the pan starts
+  // (zoom can't change mid-drag), so moves never force a layout read.
+  const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean; scale: number } | null>(null);
   // Handle of the in-flight focus animation, so a new gesture can cancel it.
   const animRef = useRef<number | null>(null);
+  // Pending once-per-frame viewBox write (pan/wheel can fire many times a frame).
+  const frameRef = useRef<number | null>(null);
   // Only the "viewport differs from fit" flag is React state (drives the
   // reset button). It flips at most once per gesture.
   const [isDirty, setIsDirty] = useState(false);
+  const dirtyRef = useRef(false);
+  const markDirty = useCallback((dirty: boolean) => {
+    if (dirtyRef.current === dirty) return;
+    dirtyRef.current = dirty;
+    setIsDirty(dirty);
+  }, []);
 
   // Half-extents of the view in board units at zoom 1. The shorter screen
   // side spans `baseSize`; the longer side spans proportionally more.
@@ -85,7 +95,16 @@ export function useBoardViewport(
     applyViewBox();
   }, [applyViewBox, halfW, halfH]);
 
-  /** Screen pixels per board unit at the current zoom. */
+  /** Coalesce viewBox writes to at most one per animation frame. */
+  const scheduleViewBox = useCallback(() => {
+    if (frameRef.current !== null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      applyViewBox();
+    });
+  }, [applyViewBox]);
+
+  /** Screen pixels per board unit at the current zoom (reads layout — call once per gesture). */
   const pxPerBoard = () => {
     const rect = svgRef.current?.getBoundingClientRect();
     return rect && rect.width > 0 ? rect.width / ((2 * extentRef.current.halfW) / zoomRef.current) : 1;
@@ -101,10 +120,10 @@ export function useBoardViewport(
     (factor: number) => {
       cancelAnim();
       zoomRef.current = clamp(zoomRef.current * factor, MIN_ZOOM, MAX_ZOOM);
-      applyViewBox();
-      setIsDirty(true);
+      scheduleViewBox();
+      markDirty(true);
     },
-    [applyViewBox, cancelAnim]
+    [scheduleViewBox, cancelAnim, markDirty]
   );
 
   const reset = useCallback(() => {
@@ -112,8 +131,8 @@ export function useBoardViewport(
     zoomRef.current = 1;
     centerRef.current = { x: 0, y: 0 };
     applyViewBox();
-    setIsDirty(false);
-  }, [applyViewBox, cancelAnim]);
+    markDirty(false);
+  }, [applyViewBox, cancelAnim, markDirty]);
 
   /**
    * Smoothly move the view to center `point` (board coordinates) at `zoom`
@@ -137,10 +156,10 @@ export function useBoardViewport(
         applyViewBox();
         animRef.current = t < 1 ? requestAnimationFrame(step) : null;
       };
-      setIsDirty(true);
+      markDirty(true);
       animRef.current = requestAnimationFrame(step);
     },
-    [applyViewBox, cancelAnim]
+    [applyViewBox, cancelAnim, markDirty]
   );
 
   const onDoubleClick = useCallback(
@@ -159,6 +178,7 @@ export function useBoardViewport(
       originX: centerRef.current.x,
       originY: centerRef.current.y,
       active: false,
+      scale: 1,
     };
   }, []);
 
@@ -176,14 +196,14 @@ export function useBoardViewport(
         pan.originY = centerRef.current.y;
         pan.startX = e.clientX;
         pan.startY = e.clientY;
+        pan.scale = pxPerBoard();
       }
-      const scale = pxPerBoard();
       centerRef.current = {
-        x: pan.originX - (e.clientX - pan.startX) / scale,
-        y: pan.originY - (e.clientY - pan.startY) / scale,
+        x: pan.originX - (e.clientX - pan.startX) / pan.scale,
+        y: pan.originY - (e.clientY - pan.startY) / pan.scale,
       };
-      applyViewBox();
-      setIsDirty(true);
+      scheduleViewBox();
+      markDirty(true);
     };
     const onUp = () => {
       panRef.current = null;
@@ -205,11 +225,12 @@ export function useBoardViewport(
       window.removeEventListener('mouseup', onUp);
       if (svg) svg.removeEventListener('wheel', onWheel);
       cancelAnim();
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
     // pxPerBoard reads zoomRef/extentRef (always current); zoomBy is a stable
     // callback. Re-runs only if the svg element changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [svgRef, zoomBy, applyViewBox, cancelAnim]);
+  }, [svgRef, zoomBy, scheduleViewBox, cancelAnim, markDirty]);
 
   return {
     reset,
