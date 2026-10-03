@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoardEdge as BoardEdgeType } from 'common';
+import { ROAD_HIT_WIDTH } from '../constants';
 
 interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;
@@ -82,6 +83,17 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
         cursor: isSelectable ? 'pointer' : 'default',
       }}
     >
+      {/* Wide transparent hit-line: lets selection/hover target the road
+       * well beyond its thin visible stroke. */}
+      <line
+        x1={start.x}
+        y1={start.y}
+        x2={end.x}
+        y2={end.y}
+        stroke="transparent"
+        strokeWidth={ROAD_HIT_WIDTH}
+        strokeLinecap="round"
+      />
       {/* Normal road */}
       <line
         x1={start.x}
