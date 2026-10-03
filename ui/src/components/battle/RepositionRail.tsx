@@ -1,7 +1,7 @@
 import React from 'react';
 import { RepositionTroop } from '../../types/battleModal';
 import { FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
-import { sectionTitleClass } from '../../containers/SideBar/styles';
+import { sectionTitleClass } from '../../styles';
 
 interface RepositionRailProps {
   /** Injured survivors still on the battle vertex, waiting to be placed. */

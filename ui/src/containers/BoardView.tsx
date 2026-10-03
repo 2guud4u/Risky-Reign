@@ -3,6 +3,8 @@ import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { SoldierBadges } from '../components/SoldierBadges';
+import { BoardSoldiers } from '../components/board/BoardSoldiers';
+import { playerColorMap } from '../utils/soldierPlacement';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { PortLayer } from '../components/board/PortLayer';
@@ -34,7 +36,7 @@ import {
  * to the requested render size.
  *
  * The board is an inspect/interact surface: clicking a vertex or edge selects
- * it in the sidebar (which owns all building actions). It also supports
+ * it (its build actions then appear as bubbles on the map). It also supports
  * dragging your own soldiers between adjacent vertices during the Action
  * phase, panning (drag empty space) and zooming (wheel / double-click).
  * Escape clears the selection and cancels any in-progress drag.
@@ -73,8 +75,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const rollTotal = roll && roll.die1 !== null && roll.die2 !== null ? roll.die1 + roll.die2 : null;
 
   // Presentation state: projected vertices/edges/hexes. The board is always
-  // fully selectable — building is done from the sidebar, so nothing is
-  // gated here.
+  // fully selectable — build actions are gated in the on-map bubbles, so
+  // nothing is gated here.
   const base = useMemo<BoardUIState | null>(() => {
     if (!board) return null;
     const state = domainToPresentation(board, PROJ_SIZE);
@@ -145,6 +147,9 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
       !ownerId ? undefined : gameRoom?.players.find((p) => p.name === ownerId)?.color,
     [gameRoom?.players]
   );
+
+  // Owner -> color as a plain map, for the zoomed-in soldier sprites.
+  const playerColors = useMemo(() => playerColorMap(gameRoom), [gameRoom]);
 
   // Layer ephemeral interaction state (hover/select) and owner colors onto
   // the presentation. Memoized: without it every render produced fresh
@@ -250,15 +255,20 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               to each of the 1-2 vertices it serves. */}
           <PortLayer portGroups={portGroups} />
 
-          {/* Soldiers layer: count badges below each vertex */}
-          <SoldierBadges
-            soldierGroups={soldierGroups}
-            vertices={board.vertices}
-            colorOf={colorOf}
-            canDragSoldier={canDragSoldier}
-            onDragStart={startDrag}
-            onSelect={setSelectedObject}
-          />
+          {/* Soldiers: count badges when zoomed out; individual soldiers
+              (mini-view style) once zoomed in past DETAIL_ZOOM_IN. */}
+          {viewport.detailed ? (
+            <BoardSoldiers board={board} playerColors={playerColors} onSelect={setSelectedObject} />
+          ) : (
+            <SoldierBadges
+              soldierGroups={soldierGroups}
+              vertices={board.vertices}
+              colorOf={colorOf}
+              canDragSoldier={canDragSoldier}
+              onDragStart={startDrag}
+              onSelect={setSelectedObject}
+            />
+          )}
 
           {/* Drag feedback: drop-target rings and the cursor-following ghost */}
           <DragOverlays

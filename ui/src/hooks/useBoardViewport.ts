@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FOCUS_DURATION_MS, MAX_ZOOM, MIN_ZOOM, PAN_THRESHOLD, ZOOM_STEP } from '../constants';
+import {
+  DETAIL_ZOOM_IN,
+  DETAIL_ZOOM_OUT,
+  FOCUS_DURATION_MS,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  PAN_THRESHOLD,
+  ZOOM_STEP,
+} from '../constants';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -48,6 +56,12 @@ export function useBoardViewport(
   const extentRef = useRef({ halfW, halfH });
   extentRef.current = { halfW, halfH };
 
+  // Whether the view is zoomed in enough to show detailed soldiers. Uses two
+  // thresholds (hysteresis) so a zoom hovering near the limit doesn't flicker,
+  // and only re-renders when the level actually flips.
+  const [detailed, setDetailed] = useState(false);
+  const detailedRef = useRef(false);
+
   /** Write the current zoom/center to the svg's viewBox attribute. */
   const applyViewBox = useCallback(() => {
     const svg = svgRef.current;
@@ -59,6 +73,11 @@ export function useBoardViewport(
       'viewBox',
       `${x - hw / zoom} ${y - hh / zoom} ${(2 * hw) / zoom} ${(2 * hh) / zoom}`
     );
+    const next = detailedRef.current ? zoom >= DETAIL_ZOOM_OUT : zoom >= DETAIL_ZOOM_IN;
+    if (next !== detailedRef.current) {
+      detailedRef.current = next;
+      setDetailed(next);
+    }
   }, [svgRef]);
 
   // Re-fit the view when the area resizes (keeps the current zoom/center).
@@ -195,6 +214,8 @@ export function useBoardViewport(
   return {
     reset,
     isDirty,
+    /** True once zoomed in past DETAIL_ZOOM_IN (until back below DETAIL_ZOOM_OUT). */
+    detailed,
     // Starting viewBox; after mount the attribute is driven imperatively and
     // re-applied on resize by the effect above.
     viewBox: `${-halfW} ${-halfH} ${2 * halfW} ${2 * halfH}`,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BoardHex } from 'common';
-import RobberBagView from '../../containers/SideBar/RobberBagView';
+import RobberBagView from '../../containers/game/RobberBagView';
 import {
   PROJ_SIZE,
   ROBBER_BAG_HEIGHT,

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import BoardView from './BoardView';
-import Sidebar from './SideBar/Index';
 import TurnOverlay from './TurnOverlay';
 import NoticeRail from './NoticeRail';
 import StealPrompt from './StealPrompt';
@@ -21,9 +20,9 @@ import { GAME_HEX_SIZE } from 'common';
 import { clearSavedSession } from '../utils/session';
 
 /**
- * The game screen: the board fills the left area and the sidebar is a fixed
- * column on the right (`SideBar/Index`). Modals and overlays (battle, prompts,
- * turn pill, dice) float above both.
+ * The game screen: the board fills the whole window. Map controls (trade,
+ * players, build bubbles, resources) sit on top of it; modals and overlays
+ * (battle, prompts, turn pill, dice) float above everything.
  */
 const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
@@ -104,7 +103,6 @@ const Game: React.FC = () => {
             <EdgeActionBubbles board={gameRoom.board} edge={selectedEdge} />
           )}
         </div>
-        <Sidebar />
       </div>
 
       {/* Steal prompt: the thief picks a face-down card from a victim. */}

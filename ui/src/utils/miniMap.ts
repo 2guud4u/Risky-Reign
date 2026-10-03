@@ -16,7 +16,6 @@ import { Board, EdgeNode, GAME_HEX_SIZE, HexNode, PixelCoord, VertexNode, cubeTo
 import { neighborNicknames } from './neighborLabels';
 import { groupSoldiersByOwner, ownerAngle } from './soldierPlacement';
 import {
-  EdgeMiniLayout,
   GarrisonCluster,
   MiniViewBox,
   RoadStroke,
@@ -137,11 +136,9 @@ export function layoutGarrisonClusters(
   return clusters;
 }
 
-/** Hexes adjacent to the selected object (the neighborhood terrain backdrop). */
-const selectionHexes = (board: Board, type: 'vertex' | 'edge', id: string): HexNode[] =>
-  type === 'vertex'
-    ? (board.vertices[id]?.hexIds ?? []).map((hid) => board.hexes[hid]).filter(Boolean)
-    : (board.edges[id]?.hexIds ?? []).map((hid) => board.hexes[hid]).filter(Boolean);
+/** Hexes adjacent to the vertex (the neighborhood terrain backdrop). */
+const vertexHexes = (board: Board, vertexId: string): HexNode[] =>
+  (board.vertices[vertexId]?.hexIds ?? []).map((hid) => board.hexes[hid]).filter(Boolean);
 
 /**
  * Layout for a selected vertex: its neighbors (edges, circles, letter labels)
@@ -158,8 +155,7 @@ export function vertexMiniLayout(
 
   const points: PixelCoord[] = [vertex.position];
 
-  // Nicknames for the neighbor circles (a, b, c, …) — the same mapping the
-  // sidebar's "Move to b" buttons use, so the map and buttons agree.
+  // Nicknames for the neighbor circles (a, b, c, …), stable per neighbor.
   const nicknames = neighborNicknames(board, vertexId);
 
   const neighbors: VertexNeighbor[] = [];
@@ -196,7 +192,7 @@ export function vertexMiniLayout(
     );
   }
 
-  const hexes = selectionHexes(board, 'vertex', vertexId);
+  const hexes = vertexHexes(board, vertexId);
   hexes.forEach((h) => points.push(cubeToPixel(h.coord, GAME_HEX_SIZE)));
 
   return {
@@ -207,33 +203,6 @@ export function vertexMiniLayout(
     hexes,
     points,
     focus: vertex.position,
-  };
-}
-
-/**
- * Layout for a selected edge: its two endpoint vertices. Returns null when the
- * edge id or either endpoint is stale.
- */
-export function edgeMiniLayout(board: Board, edgeId: string): EdgeMiniLayout | null {
-  const edge = board.edges[edgeId];
-  if (!edge) return null;
-  const a = board.vertices[edge.vertexAId];
-  const b = board.vertices[edge.vertexBId];
-  if (!a || !b) return null;
-
-  const road = edge.roadId ? board.roads[edge.roadId] : null;
-  const hexes = selectionHexes(board, 'edge', edgeId);
-  const points: PixelCoord[] = [a.position, b.position];
-  hexes.forEach((h) => points.push(cubeToPixel(h.coord, GAME_HEX_SIZE)));
-
-  return {
-    edge,
-    endpoints: [a, b],
-    roadOwnerId: road?.ownerId ?? null,
-    hexes,
-    points,
-    // Center the view on the edge midpoint.
-    focus: { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 },
   };
 }
 

@@ -2,7 +2,7 @@ import { Board, BuildCheck, CityPrice, Price, SettlementPrice, SoldierPrice, Ver
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { triggerBuildAnimation } from '../components/ResourceSpendLayer';
-import { useBuildRules } from '../containers/SideBar/useBuildRules';
+import { useBuildRules } from './useBuildRules';
 
 /** One build action available on a vertex. */
 export interface VertexBuildAction {
@@ -16,8 +16,8 @@ export interface VertexBuildAction {
 
 /**
  * The build actions for a vertex — build settlement, upgrade to city, recruit
- * soldier — with their rule checks and handlers. Shared by the sidebar's
- * vertex panel and the on-map action bubbles so both run identical logic.
+ * soldier — with their rule checks and handlers (used by the on-map action
+ * bubbles).
  */
 export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAction[] {
   const { gameRoom, currentPlayer } = useGameRoom();

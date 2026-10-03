@@ -5,3 +5,5 @@ export const backdropClass = 'fixed inset-0 z-50 flex items-center justify-cente
 
 /** The white card a modal renders inside the backdrop. Add a width to size it. */
 export const modalCardClass = 'bg-white rounded-xl shadow-2xl p-5 w-full';
+/** Small bold label for a section inside a panel or modal. */
+export const sectionTitleClass = 'text-[13px] font-semibold text-gray-700';

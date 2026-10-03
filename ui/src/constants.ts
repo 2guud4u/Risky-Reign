@@ -237,8 +237,8 @@ export const PORT_PLANK_W = 0.16;
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 
-/** Width of the sidebar. */
-export const SIDEBAR_W = 420;
+/** Gap between the bottom-right map controls (turn pill, dice) and the window edge. */
+export const MAP_CORNER_INSET_PX = 12;
 
 // ── useBoardViewport ───────────────────────────────────────────────────────
 
@@ -253,6 +253,21 @@ export const PAN_THRESHOLD = 4;
 export const SELECT_FOCUS_ZOOM = 2.2;
 /** Duration of the click-to-focus animation, in ms. */
 export const FOCUS_DURATION_MS = 350;
+/**
+ * Zoom at which the board swaps soldier count badges for individual soldiers
+ * (mini-view style). Below DETAIL_ZOOM_OUT it switches back; the gap stops a
+ * zoom hovering at the threshold from flickering. Click-to-focus
+ * (SELECT_FOCUS_ZOOM) lands above DETAIL_ZOOM_IN, so selecting a vertex shows
+ * its soldiers.
+ */
+export const DETAIL_ZOOM_IN = 2;
+export const DETAIL_ZOOM_OUT = 1.8;
+/**
+ * Size of detailed soldiers on the main board relative to the mini view. The
+ * mini view lays a garrison out over ~2 vertex-spacings; the board's vertices
+ * are 100 units apart, so clusters are scaled down to stay near their vertex.
+ */
+export const BOARD_SOLDIER_SCALE = 0.4;
 
 // ── useBuildRules ──────────────────────────────────────────────────────────
 

@@ -1,20 +1,18 @@
 import React from 'react';
-import { edgeMiniLayout, miniMapViewBox, vertexMiniLayout } from '../utils/miniMap';
+import { miniMapViewBox, vertexMiniLayout } from '../utils/miniMap';
 import { MiniViewProps } from '../types/miniMap';
 import { MiniHexTile } from './miniMap/MiniHexTile';
 import { VertexNeighborhood } from './miniMap/VertexNeighborhood';
-import { EdgeNeighborhood } from './miniMap/EdgeNeighborhood';
 
 /**
- * Small SVG preview of the selected board object and its immediate
- * neighborhood: the adjacent hexes (terrain-colored, with tokens), the
- * incident edges and neighboring vertices — including owned roads (tinted
- * in the road owner's color) and settlements/cities (in the owner's
- * color) — with the selection highlighted.
+ * Small SVG preview of a vertex and its immediate neighborhood: the adjacent
+ * hexes (terrain-colored, with tokens), the incident edges and neighboring
+ * vertices — including owned roads (tinted in the road owner's color) and
+ * settlements/cities (in the owner's color) — with the vertex highlighted.
+ * Used as the battle arena.
  */
 const MiniView: React.FC<MiniViewProps> = ({
   board,
-  type,
   id,
   playerColors,
   onSoldierClick,
@@ -29,14 +27,10 @@ const MiniView: React.FC<MiniViewProps> = ({
   onMouseLeave,
   minViewSize,
 }) => {
-  const vertexLayout =
-    type === 'vertex' ? vertexMiniLayout(board, id, showGarrisonedSoldiers) : null;
-  const edgeLayout = type === 'edge' ? edgeMiniLayout(board, id) : null;
-  const layout = vertexLayout ?? edgeLayout;
+  const layout = vertexMiniLayout(board, id, showGarrisonedSoldiers);
   if (!layout) return null;
 
-  // Center the view on the selected object (vertex position or edge
-  // midpoint), sized to fit everything while keeping the focus centered.
+  // Center the view on the vertex, sized to fit everything while keeping it centered.
   const viewBox = miniMapViewBox(layout.points, layout.focus, minViewSize);
   if (!viewBox) return null;
 
@@ -54,21 +48,15 @@ const MiniView: React.FC<MiniViewProps> = ({
       {layout.hexes.map((h) => (
         <MiniHexTile key={h.id} hex={h} />
       ))}
-      {vertexLayout ? (
-        <VertexNeighborhood
-          layout={vertexLayout}
-          board={board}
-          playerColors={playerColors}
-          onSoldierClick={onSoldierClick}
-          selectedSoldierIds={selectedSoldierIds}
-          selectableSoldierIds={selectableSoldierIds}
-          canActSoldierIds={canActSoldierIds}
-        />
-      ) : (
-        edgeLayout && (
-          <EdgeNeighborhood layout={edgeLayout} board={board} playerColors={playerColors} />
-        )
-      )}
+      <VertexNeighborhood
+        layout={layout}
+        board={board}
+        playerColors={playerColors}
+        onSoldierClick={onSoldierClick}
+        selectedSoldierIds={selectedSoldierIds}
+        selectableSoldierIds={selectableSoldierIds}
+        canActSoldierIds={canActSoldierIds}
+      />
       {children}
     </svg>
   );

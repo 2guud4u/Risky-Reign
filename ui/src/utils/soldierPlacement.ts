@@ -10,7 +10,7 @@ export const SOLDIERS_PER_ROW = 3;
 /**
  * Presentation helpers for laying out garrisoned soldiers around a vertex.
  *
- * Both the main board (BoardView) and the sidebar mini view (MiniView) render
+ * Both the main board (BoardView) and the battle mini view (MiniView) render
  * each player's troops as circles arranged radially around the vertex. Keeping
  * the grouping + angle math here ensures the two views stay visually
  * consistent instead of drifting apart.

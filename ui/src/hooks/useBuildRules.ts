@@ -9,11 +9,11 @@ import {
   canCaptureSettlementAt as checkCaptureSettlement,
   canFightRobber as checkFightRobber,
 } from 'common';
-import { useGameRoom } from '../../contexts/GameContext';
-import { UNLIMITED_RESOURCES } from '../../constants';
+import { useGameRoom } from '../contexts/GameContext';
+import { UNLIMITED_RESOURCES } from '../constants';
 
 /**
- * Build eligibility rules for the sidebar panels. Delegates to the
+ * Build and soldier-action eligibility rules for the UI. Delegates to the
  * authoritative checks in `common` (the same functions the backend enforces),
  * so the UI's "can I build?" hints can never drift from the server's rules.
  */

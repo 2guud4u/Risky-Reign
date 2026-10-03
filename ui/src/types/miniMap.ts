@@ -8,7 +8,7 @@ import { Board, EdgeNode, HexNode, PixelCoord, SoldierObj, VertexNode } from 'co
 
 export interface MiniViewProps {
   board: Board;
-  type: 'vertex' | 'edge';
+  type: 'vertex';
   id: string;
   /** Player name -> color, used to tint soldier circles. */
   playerColors?: Record<string, string>;
@@ -71,7 +71,7 @@ export interface VertexNeighbor {
   labelPos?: PixelCoord;
   /** Bounding box corners of the label glyph, so the viewBox fits it fully. */
   labelBounds?: PixelCoord[];
-  /** The label text ('a', 'b', 'c', …), matching the sidebar's buttons. */
+  /** The label text ('a', 'b', 'c', …), stable per neighbor vertex. */
   label?: string;
 }
 
@@ -83,17 +83,6 @@ export interface VertexMiniLayout {
   clusters: GarrisonCluster[];
   /** Whether the selected vertex holds a settlement/city (drives the marker vs. dot). */
   hasSettlement: boolean;
-  hexes: HexNode[];
-  points: PixelCoord[];
-  focus: PixelCoord;
-}
-
-/** Pure layout for a selected edge. */
-export interface EdgeMiniLayout {
-  edge: EdgeNode;
-  endpoints: [VertexNode, VertexNode];
-  /** Road owner id at this edge, or null (colors the selected-edge line). */
-  roadOwnerId: string | null;
   hexes: HexNode[];
   points: PixelCoord[];
   focus: PixelCoord;

@@ -6,7 +6,7 @@
  * domains have their own files under `types/` (e.g. `types/board`).
  */
 
-/** A board object selected in the sidebar (vertex or edge panel). */
+/** A board object selected on the map (vertex or edge). */
 export interface SelectableObject {
   type: 'vertex' | 'edge';
   id: string;

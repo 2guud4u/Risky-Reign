@@ -2,7 +2,7 @@ import React from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Dice from '../components/Dice';
-import { SIDEBAR_W } from '../constants';
+import { MAP_CORNER_INSET_PX } from '../constants';
 
 /** The side length (px) of the giant dice. */
 const GIANT_DICE_SIZE = 120;
@@ -58,7 +58,7 @@ const DiceDisplay: React.FC = () => {
   return (
     <div
       className="fixed z-40 flex items-center gap-2"
-      style={{ bottom: 76, right: SIDEBAR_W + 12 }}
+      style={{ bottom: 76, right: MAP_CORNER_INSET_PX }}
     >
       <Dice value={roll.die1} size={COMPACT_DICE_SIZE} />
       <Dice value={roll.die2} size={COMPACT_DICE_SIZE} />

@@ -7,9 +7,11 @@ import { soldierCanAct } from '../utils/soldierActions';
 import { roadAdjacentVertexIds } from '../utils/vertexAdjacency';
 
 /**
- * Group-action state and handlers for the sidebar vertex panel.
+ * Soldier group-action state and handlers for a vertex. Not wired to any UI
+ * right now (the sidebar that used it was removed); kept for porting the
+ * soldier actions onto the map.
  *
- * The player clicks their own soldiers in the mini map to assemble a group;
+ * The player selects their own soldiers to assemble a group;
  * this hook tracks that selection, auto-selects actionable soldiers when the
  * vertex changes, decides which group actions (move/attack/capture/robber)
  * are available, and emits the socket calls. Group actions are only possible

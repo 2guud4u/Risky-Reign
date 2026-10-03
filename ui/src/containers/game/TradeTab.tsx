@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Price, RESOURCES, ResourceKey, TradeOffer, BuildCheck, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
-import { ReasonNotice } from './ActionButton';
+import { ReasonNotice } from './ReasonNotice';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';

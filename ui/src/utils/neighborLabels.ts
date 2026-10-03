@@ -4,9 +4,8 @@ const LETTERS = ['a', 'b', 'c', 'd', 'e', 'f'];
 
 /**
  * Deterministic nicknames ('a', 'b', …) for a vertex's neighbor vertices,
- * assigned in `roadIds` order. Shared by the mini map (neighbor labels) and
- * the sidebar (move buttons, adjacent-edge rows) so both agree on which
- * letter is which vertex.
+ * assigned in `roadIds` order, so a vertex's neighbors always get the same
+ * letters (used for the mini map's neighbor labels).
  */
 export function neighborNicknames(board: Board, vertexId: string): Record<string, string> {
   const vertex = board.vertices[vertexId];

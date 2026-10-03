@@ -2,7 +2,7 @@ import { Board, BuildCheck, EdgeNode, RoadPrice } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { triggerBuildAnimation } from '../components/ResourceSpendLayer';
-import { useBuildRules } from '../containers/SideBar/useBuildRules';
+import { useBuildRules } from './useBuildRules';
 import { priceLabel } from '../utils/price';
 
 /** The Build Road action for an edge. */
@@ -16,8 +16,8 @@ export interface EdgeBuildAction {
 }
 
 /**
- * Build Road for an edge, with its rule check and handler. Shared by the
- * sidebar's edge panel and the on-map action bubble so both run identical logic.
+ * Build Road for an edge, with its rule check and handler (used by the on-map
+ * 🔨 bubble).
  */
 export function useEdgeBuild(board: Board, edge: EdgeNode): EdgeBuildAction {
   const { gameRoom, currentPlayer } = useGameRoom();
