@@ -1,11 +1,9 @@
 import React from 'react';
 import { useGameRoom } from '../../contexts/GameContext';
-import { useSocket } from '../../contexts/SocketContext';
 import MiniView from '../../components/MiniView';
 import { useVertexGroup } from '../../hooks/useVertexGroup';
 import { VertexPanelProps } from '../../types/vertex';
 import { playerColorMap } from '../../utils/soldierPlacement';
-import { triggerBuildAnimation } from '../../components/ResourceSpendLayer';
 import { neighborNicknames } from '../../utils/neighborLabels';
 import { useBuildRules } from './useBuildRules';
 import VertexInfo from './VertexInfo';
@@ -26,20 +24,14 @@ import { panelTitleClass, mutedTextClass } from './styles';
  */
 const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
-  const { buildSettlement, upgradeSettlementToCity, recruitSoldier } = useSocket();
   const buildRules = useBuildRules(board);
-  const { settlementCheck, cityCheck, soldierCheck, canHealSoldierAt } = buildRules;
+  const { canHealSoldierAt } = buildRules;
 
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   const owner = settlement
     ? gameRoom?.players.find((p) => p.name === settlement.ownerId) ?? null
     : null;
   const hexes = vertex.hexIds.map((hid) => board.hexes[hid]).filter(Boolean);
-  // The action buttons stay visible but grey out with a reason; the check
-  // objects (from `useBuildRules`, the backend's own rules) drive that.
-  const settlementOk = settlementCheck(vertex.id);
-  const cityOk = cityCheck(vertex.id);
-  const recruitOk = soldierCheck(vertex.id);
 
   const {
     soldiersHere,
@@ -81,24 +73,6 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
     injuredCount: enemyTroopsHere.filter((s) => s.owner === ownerName && s.injured).length,
   }));
 
-  const handleBuildSettlement = () => {
-    if (!gameRoom || !currentPlayer) return;
-    buildSettlement(currentPlayer.id, vertex.id, gameRoom.id);
-    triggerBuildAnimation({ type: 'settlement', locationId: vertex.id });
-  };
-
-  const handleUpgradeToCity = () => {
-    if (!gameRoom || !currentPlayer) return;
-    upgradeSettlementToCity(currentPlayer.id, vertex.id, gameRoom.id);
-    triggerBuildAnimation({ type: 'city', locationId: vertex.id });
-  };
-
-  const handleRecruitSoldier = () => {
-    if (!gameRoom || !currentPlayer) return;
-    recruitSoldier(currentPlayer.id, vertex.id, gameRoom.id);
-    triggerBuildAnimation({ type: 'soldier', locationId: vertex.id });
-  };
-
   return (
     <div className="flex flex-col gap-3">
       <h3 className={panelTitleClass}>Vertex {vertex.id}</h3>
@@ -129,14 +103,7 @@ const Vertex: React.FC<VertexPanelProps> = ({ board, vertex }) => {
 
       <VertexInfo settlement={settlement} owner={owner} hexes={hexes} />
 
-      <VertexBuildActions
-        settlementCheck={settlementOk}
-        cityCheck={cityOk}
-        recruitCheck={recruitOk}
-        onBuildSettlement={handleBuildSettlement}
-        onUpgradeToCity={handleUpgradeToCity}
-        onRecruitSoldier={handleRecruitSoldier}
-      />
+      <VertexBuildActions board={board} vertex={vertex} />
 
       {/* Group action panel: only appears once the player has selected troops. */}
       {group.length > 0 && (

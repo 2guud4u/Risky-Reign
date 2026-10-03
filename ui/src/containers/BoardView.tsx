@@ -94,7 +94,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // The margin leaves room past the hex ring so the trade ports (which sit in
   // the water beyond the board edge) are not clipped by the viewBox.
   const baseSize = BOARD_VIEWBOX_MARGIN * PROJ_SIZE * span;
-  const viewport = useBoardViewport(svgRef, baseSize);
+  // In-game the map fills its container (no letterboxing); the waiting-room
+  // preview stays a fixed square.
+  const isPlaying = gameRoom?.gameStatus === 'playing';
+  const viewport = useBoardViewport(svgRef, baseSize, isPlaying ? containerSize : null);
 
   // Drag state machine: soldier drags between adjacent vertices, the pending
   // robber move, Escape cancellation and drop resolution.
@@ -124,7 +127,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // Clicking a vertex or edge selects it and glides the board in, centered on
   // it (an edge centers on its midpoint). The waiting-room preview board stays
   // static (the game hasn't started).
-  const isPlaying = gameRoom?.gameStatus === 'playing';
   const handleVertexClick = useCallback(
     (vertexId: string) => {
       setSelectedObject({ type: 'vertex', id: vertexId });
@@ -178,14 +180,13 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   }
   const { vertices, edges, hexes } = layered;
 
-  // The margin leaves room past the hex ring so the coast trade ports are not clipped.
+  // Waiting-room preview: a fixed-size square board (as before).
+  // In-game: the svg fills its whole container and the view extends on the
+  // longer side (see useBoardViewport), so the map is never letterboxed or
+  // clipped top/bottom, and overlays sit directly on top of it.
   const naturalSize = BOARD_RENDER_MARGIN * hexSize * span;
-
-  // Size the board to fit its container, clamped so it never becomes too
-  // small or too large relative to its natural size. (Zooming on top of this
-  // is handled by the viewBox via useBoardViewport.)
   let renderSize = naturalSize;
-  if (containerSize && containerSize.w > 0 && containerSize.h > 0) {
+  if (!isPlaying && containerSize && containerSize.w > 0 && containerSize.h > 0) {
     const scale = Math.min(containerSize.w / naturalSize, containerSize.h / naturalSize);
     const clampedScale = Math.max(BOARD_MIN_SCALE, Math.min(scale, BOARD_MAX_SCALE));
     renderSize = naturalSize * clampedScale;
@@ -215,10 +216,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         <svg
           ref={svgRef}
           data-board-svg="true"
-          width={renderSize}
-          height={renderSize}
+          width={isPlaying ? '100%' : renderSize}
+          height={isPlaying ? '100%' : renderSize}
           viewBox={viewport.viewBox}
-          className="block w-full select-none"
+          className={`block select-none ${isPlaying ? 'absolute inset-0' : 'w-full'}`}
           onDragStart={(e) => e.preventDefault()}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

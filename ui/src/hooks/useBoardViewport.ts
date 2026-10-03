@@ -22,7 +22,14 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * Shift+double-click (or the reset button) restores the fit view. `focusOn`
  * animates the view to a board point (used when a vertex is clicked).
  */
-export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSize: number) {
+export function useBoardViewport(
+  svgRef: React.RefObject<SVGSVGElement>,
+  baseSize: number,
+  /** The svg's on-screen size. The view always shows at least `baseSize`
+   *  board units on the shorter side and extends on the longer side, so the
+   *  map fills the whole area instead of a letterboxed square. */
+  screen: { w: number; h: number } | null
+) {
   // Source of truth lives in refs so pan/zoom never triggers a React render.
   const zoomRef = useRef(1);
   const centerRef = useRef({ x: 0, y: 0 });
@@ -33,7 +40,13 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
   // reset button). It flips at most once per gesture.
   const [isDirty, setIsDirty] = useState(false);
 
-  const half = baseSize / 2;
+  // Half-extents of the view in board units at zoom 1. The shorter screen
+  // side spans `baseSize`; the longer side spans proportionally more.
+  const aspect = screen && screen.w > 0 && screen.h > 0 ? screen.w / screen.h : 1;
+  const halfW = (aspect >= 1 ? baseSize * aspect : baseSize) / 2;
+  const halfH = (aspect >= 1 ? baseSize : baseSize / aspect) / 2;
+  const extentRef = useRef({ halfW, halfH });
+  extentRef.current = { halfW, halfH };
 
   /** Write the current zoom/center to the svg's viewBox attribute. */
   const applyViewBox = useCallback(() => {
@@ -41,16 +54,22 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
     if (!svg) return;
     const zoom = zoomRef.current;
     const { x, y } = centerRef.current;
+    const { halfW: hw, halfH: hh } = extentRef.current;
     svg.setAttribute(
       'viewBox',
-      `${x - half / zoom} ${y - half / zoom} ${(2 * half) / zoom} ${(2 * half) / zoom}`
+      `${x - hw / zoom} ${y - hh / zoom} ${(2 * hw) / zoom} ${(2 * hh) / zoom}`
     );
-  }, [svgRef, half]);
+  }, [svgRef]);
+
+  // Re-fit the view when the area resizes (keeps the current zoom/center).
+  useEffect(() => {
+    applyViewBox();
+  }, [applyViewBox, halfW, halfH]);
 
   /** Screen pixels per board unit at the current zoom. */
   const pxPerBoard = () => {
     const rect = svgRef.current?.getBoundingClientRect();
-    return rect && rect.width > 0 ? rect.width / ((2 * half) / zoomRef.current) : 1;
+    return rect && rect.width > 0 ? rect.width / ((2 * extentRef.current.halfW) / zoomRef.current) : 1;
   };
 
   /** Stop an in-flight focus animation (any manual pan/zoom wins). */
@@ -168,17 +187,17 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
       if (svg) svg.removeEventListener('wheel', onWheel);
       cancelAnim();
     };
-    // pxPerBoard reads zoomRef (always current); zoomBy is a stable callback.
-    // Re-runs only if the svg element or base size changes.
+    // pxPerBoard reads zoomRef/extentRef (always current); zoomBy is a stable
+    // callback. Re-runs only if the svg element changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [svgRef, half, zoomBy, applyViewBox, cancelAnim]);
+  }, [svgRef, zoomBy, applyViewBox, cancelAnim]);
 
   return {
     reset,
     isDirty,
-    // Initial viewBox only; after mount the attribute is driven imperatively
-    // (React leaves it alone because this prop value never changes).
-    viewBox: `${-half} ${-half} ${2 * half} ${2 * half}`,
+    // Starting viewBox; after mount the attribute is driven imperatively and
+    // re-applied on resize by the effect above.
+    viewBox: `${-halfW} ${-halfH} ${2 * halfW} ${2 * halfH}`,
     onDoubleClick,
     focusOn,
     onMouseDown,

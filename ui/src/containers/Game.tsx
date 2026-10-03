@@ -13,6 +13,8 @@ import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
+import VertexActionBubbles from '../components/board/VertexActionBubbles';
+import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
 import { GAME_HEX_SIZE } from 'common';
 import { clearSavedSession } from '../utils/session';
 
@@ -22,7 +24,7 @@ import { clearSavedSession } from '../utils/session';
  * turn pill, dice) float above both.
  */
 const Game: React.FC = () => {
-  const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
   const { leaveGame: emitLeaveGame } = useSocket();
   const [menuOpen, setMenuOpen] = useState(false);
   // Browser tab title: flag when it's the player's turn so a backgrounded tab
@@ -46,7 +48,10 @@ const Game: React.FC = () => {
   if (!gameRoom || !currentPlayer) {
     return <p className="text-center text-gray-500">Loading game...</p>;
   }
-
+  const selectedVertex =
+    selectedObject?.type === 'vertex' ? gameRoom.board?.vertices[selectedObject.id] ?? null : null;
+  const selectedEdge =
+    selectedObject?.type === 'edge' ? gameRoom.board?.edges[selectedObject.id] ?? null : null;
   return (
     <div>
       <div className="fixed bottom-3 left-3 z-50">
@@ -85,6 +90,13 @@ const Game: React.FC = () => {
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
             <ResourceDisplay />
           </div>
+          {/* Build actions for the selected vertex/edge, as bubbles on the map. */}
+          {selectedVertex && gameRoom.board && (
+            <VertexActionBubbles board={gameRoom.board} vertex={selectedVertex} />
+          )}
+          {selectedEdge && gameRoom.board && (
+            <EdgeActionBubbles board={gameRoom.board} edge={selectedEdge} />
+          )}
         </div>
         <Sidebar />
       </div>
