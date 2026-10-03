@@ -235,7 +235,7 @@ From a phone on **cellular** (outside the home network):
 |---|---|
 | `status` | Running/stopped, version vs repo, players connected, CPU/memory, whether riskyreign.com answers, pending update |
 | `logs [game\|tunnel\|deploy\|all] [-f] [N]` | Game log by default; `-f` follows live (Ctrl-C returns to the menu) |
-| `update` | Pull + build; applies now if nobody is playing, otherwise when games end |
+| `update [--force] [--yes]` | Pull + build; applies now if nobody is playing, otherwise when games end. `--force` applies immediately and ends current games |
 | `start` / `restart` / `close` | `restart` asks first if players are connected; `close` takes the site offline before stopping the game |
 | `public on\|off` | Start/stop the Cloudflare tunnel; the game keeps running locally either way |
 
@@ -253,6 +253,10 @@ From a phone on **cellular** (outside the home network):
     happened for 60 min** (idle tabs only send heartbeats; any move resets
     the timer). Watch: `server rr logs deploy -f`.
   - `server rr close` cancels the wait; the next `start` runs the new build.
+  - **Force:** `server rr update --force` (menu item 4) skips the wait and
+    applies right away, cancelling any pending waiter. If players are
+    connected it asks first; from scripts it refuses unless `--yes` is added.
+    The deploy log records it as `applied … (FORCED, N connected)`.
   - Tunables (env): `RR_EMPTY_SECS` (300), `RR_IDLE_SECS` (3600), `RR_POLL` (30).
   - Player detection works through the tunnel: it holds one connection per
     player to the container (verified 2026-09-27, 2 players seen via riskyreign.com).
