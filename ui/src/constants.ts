@@ -65,6 +65,10 @@ export const DROP_TARGET_STROKE_W = 3;
 export const DRAG_GHOST_OPACITY = 0.6;
 /** Opacity of the robber drag ghost. */
 export const ROBBER_GHOST_OPACITY = 0.85;
+/** Black outline thickness (px, at the default board scale) around white roll numbers so they read over busy terrain art. */
+export const ROLL_NUMBER_STROKE_W = 1;
+/** Gold used to highlight a hex whose roll number matches the current roll (border, glow, number fill). */
+export const LIT_HEX_GOLD = '#FFD700';
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
 /** Actual soldier-art width: the symbol viewBox (308.96 x 696.64) is letterboxed
@@ -228,10 +232,16 @@ export const PORT_PLANK_W = 0.16;
 
 /** Gap between the bottom control row / dice and the window edges. */
 export const MAP_CORNER_INSET_PX = 12;
- /** Side (px) of the hamburger menu button (Game.tsx: `px-3 py-2`, 20px glyph, 1px border). */
+/** Side (px) of the hamburger menu button (Game.tsx: `px-3 py-2`, 20px glyph, 1px border). */
 export const HAMBURGER_MENU_SIZE_PX = 38;
 /** Gap between the compact dice and the top of the hamburger menu. */
 export const HAMBURGER_MENU_GAP_PX = 8;
+/** Width (px) of the resource panel collapse strip / collapsed sliver. */
+export const RESOURCE_PANEL_TAB_SIZE_PX = 10;
+/** Height (px) of the collapsed sliver (a tiny vertical strip at the screen edge). */
+export const RESOURCE_PANEL_LIP_HEIGHT_PX = 64;
+/** Gap between the resource panel (and its collapsed lip) and the right window edge (Game.tsx wrapper: `right-2`). */
+export const RESOURCE_PANEL_RIGHT_INSET_PX = 8;
 
 // ── useBoardViewport ───────────────────────────────────────────────────────
 

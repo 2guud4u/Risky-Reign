@@ -246,7 +246,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             className="absolute top-2 right-2 z-10 px-2.5 py-1 text-[12px] font-semibold rounded-md bg-white border border-gray-300 shadow cursor-pointer text-gray-600 hover:text-gray-900"
             title="Reset zoom and position"
           >
-            Reset view
+            Reset
           </button>
         )}
         <svg

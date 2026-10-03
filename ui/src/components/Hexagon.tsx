@@ -2,7 +2,13 @@ import React from 'react';
 import { BoardHex } from 'common';
 import { hexPointsAt } from '../utils/hex';
 import TerrainBackground from './TerrainBackground';
-import { ROBBER_W_FRACTION, ROBBER_H_FRACTION, ROBBER_Y_OFFSET_FRACTION } from '../constants';
+import {
+  ROBBER_W_FRACTION,
+  ROBBER_H_FRACTION,
+  ROBBER_Y_OFFSET_FRACTION,
+  ROLL_NUMBER_STROKE_W,
+  LIT_HEX_GOLD,
+} from '../constants';
 
 interface HexagonProps {
   hex: BoardHex;
@@ -39,18 +45,21 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
       {/* Terrain background (artwork, or flat-color fallback). */}
       <TerrainBackground x={x} y={y} size={size} terrain={hex.terrain} points={hexPoints} />
       {/* Hex border. */}
-      <polygon points={hexPoints} fill="none" stroke={litUp ? '#FFD700' : '#000'} strokeWidth={litUp ? 3 : 2} />
+      <polygon points={hexPoints} fill="none" stroke={litUp ? LIT_HEX_GOLD : '#000'} strokeWidth={litUp ? 3 : 2} />
 
       {hex.rollNumber !== null && (
         <text
           x={x}
           y={y}
           textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#FFF"
+          dominantBaseline="central"
+          fill={litUp ? LIT_HEX_GOLD : '#FFF'}
           fontSize={size / 3}
           fontWeight="bold"
-          style={litUp ? { filter: 'drop-shadow(0 0 5px #FFD700)' } : undefined}
+          paintOrder="stroke"
+          stroke="#000"
+          strokeWidth={ROLL_NUMBER_STROKE_W}
+          style={litUp ? { filter: `drop-shadow(0 0 5px ${LIT_HEX_GOLD})` } : undefined}
         >
           {hex.rollNumber}
         </text>
