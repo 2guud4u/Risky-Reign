@@ -2,7 +2,9 @@ import { Board, BuildCheck, CityPrice, Price, SettlementPrice, SoldierPrice, Ver
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { triggerBuildAnimation } from '../components/ResourceSpendLayer';
+import { actableSoldierIds } from '../utils/soldierActions';
 import { useBuildRules } from './useBuildRules';
+import type { BubbleAction } from '../components/board/ActionBubbles';
 
 /** One build action available on a vertex. */
 export interface VertexBuildAction {
@@ -12,6 +14,26 @@ export interface VertexBuildAction {
   /** The backend's own rule check: allowed, or the reason it isn't. */
   check: BuildCheck;
   run: () => void;
+}
+
+/**
+ * Select/deselect every soldier that can act on the selected vertex, shown
+ * only during the Action phase.
+ */
+export function useVertexSoldierSelectAll(board: Board, vertex: VertexNode): BubbleAction | null {
+  const { gameRoom, currentPlayer, selectedSoldierIds, setSelectedSoldierIds } = useGameRoom();
+  const actableIds = actableSoldierIds(gameRoom, currentPlayer?.name, vertex.id);
+  if (gameRoom?.turnState.phase !== 'Action') return null;
+  const picked = selectedSoldierIds.filter((id) => actableIds.includes(id));
+  const allSelected = picked.length > 0 && picked.length === actableIds.length;
+  return {
+    key: 'toggle-select-all-soldiers',
+    icon: '👥',
+    label: allSelected ? 'Deselect All Soldiers' : 'Select All Soldiers',
+    costText: `${actableIds.length} soldier${actableIds.length === 1 ? '' : 's'}`,
+    check: { allowed: true, reason: null },
+    run: () => setSelectedSoldierIds(allSelected ? [] : actableIds),
+  };
 }
 
 /**

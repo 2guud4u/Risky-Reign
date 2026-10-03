@@ -23,6 +23,12 @@ export interface BubbleAction {
    * shown in the pill at all (e.g. no Wheat to pay with).
    */
   eligible?: boolean;
+  /**
+   * Move choices only: compass direction (N / NE / … / NW) and the arrow
+   * rotation (degrees, 0 = up) for the SVG arrow shown instead of an emoji.
+   */
+  direction?: string;
+  angle?: number;
 }
 
 interface ActionBubbleProps {
@@ -162,7 +168,19 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                   title={`${c.label} — ${c.costText}`}
                   className="flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105"
                 >
-                  <span aria-hidden="true">{c.icon}</span>
+                  {c.direction ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="22"
+                      height="22"
+                      style={{ transform: `rotate(${c.angle ?? 0}deg)` }}
+                      aria-hidden="true"
+                    >
+                      <path d="M12 3 L17 12 L13.5 12 L13.5 21 L10.5 21 L10.5 12 L7 12 Z" fill="currentColor" />
+                    </svg>
+                  ) : (
+                    <span aria-hidden="true">{c.icon}</span>
+                  )}
                   <span className="text-[12px] font-bold">{c.costText}</span>
                 </button>
               ))}

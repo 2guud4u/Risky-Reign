@@ -1,15 +1,23 @@
 import { useEffect } from 'react';
-import { Board, BuildCheck, HealSoldierAmount, HealSoldierResources, VertexNode } from 'common';
+import {
+  Board,
+  BuildCheck,
+  HealSoldierAmount,
+  HealSoldierResources,
+  VertexNode,
+  canMoveSoldierTo,
+} from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useBuildRules } from './useBuildRules';
 import { actableSoldierIds } from '../utils/soldierActions';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import { moveDirectionsFrom } from '../utils/direction';
 
 /** A sub-option of a group action (e.g. which resource to heal with). */
 export interface SoldierActionChoice {
   key: string;
-  /** Emoji shown on the choice button. */
+  /** Emoji shown on the choice button (direction arrows are SVG, not emoji). */
   icon: string;
   label: string;
   costText: string;
@@ -18,12 +26,15 @@ export interface SoldierActionChoice {
   run: () => void;
   /** Eligible = the check passes; ineligible choices are hidden, not greyed. */
   eligible: boolean;
+  /** Move choices only: compass direction (N / NE / … / NW). */
+  direction?: string;
+  /** Move choices only: arrow rotation in degrees (0 = up). */
+  angle?: number;
 }
-
 /** One soldier group action available on the selected vertex. */
 export interface SoldierAction {
   key: string;
-  kind: 'heal' | 'attack' | 'capture' | 'robber';
+  kind: 'move' | 'heal' | 'attack' | 'capture' | 'robber';
   label: string;
   costText: string;
   /** The shared rule check for the whole picked group: allowed, or why not. */
@@ -50,7 +61,7 @@ const ALLOWED: BuildCheck = { allowed: true, reason: null };
  */
 export function useSoldierActions(board: Board, vertex: VertexNode): SoldierAction[] {
   const { gameRoom, currentPlayer, selectedSoldierIds, setSelectedSoldierIds } = useGameRoom();
-  const { healSoldier, startAttack, captureSettlement, fightRobber } = useSocket();
+  const { healSoldier, startAttack, captureSettlement, fightRobber, moveSoldier } = useSocket();
   const { healSoldierCheck, attackCheck, captureCheck, fightRobberCheck } = useBuildRules(board);
 
   const playerName = currentPlayer?.name;
@@ -113,6 +124,51 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       costText: `${HealSoldierAmount} each (pick resource)`,
       check: anyEligible ? ALLOWED : choices[0].check,
       run: () => {}, // expanded bubble: a choice is picked instead
+      choices,
+    });
+  }
+
+  // Move: the bubble shows while any picked soldier is movable; its pill
+  // lists the compass directions (road-connected neighbors) at least one
+  // picked soldier may move along. Confirming one moves every picked soldier
+  // that can go that way (one action per soldier, per the backend rule).
+  const turn = gameRoom.turnState;
+  const movable = group.filter((id) => board.soldiers[id]?.owner === currentPlayer.name);
+  if (movable.length > 0) {
+    const directions = moveDirectionsFrom(board, vertex);
+    const choices = directions
+      .flatMap((d) => {
+        const target = d.targets[0];
+        if (!target) return [];
+        const movers = movable.filter((id) => canMoveSoldierTo(board, turn, currentPlayer.name, id, target).allowed);
+        return [
+          {
+            key: `move-${d.direction.toLowerCase()}`,
+            icon: '', // direction arrows are SVG, not emoji
+            label: `Move ${movers.length} to ${d.direction}`,
+            costText: 'Action',
+            check:
+              movers.length > 0
+                ? ALLOWED
+                : { allowed: false, reason: 'No picked soldier can move this way' },
+            run: () => {
+              for (const id of movers) moveSoldier(currentPlayer.id, id, target, gameRoom.id);
+              clearPicks();
+            },
+            eligible: movers.length > 0,
+            direction: d.direction,
+            angle: d.angle,
+          },
+        ];
+      });
+    const anyEligible = choices.some((c) => c.eligible);
+    actions.push({
+      key: 'move',
+      kind: 'move',
+      label: `Move ${movable.length}`,
+      costText: 'Pick a direction',
+      check: anyEligible ? ALLOWED : choices[0].check,
+      run: () => {}, // expanded bubble: a direction is picked instead
       choices,
     });
   }

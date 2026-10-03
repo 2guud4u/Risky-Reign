@@ -1,6 +1,6 @@
 import React from 'react';
 import { Board, VertexNode } from 'common';
-import { useVertexBuild, VertexBuildAction } from '../../hooks/useVertexBuild';
+import { useVertexBuild, VertexBuildAction, useVertexSoldierSelectAll } from '../../hooks/useVertexBuild';
 import { useSoldierActions, SoldierAction } from '../../hooks/useSoldierActions';
 import { priceLabel } from '../../utils/price';
 import ActionBubbles, { BubbleAction } from './ActionBubbles';
@@ -9,11 +9,12 @@ import ActionBubbles, { BubbleAction } from './ActionBubbles';
 const ICONS: Record<VertexBuildAction['key'], string> = {
   settlement: '🏠',
   city: '⬆️',
-  soldier: '🧍',
+  soldier: '🫵',
 };
 
 /** Emoji shown in each collapsed soldier-action bubble. */
 const SOLDIER_ICONS: Record<SoldierAction['kind'], string> = {
+  move: '🏃‍➡️',
   heal: '❤️‍🩹',
   attack: '⚔️',
   capture: '🏴',
@@ -28,6 +29,7 @@ const SOLDIER_ICONS: Record<SoldierAction['kind'], string> = {
 const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ board, vertex }) => {
   const build = useVertexBuild(board, vertex);
   const soldier = useSoldierActions(board, vertex);
+  const selectAll = useVertexSoldierSelectAll(board, vertex);
   const actions: BubbleAction[] = [
     ...build.map((a) => ({
       key: a.key,
@@ -37,6 +39,7 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
       check: a.check,
       run: a.run,
     })),
+    ...(selectAll ? [selectAll] : []),
     ...soldier.map((a) => ({
       key: a.key,
       icon: SOLDIER_ICONS[a.kind],
@@ -54,6 +57,8 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
               check: c.check,
               run: c.run,
               eligible: c.eligible,
+              direction: c.direction,
+              angle: c.angle,
             })),
           }
         : {}),
