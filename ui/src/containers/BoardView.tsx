@@ -16,6 +16,7 @@ import {
   BOARD_RENDER_MARGIN,
   BOARD_VIEWBOX_MARGIN,
   PROJ_SIZE,
+  SELECT_FOCUS_ZOOM,
 } from '../constants';
 import { BoardViewProps } from '../types/board';
 import {
@@ -119,11 +120,18 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     moveRobber,
   });
 
+  const { focusOn } = viewport;
+  // Clicking a vertex or edge selects it and glides the board in, centered on
+  // it (an edge centers on its midpoint). The waiting-room preview board stays
+  // static (the game hasn't started).
+  const isPlaying = gameRoom?.gameStatus === 'playing';
   const handleVertexClick = useCallback(
     (vertexId: string) => {
       setSelectedObject({ type: 'vertex', id: vertexId });
+      const v = base?.vertices[vertexId];
+      if (v && isPlaying) focusOn(v.position, SELECT_FOCUS_ZOOM);
     },
-    [setSelectedObject]
+    [setSelectedObject, base, isPlaying, focusOn]
   );
 
   // Map owner name -> chosen color so settlements/roads render in the
@@ -150,8 +158,12 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const handleEdgeClick = useCallback(
     (edgeId: string) => {
       setSelectedObject({ type: 'edge', id: edgeId });
+      const e = base?.edges[edgeId];
+      if (e && isPlaying) {
+        focusOn({ x: (e.start.x + e.end.x) / 2, y: (e.start.y + e.end.y) / 2 }, SELECT_FOCUS_ZOOM);
+      }
     },
-    [setSelectedObject]
+    [setSelectedObject, base, isPlaying, focusOn]
   );
 
   const onRobberHover = useCallback(

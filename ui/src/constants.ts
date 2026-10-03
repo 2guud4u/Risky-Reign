@@ -249,6 +249,10 @@ export const MAX_ZOOM = 3;
 export const ZOOM_STEP = 1.15;
 /** Minimum pointer movement (px) before a press counts as a pan. */
 export const PAN_THRESHOLD = 4;
+/** Zoom the board animates to when a vertex or edge is clicked (never zooms out). */
+export const SELECT_FOCUS_ZOOM = 2.2;
+/** Duration of the click-to-focus animation, in ms. */
+export const FOCUS_DURATION_MS = 350;
 
 // ── useBuildRules ──────────────────────────────────────────────────────────
 

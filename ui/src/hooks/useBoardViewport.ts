@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAX_ZOOM, MIN_ZOOM, PAN_THRESHOLD, ZOOM_STEP } from '../constants';
+import { FOCUS_DURATION_MS, MAX_ZOOM, MIN_ZOOM, PAN_THRESHOLD, ZOOM_STEP } from '../constants';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -19,13 +19,16 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * Panning is a left-button drag on empty board space. Vertices, edges, and
  * soldier badges all stopPropagation on mousedown, so they keep their own
  * click/drag behavior and do not start a pan. Double-click zooms in;
- * Shift+double-click (or the reset button) restores the fit view.
+ * Shift+double-click (or the reset button) restores the fit view. `focusOn`
+ * animates the view to a board point (used when a vertex is clicked).
  */
 export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSize: number) {
   // Source of truth lives in refs so pan/zoom never triggers a React render.
   const zoomRef = useRef(1);
   const centerRef = useRef({ x: 0, y: 0 });
   const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean } | null>(null);
+  // Handle of the in-flight focus animation, so a new gesture can cancel it.
+  const animRef = useRef<number | null>(null);
   // Only the "viewport differs from fit" flag is React state (drives the
   // reset button). It flips at most once per gesture.
   const [isDirty, setIsDirty] = useState(false);
@@ -50,21 +53,57 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
     return rect && rect.width > 0 ? rect.width / ((2 * half) / zoomRef.current) : 1;
   };
 
+  /** Stop an in-flight focus animation (any manual pan/zoom wins). */
+  const cancelAnim = useCallback(() => {
+    if (animRef.current !== null) cancelAnimationFrame(animRef.current);
+    animRef.current = null;
+  }, []);
+
   const zoomBy = useCallback(
     (factor: number) => {
+      cancelAnim();
       zoomRef.current = clamp(zoomRef.current * factor, MIN_ZOOM, MAX_ZOOM);
       applyViewBox();
       setIsDirty(true);
     },
-    [applyViewBox]
+    [applyViewBox, cancelAnim]
   );
 
   const reset = useCallback(() => {
+    cancelAnim();
     zoomRef.current = 1;
     centerRef.current = { x: 0, y: 0 };
     applyViewBox();
     setIsDirty(false);
-  }, [applyViewBox]);
+  }, [applyViewBox, cancelAnim]);
+
+  /**
+   * Smoothly move the view to center `point` (board coordinates) at `zoom`
+   * (never zooming out: the current zoom is kept if it is already closer).
+   * Eased over FOCUS_DURATION_MS; a pan, wheel, or reset cancels it.
+   */
+  const focusOn = useCallback(
+    (point: { x: number; y: number }, zoom: number) => {
+      cancelAnim();
+      const fromZoom = zoomRef.current;
+      const toZoom = clamp(Math.max(fromZoom, zoom), MIN_ZOOM, MAX_ZOOM);
+      const from = { ...centerRef.current };
+      const start = performance.now();
+      const ease = (t: number) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const step = (now: number) => {
+        const t = Math.min(1, (now - start) / FOCUS_DURATION_MS);
+        const k = ease(t);
+        // Interpolate zoom geometrically so the scale change feels uniform.
+        zoomRef.current = fromZoom * Math.pow(toZoom / fromZoom, k);
+        centerRef.current = { x: from.x + (point.x - from.x) * k, y: from.y + (point.y - from.y) * k };
+        applyViewBox();
+        animRef.current = t < 1 ? requestAnimationFrame(step) : null;
+      };
+      setIsDirty(true);
+      animRef.current = requestAnimationFrame(step);
+    },
+    [applyViewBox, cancelAnim]
+  );
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -92,6 +131,13 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
       if (!pan.active) {
         if (Math.hypot(e.clientX - pan.startX, e.clientY - pan.startY) < PAN_THRESHOLD) return;
         pan.active = true;
+        // A real pan takes over from any focus animation; rebase on the
+        // animated center so the board doesn't jump.
+        cancelAnim();
+        pan.originX = centerRef.current.x;
+        pan.originY = centerRef.current.y;
+        pan.startX = e.clientX;
+        pan.startY = e.clientY;
       }
       const scale = pxPerBoard();
       centerRef.current = {
@@ -120,11 +166,12 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       if (svg) svg.removeEventListener('wheel', onWheel);
+      cancelAnim();
     };
     // pxPerBoard reads zoomRef (always current); zoomBy is a stable callback.
     // Re-runs only if the svg element or base size changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [svgRef, half, zoomBy, applyViewBox]);
+  }, [svgRef, half, zoomBy, applyViewBox, cancelAnim]);
 
   return {
     reset,
@@ -133,6 +180,7 @@ export function useBoardViewport(svgRef: React.RefObject<SVGSVGElement>, baseSiz
     // (React leaves it alone because this prop value never changes).
     viewBox: `${-half} ${-half} ${2 * half} ${2 * half}`,
     onDoubleClick,
+    focusOn,
     onMouseDown,
   };
 }
