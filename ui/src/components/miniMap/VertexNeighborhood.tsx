@@ -80,18 +80,13 @@ export const VertexNeighborhood: React.FC<VertexNeighborhoodProps> = ({
       );
     })}
 
-    {/* Garrisoned soldiers: each player's soldiers form their own ranks,
-        placed around the vertex at the same angle as that player's badge on
-        the main board (see BoardView's soldier layer), so the two views agree
-        on orientation. */}
-    {layout.clusters.map((c) => (
+    {/* Garrisoned soldiers: each owner's troops stand in ranks below the
+        vertex (healthy in front, injured behind), facing across the vertex. */}
+    {layout.armies.map((a) => (
       <SoldierGroup
-        key={`g-${c.ownerName}`}
-        group={c.group}
-        ownerName={c.ownerName}
+        key={`g-${a.ownerName}`}
+        army={a}
         playerColors={playerColors}
-        anchor={c.anchor}
-        flip={c.anchor.x < layout.vertex.position.x}
         onSoldierClick={onSoldierClick}
         selectedSoldierIds={selectedSoldierIds}
         selectableSoldierIds={selectableSoldierIds}

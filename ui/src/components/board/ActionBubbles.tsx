@@ -15,6 +15,62 @@ export interface BubbleAction {
   run: () => void;
 }
 
+interface ActionBubbleProps {
+  action: BubbleAction;
+  open: boolean;
+  onClick: () => void;
+}
+
+/**
+ * One round action bubble. Collapsed it shows only the icon; expanded it shows
+ * the label plus the cost ("tap to confirm") or, when blocked, the reason.
+ * The caller owns the two-step expand/confirm state.
+ */
+export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, onClick }) => {
+  const ok = a.check.allowed;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={open ? (ok ? `Confirm: ${a.label}` : `${a.label} unavailable`) : a.label}
+      title={open ? undefined : a.label}
+      className={`flex items-center gap-2 h-14 rounded-full border-2 shadow-lg transition-all duration-200 cursor-pointer ${
+        open ? 'pl-2 pr-4' : 'w-14 justify-center'
+      } ${
+        ok
+          ? open
+            ? 'bg-blue-600 border-blue-700 text-white'
+            : 'bg-white border-gray-300 hover:scale-110 hover:border-blue-500'
+          : open
+            ? 'bg-white border-gray-300 text-gray-800'
+            : 'bg-gray-200 border-gray-300'
+      }`}
+    >
+      <span
+        className={`flex items-center justify-center text-2xl leading-none ${
+          open ? 'w-10 h-10 rounded-full bg-white/20' : ''
+        } ${ok ? '' : 'grayscale opacity-50'}`}
+        aria-hidden="true"
+      >
+        {a.icon}
+      </span>
+      {open && (
+        <span className="flex flex-col items-start text-left leading-tight whitespace-nowrap">
+          <span className="text-[13px] font-bold">{a.label}</span>
+          {ok ? (
+            <span className="text-[12px] opacity-90">{a.costText} · tap to confirm</span>
+          ) : (
+            <span className="text-[12px] text-red-600 max-w-[220px] whitespace-normal">
+              {a.check.reason ?? 'Not allowed here'}
+            </span>
+          )}
+        </span>
+      )}
+    </button>
+  );
+};
+
 interface ActionBubblesProps {
   actions: BubbleAction[];
   /** Changing this collapses any expanded bubble (e.g. the selected object id). */
@@ -53,52 +109,9 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
       // Don't let clicks here start a board pan or clear the selection.
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {actions.map((a) => {
-        const open = expanded === a.key;
-        const ok = a.check.allowed;
-        return (
-          <button
-            key={a.key}
-            type="button"
-            onClick={() => onBubbleClick(a)}
-            aria-expanded={open}
-            aria-label={open ? (ok ? `Confirm: ${a.label}` : `${a.label} unavailable`) : a.label}
-            title={open ? undefined : a.label}
-            className={`flex items-center gap-2 h-14 rounded-full border-2 shadow-lg transition-all duration-200 cursor-pointer ${
-              open ? 'pl-2 pr-4' : 'w-14 justify-center'
-            } ${
-              ok
-                ? open
-                  ? 'bg-blue-600 border-blue-700 text-white'
-                  : 'bg-white border-gray-300 hover:scale-110 hover:border-blue-500'
-                : open
-                  ? 'bg-white border-gray-300 text-gray-800'
-                  : 'bg-gray-200 border-gray-300'
-            }`}
-          >
-            <span
-              className={`flex items-center justify-center text-2xl leading-none ${
-                open ? 'w-10 h-10 rounded-full bg-white/20' : ''
-              } ${ok ? '' : 'grayscale opacity-50'}`}
-              aria-hidden="true"
-            >
-              {a.icon}
-            </span>
-            {open && (
-              <span className="flex flex-col items-start text-left leading-tight whitespace-nowrap">
-                <span className="text-[13px] font-bold">{a.label}</span>
-                {ok ? (
-                  <span className="text-[12px] opacity-90">{a.costText} · tap to confirm</span>
-                ) : (
-                  <span className="text-[12px] text-red-600 max-w-[220px] whitespace-normal">
-                    {a.check.reason ?? 'Not allowed here'}
-                  </span>
-                )}
-              </span>
-            )}
-          </button>
-        );
-      })}
+      {actions.map((a) => (
+        <ActionBubble key={a.key} action={a} open={expanded === a.key} onClick={() => onBubbleClick(a)} />
+      ))}
       <button
         type="button"
         onClick={() => setSelectedObject(null)}

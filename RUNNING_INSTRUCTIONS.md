@@ -61,3 +61,11 @@ If you still have issues:
 3. Check that `common` package builds successfully before other packages
 
 The project should now be able to run properly with these changes.
+
+## In-game controls
+
+- Scroll over the board or double-click to zoom in, up to 6× the fitted view. Scroll down to zoom out to 0.5×. Drag empty board space to pan; **Reset view** or Shift+double-click restores the fitted view.
+- Click a vertex or edge to focus it at 4× zoom (or keep your current zoom if already closer). Tune `SELECT_FOCUS_ZOOM` in `ui/src/constants.ts`; `MAX_ZOOM` controls the manual zoom limit.
+- Individual soldier SVGs render only at 4× zoom or higher; below that the board shows soldier count badges. Tune `DETAIL_ZOOM_IN` in `ui/src/constants.ts`.
+- The resource panel's bottom arrow opens development cards; the top arrow returns to resources.
+- In the development-card view, click **Buy Dev Card** to expand its action bubble and show the cost, then click again to purchase. Unavailable purchases stay visible and expand to explain why they are blocked.

@@ -1,40 +1,30 @@
 import React from 'react';
 import { SoldierObj } from 'common';
 import {
-  RANK_SPACING,
-  SOLDIER_SPACING,
-  SOLDIER_ART_WIDTH,
+  FORMATION_PILL_FONT,
+  FORMATION_PILL_H,
+  CHECK_BADGE_COLOR,
+  CHECK_BADGE_R_FRAC,
+  CHECK_BADGE_Y_OFF,
   SOLDIER_ART_HEIGHT,
-  CLUSTER_MAX_RADIUS,
-  COMPACT_MAX,
-  AGGREGATE_MAX_VISIBLE,
-  AGGREGATE_BADGE_RADIUS,
+  SOLDIER_ART_WIDTH,
+  ACTION_BOLT_FILL,
   ACTION_BOLT_H_FRAC,
+  ACTION_BOLT_STROKE,
   ACTION_BOLT_W_FRAC,
   ACTION_BOLT_X_OFF,
   ACTION_BOLT_Y_OFF,
-  ACTION_BOLT_FILL,
-  ACTION_BOLT_STROKE,
 } from '../constants';
+import { GarrisonArmy } from '../utils/garrisonFormation';
 
 interface SoldierGroupProps {
-  /** The soldiers in this group. */
-  group: SoldierObj[];
-  /** Owner name (for tinting). */
-  ownerName: string;
-  /** Player name -> color, used to tint soldiers. */
+  /** The owner's garrison as a formation of ranks. */
+  army: GarrisonArmy;
+  /** Player name -> color, used to tint soldiers and the count pill. */
   playerColors?: Record<string, string>;
-  /** The cluster center (world coordinates). */
-  anchor: { x: number; y: number };
-  /**
-   * When true, every soldier in this army is mirrored so the whole army faces
-   * the same direction (computed from the army's position relative to the
-   * vertex). Applied uniformly, not per-soldier.
-   */
-  flip?: boolean;
   /** Click handler for soldiers. */
   onSoldierClick?: (soldierId: string) => void;
-  /** Soldier ids currently in the selected group (highlighted). */
+  /** Soldier ids currently in the selected group (green check badge above the head). */
   selectedSoldierIds?: ReadonlySet<string>;
   /** Soldier ids the current player may click to select for a group action. */
   selectableSoldierIds?: ReadonlySet<string>;
@@ -43,64 +33,33 @@ interface SoldierGroupProps {
 }
 
 /**
- * Renders one owner's garrisoned soldiers as a bounded cluster centered on
- * `anchor`. The layout adapts to the troop count:
- *  - full (≤ FULL_MAX): every soldier, normal spacing.
- *  - compact (≤ COMPACT_MAX): every soldier, compressed to fit CLUSTER_MAX_RADIUS.
- *  - aggregate (> COMPACT_MAX): a bounded number of representative soldiers plus a
- *    central count badge, so a huge army never renders hundreds of SVG elements.
- * Soldiers are laid out in a roughly-square grid centered on the anchor and
- * scaled so the whole cluster fits within CLUSTER_MAX_RADIUS.
+ * Renders one owner's garrisoned soldiers as a formation of ranks: healthy
+ * soldiers in front, injured (drawn smaller) behind, plus a count pill for
+ * the whole army. Soldiers are laid out in ranks of FORMATION_COLS centered
+ * on the formation; back ranks sit higher so the front rank draws on top.
  */
 const SoldierGroup: React.FC<SoldierGroupProps> = ({
-  group,
-  ownerName,
+  army,
   playerColors,
-  anchor,
-  flip = false,
   onSoldierClick,
   selectedSoldierIds,
   selectableSoldierIds,
   canActSoldierIds,
 }) => {
-  const count = group.length;
-  const isAggregate = count > COMPACT_MAX;
-  const visibleCount = isAggregate ? Math.min(AGGREGATE_MAX_VISIBLE, count) : count;
-
-  // Roughly-square grid centered on the anchor.
-  const cols = Math.max(1, Math.ceil(Math.sqrt(visibleCount)));
-  const rows = Math.max(1, Math.ceil(visibleCount / cols));
-  // Scale the spacing so the cluster fits within CLUSTER_MAX_RADIUS.
-  const naturalExtent = Math.max((rows - 1) * RANK_SPACING, (cols - 1) * SOLDIER_SPACING);
-  const maxExtent = 2 * CLUSTER_MAX_RADIUS;
-  const scale = naturalExtent > maxExtent ? maxExtent / naturalExtent : 1;
-  const colSpacing = SOLDIER_SPACING * scale;
-  const rowSpacing = RANK_SPACING * scale;
-
   const elements: React.ReactNode[] = [];
 
-  for (let k = 0; k < visibleCount; k++) {
-    const s = group[k];
-    const row = Math.floor(k / cols);
-    const col = k % cols;
-    const countInRow = Math.min(cols, visibleCount - row * cols);
-    const x = anchor.x + (col - (countInRow - 1) / 2) * colSpacing;
-    const y = anchor.y + (row - (rows - 1) / 2) * rowSpacing;
+  for (const fs of army.soldiers) {
+    const s: SoldierObj = fs.soldier;
     const selectable = selectableSoldierIds?.has(s.id) ?? false;
     const isSel = selectedSoldierIds?.has(s.id) ?? false;
     const canAct = canActSoldierIds?.has(s.id) ?? false;
-    // Injured soldiers render a bit smaller; the cluster `scale` bounds the group.
-    const sScale = (s.injured ? 0.65 : 1) * scale;
-    // The sprite, <use>, and selection box are all sized to the actual art
-    // (SOLDIER_ART_WIDTH x SOLDIER_ART_HEIGHT, matching the symbol's aspect
-    // ratio) and centered on (x, y), so the art fills the viewport and the box
-    // tightly wraps it.
-    const aw = SOLDIER_ART_WIDTH * sScale;
-    const ah = SOLDIER_ART_HEIGHT * sScale;
+    // Art size for this (possibly injured, smaller) soldier.
+    const aw = SOLDIER_ART_WIDTH * fs.scale;
+    const ah = SOLDIER_ART_HEIGHT * fs.scale;
+    const { x, y } = fs;
     // Energy bolt marking a soldier that can still act: a small zigzag pinned
-    // to the soldier's upper-right. Drawn above the sprite and selection box,
-    // non-interactive, and scaled with the art (injured soldiers get a smaller
-    // bolt). Replaces the old scale-pulse animation.
+    // to the soldier's upper-right. Drawn above the sprite, non-interactive,
+    // scaled with the art (injured soldiers get a smaller bolt).
     const bh = ah * ACTION_BOLT_H_FRAC;
     const bw = bh * ACTION_BOLT_W_FRAC;
     const bx = x + aw * ACTION_BOLT_X_OFF;
@@ -124,8 +83,8 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
           y={y - ah / 2}
           width={aw}
           height={ah}
-          style={{ color: playerColors?.[ownerName] ?? '#888' }}
-          transform={flip ? `translate(${2 * x}, 0) scale(-1, 1)` : undefined}
+          style={{ color: playerColors?.[army.ownerName] ?? '#888' }}
+          transform={army.flip ? `translate(${2 * x}, 0) scale(-1, 1)` : undefined}
         >
           <use
             href={s.injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
@@ -133,59 +92,65 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
             height={ah}
           />
         </svg>
-        {isSel && (
-          <rect
-            x={x - aw / 2}
-            y={y - ah / 2}
-            width={aw}
-            height={ah}
-            fill="none"
-            stroke="#facc15"
-            strokeWidth={isSel ? 3 : s.injured ? 2 : 1.5}
-          />
-        )}
         {canAct && (
           <polygon
             points={boltPoints}
             fill={ACTION_BOLT_FILL}
             stroke={ACTION_BOLT_STROKE}
-            strokeWidth={Math.max(1, sScale * 1.4)}
+            strokeWidth={Math.max(1, fs.scale * 1.4)}
             strokeLinejoin="round"
             pointerEvents="none"
           />
+        )}
+        {/* Selected-soldier check badge above the head, drawn last so it is
+            never hidden by the sprite or the bolt. */}
+        {isSel && (
+          <g pointerEvents="none">
+            <circle cx={x} cy={y - ah * CHECK_BADGE_Y_OFF} r={aw * CHECK_BADGE_R_FRAC} fill={CHECK_BADGE_COLOR} stroke="#fff" strokeWidth={Math.max(1, fs.scale)} />
+            <path
+              d={`M ${x - aw * CHECK_BADGE_R_FRAC * 0.5} ${y - ah * CHECK_BADGE_Y_OFF} l ${aw * CHECK_BADGE_R_FRAC * 0.3} ${aw * CHECK_BADGE_R_FRAC * 0.35} l ${aw * CHECK_BADGE_R_FRAC * 0.5} ${-aw * CHECK_BADGE_R_FRAC * 0.55}`}
+              fill="none"
+              stroke="#fff"
+              strokeWidth={Math.max(1, aw * CHECK_BADGE_R_FRAC * 0.28)}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
         )}
       </g>
     );
   }
 
-  // Aggregate: a central count badge on top of the representative soldiers.
-  if (isAggregate) {
+  // Count pill under the front rank: the whole army's strength, tinted by owner.
+  if (army.group.length > army.soldiers.length) {
+    const label = `\u00d7${army.group.length}`;
     elements.push(
-      <g key="count-badge" style={{ pointerEvents: 'none' }}>
-        <circle
-          cx={anchor.x}
-          cy={anchor.y}
-          r={AGGREGATE_BADGE_RADIUS * scale}
-          fill={playerColors?.[ownerName] ?? '#888'}
+      <g key="count-pill" style={{ pointerEvents: 'none' }}>
+        <rect
+          x={army.pillCenterX - army.pillWidth / 2}
+          y={army.pillY}
+          width={army.pillWidth}
+          height={FORMATION_PILL_H}
+          rx={FORMATION_PILL_H / 2}
+          fill={playerColors?.[army.ownerName] ?? '#888'}
           stroke="#fff"
           strokeWidth={2}
-          opacity={0.9}
+          opacity={0.95}
         />
         <text
-          x={anchor.x}
-          y={anchor.y}
+          x={army.pillCenterX}
+          y={army.pillY + FORMATION_PILL_H / 2}
           textAnchor="middle"
           dominantBaseline="central"
           fill="#fff"
-          fontSize={AGGREGATE_BADGE_RADIUS * scale}
+          fontSize={FORMATION_PILL_FONT}
           fontWeight="bold"
         >
-          {count}
+          {label}
         </text>
       </g>
     );
   }
-
 
   return <>{elements}</>;
 };

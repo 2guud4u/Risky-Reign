@@ -5,6 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
 import { playerColorMap } from '../utils/soldierPlacement';
+import { actableSoldierIds } from '../utils/soldierActions';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { PortLayer } from '../components/board/PortLayer';
@@ -42,7 +43,8 @@ import {
  * Escape clears the selection and cancels any in-progress drag.
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
-  const { gameRoom, currentPlayer, selectedObject, setSelectedObject } = useGameRoom();
+  const { gameRoom, currentPlayer, selectedObject, setSelectedObject, selectedSoldierIds, setSelectedSoldierIds } =
+    useGameRoom();
   const { moveSoldier, moveRobber } = useSocket();
 
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
@@ -163,6 +165,22 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // Owner -> color as a plain map, for the zoomed-in soldier sprites.
   const playerColors = useMemo(() => playerColorMap(gameRoom), [gameRoom]);
 
+  // Soldier picking on the selected vertex (for the soldier action bubbles):
+  // which of my soldiers there can be picked, and which are picked now.
+  const selectedVertexId = selectedObject?.type === 'vertex' ? selectedObject.id : null;
+  const pickableSoldierIds = useMemo(
+    () => new Set(actableSoldierIds(gameRoom, currentPlayer?.name, selectedVertexId)),
+    [gameRoom, currentPlayer?.name, selectedVertexId]
+  );
+  const pickedSoldierIds = useMemo(() => new Set(selectedSoldierIds), [selectedSoldierIds]);
+  const togglePickedSoldier = useCallback(
+    (soldierId: string) =>
+      setSelectedSoldierIds((prev) =>
+        prev.includes(soldierId) ? prev.filter((id) => id !== soldierId) : [...prev, soldierId]
+      ),
+    [setSelectedSoldierIds]
+  );
+
   // Layer ephemeral interaction state (hover/select) and owner colors onto
   // the presentation. Memoized: without it every render produced fresh
   // hex/edge/vertex arrays, defeating the memoized layer components.
@@ -267,10 +285,18 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               to each of the 1-2 vertices it serves. */}
           <PortLayer portGroups={portGroups} />
 
-          {/* Soldiers: count badges when zoomed out; individual soldiers
-              (mini-view style) once zoomed in past DETAIL_ZOOM_IN. */}
+          {/* Soldiers: count badges below DETAIL_ZOOM_IN; individual soldier
+              SVGs at or above that zoom. */}
           {viewport.detailed ? (
-            <BoardSoldiers board={board} playerColors={playerColors} onSelect={handleSoldierSelect} />
+            <BoardSoldiers
+              board={board}
+              playerColors={playerColors}
+              onSelect={handleSoldierSelect}
+              selectedVertexId={selectedVertexId}
+              pickableSoldierIds={pickableSoldierIds}
+              pickedSoldierIds={pickedSoldierIds}
+              onSoldierClick={togglePickedSoldier}
+            />
           ) : (
             <SoldierBadges
               soldierGroups={soldierGroups}

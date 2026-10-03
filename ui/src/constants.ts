@@ -67,69 +67,68 @@ export const DRAG_GHOST_OPACITY = 0.6;
 export const ROBBER_GHOST_OPACITY = 0.85;
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
-/** Distance from the vertex center to the first soldier rank row. */
-export const RANK_OFFSET = 50;
-
-/** Vertical spacing between consecutive rank rows. */
-export const RANK_SPACING = 70;
-
-/** Horizontal spacing between soldiers within a rank row. */
-export const SOLDIER_SPACING = 60;
 /** Actual soldier-art width: the symbol viewBox (308.96 x 696.64) is letterboxed
  * into the 66-tall <use>, so the art is 66 * 308.96/696.64 wide. The
  * selection box must use this, not the 57-wide <use> viewport. */
 export const SOLDIER_ART_WIDTH = 29.27;
 /** Actual soldier-art height (the <use> viewport height). */
 export const SOLDIER_ART_HEIGHT = 66;
+/** Injured soldiers are drawn at this fraction of full size. */
+export const INJURED_SOLDIER_SCALE = 1;
 
-/** Distance from the vertex center to a region's cluster anchor. */
-export const REGION_SPACING = 80;
-/** Maximum radius (world units) for an army cluster. */
-export const CLUSTER_MAX_RADIUS = 75;
-/** Max soldiers rendered individually in "full" mode. */
-export const FULL_MAX = 12;
-/** Max soldiers rendered individually in "compact" mode. */
-export const COMPACT_MAX = 30;
-/** Max representative soldiers rendered in "aggregate" mode. */
-export const AGGREGATE_MAX_VISIBLE = 12;
-/** Radius of the central count badge in "aggregate" mode. */
-export const AGGREGATE_BADGE_RADIUS = 18;
+// Garrison formation: each owner's soldiers stand in tidy ranks — healthy in
+// front, injured behind — with a count pill once the army is too big to draw.
+// Sized so two armies side by side stay inside one vertex spacing on the board.
+/** Soldiers per rank (row) in a formation. */
+export const FORMATION_COLS = 5;
+/** Most soldiers drawn per army; bigger armies show their total in a count pill. */
+export const FORMATION_MAX_VISIBLE = 20;
+/** Horizontal distance between soldiers in a rank (about one art width). */
+export const FORMATION_COL_SPACING = 30;
+/** How far each rank further back sits above the one in front of it. */
+export const FORMATION_ROW_SPACING = 24;
+/** Gap between neighboring armies on the same vertex. */
+export const FORMATION_ARMY_GAP = 28;
+/** Widest a line of armies may get before the next army wraps to a new line below. */
+export const FORMATION_LINE_MAX_WIDTH = 220;
+/**
+ * How far below the vertex the front rank's feet stand: close enough that
+ * the ranks stand right on top of the vertex (heads over the dot).
+ */
+export const FORMATION_FEET_OFFSET = 50;
+/** Count pill ("×12") height, font size and gap below an army's front rank. */
+export const FORMATION_PILL_H = 22;
+export const FORMATION_PILL_FONT = 15;
+export const FORMATION_PILL_GAP = 4;
+/** Count pill width per character of its label, plus side padding. */
+export const FORMATION_PILL_CHAR_W = 9;
+export const FORMATION_PILL_PAD = 8;
+/** Space between wrapped lines of armies. */
+export const FORMATION_LINE_GAP = 12;
+/** Drop between wrapped lines of armies: a full formation, its count pill and a gap. */
+export const FORMATION_LINE_SPACING =
+  SOLDIER_ART_HEIGHT +
+  (Math.ceil(FORMATION_MAX_VISIBLE / FORMATION_COLS) - 1) * FORMATION_ROW_SPACING +
+  FORMATION_PILL_GAP +
+  FORMATION_PILL_H +
+  FORMATION_LINE_GAP;
+/** Selected-soldier check badge: radius as a fraction of the art width. */
+export const CHECK_BADGE_R_FRAC = 0.16;
+/** Selected-soldier check badge: center height above the sprite center (as a fraction of art height). */
+export const CHECK_BADGE_Y_OFF = .5;
+export const CHECK_BADGE_COLOR = '#16a34a';
 /** Energy bolt marking a soldier with an unspent action (mini-map). */
 /** Bolt height as a fraction of the soldier art height. */
-export const ACTION_BOLT_H_FRAC = 0.5;
+export const ACTION_BOLT_H_FRAC = 0.35;
 /** Bolt width as a fraction of its own height. */
 export const ACTION_BOLT_W_FRAC = 0.55;
-/** Bolt center offset: x + art width * this (right of center). */
-export const ACTION_BOLT_X_OFF = 0.45;
-/** Bolt center offset: y - art height * this (upper body). */
-export const ACTION_BOLT_Y_OFF = 0.42;
+/** Bolt center offset: 0 = centered on the soldier. */
+export const ACTION_BOLT_X_OFF = 0;
+/** Bolt center offset: 0 = centered on the soldier. */
+export const ACTION_BOLT_Y_OFF = 0;
 /** Bolt fill / outline colors. */
 export const ACTION_BOLT_FILL = '#facc15';
 export const ACTION_BOLT_STROKE = '#92680e';
-/**
- * Fraction of the combined radii used as the minimum distance between cluster
- * centers in the separation pass. < 1 lets clusters sit closer (with some
- * overlap) instead of just touching.
- */
-export const SEPARATION_FACTOR = 0.7;
-
-/** Iterations of the garrison cluster-separation pass. */
-export const SEPARATION_ITERATIONS = 8;
-/**
- * 3×3 grid regions (in fill order) around a vertex for multiple owners'
- * garrison clusters: corners first (farthest from center), stacking inward.
- */
-export const GARRISON_REGION_ORDER: ReadonlyArray<{ dx: number; dy: number }> = [
-  { dx: 1, dy: -1 },
-  { dx: -1, dy: 1 },
-  { dx: -1, dy: -1 },
-  { dx: 1, dy: 1 },
-  { dx: 0, dy: -1 },
-  { dx: 0, dy: 1 },
-  { dx: 1, dy: 0 },
-  { dx: -1, dy: 0 },
-  { dx: 0, dy: 0 },
-];
 /** Endpoint vertex circle radius when an edge is selected in the MiniView. */
 export const MINI_ENDPOINT_R = 9;
 /** Vertex marker radius a settlement/city glyph is sized from in the MiniView. */
@@ -244,36 +243,26 @@ export const MAP_CORNER_INSET_PX = 12;
 
 /** Zoom limits relative to the board's natural (zoom-1) size. */
 export const MIN_ZOOM = 0.5;
-export const MAX_ZOOM = 3;
+export const MAX_ZOOM = 6;
 /** Zoom step per wheel tick / button press. */
 export const ZOOM_STEP = 1.15;
 /** Minimum pointer movement (px) before a press counts as a pan. */
 export const PAN_THRESHOLD = 4;
 /** Zoom the board animates to when a vertex or edge is clicked (never zooms out). */
-export const SELECT_FOCUS_ZOOM = 2.2;
+export const SELECT_FOCUS_ZOOM = 4;
 /** Duration of the click-to-focus animation, in ms. */
 export const FOCUS_DURATION_MS = 350;
 /**
- * Zoom at which the board swaps soldier count badges for individual soldiers
- * (mini-view style). Below DETAIL_ZOOM_OUT it switches back; the gap stops a
- * zoom hovering at the threshold from flickering. Click-to-focus
- * (SELECT_FOCUS_ZOOM) lands above DETAIL_ZOOM_IN, so selecting a vertex shows
- * its soldiers.
+ * Minimum zoom for individual soldier SVGs instead of count badges.
+ * Click-to-focus (SELECT_FOCUS_ZOOM) reaches this threshold.
  */
-export const DETAIL_ZOOM_IN = 2;
-export const DETAIL_ZOOM_OUT = 1.8;
+export const DETAIL_ZOOM_IN = 4;
 /**
  * Size of detailed soldiers on the main board relative to the mini view. The
  * mini view lays a garrison out over ~2 vertex-spacings; the board's vertices
  * are 100 units apart, so clusters are scaled down to stay near their vertex.
  */
 export const BOARD_SOLDIER_SCALE = 0.4;
-/**
- * How far below its vertex (board units) a zoomed-in garrison is centered, so
- * soldiers stand in front of the settlement instead of on top of it — same
- * idea as the count badges sitting below the vertex.
- */
-export const BOARD_SOLDIER_Y_OFFSET = 34;
 
 // ── useBuildRules ──────────────────────────────────────────────────────────
 

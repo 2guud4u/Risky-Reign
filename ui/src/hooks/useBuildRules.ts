@@ -1,13 +1,15 @@
 import {
   Board,
+  BuildCheck,
+  ResourceKey,
   canBuildSettlementAt as checkSettlement,
   canBuildRoadOn as checkRoad,
   canUpgradeSettlementToCity as checkCity,
   canRecruitSoldierAt as checkSoldier,
-  canMoveSoldierTo as checkMoveSoldier,
   canHealSoldierAt as checkHealSoldier,
   canCaptureSettlementAt as checkCaptureSettlement,
   canFightRobber as checkFightRobber,
+  canStartBattle as checkStartBattle,
 } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { UNLIMITED_RESOURCES } from '../constants';
@@ -45,51 +47,36 @@ export function useBuildRules(board: Board) {
   const soldierCheck = (vertexId: string) =>
     turn ? checkSoldier(board, turn, name, vertexId, resources) : { allowed: false, reason: 'No active turn' };
 
-  const moveSoldierCheck = (soldierId: string, targetVertexId: string) =>
+  const healSoldierCheck = (soldierId: string, payWith?: ResourceKey) =>
     turn
-      ? checkMoveSoldier(board, turn, name, soldierId, targetVertexId)
+      ? checkHealSoldier(board, turn, name, soldierId, resources, payWith)
       : { allowed: false, reason: 'No active turn' };
-
-  const healSoldierCheck = (soldierId: string) =>
-    turn ? checkHealSoldier(board, turn, name, soldierId, resources) : { allowed: false, reason: 'No active turn' };
 
   const captureCheck = (soldierId: string, vertexId: string) =>
     turn ? checkCaptureSettlement(board, turn, name, soldierId, vertexId) : { allowed: false, reason: 'No active turn' };
 
-  const fightRobberCheck = (soldierId: string, vertexId: string) =>
-    gameRoom ? checkFightRobber(gameRoom, name, soldierId, vertexId) : { allowed: false, reason: 'No active room' };
+  // The battle checks report `reason?: string`; normalize to BuildCheck.
+  const fightRobberCheck = (soldierId: string, vertexId: string): BuildCheck => {
+    if (!gameRoom) return { allowed: false, reason: 'No active room' };
+    const { allowed, reason } = checkFightRobber(gameRoom, name, soldierId, vertexId);
+    return { allowed, reason: reason ?? null };
+  };
 
-  const canBuildSettlementAt = (vertexId: string): boolean => settlementCheck(vertexId).allowed;
-  const canBuildRoadOn = (edgeId: string): boolean => roadCheck(edgeId).allowed;
-  const canUpgradeToCityAt = (vertexId: string): boolean => cityCheck(vertexId).allowed;
-  const canRecruitSoldierAt = (vertexId: string): boolean => soldierCheck(vertexId).allowed;
-  const canMoveSoldierTo = (soldierId: string, targetVertexId: string): boolean =>
-    moveSoldierCheck(soldierId, targetVertexId).allowed;
-
-  const canHealSoldierAt = (soldierId: string): boolean => healSoldierCheck(soldierId).allowed;
-
-  const canCaptureSettlementAt = (soldierId: string, vertexId: string): boolean =>
-    captureCheck(soldierId, vertexId).allowed;
-
-  const canFightRobberAt = (soldierId: string, vertexId: string): boolean =>
-    fightRobberCheck(soldierId, vertexId).allowed;
+  const attackCheck = (soldierIds: string[], vertexId: string, defenderName?: string): BuildCheck => {
+    if (!gameRoom) return { allowed: false, reason: 'No active room' };
+    if (gameRoom.battleState) return { allowed: false, reason: 'A battle is already in progress' };
+    const { allowed, reason } = checkStartBattle(gameRoom, name, soldierIds, vertexId, defenderName);
+    return { allowed, reason: reason ?? null };
+  };
 
   return {
     settlementCheck,
     roadCheck,
     cityCheck,
     soldierCheck,
-    moveSoldierCheck,
     healSoldierCheck,
     captureCheck,
     fightRobberCheck,
-    canBuildSettlementAt,
-    canBuildRoadOn,
-    canUpgradeToCityAt,
-    canRecruitSoldierAt,
-    canMoveSoldierTo,
-    canHealSoldierAt,
-    canCaptureSettlementAt,
-    canFightRobberAt,
+    attackCheck,
   };
 }

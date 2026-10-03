@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DETAIL_ZOOM_IN,
-  DETAIL_ZOOM_OUT,
   FOCUS_DURATION_MS,
   MAX_ZOOM,
   MIN_ZOOM,
@@ -68,9 +67,8 @@ export function useBoardViewport(
   const extentRef = useRef({ halfW, halfH });
   extentRef.current = { halfW, halfH };
 
-  // Whether the view is zoomed in enough to show detailed soldiers. Uses two
-  // thresholds (hysteresis) so a zoom hovering near the limit doesn't flicker,
-  // and only re-renders when the level actually flips.
+  // Individual soldiers are visible only at or above the detail threshold.
+  // Re-render only when crossing that boundary.
   const [detailed, setDetailed] = useState(false);
   const detailedRef = useRef(false);
 
@@ -85,7 +83,7 @@ export function useBoardViewport(
       'viewBox',
       `${x - hw / zoom} ${y - hh / zoom} ${(2 * hw) / zoom} ${(2 * hh) / zoom}`
     );
-    const next = detailedRef.current ? zoom >= DETAIL_ZOOM_OUT : zoom >= DETAIL_ZOOM_IN;
+    const next = zoom >= DETAIL_ZOOM_IN;
     if (next !== detailedRef.current) {
       detailedRef.current = next;
       setDetailed(next);
@@ -259,7 +257,7 @@ export function useBoardViewport(
   return {
     reset,
     isDirty,
-    /** True once zoomed in past DETAIL_ZOOM_IN (until back below DETAIL_ZOOM_OUT). */
+    /** True at or above DETAIL_ZOOM_IN; otherwise render count badges. */
     detailed,
     // Starting viewBox; after mount the attribute is driven imperatively and
     // re-applied on resize by the effect above.

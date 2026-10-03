@@ -16,7 +16,7 @@ import { GameRoom, BattleState, SoldierBattleState, SoldierObj } from '../../ind
  * - Target vertex must have enemy soldiers (a settlement is not required)
  */
 export function canStartBattle(
-  room: GameRoom,
+  room: Pick<GameRoom, 'turnState' | 'board'>,
   attackerName: string,
   soldierIds: string[],
   targetVertexId: string,

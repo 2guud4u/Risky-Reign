@@ -1,5 +1,6 @@
 import { RefObject, ReactNode, MouseEvent } from 'react';
-import { Board, EdgeNode, HexNode, PixelCoord, SoldierObj, VertexNode } from 'common';
+import { Board, EdgeNode, HexNode, PixelCoord, VertexNode } from 'common';
+import { GarrisonArmy } from '../utils/garrisonFormation';
 
 /**
  * Types shared by the mini-map preview (MiniView) and its extracted
@@ -54,15 +55,6 @@ export interface RoadStroke {
   width: number;
 }
 
-/** One owner's garrisoned-soldier cluster: its anchor and bounding radius. */
-export interface GarrisonCluster {
-  ownerName: string;
-  group: SoldierObj[];
-  anchor: PixelCoord;
-  /** Bounding radius used for viewBox fitting and cluster separation. */
-  radius: number;
-}
-
 /** A neighbor vertex reached over an edge, with its optional letter label. */
 export interface VertexNeighbor {
   edge: EdgeNode;
@@ -79,8 +71,8 @@ export interface VertexNeighbor {
 export interface VertexMiniLayout {
   vertex: VertexNode;
   neighbors: VertexNeighbor[];
-  /** Garrison clusters around the vertex (empty when suppressed or none). */
-  clusters: GarrisonCluster[];
+  /** Garrison armies around the vertex (empty when suppressed or none). */
+  armies: GarrisonArmy[];
   /** Whether the selected vertex holds a settlement/city (drives the marker vs. dot). */
   hasSettlement: boolean;
   hexes: HexNode[];

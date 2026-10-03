@@ -93,7 +93,8 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
         fill="#fff"
         fontSize={labelSize}
         fontWeight="bold"
-        pointerEvents="none"
+        // Hit the whole dice label, not just the soldier art behind it.
+        pointerEvents={mine ? 'all' : 'none'}
       >
         {label}
       </text>

@@ -30,27 +30,40 @@ export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAct
     triggerBuildAnimation({ type, locationId: vertex.id });
   };
 
-  return [
-    {
-      key: 'settlement',
-      label: 'Build Settlement',
-      price: SettlementPrice,
-      check: settlementCheck(vertex.id),
-      run: send(buildSettlement, 'settlement'),
-    },
-    {
-      key: 'city',
-      label: 'Upgrade to City',
-      price: CityPrice,
-      check: cityCheck(vertex.id),
-      run: send(upgradeSettlementToCity, 'city'),
-    },
-    {
+  const phase = gameRoom?.turnState.phase;
+  const actions: VertexBuildAction[] = [];
+
+  // Buildings exist only in the SetUp/Build phases; the Action phase has no
+  // build bubbles at all (recruit soldier below is the exception).
+  if (phase === 'SetUp' || phase === 'Build') {
+    actions.push(
+      {
+        key: 'settlement',
+        label: 'Build Settlement',
+        price: SettlementPrice,
+        check: settlementCheck(vertex.id),
+        run: send(buildSettlement, 'settlement'),
+      },
+      {
+        key: 'city',
+        label: 'Upgrade to City',
+        price: CityPrice,
+        check: cityCheck(vertex.id),
+        run: send(upgradeSettlementToCity, 'city'),
+      }
+    );
+  }
+
+  // Soldiers are recruited only in the Action phase; hide the bubble otherwise.
+  if (gameRoom?.turnState.phase === 'Action') {
+    actions.push({
       key: 'soldier',
       label: 'Recruit Soldier',
       price: SoldierPrice,
       check: soldierCheck(vertex.id),
       run: send(recruitSoldier, 'soldier'),
-    },
-  ];
+    });
+  }
+
+  return actions;
 }

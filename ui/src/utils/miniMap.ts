@@ -1,22 +1,13 @@
 import {
-  AGGREGATE_MAX_VISIBLE,
-  CLUSTER_MAX_RADIUS,
-  GARRISON_REGION_ORDER,
   MINI_LABEL_DIST,
   MINI_LABEL_HALF_H,
   MINI_LABEL_HALF_W,
-  RANK_SPACING,
-  REGION_SPACING,
-  SEPARATION_FACTOR,
-  SEPARATION_ITERATIONS,
   SOLDIER_ART_HEIGHT,
-  SOLDIER_SPACING,
 } from '../constants';
-import { Board, EdgeNode, GAME_HEX_SIZE, HexNode, PixelCoord, VertexNode, cubeToPixel } from 'common';
+import { Board, EdgeNode, GAME_HEX_SIZE, HexNode, PixelCoord, cubeToPixel } from 'common';
 import { neighborNicknames } from './neighborLabels';
-import { groupSoldiersByOwner, ownerAngle } from './soldierPlacement';
+import { layoutGarrisonArmies } from './garrisonFormation';
 import {
-  GarrisonCluster,
   MiniViewBox,
   RoadStroke,
   VertexMiniLayout,
@@ -72,70 +63,6 @@ const neighborLabel = (
   };
 };
 
-/**
- * Compute each garrison cluster's anchor (world coords) and radius. A lone
- * group is centered on the vertex; otherwise each owner takes a region (≤9)
- * or an evenly-spaced angle (>9), at REGION_SPACING from the vertex, and
- * overlapping clusters are pushed apart by a deterministic separation pass.
- */
-export function layoutGarrisonClusters(
-  board: Board,
-  vertex: VertexNode
-): GarrisonCluster[] {
-  const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === vertex.id);
-  const byOwner = groupSoldiersByOwner(soldiersAt);
-  const owners = Array.from(byOwner.keys());
-  const entries = Array.from(byOwner.entries());
-
-  const clusters: GarrisonCluster[] = entries.map(([ownerName, group], idx) => {
-    let anchor: PixelCoord;
-    if (owners.length === 1) {
-      anchor = { x: vertex.position.x, y: vertex.position.y };
-    } else if (owners.length <= GARRISON_REGION_ORDER.length) {
-      const region = GARRISON_REGION_ORDER[idx];
-      anchor = {
-        x: vertex.position.x + region.dx * REGION_SPACING,
-        y: vertex.position.y + region.dy * REGION_SPACING,
-      };
-    } else {
-      const angle = ownerAngle(idx, byOwner.size);
-      anchor = {
-        x: vertex.position.x + Math.cos(angle) * REGION_SPACING,
-        y: vertex.position.y + Math.sin(angle) * REGION_SPACING,
-      };
-    }
-    // Radius from the visible count (aggregate caps the visible soldiers).
-    const visibleCount = Math.min(group.length, AGGREGATE_MAX_VISIBLE);
-    const cols = Math.max(1, Math.ceil(Math.sqrt(visibleCount)));
-    const rows = Math.max(1, Math.ceil(visibleCount / cols));
-    const extent = Math.max((rows - 1) * RANK_SPACING, (cols - 1) * SOLDIER_SPACING);
-    const radius = Math.min(extent / 2, CLUSTER_MAX_RADIUS);
-    return { ownerName, group, anchor, radius };
-  });
-
-  // Collision separation: push overlapping clusters apart (deterministic).
-  for (let iter = 0; iter < SEPARATION_ITERATIONS; iter++) {
-    for (let i = 0; i < clusters.length; i++) {
-      for (let j = i + 1; j < clusters.length; j++) {
-        const dx = clusters[j].anchor.x - clusters[i].anchor.x;
-        const dy = clusters[j].anchor.y - clusters[i].anchor.y;
-        const dist = Math.hypot(dx, dy) || 0.001;
-        const minDist = (clusters[i].radius + clusters[j].radius) * SEPARATION_FACTOR;
-        if (dist < minDist) {
-          const push = (minDist - dist) / 2;
-          const ux = dx / dist;
-          const uy = dy / dist;
-          clusters[i].anchor.x -= ux * push;
-          clusters[i].anchor.y -= uy * push;
-          clusters[j].anchor.x += ux * push;
-          clusters[j].anchor.y += uy * push;
-        }
-      }
-    }
-  }
-  return clusters;
-}
-
 /** Hexes adjacent to the vertex (the neighborhood terrain backdrop). */
 const vertexHexes = (board: Board, vertexId: string): HexNode[] =>
   (board.vertices[vertexId]?.hexIds ?? []).map((hid) => board.hexes[hid]).filter(Boolean);
@@ -179,16 +106,17 @@ export function vertexMiniLayout(
   }
 
   // Garrisoned soldiers (including injured, so they can be selected to heal):
-  // each owner's troops form a cluster; registering each cluster's bounding
+  // each owner's troops form an army; registering each army's bounding box
   // corners sizes the viewBox to fit them (SoldierGroup positions can't
   // influence the viewBox — render runs after the size is computed).
-  const clusters = showGarrisonedSoldiers ? layoutGarrisonClusters(board, vertex) : [];
-  for (const c of clusters) {
+  const armies = showGarrisonedSoldiers ? layoutGarrisonArmies(board, vertex) : [];
+  for (const a of armies) {
+    const { minX, maxX, minY, maxY } = a.bounds;
     points.push(
-      { x: c.anchor.x - c.radius, y: c.anchor.y - c.radius },
-      { x: c.anchor.x + c.radius, y: c.anchor.y - c.radius },
-      { x: c.anchor.x - c.radius, y: c.anchor.y + c.radius },
-      { x: c.anchor.x + c.radius, y: c.anchor.y + c.radius }
+      { x: minX, y: minY },
+      { x: maxX, y: minY },
+      { x: minX, y: maxY },
+      { x: maxX, y: maxY }
     );
   }
 
@@ -198,7 +126,7 @@ export function vertexMiniLayout(
   return {
     vertex,
     neighbors,
-    clusters,
+    armies,
     hasSettlement: vertex.settlementId !== null,
     hexes,
     points,
