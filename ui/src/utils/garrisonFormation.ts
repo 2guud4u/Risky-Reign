@@ -72,10 +72,20 @@ export function layoutGarrisonArmies(board: Board, vertex: VertexNode): Garrison
   const lines: { ownerName: string; group: SoldierObj[]; width: number }[][] = [[]];
   for (const [ownerName, group] of owners) {
     const width = formationWidth(Math.min(group.length, FORMATION_MAX_VISIBLE));
+    // Width of the line if this army joins it: the existing armies' widths +
+    // a gap between each pair already on the line (N - 1 for N armies) + the
+    // gap that would precede the new army (1 more when the line is not empty).
+    const lastLine = lines[lines.length - 1];
     const lineWidth =
-      lines[lines.length - 1].reduce((w, a) => w + a.width, 0) +
-      (lines[lines.length - 1].length > 0 ? FORMATION_ARMY_GAP : 0);
-    if (lines[lines.length - 1].length > 0 && lineWidth + width > FORMATION_LINE_MAX_WIDTH) {
+      lastLine.reduce((w, a) => w + a.width, 0) +
+      lastLine.length * FORMATION_ARMY_GAP;
+    const overWide = lastLine.length > 0 && lineWidth + width > FORMATION_LINE_MAX_WIDTH;
+    // The front line always holds its first two armies, even when together
+    // they exceed the width cap: the two garrisons share one ground row and
+    // the vertex sits between them. Wrapping (at the cap) starts with the
+    // third army on the front line and on every later line.
+    const frontSlotOpen = lines.length === 1 && lastLine.length < 2;
+    if (!frontSlotOpen && overWide) {
       lines.push([]);
     }
     lines[lines.length - 1].push({ ownerName, group, width });
@@ -83,12 +93,19 @@ export function layoutGarrisonArmies(board: Board, vertex: VertexNode): Garrison
 
   // Place each line centered on the vertex.
   return lines.flatMap((line, lineIdx) => {
-    const lineW = line.reduce((w, a) => w + a.width, 0) + (line.length - 1) * FORMATION_ARMY_GAP;
+    // Center the span of the army centers on the vertex, not the bounding
+    // box: with unequal group widths the box is not symmetric, which leaves
+    // the centers off the vertex. span = half of the end widths + every full
+    // width in between + a gap between adjacent armies.
+    const totalW = line.reduce((w, a) => w + a.width, 0);
+    const span =
+      totalW - (line[0].width + line[line.length - 1].width) / 2 +
+      Math.max(0, line.length - 1) * FORMATION_ARMY_GAP;
     const lineY = vy + FORMATION_FEET_OFFSET + lineIdx * FORMATION_LINE_SPACING;
-    let x = vx - lineW / 2;
-    return line.map((army) => {
-      const cx = x + army.width / 2;
-      x += army.width + FORMATION_ARMY_GAP;
+    const firstCx = vx - span / 2;
+    let cx = firstCx;
+    return line.map((army, i) => {
+      cx += i === 0 ? 0 : line[i - 1].width / 2 + FORMATION_ARMY_GAP + army.width / 2;
       const visible = [
         ...army.group.filter((s) => !s.injured),
         ...army.group.filter((s) => s.injured),

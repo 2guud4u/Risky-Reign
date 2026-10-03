@@ -46,6 +46,8 @@ export interface SoldierAction {
    * no direct action of its own.
    */
   choices?: SoldierActionChoice[];
+  /** Choice bubbles only: expand upward into a vertical column (attack). */
+  column?: boolean;
 }
 
 const ALLOWED: BuildCheck = { allowed: true, reason: null };
@@ -173,7 +175,9 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
     });
   }
 
-  // Attack: one action per enemy player garrisoned here.
+  // Attack: one bubble per enemy player garrisoned here; when several
+  // enemies share the vertex (3 or more groups) they collapse into one
+  // bubble that expands upward into a column of one option per enemy.
   const enemyOwners = Array.from(
     new Set(
       Object.values(board.soldiers)
@@ -181,18 +185,47 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
         .map((s) => s.owner)
     )
   );
-  for (const defender of enemyOwners) {
-    actions.push({
-      key: `attack-${defender}`,
-      kind: 'attack',
-      label: `Attack ${defender} with ${group.length}`,
-      costText: 'free',
-      check: attackCheck(group, vertex.id, defender),
-      run: () => {
-        startAttack(currentPlayer.id, group, vertex.id, gameRoom.id, defender);
-        clearPicks();
-      },
+  if (enemyOwners.length >= 3) {
+    const choices = enemyOwners.map((defender) => {
+      const check = attackCheck(group, vertex.id, defender);
+      return {
+        key: `attack-${defender}`,
+        icon: '⚔️',
+        label: defender,
+        costText: `with ${group.length}`,
+        check,
+        run: () => {
+          startAttack(currentPlayer.id, group, vertex.id, gameRoom.id, defender);
+          clearPicks();
+        },
+        eligible: check.allowed,
+      };
     });
+    const anyEligible = choices.some((c) => c.eligible);
+    actions.push({
+      key: 'attack',
+      kind: 'attack',
+      label: `Attack ${enemyOwners.length} with ${group.length}`,
+      costText: 'Pick an enemy',
+      check: anyEligible ? ALLOWED : choices[0].check,
+      run: () => {}, // expanded bubble: an enemy is picked instead
+      choices,
+      column: true, // expand upward into a vertical column
+    });
+  } else {
+    for (const defender of enemyOwners) {
+      actions.push({
+        key: `attack-${defender}`,
+        kind: 'attack',
+        label: `Attack ${defender} with ${group.length}`,
+        costText: 'free',
+        check: attackCheck(group, vertex.id, defender),
+        run: () => {
+          startAttack(currentPlayer.id, group, vertex.id, gameRoom.id, defender);
+          clearPicks();
+        },
+      });
+    }
   }
 
   // Capture: a settlement/city here that isn't yours.

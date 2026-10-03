@@ -29,6 +29,8 @@ export interface BubbleAction {
    */
   direction?: string;
   angle?: number;
+  /** Choice bubbles only: expand upward into a vertical column (attack). */
+  column?: boolean;
 }
 
 interface ActionBubbleProps {
@@ -143,17 +145,28 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
         }
         // Expanded choice pill: the action's icon/label plus one button per
         // eligible choice (ineligible ones, e.g. no Wheat, are not shown).
+        // A column bubble (attack) instead stacks the options vertically,
+        // extending upward from the base bubble.
+        const isColumn = !!a.column;
         return (
           <div
             key={a.key}
             role="group"
             aria-label={a.label}
-            className="flex items-center gap-2 pl-3 pr-4 h-14 rounded-full border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200"
+            className={
+              isColumn
+                ? 'flex flex-col items-end gap-2 pl-2 pr-2 py-2 rounded-2xl border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200'
+                : 'flex items-center gap-2 pl-3 pr-4 h-14 rounded-full border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200'
+            }
           >
-            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-2xl leading-none" aria-hidden="true">
-              {a.icon}
-            </span>
-            <span className="text-[13px] font-bold whitespace-nowrap">{a.label}</span>
+            {!isColumn && (
+              <>
+                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-2xl leading-none" aria-hidden="true">
+                  {a.icon}
+                </span>
+                <span className="text-[13px] font-bold whitespace-nowrap">{a.label}</span>
+              </>
+            )}
             {a.choices
               ?.filter((c) => c.eligible)
               .map((c) => (
@@ -166,7 +179,11 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                   }}
                   aria-label={`Confirm: ${c.label}`}
                   title={`${c.label} — ${c.costText}`}
-                  className="flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105"
+                  className={
+                    isColumn
+                      ? 'flex items-center gap-2 px-3 h-9 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105'
+                      : 'flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105'
+                  }
                 >
                   {c.direction ? (
                     <svg
@@ -181,9 +198,24 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                   ) : (
                     <span aria-hidden="true">{c.icon}</span>
                   )}
-                  <span className="text-[12px] font-bold">{c.costText}</span>
+                  {isColumn ? (
+                    <>
+                      <span className="text-[13px] font-bold">{c.label}</span>
+                      <span className="text-[12px] opacity-90">{c.costText}</span>
+                    </>
+                  ) : (
+                    <span className="text-[12px] font-bold">{c.costText}</span>
+                  )}
                 </button>
               ))}
+            {isColumn && (
+              <span className="flex items-center gap-2 pl-2 pr-3 py-1">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-xl leading-none" aria-hidden="true">
+                  {a.icon}
+                </span>
+                <span className="text-[13px] font-bold">{a.label}</span>
+              </span>
+            )}
           </div>
         );
       })}

@@ -48,5 +48,4 @@ injured soldiers screen logic needs to be fixed
 
  server should plan out on device database 
 
-
-notification pops up first then the snack bar appears and stays
+handle rejoin ns stuff gracefully
