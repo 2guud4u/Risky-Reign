@@ -11,9 +11,11 @@ interface PlayersListProps {
     hasLargestArmy: Record<string, boolean>;
   };
   currentPlayerId?: string;
+  /** See-through cards for use over the map (the sidebar keeps solid ones). */
+  translucent?: boolean;
 }
 
-const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, currentPlayerId }) => {
+const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, currentPlayerId, translucent = false }) => {
   const soldiersFor = (name: string) =>
     board ? Object.values(board.soldiers).filter((s) => s.owner === name).length : 0;
 
@@ -29,8 +31,10 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         return (
           <div
             key={player.id}
-            className={`border border-gray-300 rounded-md p-2 ${
-              player.id === currentPlayerId ? 'bg-blue-50' : 'bg-white'
+            className={`border rounded-md p-2 ${
+              translucent
+                ? `border-white/50 backdrop-blur-sm shadow ${player.id === currentPlayerId ? 'bg-blue-50/70' : 'bg-white/70'}`
+                : `border-gray-300 ${player.id === currentPlayerId ? 'bg-blue-50' : 'bg-white'}`
             }`}
           >
             <div className="flex items-center gap-2 flex-wrap">

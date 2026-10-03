@@ -15,6 +15,8 @@ import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
 import VertexActionBubbles from '../components/board/VertexActionBubbles';
 import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
+import TradeButton from '../components/board/TradeButton';
+import PlayersButton from '../components/board/PlayersButton';
 import { GAME_HEX_SIZE } from 'common';
 import { clearSavedSession } from '../utils/session';
 
@@ -90,6 +92,10 @@ const Game: React.FC = () => {
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
             <ResourceDisplay />
           </div>
+          {/* Trade window, opened from the 🤝 button in the top-left corner. */}
+          <TradeButton />
+          {/* Player info column, toggled by the 👤 button under 🤝. */}
+          <PlayersButton />
           {/* Build actions for the selected vertex/edge, as bubbles on the map. */}
           {selectedVertex && gameRoom.board && (
             <VertexActionBubbles board={gameRoom.board} vertex={selectedVertex} />
