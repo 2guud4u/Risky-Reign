@@ -9,6 +9,9 @@ import {
   CityPrice,
   SoldierPrice,
   applyBonuses,
+  applyPayouts,
+  isSecondSetupRound,
+  setupSettlementPayouts,
 } from 'common';
 import { advanceTurn } from '../turn';
 import { gameRooms } from '../store';
@@ -53,6 +56,13 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     if (turnState.phase === 'Build') {
       currentPlayer.resources = subtractPrice(currentPlayer.resources, SettlementPrice);
     }
+    // Second setup round: the new settlement grants one of each resource
+    // from its adjacent hexes (standard Catan starting resources).
+    const setupGrant =
+      turnState.phase === 'SetUp' && isSecondSetupRound(turnState.offset, turnState.playerOrder.length)
+        ? setupSettlementPayouts(board, vertexId, currentPlayer.name)
+        : [];
+    applyPayouts(room.players, setupGrant);
     const vertex = board.vertices[vertexId];
     const newSettlementId = `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     board.settlements[newSettlementId] = {

@@ -49,3 +49,28 @@ export function applyPayouts(players: Player[], payouts: Payout[]): void {
     if (player) player.resources[payout.resource] += payout.amount;
   }
 }
+
+/**
+ * Starting resources for a settlement placed in the second setup round: one
+ * of each resource produced by the hexes around its vertex (standard Catan).
+ * Water and Desert give nothing. The robber does not block this grant — it
+ * only blocks dice production.
+ */
+export function setupSettlementPayouts(board: Board, vertexId: string, playerName: string): Payout[] {
+  const vertex = board.vertices[vertexId];
+  if (!vertex) return [];
+  const payouts: Payout[] = [];
+  for (const hexId of vertex.hexIds) {
+    const hex = board.hexes[hexId];
+    if (!hex) continue;
+    const resource = TerrainResourceMap[hex.terrain as Terrain];
+    if (!resource || resource === 'Nothing') continue;
+    payouts.push({ playerName, resource, amount: 1 });
+  }
+  return payouts;
+}
+
+/** Whether the current setup turn is in the second (reverse-order) round. */
+export function isSecondSetupRound(offset: number, playerCount: number): boolean {
+  return offset >= playerCount;
+}
