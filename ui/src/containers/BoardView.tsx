@@ -112,6 +112,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     robberPending,
     canDragSoldier,
     startDrag,
+    startDragSoldier,
     startRobberDrag,
     handleMouseMove,
     handleMouseUp,
@@ -296,6 +297,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               pickableSoldierIds={pickableSoldierIds}
               pickedSoldierIds={pickedSoldierIds}
               onSoldierClick={togglePickedSoldier}
+              onSoldierDragStart={startDragSoldier}
             />
           ) : (
             <SoldierBadges

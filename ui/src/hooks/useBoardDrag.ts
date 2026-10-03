@@ -8,6 +8,7 @@ import {
   mouseToSvgPoint,
   movableSoldierAt,
   nearestWithin,
+  soldierMovableThisTurn,
   validSoldierTargets,
 } from '../utils/boardInteraction';
 
@@ -101,6 +102,26 @@ export function useBoardDrag(opts: {
     },
     [board, gameRoom]
   );
+  /** Start dragging a specific soldier (the zoomed-in sprite layer). */
+  const startDragSoldier = useCallback(
+    (e: React.MouseEvent, ownerName: string, vertexId: string, soldierId: string) => {
+      if (!board || !gameRoom) return;
+      // Same gate as the badge layer: own Action phase, own troops, still
+      // movable this turn (one action per soldier per phase).
+      if (!isSoldierDraggable(gameRoom, currentPlayer?.name, ownerName, vertexId)) return;
+      const soldier = board.soldiers[soldierId];
+      if (!soldier || soldier.owner !== ownerName || !soldierMovableThisTurn(soldier, gameRoom)) return;
+      e.preventDefault(); // stop native drag + text selection highlight
+      e.stopPropagation();
+      setDrag({
+        soldierId: soldier.id,
+        ownerName,
+        fromVertexId: vertexId,
+        validTargets: validSoldierTargets(board, vertexId),
+      });
+    },
+    [board, gameRoom, currentPlayer?.name]
+  );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -158,6 +179,7 @@ export function useBoardDrag(opts: {
     robberPending,
     canDragSoldier,
     startDrag,
+    startDragSoldier,
     startRobberDrag,
     handleMouseMove,
     handleMouseUp,

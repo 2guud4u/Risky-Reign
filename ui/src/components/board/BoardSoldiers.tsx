@@ -18,6 +18,8 @@ interface BoardSoldiersProps {
   pickedSoldierIds: ReadonlySet<string>;
   /** Toggle a pickable soldier in/out of the group. */
   onSoldierClick: (soldierId: string) => void;
+  /** Start dragging one soldier sprite (the Action-phase move). */
+  onSoldierDragStart?: (e: React.MouseEvent, ownerName: string, vertexId: string, soldierId: string) => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
   pickableSoldierIds,
   pickedSoldierIds,
   onSoldierClick,
+  onSoldierDragStart,
 }: BoardSoldiersProps) {
   const vertexIds = new Set(Object.values(board.soldiers ?? {}).map((s) => s.vertexId));
   return (
@@ -65,6 +68,7 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
                 selectableSoldierIds={selected ? pickableSoldierIds : undefined}
                 selectedSoldierIds={selected ? pickedSoldierIds : undefined}
                 canActSoldierIds={selected ? pickableSoldierIds : undefined}
+                onSoldierDragStart={onSoldierDragStart ? (e, ownerName, soldierId) => onSoldierDragStart(e, ownerName, vertexId, soldierId) : undefined}
               />
             ))}
           </g>

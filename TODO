@@ -42,12 +42,11 @@ ports customization
 can not build on water tiles vertex that is not next to land hex
 music
 
-
+fix orientation of soldier
 
 injured soldiers screen logic needs to be fixed
 
  server should plan out on device database 
 
-up and down collapse lloking arrow for resource side bar to cycle between show dev card options or show resources,
 
 notification pops up first then the snack bar appears and stays
