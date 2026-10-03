@@ -115,7 +115,7 @@ const ResourceDisplay: React.FC = () => {
 
       {view === 'resources' && (
         <>
-          <div className="text-[12px] font-semibold text-gray-600 text-center">Your Resources</div>
+          <div className="text-[12px] font-semibold text-gray-600 text-center">Resources</div>
           {Object.entries(me.resources).map(([resource, count]) => (
             <div
               key={resource}
@@ -140,7 +140,7 @@ const ResourceDisplay: React.FC = () => {
         <>
           {/* Development cards (face-up) with Play. */}
           <div className="text-[12px] font-semibold text-gray-600 text-center">
-            Dev Cards ({me.developmentCards.length})
+            Dev Cards
           </div>
           {me.developmentCards.length === 0 ? (
             <div className="text-[11px] text-gray-400 italic text-center">None yet</div>

@@ -2,18 +2,23 @@ import React from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Dice from '../components/Dice';
-import { MAP_CORNER_INSET_PX } from '../constants';
+import {
+  HAMBURGER_MENU_GAP_PX,
+  HAMBURGER_MENU_SIZE_PX,
+  MAP_CORNER_INSET_PX,
+} from '../constants';
 
 /** The side length (px) of the giant dice. */
 const GIANT_DICE_SIZE = 120;
-/** The side length (px) of the compact dice in the bottom-right corner. */
+/** The side length (px) of the compact dice resting above the hamburger menu. */
 const COMPACT_DICE_SIZE = 40;
 
 /**
  * The one dice surface. During the Dice phase, before both dice are rolled,
  * it shows large centered dice the turn player clicks to roll (one click per
  * die); everyone else watches. Once the roll is complete — or in any other
- * phase — it collapses to a compact pair in the bottom-right corner.
+ * phase — it collapses to a compact pair just above the hamburger menu
+ * (bottom-left).
  */
 const DiceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -54,11 +59,15 @@ const DiceDisplay: React.FC = () => {
     );
   }
 
-  // Compact: the current roll in the bottom-right corner of the map.
+  // Compact: the current roll just above the hamburger menu (bottom-left).
+  // bottom = menu's bottom inset + menu height + gap; left matches the menu's.
   return (
     <div
-      className="fixed z-40 flex items-center gap-2"
-      style={{ bottom: MAP_CORNER_INSET_PX, right: MAP_CORNER_INSET_PX }}
+      className="fixed z-40 flex items-center gap-2 flex-col"
+      style={{
+        bottom: MAP_CORNER_INSET_PX + HAMBURGER_MENU_SIZE_PX + HAMBURGER_MENU_GAP_PX,
+        left: MAP_CORNER_INSET_PX,
+      }}
     >
       <Dice value={roll.die1} size={COMPACT_DICE_SIZE} />
       <Dice value={roll.die2} size={COMPACT_DICE_SIZE} />
