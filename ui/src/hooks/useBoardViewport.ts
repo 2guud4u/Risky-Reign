@@ -5,6 +5,7 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   PAN_THRESHOLD,
+  PINCH_MIN_DIST,
   ZOOM_STEP,
 } from '../constants';
 
@@ -43,6 +44,17 @@ export function useBoardViewport(
   // `scale` = screen px per board unit, measured once when the pan starts
   // (zoom can't change mid-drag), so moves never force a layout read.
   const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean; scale: number } | null>(null);
+  // Two-finger pinch state: the gesture's midpoint, the two touches'
+  // distance, and the zoom/center at the previous move (zoom is a ratio on
+  // the distance; the midpoint anchors the zoom point on screen).
+  const pinchRef = useRef<{
+    midX: number;
+    midY: number;
+    dist: number;
+    originX: number;
+    originY: number;
+    zoom: number;
+  } | null>(null);
   // Handle of the in-flight focus animation, so a new gesture can cancel it.
   const animRef = useRef<number | null>(null);
   // Pending once-per-frame viewBox write (pan/wheel can fire many times a frame).
@@ -240,12 +252,129 @@ export function useBoardViewport(
     };
     const svg = svgRef.current;
     if (svg) svg.addEventListener('wheel', onWheel, { passive: false });
+    // Touch: one finger pans (mirrors the mouse pan); two fingers pinch
+    // zoom, midpoint-anchored. `touch-action: none` on the svg (see
+    // BoardView) is the primary guard against page scroll; the non-passive
+    // touchmove listener's preventDefault() is the second. A plain tap
+    // still produces a click (only touchstart's preventDefault would kill
+    // it, so touchstart stays passive).
+    const touchDist = (a: Touch, b: Touch) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    const beginTouchPan = (t: Touch) => {
+       panRef.current = {
+         startX: t.clientX,
+         startY: t.clientY,
+         originX: centerRef.current.x,
+         originY: centerRef.current.y,
+         active: false,
+         scale: 1,
+       };
+    };
+    const onTouchStart = (e: TouchEvent) => {
+       if (e.touches.length === 2) {
+         panRef.current = null; // pinch takes priority; suppress the single-finger pan
+         const a = e.touches[0];
+         const b = e.touches[1];
+         pinchRef.current = {
+           midX: (a.clientX + b.clientX) / 2,
+           midY: (a.clientY + b.clientY) / 2,
+           dist: touchDist(a, b),
+           originX: centerRef.current.x,
+           originY: centerRef.current.y,
+           zoom: zoomRef.current,
+         };
+       } else if (e.touches.length === 1) {
+         pinchRef.current = null;
+         beginTouchPan(e.touches[0]);
+       }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+       const pinch = pinchRef.current;
+       if (e.touches.length === 2 && pinch) {
+         e.preventDefault();
+         const a = e.touches[0];
+         const b = e.touches[1];
+         const dist = touchDist(a, b);
+         if (dist < PINCH_MIN_DIST || pinch.dist < PINCH_MIN_DIST) return;
+         cancelAnim();
+         const zoom = clamp(pinch.zoom * (dist / pinch.dist), MIN_ZOOM, MAX_ZOOM);
+         // Keep the board point under the midpoint pinned to the new midpoint:
+         // read it off at the previous zoom, write the center back at the new one.
+         const rect = svgRef.current?.getBoundingClientRect();
+         if (rect && rect.width > 0) {
+           const { halfW: hw } = extentRef.current;
+           const pxPrev = rect.width / ((2 * hw) / pinch.zoom);
+           const pxNew = rect.width / ((2 * hw) / zoom);
+           const offX = (a.clientX + b.clientX) / 2 - rect.left - rect.width / 2;
+           const offY = (a.clientY + b.clientY) / 2 - rect.top - rect.height / 2;
+           const boardX = pinch.originX + offX / pxPrev;
+           const boardY = pinch.originY + offY / pxPrev;
+           zoomRef.current = zoom;
+           centerRef.current = { x: boardX - offX / pxNew, y: boardY - offY / pxNew };
+         } else {
+           zoomRef.current = zoom;
+         }
+         pinchRef.current = {
+           midX: (a.clientX + b.clientX) / 2,
+           midY: (a.clientY + b.clientY) / 2,
+           dist,
+           originX: centerRef.current.x,
+           originY: centerRef.current.y,
+           zoom: zoomRef.current,
+         };
+         scheduleViewBox();
+         markDirty(true);
+       } else if (e.touches.length === 1) {
+         const t = e.touches[0];
+         const pan = panRef.current;
+         if (!pan) return;
+         e.preventDefault();
+         if (!pan.active) {
+           if (Math.hypot(t.clientX - pan.startX, t.clientY - pan.startY) < PAN_THRESHOLD) return;
+           pan.active = true;
+           cancelAnim();
+           pan.originX = centerRef.current.x;
+           pan.originY = centerRef.current.y;
+           pan.startX = t.clientX;
+           pan.startY = t.clientY;
+           pan.scale = pxPerBoard();
+         }
+         centerRef.current = {
+           x: pan.originX - (t.clientX - pan.startX) / pan.scale,
+           y: pan.originY - (t.clientY - pan.startY) / pan.scale,
+         };
+         scheduleViewBox();
+         markDirty(true);
+       }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+       if (e.touches.length === 0) {
+         panRef.current = null;
+         pinchRef.current = null;
+       } else if (e.touches.length === 1) {
+         // Finger lifted mid-pinch: keep panning with the last finger
+         // (re-base so the board doesn't jump).
+         pinchRef.current = null;
+         beginTouchPan(e.touches[0]);
+       }
+    };
+    if (svg) {
+       svg.addEventListener('touchstart', onTouchStart);
+       svg.addEventListener('touchmove', onTouchMove, { passive: false });
+       svg.addEventListener('touchend', onTouchEnd);
+       svg.addEventListener('touchcancel', onTouchEnd);
+    }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       if (svg) svg.removeEventListener('wheel', onWheel);
+      if (svg) {
+        svg.removeEventListener('touchstart', onTouchStart);
+        svg.removeEventListener('touchmove', onTouchMove);
+        svg.removeEventListener('touchend', onTouchEnd);
+        svg.removeEventListener('touchcancel', onTouchEnd);
+      }
       cancelAnim();
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };

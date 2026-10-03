@@ -238,6 +238,10 @@ export const MAX_ZOOM = 6;
 export const ZOOM_STEP = 1.15;
 /** Minimum pointer movement (px) before a press counts as a pan. */
 export const PAN_THRESHOLD = 4;
+/** Smallest distance (px) between two touch points before a pinch zooms. */
+export const PINCH_MIN_DIST = 12;
+ /** Transparent hit-line width (board units) for selecting/pressing a road; the visible road stays thin. */
+ export const ROAD_HIT_WIDTH = 22;
 /** Zoom the board animates to when a vertex or edge is clicked (never zooms out). */
 export const SELECT_FOCUS_ZOOM = 4;
 /** Duration of the click-to-focus animation, in ms. */

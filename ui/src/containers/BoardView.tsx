@@ -255,7 +255,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           width={isPlaying ? '100%' : renderSize}
           height={isPlaying ? '100%' : renderSize}
           viewBox={viewport.viewBox}
-          className={`block select-none ${isPlaying ? 'absolute inset-0' : 'w-full'}`}
+          style={{ touchAction: 'none' }}
           onDragStart={(e) => e.preventDefault()}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
