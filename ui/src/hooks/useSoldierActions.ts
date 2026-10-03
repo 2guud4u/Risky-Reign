@@ -6,6 +6,20 @@ import { useBuildRules } from './useBuildRules';
 import { actableSoldierIds } from '../utils/soldierActions';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 
+/** A sub-option of a group action (e.g. which resource to heal with). */
+export interface SoldierActionChoice {
+  key: string;
+  /** Emoji shown on the choice button. */
+  icon: string;
+  label: string;
+  costText: string;
+  /** The backend's own rule check for this choice: allowed, or why not. */
+  check: BuildCheck;
+  run: () => void;
+  /** Eligible = the check passes; ineligible choices are hidden, not greyed. */
+  eligible: boolean;
+}
+
 /** One soldier group action available on the selected vertex. */
 export interface SoldierAction {
   key: string;
@@ -15,6 +29,12 @@ export interface SoldierAction {
   /** The shared rule check for the whole picked group: allowed, or why not. */
   check: BuildCheck;
   run: () => void;
+  /**
+   * Sub-options: the bubble expands into these instead of a confirm
+   * (e.g. heal: pick Wheat or Sheep). Set only when the main bubble has
+   * no direct action of its own.
+   */
+  choices?: SoldierActionChoice[];
 }
 
 const ALLOWED: BuildCheck = { allowed: true, reason: null };
@@ -54,19 +74,25 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
   const clearPicks = () => setSelectedSoldierIds([]);
   const actions: SoldierAction[] = [];
 
-  // Heal: every picked injured soldier, paid with the chosen resource.
+  // Heal: one bubble that splits into one choice per resource (Wheat /
+  // Sheep); healing runs for every picked injured soldier.
   const injured = group.filter((id) => board.soldiers[id]?.injured);
   if (injured.length > 0) {
-    for (const payWith of HealSoldierResources) {
-      const needed = injured.length * HealSoldierAmount;
+    const choices = HealSoldierResources.map((payWith) => {
       const have = currentPlayer.resources[payWith] ?? 0;
+      const needed = injured.length * HealSoldierAmount;
+      const ruleCheck =
+        injured.map((id) => healSoldierCheck(id, payWith)).find((c) => !c.allowed) ?? ALLOWED;
+      // Eligible = can pay for it AND the per-soldier rules allow it;
+      // ineligible options are hidden, not greyed.
+      const eligible = have >= needed && ruleCheck.allowed;
       const check =
         have < needed
           ? { allowed: false, reason: `Need ${needed} ${RESOURCE_ICONS[payWith]} to heal ${injured.length}` }
-          : injured.map((id) => healSoldierCheck(id, payWith)).find((c) => !c.allowed) ?? ALLOWED;
-      actions.push({
+          : ruleCheck;
+      return {
         key: `heal-${payWith}`,
-        kind: 'heal',
+        icon: RESOURCE_ICONS[payWith],
         label: `Heal ${injured.length} with ${payWith}`,
         costText: `${needed} ${RESOURCE_ICONS[payWith]}`,
         check,
@@ -74,8 +100,21 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
           for (const id of injured) healSoldier(currentPlayer.id, id, gameRoom.id, payWith);
           clearPicks();
         },
-      });
-    }
+        eligible,
+      };
+    });
+    // The heal bubble always shows while an injured soldier is picked; when
+    // no resource is usable it is greyed with the reason instead.
+    const anyEligible = choices.some((c) => c.eligible);
+    actions.push({
+      key: 'heal',
+      kind: 'heal',
+      label: `Heal ${injured.length}`,
+      costText: `${HealSoldierAmount} each (pick resource)`,
+      check: anyEligible ? ALLOWED : choices[0].check,
+      run: () => {}, // expanded bubble: a choice is picked instead
+      choices,
+    });
   }
 
   // Attack: one action per enemy player garrisoned here.

@@ -44,6 +44,19 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
       costText: a.costText,
       check: a.check,
       run: a.run,
+      ...(a.choices
+        ? {
+            choices: a.choices.map((c) => ({
+              key: c.key,
+              icon: c.icon,
+              label: c.label,
+              costText: c.costText,
+              check: c.check,
+              run: c.run,
+              eligible: c.eligible,
+            })),
+          }
+        : {}),
     })),
   ];
   return <ActionBubbles actions={actions} resetKey={vertex.id} />;

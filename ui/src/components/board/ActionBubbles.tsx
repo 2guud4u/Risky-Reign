@@ -13,6 +13,16 @@ export interface BubbleAction {
   /** The backend's own rule check: allowed, or the reason it isn't. */
   check: BuildCheck;
   run: () => void;
+  /**
+   * Optional sub-options: expanding this bubble turns it into a pill
+   * containing them instead of a confirm (e.g. heal: pick Wheat or Sheep).
+   */
+  choices?: BubbleAction[];
+  /**
+   * Choices only: whether this option is usable. Ineligible options are not
+   * shown in the pill at all (e.g. no Wheat to pay with).
+   */
+  eligible?: boolean;
 }
 
 interface ActionBubbleProps {
@@ -24,7 +34,8 @@ interface ActionBubbleProps {
 /**
  * One round action bubble. Collapsed it shows only the icon; expanded it shows
  * the label plus the cost ("tap to confirm") or, when blocked, the reason.
- * The caller owns the two-step expand/confirm state.
+ * Choice actions (e.g. heal) are rendered as a pill of choices instead, by
+ * the container; the caller owns the expand/confirm state.
  */
 export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, onClick }) => {
   const ok = a.check.allowed;
@@ -97,6 +108,11 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
       setExpanded(a.key);
       return;
     }
+    // An open choice pill collapses when clicked; a regular bubble confirms.
+    if (a.choices) {
+      setExpanded(null);
+      return;
+    }
     if (!a.check.allowed) return; // expanded + blocked: the reason is already shown
     a.run();
     setExpanded(null);
@@ -109,9 +125,50 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
       // Don't let clicks here start a board pan or clear the selection.
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {actions.map((a) => (
-        <ActionBubble key={a.key} action={a} open={expanded === a.key} onClick={() => onBubbleClick(a)} />
-      ))}
+      {actions.map((a) => {
+        // A choice bubble shows its pill of eligible options when expanded;
+        // with none eligible it behaves as a normal greyed bubble (reason).
+        const hasChoices = !!a.choices && a.choices.some((c) => c.eligible);
+        const isPill = hasChoices && expanded === a.key;
+        if (!isPill) {
+          return (
+            <ActionBubble key={a.key} action={a} open={expanded === a.key} onClick={() => onBubbleClick(a)} />
+          );
+        }
+        // Expanded choice pill: the action's icon/label plus one button per
+        // eligible choice (ineligible ones, e.g. no Wheat, are not shown).
+        return (
+          <div
+            key={a.key}
+            role="group"
+            aria-label={a.label}
+            className="flex items-center gap-2 pl-3 pr-4 h-14 rounded-full border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200"
+          >
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-2xl leading-none" aria-hidden="true">
+              {a.icon}
+            </span>
+            <span className="text-[13px] font-bold whitespace-nowrap">{a.label}</span>
+            {a.choices
+              ?.filter((c) => c.eligible)
+              .map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => {
+                    c.run();
+                    setExpanded(null);
+                  }}
+                  aria-label={`Confirm: ${c.label}`}
+                  title={`${c.label} — ${c.costText}`}
+                  className="flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105"
+                >
+                  <span aria-hidden="true">{c.icon}</span>
+                  <span className="text-[12px] font-bold">{c.costText}</span>
+                </button>
+              ))}
+          </div>
+        );
+      })}
       <button
         type="button"
         onClick={() => setSelectedObject(null)}

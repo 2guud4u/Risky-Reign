@@ -6,6 +6,7 @@ import {
   CHECK_BADGE_COLOR,
   CHECK_BADGE_R_FRAC,
   CHECK_BADGE_Y_OFF,
+  CHECK_BADGE_Y_OFF_INJURED,
   SOLDIER_ART_HEIGHT,
   SOLDIER_ART_WIDTH,
   ACTION_BOLT_FILL,
@@ -72,6 +73,11 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
       `${bx + bw * 0.35},${by - bh * 0.05}`,
       `${bx + bw * 0.05},${by - bh * 0.05}`,
     ].join(' ');
+    // Selected-badge center: a gap above this soldier's head. The injured
+    // sprite is shorter, so its badge sits further up from the center (a
+    // different y offset than healthy soldiers).
+    const badgeCy =
+      y - ah / 2 - (s.injured ? CHECK_BADGE_Y_OFF_INJURED : CHECK_BADGE_Y_OFF) * SOLDIER_ART_HEIGHT;
     elements.push(
       <g
         key={`s-${s.id}`}
@@ -106,9 +112,9 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
             never hidden by the sprite or the bolt. */}
         {isSel && (
           <g pointerEvents="none">
-            <circle cx={x} cy={y - ah * CHECK_BADGE_Y_OFF} r={aw * CHECK_BADGE_R_FRAC} fill={CHECK_BADGE_COLOR} stroke="#fff" strokeWidth={Math.max(1, fs.scale)} />
+            <circle cx={x} cy={badgeCy} r={aw * CHECK_BADGE_R_FRAC} fill={CHECK_BADGE_COLOR} stroke="#fff" strokeWidth={Math.max(1, fs.scale)} />
             <path
-              d={`M ${x - aw * CHECK_BADGE_R_FRAC * 0.5} ${y - ah * CHECK_BADGE_Y_OFF} l ${aw * CHECK_BADGE_R_FRAC * 0.3} ${aw * CHECK_BADGE_R_FRAC * 0.35} l ${aw * CHECK_BADGE_R_FRAC * 0.5} ${-aw * CHECK_BADGE_R_FRAC * 0.55}`}
+              d={`M ${x - aw * CHECK_BADGE_R_FRAC * 0.5} ${badgeCy} l ${aw * CHECK_BADGE_R_FRAC * 0.3} ${aw * CHECK_BADGE_R_FRAC * 0.35} l ${aw * CHECK_BADGE_R_FRAC * 0.5} ${-aw * CHECK_BADGE_R_FRAC * 0.55}`}
               fill="none"
               stroke="#fff"
               strokeWidth={Math.max(1, aw * CHECK_BADGE_R_FRAC * 0.28)}

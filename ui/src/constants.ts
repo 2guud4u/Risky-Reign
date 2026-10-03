@@ -115,7 +115,9 @@ export const FORMATION_LINE_SPACING =
 /** Selected-soldier check badge: radius as a fraction of the art width. */
 export const CHECK_BADGE_R_FRAC = 0.16;
 /** Selected-soldier check badge: center height above the sprite center (as a fraction of art height). */
-export const CHECK_BADGE_Y_OFF = .5;
+export const CHECK_BADGE_Y_OFF = 0.05;
+/** Selected-soldier check badge: center height above the sprite center (as a fraction of full art height), injured soldiers (shorter sprite, sits higher). */
+export const CHECK_BADGE_Y_OFF_INJURED = -.1;
 export const CHECK_BADGE_COLOR = '#16a34a';
 /** Energy bolt marking a soldier with an unspent action (mini-map). */
 /** Bolt height as a fraction of the soldier art height. */
