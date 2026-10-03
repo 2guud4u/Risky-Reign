@@ -42,10 +42,11 @@ ports customization
 can not build on water tiles vertex that is not next to land hex
 music
 
-fix orientation of soldier
 
 injured soldiers screen logic needs to be fixed
 
  server should plan out on device database 
 
 handle rejoin ns stuff gracefully
+
+unexpected state and need to disable select all when on tile with none of ur soldiers

@@ -3,12 +3,12 @@ import {
   FORMATION_ARMY_GAP,
   FORMATION_COL_SPACING,
   FORMATION_COLS,
-  FORMATION_FEET_OFFSET,
+  FORMATION_LINE_GAP,
   FORMATION_LINE_MAX_WIDTH,
-  FORMATION_LINE_SPACING,
   FORMATION_MAX_VISIBLE,
   FORMATION_PILL_CHAR_W,
   FORMATION_PILL_GAP,
+  FORMATION_PILL_H,
   FORMATION_PILL_PAD,
   FORMATION_ROW_SPACING,
   INJURED_SOLDIER_SCALE,
@@ -48,10 +48,11 @@ export interface GarrisonArmy {
 }
 
 /**
- * Compute each owner's garrison formation, packed into lines of armies below
- * the vertex: armies sit side by side (facing each other across the vertex),
- * wrapping to a new line when a line would get too wide. A single owner's
- * formation is centered under the vertex.
+ * Compute each owner's garrison formation, packed into lines of armies around
+ * the vertex: the first two armies share one line (the vertex sits between
+ * them); later armies wrap at the line width cap. The whole stack of lines is
+ * centered on the vertex, so its midpoint stays at the vertex for any number
+ * of lines (10+ groups included).
  */
 export function layoutGarrisonArmies(board: Board, vertex: VertexNode): GarrisonArmy[] {
   const soldiersAt = Object.values(board.soldiers ?? {}).filter((s) => s.vertexId === vertex.id);
@@ -66,6 +67,19 @@ export function layoutGarrisonArmies(board: Board, vertex: VertexNode): Garrison
   const formationWidth = (count: number) => {
     const cols = Math.min(FORMATION_COLS, count);
     return (cols - 1) * FORMATION_COL_SPACING + SOLDIER_ART_WIDTH;
+  };
+  // The ranks an army takes (capped at the visible count).
+  const formationRows = (count: number) =>
+    Math.ceil(Math.min(count, FORMATION_MAX_VISIBLE) / FORMATION_COLS);
+  // A line's vertical block: its tallest formation plus its count pill.
+  const lineBlockHeight = (line: { group: SoldierObj[] }[]) => {
+    const maxRows = Math.max(...line.map((a) => formationRows(a.group.length)));
+    return (
+      (maxRows - 1) * FORMATION_ROW_SPACING +
+      SOLDIER_ART_HEIGHT +
+      FORMATION_PILL_GAP +
+      FORMATION_PILL_H
+    );
   };
 
   // Pack armies into lines of at most FORMATION_LINE_MAX_WIDTH width.
@@ -91,8 +105,20 @@ export function layoutGarrisonArmies(board: Board, vertex: VertexNode): Garrison
     lines[lines.length - 1].push({ ownerName, group, width });
   }
 
-  // Place each line centered on the vertex.
+  // Center the whole stack of lines on the vertex: each line's block (its
+  // formation plus its count pill) sits below the one above it with
+  // FORMATION_LINE_GAP, and the stack is balanced so the vertex stays at the
+  // middle of the armies for any number of lines.
+  const blocks = lines.map(lineBlockHeight);
+  const stackHeight =
+    blocks.reduce((s, h) => s + h, 0) + (blocks.length - 1) * FORMATION_LINE_GAP;
+
+  let cursor = vy - stackHeight / 2;
   return lines.flatMap((line, lineIdx) => {
+    const maxRows = Math.max(...line.map((a) => formationRows(a.group.length)));
+    // This line's front rank feet: the block's top plus its rows.
+    const lineY = cursor + (maxRows - 1) * FORMATION_ROW_SPACING + SOLDIER_ART_HEIGHT;
+    cursor += blocks[lineIdx] + FORMATION_LINE_GAP;
     // Center the span of the army centers on the vertex, not the bounding
     // box: with unequal group widths the box is not symmetric, which leaves
     // the centers off the vertex. span = half of the end widths + every full
@@ -101,7 +127,6 @@ export function layoutGarrisonArmies(board: Board, vertex: VertexNode): Garrison
     const span =
       totalW - (line[0].width + line[line.length - 1].width) / 2 +
       Math.max(0, line.length - 1) * FORMATION_ARMY_GAP;
-    const lineY = vy + FORMATION_FEET_OFFSET + lineIdx * FORMATION_LINE_SPACING;
     const firstCx = vx - span / 2;
     let cx = firstCx;
     return line.map((army, i) => {
@@ -141,6 +166,6 @@ export function layoutGarrisonArmies(board: Board, vertex: VertexNode): Garrison
         pillY: lineY + FORMATION_PILL_GAP,
         pillWidth: String(army.group.length).length * FORMATION_PILL_CHAR_W + 2 * FORMATION_PILL_PAD,
       };
-  });
+    });
   });
 }

@@ -156,7 +156,8 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
         </div>
       );
     }
-    const canStart = gameRoom.players.length >= MIN_PLAYERS;
+    const canStart =
+      gameRoom.players[0]?.id === currentPlayer.id && gameRoom.players.length >= MIN_PLAYERS;
     return (
       <div className="flex items-center justify-center min-h-screen w-full p-4">
         <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">

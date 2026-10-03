@@ -91,11 +91,6 @@ export const FORMATION_ROW_SPACING = 24;
 export const FORMATION_ARMY_GAP = 28;
 /** Widest a line of armies may get before the next army wraps to a new line below. */
 export const FORMATION_LINE_MAX_WIDTH = 220;
-/**
- * How far below the vertex the front rank's feet stand: close enough that
- * the ranks stand right on top of the vertex (heads over the dot).
- */
-export const FORMATION_FEET_OFFSET = 50;
 /** Count pill ("×12") height, font size and gap below an army's front rank. */
 export const FORMATION_PILL_H = 22;
 export const FORMATION_PILL_FONT = 15;
@@ -105,13 +100,6 @@ export const FORMATION_PILL_CHAR_W = 9;
 export const FORMATION_PILL_PAD = 8;
 /** Space between wrapped lines of armies. */
 export const FORMATION_LINE_GAP = 12;
-/** Drop between wrapped lines of armies: a full formation, its count pill and a gap. */
-export const FORMATION_LINE_SPACING =
-  SOLDIER_ART_HEIGHT +
-  (Math.ceil(FORMATION_MAX_VISIBLE / FORMATION_COLS) - 1) * FORMATION_ROW_SPACING +
-  FORMATION_PILL_GAP +
-  FORMATION_PILL_H +
-  FORMATION_LINE_GAP;
 /** Selected-soldier check badge: radius as a fraction of the art width. */
 export const CHECK_BADGE_R_FRAC = 0.16;
 /** Selected-soldier check badge: center height above the sprite center (as a fraction of art height). */
