@@ -6,14 +6,14 @@ import { MAP_CORNER_INSET_PX } from '../constants';
 
 /** The side length (px) of the giant dice. */
 const GIANT_DICE_SIZE = 120;
-/** The side length (px) of the compact dice floating above the turn pill. */
+/** The side length (px) of the compact dice in the bottom-right corner. */
 const COMPACT_DICE_SIZE = 40;
 
 /**
  * The one dice surface. During the Dice phase, before both dice are rolled,
  * it shows large centered dice the turn player clicks to roll (one click per
  * die); everyone else watches. Once the roll is complete — or in any other
- * phase — it collapses to a compact pair floating above the turn pill.
+ * phase — it collapses to a compact pair in the bottom-right corner.
  */
 const DiceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -54,11 +54,11 @@ const DiceDisplay: React.FC = () => {
     );
   }
 
-  // Compact: the current roll floating just above the turn status pill.
+  // Compact: the current roll in the bottom-right corner of the map.
   return (
     <div
       className="fixed z-40 flex items-center gap-2"
-      style={{ bottom: 76, right: MAP_CORNER_INSET_PX }}
+      style={{ bottom: MAP_CORNER_INSET_PX, right: MAP_CORNER_INSET_PX }}
     >
       <Dice value={roll.die1} size={COMPACT_DICE_SIZE} />
       <Dice value={roll.die2} size={COMPACT_DICE_SIZE} />

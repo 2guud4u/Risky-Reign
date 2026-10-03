@@ -125,7 +125,12 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     moveRobber,
   });
 
-  const { focusOn } = viewport;
+  const { focusOn, restoreView } = viewport;
+  // Clearing the selection (the ✕ bubble or Escape) glides back to the view
+  // from before the click-to-focus.
+  useEffect(() => {
+    if (!selectedObject) restoreView();
+  }, [selectedObject, restoreView]);
   // Clicking a vertex or edge selects it and glides the board in, centered on
   // it (an edge centers on its midpoint). The waiting-room preview board stays
   // static (the game hasn't started).

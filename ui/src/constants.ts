@@ -237,7 +237,7 @@ export const PORT_PLANK_W = 0.16;
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 
-/** Gap between the bottom-right map controls (turn pill, dice) and the window edge. */
+/** Gap between the bottom control row / dice and the window edges. */
 export const MAP_CORNER_INSET_PX = 12;
 
 // ── useBoardViewport ───────────────────────────────────────────────────────

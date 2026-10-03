@@ -2,7 +2,6 @@ import React from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import EndTurnButton from './game/EndTurnButton';
-import { MAP_CORNER_INSET_PX } from '../constants';
 
 /** Tailwind classes for the turn overlay, keyed to the current phase. */
 const phaseColor = (phase: string): string => {
@@ -21,9 +20,9 @@ const phaseColor = (phase: string): string => {
 };
 
 /**
- * Turn overlay: phase + control on the board's bottom edge, colored by phase.
- * Shows the current phase, an undo button (when available), and the end-turn
- * button.
+ * Turn status bar: phase + control, colored by phase. Shows the current phase,
+ * an undo button (when available), and the end-turn button. Positioned by
+ * NoticeRail (top center, above the notices).
  */
 const TurnOverlay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -39,8 +38,7 @@ const TurnOverlay: React.FC = () => {
 
   return (
     <div
-      className={`fixed bottom-3 z-40 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)}`}
-      style={{ right: MAP_CORNER_INSET_PX }}
+      className={`shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)}`}
     >
       <div className="flex items-center gap-2.5">
         <span className="px-2 py-0.5 rounded-md bg-white/20 text-[11px] font-bold uppercase tracking-wide">

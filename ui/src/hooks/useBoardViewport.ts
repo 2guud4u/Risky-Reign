@@ -57,6 +57,8 @@ export function useBoardViewport(
     dirtyRef.current = dirty;
     setIsDirty(dirty);
   }, []);
+  // The view before a click-to-focus, so closing the selection can return to it.
+  const savedViewRef = useRef<{ zoom: number; center: { x: number; y: number }; dirty: boolean } | null>(null);
 
   // Half-extents of the view in board units at zoom 1. The shorter screen
   // side spans `baseSize`; the longer side spans proportionally more.
@@ -130,20 +132,17 @@ export function useBoardViewport(
     cancelAnim();
     zoomRef.current = 1;
     centerRef.current = { x: 0, y: 0 };
+    savedViewRef.current = null;
     applyViewBox();
     markDirty(false);
   }, [applyViewBox, cancelAnim, markDirty]);
 
-  /**
-   * Smoothly move the view to center `point` (board coordinates) at `zoom`
-   * (never zooming out: the current zoom is kept if it is already closer).
-   * Eased over FOCUS_DURATION_MS; a pan, wheel, or reset cancels it.
-   */
-  const focusOn = useCallback(
+  /** Ease the view to `point` at `zoom` over FOCUS_DURATION_MS. */
+  const animateTo = useCallback(
     (point: { x: number; y: number }, zoom: number) => {
       cancelAnim();
       const fromZoom = zoomRef.current;
-      const toZoom = clamp(Math.max(fromZoom, zoom), MIN_ZOOM, MAX_ZOOM);
+      const toZoom = clamp(zoom, MIN_ZOOM, MAX_ZOOM);
       const from = { ...centerRef.current };
       const start = performance.now();
       const ease = (t: number) => 1 - Math.pow(1 - t, 3); // easeOutCubic
@@ -156,11 +155,36 @@ export function useBoardViewport(
         applyViewBox();
         animRef.current = t < 1 ? requestAnimationFrame(step) : null;
       };
-      markDirty(true);
       animRef.current = requestAnimationFrame(step);
     },
-    [applyViewBox, cancelAnim, markDirty]
+    [applyViewBox, cancelAnim]
   );
+
+  /**
+   * Smoothly move the view to center `point` (board coordinates) at `zoom`
+   * (never zooming out: the current zoom is kept if it is already closer).
+   * The view before the first focus is remembered so `restoreView` can return
+   * to it; focusing again (another selection) keeps that original view.
+   */
+  const focusOn = useCallback(
+    (point: { x: number; y: number }, zoom: number) => {
+      if (!savedViewRef.current) {
+        savedViewRef.current = { zoom: zoomRef.current, center: { ...centerRef.current }, dirty: dirtyRef.current };
+      }
+      animateTo(point, Math.max(zoomRef.current, zoom));
+      markDirty(true);
+    },
+    [animateTo, markDirty]
+  );
+
+  /** Glide back to the view from before the first `focusOn` (no-op if none). */
+  const restoreView = useCallback(() => {
+    const saved = savedViewRef.current;
+    if (!saved) return;
+    savedViewRef.current = null;
+    animateTo(saved.center, saved.zoom);
+    markDirty(saved.dirty);
+  }, [animateTo, markDirty]);
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -242,6 +266,7 @@ export function useBoardViewport(
     viewBox: `${-halfW} ${-halfH} ${2 * halfW} ${2 * halfH}`,
     onDoubleClick,
     focusOn,
+    restoreView,
     onMouseDown,
   };
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BuildCheck } from 'common';
+import { useGameRoom } from '../../contexts/GameContext';
 
 /** One action shown as a bubble on the map. */
 export interface BubbleAction {
@@ -14,13 +15,6 @@ export interface BubbleAction {
   run: () => void;
 }
 
-/**
- * Distance of the bubble row from the bottom of the map (px). Clears the
- * bottom control row: turn pill (~44 px tall at `bottom-3`) and the compact
- * dice above it (`bottom: 76`, 40 px tall).
- */
-const BUBBLES_BOTTOM_PX = 128;
-
 interface ActionBubblesProps {
   actions: BubbleAction[];
   /** Changing this collapses any expanded bubble (e.g. the selected object id). */
@@ -32,9 +26,11 @@ interface ActionBubblesProps {
  * bottom of the map. Two-step: the first click expands a bubble to show what
  * it does and what it costs; a second click on the expanded bubble confirms.
  * Unavailable actions stay visible but greyed — expanding one shows the reason
- * instead of a confirm.
+ * instead of a confirm. A trailing ✕ bubble clears the selection, which zooms
+ * the board back to where it was before the click.
  */
 const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
+  const { setSelectedObject } = useGameRoom();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // A new selection starts fresh.
@@ -52,10 +48,8 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
 
   return (
     <div
-      // Sits above the bottom row (☰ menu bottom-left, turn pill + dice
-      // bottom-right) so they can't overlap on narrow windows.
-      className="absolute left-1/2 -translate-x-1/2 z-20 flex items-end gap-3"
-      style={{ bottom: BUBBLES_BOTTOM_PX }}
+      // Bottom center of the map (the turn status bar lives top center).
+      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-end gap-3"
       // Don't let clicks here start a board pan or clear the selection.
       onMouseDown={(e) => e.stopPropagation()}
     >
@@ -105,6 +99,15 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
           </button>
         );
       })}
+      <button
+        type="button"
+        onClick={() => setSelectedObject(null)}
+        aria-label="Close and zoom back out"
+        title="Close"
+        className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-gray-500"
+      >
+        {'✕'}
+      </button>
     </div>
   );
 };

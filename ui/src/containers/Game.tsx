@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import BoardView from './BoardView';
-import TurnOverlay from './TurnOverlay';
 import NoticeRail from './NoticeRail';
 import StealPrompt from './StealPrompt';
 import DiscardPrompt from './DiscardPrompt';
@@ -22,7 +21,7 @@ import { clearSavedSession } from '../utils/session';
 /**
  * The game screen: the board fills the whole window. Map controls (trade,
  * players, build bubbles, resources) sit on top of it; modals and overlays
- * (battle, prompts, turn pill, dice) float above everything.
+ * (battle, prompts, turn status, dice) float above everything.
  */
 const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
@@ -121,11 +120,9 @@ const Game: React.FC = () => {
 
       {/* Separate battle window that opens for all players while combat is active. */}
       <BattleModal />
-      {/* Turn overlay: phase + control on the board's bottom edge, colored by phase. */}
-      <TurnOverlay />
-      {/* Top-center notice rail: your-turn toast + all waiting/action notices. */}
+      {/* Top-center rail: turn status bar, your-turn toast, waiting/action notices. */}
       <NoticeRail />
-      {/* The dice: giant while rolling, compact above the turn pill after. */}
+      {/* The dice: giant while rolling, compact in the bottom-right corner after. */}
       <DiceDisplay />
     </div>
   );

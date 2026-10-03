@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
+import TurnOverlay from './TurnOverlay';
 
 /** Tailwind gradient classes for the your-turn toast, keyed to the current phase. */
 const phaseGradient = (phase: string): string => {
@@ -31,10 +32,9 @@ const noticeClass = (mine: boolean): string =>
   }`;
 
 /**
- * The single top-center notice column. Everything that used to pin itself to
- * `top-3 left-1/2` — the your-turn toast and each "waiting on X / do Y"
- * notice — now stacks here so the notices can never overlap. Order:
- * your-turn toast first, then the action notices.
+ * The single top-center column. The turn status bar (phase, undo, end turn)
+ * sits first, then the your-turn toast, then each "waiting on X / do Y"
+ * notice — all stacked here so they can never overlap.
  */
 const NoticeRail: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -106,10 +106,10 @@ const NoticeRail: React.FC = () => {
 
   const phase = gameRoom.turnState.phase;
   const showToast = toastVisible && isMyTurn;
-  if (!showToast && notices.length === 0) return null;
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[90] flex flex-col items-center gap-2">
+      <TurnOverlay />
       {showToast && (
         <div
           className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl shadow-2xl bg-gradient-to-r ${phaseGradient(
