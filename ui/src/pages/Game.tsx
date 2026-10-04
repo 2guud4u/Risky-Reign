@@ -114,7 +114,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     // Name-first: join is name-optional, so ask for the name before the color.
     if (!currentPlayer.name.trim()) {
       return (
-        <div className="flex items-center justify-center min-h-screen w-full p-4">
+        <div className="flex items-start lg:items-center justify-center min-h-screen w-full p-4">
           <div className="bg-white rounded-lg shadow p-6 w-full max-w-[420px]">
             <h1 className="text-2xl font-bold text-center mb-2">Risky Reign</h1>
             <p className="text-center text-gray-600 mb-4">Room {gameRoom.id}</p>
@@ -159,10 +159,10 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     const canStart =
       gameRoom.players[0]?.id === currentPlayer.id && gameRoom.players.length >= MIN_PLAYERS;
     return (
-      <div className="flex items-center justify-center min-h-screen w-full p-4">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
-          <div />
-          <div className="bg-white rounded-lg shadow p-4 max-w-[520px]">
+      <div className="flex items-start lg:items-center justify-center min-h-screen w-full p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
+          <div className="hidden lg:block" />
+          <div className="bg-white rounded-lg shadow p-4 w-full max-w-[520px] justify-self-center">
           <h1 className="text-2xl font-bold text-center mb-4">Waiting for Players</h1>
           <p className="text-center text-gray-600">
             Current Room ID: <strong>{gameRoom.id}</strong>
@@ -215,11 +215,11 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               Customize Board
             </button>
           )}
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-center w-full">
             <BoardView hexSize={LOBBY_HEX_SIZE} />
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 max-w-[320px] justify-self-end">
+        <div className="bg-white rounded-lg shadow p-4 max-w-[320px] justify-self-center lg:justify-self-end">
           <h2 className="text-xl font-bold text-center mb-4">Game Settings</h2>
           <label className="block text-[13px] font-semibold mb-1.5">Points to Win</label>
           <input

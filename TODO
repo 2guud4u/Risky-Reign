@@ -20,18 +20,16 @@ allow dragging of soldiers in the mini map
 
 Feature:
 code should be animals or in the url if they join that link they join the room
-remove 10 resources and 
 tutorial of what to do , walk through
 
 allow simple art view 
 -play one with sister and try to host
-make solder above settlement on rendering in mini map
 
 bug:
 for setupphase dont need to show spending of resources
 
 when roll last number let it linger there for 2 seconds 
-for glowing number, you dont need to make number yellow just keep the glowing affect
+
 Far future requests:
 rule customization
 - unlimited property
