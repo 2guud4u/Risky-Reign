@@ -121,7 +121,10 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
       setExpanded(null);
       return;
     }
-    if (!a.check.allowed) return; // expanded + blocked: the reason is already shown
+    if (!a.check.allowed) {
+      setExpanded(null); // expanded + blocked: collapse (the reason was shown)
+      return;
+    }
     a.run();
     setExpanded(null);
   };

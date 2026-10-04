@@ -26,6 +26,7 @@ allow simple art view
 -play one with sister and try to host
 
 bug:
+buy dev card and resource icon looks diff
 for setupphase dont need to show spending of resources
 
 when roll last number let it linger there for 2 seconds 
@@ -47,4 +48,68 @@ injured soldiers screen logic needs to be fixed
 
 handle rejoin ns stuff gracefully
 
-unexpected state and need to disable select all when on tile with none of ur soldiers
+make trade look better
+
+add chat
+
+
+make look like dice 
+
+always show receipe 
+Tutorial:
+- a little finger
+- have arrow saying try click on this 
+- little i icon to show receipe of everything
+
+option for special 5-6 build rule or regular build path
+
+when trying to move without road say have to move through road only
+
+should say who can trade with you
+
+zoom in house should say who owns it
+
+trade offer should stay there but cant accept
+
+maybe a turn time line
+
+pass troops modal
+
+notifcation even on outgoing to any one trade
+
+show you want you can do on you turn 
+
+trade needs to be more clear on who can trade
+
+timer vote, if everyone vote, person get turn ended, it can be disabled
+
+fix who wins largest army and longest road on a tie
+
+attack options should open up who you want to attack on the buble
+
+injured soldiers have to move away from the space
+
+figure out attack mix of soldiers
+
+bug where defender won but got injured should be attacker get injured defender rolled a 3 and attacker rolled a 2
+
+injured movement is bugged
+
+need a dev game state
+
+sometimes i dont get the resouce even though i rolled 
+
+sandwich roads should be turned into your road
+
+when no more settlements or cities or alive soldiers, you are knocked out of the game
+
+robbers bag should be above shiiping doc ui and house should be over dock bridge
+
+allow reorganize cards b4 stealing
+
+click robber also starts fight
+
+robber fight took too long for dice result to happen
+
+
+knight card allow spawn of knight near any other soldiers

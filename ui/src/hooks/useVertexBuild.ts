@@ -31,7 +31,10 @@ export function useVertexSoldierSelectAll(board: Board, vertex: VertexNode): Bub
     icon: '👥',
     label: allSelected ? 'Deselect All Soldiers' : 'Select All Soldiers',
     costText: `${actableIds.length} soldier${actableIds.length === 1 ? '' : 's'}`,
-    check: { allowed: true, reason: null },
+    check:
+      actableIds.length === 0
+        ? { allowed: false, reason: 'No soldiers to select here' }
+        : { allowed: true, reason: null },
     run: () => setSelectedSoldierIds(allSelected ? [] : actableIds),
   };
 }
