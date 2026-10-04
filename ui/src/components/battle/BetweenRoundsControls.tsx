@@ -12,7 +12,9 @@ interface BetweenRoundsControlsProps {
 }
 
 /**
- * Between rounds only: the attacker continues or ends; everyone else waits.
+ * Between rounds only: the attacker fights another round or stops; everyone
+ * else is told who they're waiting on. With one side gone, the only choice is
+ * to see the result.
  */
 export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
   battle,
@@ -23,29 +25,35 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
   onEnd,
 }) => {
   if (battle.phase !== 'betweenRounds') return null;
-  if (!canContinue) {
-    return <div className="text-[13px] text-gray-500">Waiting for {battle.attacker}…</div>;
-  }
   const bothStanding = attackerAlive && defenderAlive;
+  if (!canContinue) {
+    return (
+      <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-[13px] text-gray-600">
+        Waiting for <strong>{battle.attacker}</strong> to {bothStanding ? 'fight on or stop' : 'see the result'}…
+      </div>
+    );
+  }
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-2">
       {bothStanding && (
         <button
           type="button"
           onClick={onContinue}
-          className="flex-1 bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
+          className="w-full bg-red-600 text-white rounded-lg py-2.5 text-[14px] font-bold shadow hover:bg-red-700 cursor-pointer"
         >
-          Round {battle.round + 1}
+          ⚔️ Fight round {battle.round + 1}
         </button>
       )}
       <button
         type="button"
         onClick={onEnd}
-        className={`flex-1 text-white rounded-md py-2 text-sm font-semibold ${
-          bothStanding ? 'bg-gray-600 hover:bg-gray-700' : 'bg-red-600 hover:bg-red-700'
+        className={`w-full rounded-lg py-2 text-[13px] font-semibold cursor-pointer ${
+          bothStanding
+            ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+            : 'bg-red-600 text-white shadow hover:bg-red-700'
         }`}
       >
-        End battle
+        {bothStanding ? 'Stop the battle here' : 'See result →'}
       </button>
     </div>
   );

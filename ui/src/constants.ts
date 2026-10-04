@@ -37,10 +37,6 @@ export const ROBBER_W_FRACTION = 1.4;
 export const ROBBER_H_FRACTION = 1.05;
 /** Robber image top offset above the hex center, as a fraction of the hex size. */
 export const ROBBER_Y_OFFSET_FRACTION = 1.05;
-/** Battle HUD: robber image width, as a multiple of TROOP_R. */
-export const ROBBER_BATTLE_W = 2.8;
-/** Battle HUD: robber image height, as a multiple of TROOP_R. */
-export const ROBBER_BATTLE_H = 2.8;
 
 /** Fraction of the natural board size added to the viewBox so coast trade ports aren't clipped. */
 export const BOARD_VIEWBOX_MARGIN = 1.2;
@@ -260,21 +256,24 @@ export const PAN_THRESHOLD = 4;
 export const PINCH_MIN_DIST = 12;
 /** Transparent hit-line width (board units) for selecting/pressing a road; the visible road stays thin. */
 export const ROAD_HIT_WIDTH = 22;
-/** Zoom the board animates to when a vertex or edge is clicked (never zooms out). */
-export const SELECT_FOCUS_ZOOM = 4;
-/** Duration of the click-to-focus animation, in ms. */
-export const FOCUS_DURATION_MS = 350;
 /**
  * Minimum zoom for individual soldier SVGs instead of count badges.
- * Click-to-focus (SELECT_FOCUS_ZOOM) reaches this threshold.
  */
 export const DETAIL_ZOOM_IN = 4;
+/**
+ * Zoom the board animates to when a vertex or edge is clicked (never zooms
+ * out). Kept above DETAIL_ZOOM_IN so selecting always shows the individual
+ * soldiers, not their count badges.
+ */
+export const SELECT_FOCUS_ZOOM = DETAIL_ZOOM_IN * 1.15;
+/** Duration of the click-to-focus animation, in ms. */
+export const FOCUS_DURATION_MS = 350;
 /**
  * Size of detailed soldiers on the main board relative to the mini view. The
  * mini view lays a garrison out over ~2 vertex-spacings; the board's vertices
  * are 100 units apart, so clusters are scaled down to stay near their vertex.
  */
-export const BOARD_SOLDIER_SCALE = 0.4;
+export const BOARD_SOLDIER_SCALE = 0.5;
 
 // ── useBuildRules ──────────────────────────────────────────────────────────
 

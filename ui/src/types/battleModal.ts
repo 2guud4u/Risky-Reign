@@ -12,14 +12,6 @@ export interface TroopSlot {
   s: SoldierBattleState;
 }
 
-/** An in-flight drag of an injured troop to a neighboring vertex. */
-export interface RepositionDrag {
-  soldierId: string;
-  ownerName: string;
-  fromVertexId: string;
-  validTargets: string[];
-}
-
 /** One injured survivor resting on a vertex, waiting to be repositioned. */
 export interface RepositionTroop {
   soldierId: string;

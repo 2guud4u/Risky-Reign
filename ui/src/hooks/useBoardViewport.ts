@@ -159,9 +159,11 @@ export function useBoardViewport(
       const step = (now: number) => {
         const t = Math.min(1, (now - start) / FOCUS_DURATION_MS);
         const k = ease(t);
-        // Interpolate zoom geometrically so the scale change feels uniform.
-        zoomRef.current = fromZoom * Math.pow(toZoom / fromZoom, k);
-        centerRef.current = { x: from.x + (point.x - from.x) * k, y: from.y + (point.y - from.y) * k };
+        // Interpolate zoom geometrically so the scale change feels uniform;
+        // the last frame lands exactly on the target (the formula can come
+        // out a hair under it, e.g. 3.9999999999999996, and miss thresholds).
+        zoomRef.current = t < 1 ? fromZoom * Math.pow(toZoom / fromZoom, k) : toZoom;
+        centerRef.current = t < 1 ? { x: from.x + (point.x - from.x) * k, y: from.y + (point.y - from.y) * k } : { ...point };
         applyViewBox();
         animRef.current = t < 1 ? requestAnimationFrame(step) : null;
       };

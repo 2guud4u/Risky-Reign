@@ -42,7 +42,7 @@ const TurnOverlay: React.FC = () => {
 
   return (
     <div
-      className={`shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)}`}
+      className={`relative z-10 shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)}`}
     >
       <div className="flex items-center gap-2.5">
         <button

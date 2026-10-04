@@ -2,11 +2,12 @@ import React from 'react';
 import { BattlePhase } from 'common';
 import { TroopSlot } from '../../types/battleModal';
 import { effDead, effInjured, FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
-import { TROOP_R, ROBBER_BATTLE_W, ROBBER_BATTLE_H } from '../../constants';
+import { TROOP_R } from '../../constants';
 import {
   DEAD_TROOP_OPACITY,
   INJURED_TROOP_SCALE,
-  ROBBER_ICON_LIFT,
+  ROBBER_ART,
+  SOLDIER_FIGURE_WIDTH_FRAC,
   SOLDIER_ICON_HEIGHT,
   SOLDIER_ICON_LIFT,
   SOLDIER_ICON_WIDTH,
@@ -62,12 +63,34 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
   } else if (mine) {
     label = '🎲';
   }
+  // Both troops share one figure box, centered on (x, y): the soldier art's
+  // drawn figure. The robber is scaled so its figure matches that height.
+  const figH = TROOP_R * SOLDIER_ICON_HEIGHT * scale;
+  const figTop = y - TROOP_R * SOLDIER_ICON_LIFT * scale;
+  const figW = isRobber
+    ? (figH * ROBBER_ART.w) / ROBBER_ART.h
+    : TROOP_R * SOLDIER_ICON_WIDTH * SOLDIER_FIGURE_WIDTH_FRAC * scale;
+  // The robber image is the whole canvas; place it so its figure lands in the box.
+  const robberScale = figH / ROBBER_ART.h;
   return (
     <g
       opacity={opacity}
       style={{ cursor: mine ? 'pointer' : undefined }}
       onClick={mine ? () => onRoll(s.soldier.id) : undefined}
     >
+      {/* Click target: the figure itself (plus a little margin), so a click
+          anywhere on the troop rolls — not just its label or art strokes. */}
+      {mine && (
+        <rect
+          x={x - figW / 2 - 4}
+          y={figTop - 4}
+          width={figW + 8}
+          height={figH + 8}
+          rx={6}
+          fill="transparent"
+          pointerEvents="all"
+        />
+      )}
       {/* Pulsing ring: the only thing that tells the player "click me to
           roll" — without it the roll cue is easy to miss. */}
       {mine && !dead && s.rollNum === null && (
@@ -78,6 +101,7 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
           fill="none"
           stroke="#f59e0b"
           strokeWidth={3}
+          pointerEvents="none"
           className="blink-circle"
         />
       )}
@@ -85,25 +109,26 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
         /* Robber icon (the full character art, untinted). */
         <image
           href="/art/robber.png"
-          x={x - (TROOP_R * ROBBER_BATTLE_W * scale) / 2}
-          y={y - TROOP_R * ROBBER_ICON_LIFT * scale}
-          width={TROOP_R * ROBBER_BATTLE_W * scale}
-          height={TROOP_R * ROBBER_BATTLE_H * scale}
-          preserveAspectRatio="xMidYMax meet"
+          x={x - figW / 2 - ROBBER_ART.x * robberScale}
+          y={figTop - ROBBER_ART.y * robberScale}
+          width={ROBBER_ART.canvasW * robberScale}
+          height={ROBBER_ART.canvasH * robberScale}
+          pointerEvents="none"
         />
       ) : (
         /* Soldier icon (red part tinted to the owner's color); injured uses the injured icon. */
         <svg
           x={x - TROOP_R * scale}
-          y={y - TROOP_R * SOLDIER_ICON_LIFT * scale}
+          y={figTop}
           width={TROOP_R * SOLDIER_ICON_WIDTH * scale}
-          height={TROOP_R * SOLDIER_ICON_HEIGHT * scale}
+          height={figH}
           style={{ color: colors[s.soldier.owner] ?? FALLBACK_OWNER_COLOR }}
+          pointerEvents="none"
         >
           <use
             href={injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
             width={TROOP_R * SOLDIER_ICON_WIDTH * scale}
-            height={TROOP_R * SOLDIER_ICON_HEIGHT * scale}
+            height={figH}
             transform={x < centerX ? `translate(${TROOP_R * SOLDIER_ICON_WIDTH * scale}, 0) scale(-1, 1)` : undefined}
           />
         </svg>
@@ -131,8 +156,8 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
         paintOrder="stroke"
         fontSize={labelSize}
         fontWeight="bold"
-        // Hit the whole dice label, not just the soldier art behind it.
-        pointerEvents={mine ? 'all' : 'none'}
+        // The click target above takes the clicks.
+        pointerEvents="none"
       >
         {label}
       </text>

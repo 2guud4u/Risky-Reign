@@ -33,6 +33,8 @@ export interface BubbleAction {
   column?: boolean;
   /** Column choices only: a player color swatch shown beside the label (attack target). */
   color?: string;
+  /** Tutorial: a bobbing 👇 points at this bubble ("click here"). */
+  coach?: boolean;
 }
 
 interface ActionBubbleProps {
@@ -144,8 +146,20 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
         const hasChoices = !!a.choices && a.choices.some((c) => c.eligible);
         const isPill = hasChoices && expanded === a.key;
         if (!isPill) {
-          return (
+          const bubble = (
             <ActionBubble key={a.key} action={a} open={expanded === a.key} onClick={() => onBubbleClick(a)} />
+          );
+          if (!a.coach) return bubble;
+          return (
+            <div key={a.key} className="relative">
+              <span
+                aria-hidden="true"
+                className="pointer-finger pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-5xl drop-shadow-lg"
+              >
+                👇
+              </span>
+              {bubble}
+            </div>
           );
         }
         // Expanded choice pill: the action's icon/label plus one button per

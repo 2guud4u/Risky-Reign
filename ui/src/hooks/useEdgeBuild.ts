@@ -24,10 +24,11 @@ export function useEdgeBuild(board: Board, edge: EdgeNode): EdgeBuildAction {
   const { buildRoad } = useSocket();
   const { roadCheck } = useBuildRules(board);
   const hasFreeRoad = (currentPlayer?.freeRoadsLeft ?? 0) > 0;
+  const setup = gameRoom?.turnState.phase === 'SetUp';
 
   return {
     label: 'Build Road',
-    costText: hasFreeRoad ? 'FREE 🛤️' : priceLabel(RoadPrice),
+    costText: setup ? 'Free' : hasFreeRoad ? 'FREE 🛤️' : priceLabel(RoadPrice),
     check: roadCheck(edge.id),
     run: () => {
       if (!gameRoom || !currentPlayer) return;

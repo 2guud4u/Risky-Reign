@@ -11,6 +11,9 @@ import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { PortLayer } from '../components/board/PortLayer';
 import { RobberBagPopup } from '../components/board/RobberBagPopup';
 import { DragOverlays } from '../components/board/DragOverlays';
+import { SpawnTargetLayer } from '../components/board/SpawnTargetLayer';
+import { PointerFinger } from '../components/board/PointerFinger';
+import { useSetupCoach } from '../hooks/useSetupCoach';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useBoardDrag } from '../hooks/useBoardDrag';
 import {
@@ -19,6 +22,7 @@ import {
   BOARD_RENDER_MARGIN,
   BOARD_VIEWBOX_MARGIN,
   PROJ_SIZE,
+  ROBBER_Y_OFFSET_FRACTION,
   SELECT_FOCUS_ZOOM,
 } from '../constants';
 import { BoardViewProps } from '../types/board';
@@ -221,12 +225,41 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     );
   }, [board, gameRoom?.robberDefeatedBy?.fromHexId, winPending]);
 
+  // Knight spawn: while my played Knight waits for its soldier, every vertex
+  // where I already have a soldier is a target (same rule as the server's
+  // `canKnightSpawnAt`).
+  const choice = gameRoom?.devCardChoice;
+  const spawnPending =
+    choice?.card === 'knight' && !!choice.spawn && choice.player === currentPlayer?.name;
+  const spawnTargets = useMemo(() => {
+    if (!board || !spawnPending || !currentPlayer) return [];
+    const ids = new Set(
+      Object.values(board.soldiers)
+        .filter((s) => s.owner === currentPlayer.name)
+        .map((s) => s.vertexId)
+    );
+    return [...ids].flatMap((id) => {
+      const v = board.vertices[id];
+      return v ? [{ id, position: v.position }] : [];
+    });
+  }, [board, spawnPending, currentPlayer]);
+
+  // Setup coach: a suggested spot for my next settlement/road (null when off).
+  const coach = useSetupCoach(board);
+  // A new coach step (the previous placement landed): drop the old selection
+  // so the view glides back out and the next suggested spot is on screen.
+  const coachTarget = coach?.targetId;
+  useEffect(() => {
+    if (coachTarget) setSelectedObject(null);
+  }, [coachTarget, setSelectedObject]);
+
   // `board` is non-null whenever `base` is (the memo derives from it). This
   // early return must stay below every hook call above.
   if (!base || !gameRoom || !board || !layered) {
     return <div className="text-center text-gray-500">Loading board...</div>;
   }
   const { vertices, edges, hexes } = layered;
+  const robberHex = hexes.find((h) => h.hasRobber);
 
   // Waiting-room preview: a fixed-size square board (as before).
   // In-game: the svg fills its whole container and the view extends on the
@@ -330,6 +363,29 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             vertices={board.vertices}
             colorOf={colorOf}
           />
+
+          {/* Knight spawn targets (pulsing rings), above the soldiers. */}
+          {spawnTargets.length > 0 && <SpawnTargetLayer targets={spawnTargets} onSelect={handleVertexClick} />}
+
+          {/* "Move me" hint over the robber while it's my move (hidden mid-drag). */}
+          {(robberPending || winPending) && !robberDrag && robberHex && (
+            <PointerFinger
+              at={{ x: robberHex.position.x, y: robberHex.position.y - PROJ_SIZE * ROBBER_Y_OFFSET_FRACTION }}
+            />
+          )}
+
+          {/* Setup coach: a clickable ring + finger on a suggested spot, until
+              its build bubble is open (the bubble then gets the finger). */}
+          {coach && !coach.bubbleOpen && (
+            <PointerFinger
+              at={coach.at}
+              label={coach.caption}
+              onTargetClick={() =>
+                coach.key === 'settlement' ? handleVertexClick(coach.targetId) : handleEdgeClick(coach.targetId)
+              }
+            />
+          )}
+
           {/* Robber's bag: dialog popup over the hovered robber (top layer so
               it isn't covered by the hexes). */}
           <RobberBagPopup hex={hexes.find((h) => h.id === hoveredRobberHexId) ?? null} />

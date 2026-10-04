@@ -36,9 +36,13 @@ export const isPending = (s: SoldierBattleState, phase: BattlePhase): boolean =>
 export const effDead = (s: SoldierBattleState, phase: BattlePhase): boolean =>
   !isPending(s, phase) && s.dead;
 
-/** Effective injured flag for display, hiding pending casualties. */
+/**
+ * Effective injured flag for display, hiding pending casualties. A troop that
+ * entered the fight already injured (an injured-fight defender) stays injured
+ * the whole time — rolling must not make it "get up".
+ */
 export const effInjured = (s: SoldierBattleState, phase: BattlePhase): boolean =>
-  !isPending(s, phase) && s.injured;
+  s.injured && (!isPending(s, phase) || s.soldier.injured);
 
 /**
  * Lay out one side's troops. Troops in the fight (rolled, not injured) line up
@@ -219,8 +223,21 @@ export function computeBattleOutcome(
   const defDead = defenderSoldiers.filter((s) => s.dead).length;
   const atkInj = attackerSoldiers.filter((s) => s.injured && !s.dead).length;
   const defInj = defenderSoldiers.filter((s) => s.injured && !s.dead).length;
-  const winner =
-    atkAlive > 0 ? battle.attacker : defAlive > 0 ? (battle.defender || 'defender') : null;
+  const defenderName = battle.defender || 'defender';
+  let winner: string | null;
+  if (battle.robberFight) {
+    // Nobody is marked dead in a robber fight: the attacker wins only on a
+    // strictly higher roll (the robber wins ties).
+    const soldierRoll = attackerSoldiers[0]?.rollNum ?? 0;
+    const robberRoll = defenderSoldiers[0]?.rollNum ?? 0;
+    winner = soldierRoll > robberRoll ? battle.attacker : defenderName;
+  } else if (battle.injuredFight) {
+    // The injured defenders never count as "standing": they win by escaping
+    // (any survivor), the attacker wins by killing every one of them.
+    winner = defenderSoldiers.some((s) => !s.dead) ? defenderName : battle.attacker;
+  } else {
+    winner = atkAlive > 0 ? battle.attacker : defAlive > 0 ? defenderName : null;
+  }
   return { atkAlive, defAlive, atkDead, defDead, atkInj, defInj, winner };
 }
 
@@ -232,16 +249,16 @@ export function computeDiceMatchup(
   phase: BattlePhase
 ): DiceMatch[] {
   const matchup: DiceMatch[] = [];
-  if (phase === 'betweenRounds' || phase === 'finished') {
-    // Only troops that actually rolled this round and are still in the fight
-    // appear in the comparison. In 'betweenRounds' the casualties of this
-    // round are still pending, so every troop with a die is compared; once
-    // committed (after continue) injured/dead troops drop out of the list.
+  if (phase === 'betweenRounds' || phase === 'finished' || phase === 'repositioning') {
+    // Compare everyone holding a die: the server clears every die when the
+    // next round starts, so only this round's rollers hold one. That keeps
+    // the final round's dice on screen once the battle is over, even though
+    // their casualties are committed by then.
     const aList = attackerSoldiers
-      .filter((s) => s.rollNum !== null && !effInjured(s, phase))
+      .filter((s) => s.rollNum !== null)
       .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
     const dList = defenderSoldiers
-      .filter((s) => s.rollNum !== null && (battle.injuredFight || !effInjured(s, phase)))
+      .filter((s) => s.rollNum !== null)
       .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
     for (let i = 0; i < Math.min(aList.length, dList.length); i++) {
       const ar = aList[i].rollNum ?? 0;

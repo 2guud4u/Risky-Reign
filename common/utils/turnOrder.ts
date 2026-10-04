@@ -68,23 +68,3 @@ export function upcomingTurns(pos: TurnPosition, count: number, out: readonly st
   }
   return turns;
 }
-
-/**
- * Short labels for what a player can do at a turn position. Trading is open
- * to the round's dice player in any phase after setup; dev cards can be
- * played on any of your own turns after setup.
- */
-export function turnActions(pos: TurnPosition): string[] {
-  const diceOwner = pos.playerOrder[pos.dicePlayerIndex ?? 0];
-  const trade = pos.player === diceOwner ? ['Trade'] : [];
-  switch (pos.phase) {
-    case 'SetUp':
-      return ['Place settlement', 'Place road'];
-    case 'Dice':
-      return ['Roll dice', 'Play dev card', ...trade];
-    case 'Build':
-      return ['Build', 'Buy dev card', 'Play dev card', ...trade];
-    case 'Action':
-      return ['Recruit', 'Move', 'Heal', 'Attack', 'Capture', 'Play dev card', ...trade];
-  }
-}

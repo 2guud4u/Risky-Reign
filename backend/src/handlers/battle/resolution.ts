@@ -200,18 +200,24 @@ export function applyRoundCasualties(board: Board, battleState: BattleState): Re
 }
 
 /**
- * Count a won player-vs-player battle toward the Warmonger bonus: the battle
- * is won by the side that still has living, uninjured troops when the other
- * side has none. Robber fights and battles ended with both sides standing
- * have no winner and count for nobody.
+ * Count a won player-vs-player battle toward the Warmonger bonus. A normal
+ * battle is won by the side that still has living, uninjured troops when the
+ * other side has none. An injured fight is won by the attacker only if every
+ * injured defender died (any escapee means the defender won). Robber fights
+ * and battles ended with both sides standing count for nobody.
  */
 function recordBattleWin(room: GameRoom, battle: BattleState): void {
   if (battle.robberFight) return;
-  const standing = (side: string) =>
-    (battle.states[side]?.soldiers ?? []).some((s) => !s.dead && !s.injured);
-  const atk = standing(battle.attacker);
-  const def = standing(battle.defender);
-  const winner = atk && !def ? battle.attacker : def && !atk ? battle.defender : null;
+  const soldiersOf = (side: string) => battle.states[side]?.soldiers ?? [];
+  let winner: string | null;
+  if (battle.injuredFight) {
+    winner = soldiersOf(battle.defender).some((s) => !s.dead) ? battle.defender : battle.attacker;
+  } else {
+    const standing = (side: string) => soldiersOf(side).some((s) => !s.dead && !s.injured);
+    const atk = standing(battle.attacker);
+    const def = standing(battle.defender);
+    winner = atk && !def ? battle.attacker : def && !atk ? battle.defender : null;
+  }
   if (!winner || !room.players.some((p) => p.name === winner)) return;
   room.battlesWon[winner] = (room.battlesWon[winner] ?? 0) + 1;
 }

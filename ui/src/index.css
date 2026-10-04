@@ -111,3 +111,38 @@ body {
         transform: scale(1.6);
     }
 }
+
+/* Giant bobbing finger: the pending robber move and the setup coach. */
+.pointer-finger {
+    animation: pointer-finger 0.9s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center bottom;
+}
+
+@keyframes pointer-finger {
+    0%,
+    100% {
+        transform: translateY(-18%) scale(1);
+    }
+
+    50% {
+        transform: translateY(6%) scale(0.92);
+    }
+}
+
+/* The coach card slides in from the left edge of the map. */
+.slide-in-left {
+    animation: slide-in-left 0.35s ease-out;
+}
+
+@keyframes slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

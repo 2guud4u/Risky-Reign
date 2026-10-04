@@ -16,6 +16,8 @@ import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
 import TradeButton from '../components/board/TradeButton';
 import RecipesButton from '../components/board/RecipesButton';
 import PlayersButton from '../components/board/PlayersButton';
+import TutorialCoach from './TutorialCoach';
+import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { GAME_HEX_SIZE } from 'common';
 import { clearSavedSession } from '../utils/session';
 
@@ -28,6 +30,7 @@ const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
   const { leaveGame: emitLeaveGame } = useSocket();
   const [menuOpen, setMenuOpen] = useState(false);
+  const hintsOn = useTutorialHints();
   // Browser tab title: flag when it's the player's turn so a backgrounded tab
   // is easy to spot. Restores the app title when it isn't / on unmount.
   const APP_TITLE = 'Risky Reign';
@@ -61,6 +64,13 @@ const Game: React.FC = () => {
             <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
               Room {gameRoom.id}
             </div>
+            <button
+              type="button"
+              onClick={() => setTutorialHints(!hintsOn)}
+              className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+            >
+              {hintsOn ? '💡 Turn tips off' : '💡 Turn tips on'}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -104,6 +114,8 @@ const Game: React.FC = () => {
           {selectedEdge && gameRoom.board && (
             <EdgeActionBubbles board={gameRoom.board} edge={selectedEdge} />
           )}
+          {/* Setup walkthrough + idle "Need help?" card (left edge of the map). */}
+          <TutorialCoach />
         </div>
       </div>
 

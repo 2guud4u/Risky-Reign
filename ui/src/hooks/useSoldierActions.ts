@@ -124,7 +124,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       kind: 'heal',
       label: `Heal ${injured.length}`,
       costText: `${HealSoldierAmount} each (pick resource)`,
-      check: anyEligible ? ALLOWED : choices[0].check,
+      check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'Nothing to heal with' },
       run: () => {}, // expanded bubble: a choice is picked instead
       choices,
     });
@@ -169,7 +169,8 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       kind: 'move',
       label: `Move ${movable.length}`,
       costText: 'Pick a direction',
-      check: anyEligible ? ALLOWED : choices[0].check,
+      // No road out of this vertex means no direction at all to offer.
+      check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'No road leads out of here' },
       run: () => {}, // expanded bubble: a direction is picked instead
       choices,
     });
@@ -207,7 +208,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       kind: 'attack',
       label: `Attack with ${group.length}`,
       costText: 'Pick who to attack',
-      check: anyEligible ? ALLOWED : choices[0].check,
+      check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'No enemy to attack here' },
       run: () => {}, // expanded bubble: an enemy is picked instead
       choices,
       column: true, // expand upward into a vertical column

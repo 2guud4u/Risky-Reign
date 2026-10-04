@@ -46,8 +46,8 @@ const DevCardPrompt: React.FC = () => {
     // Spawn picked: the player places it on the map (see the NoticeRail hint).
     if (spawn) return null;
     const options = [
-      { effect: 'robber', icon: '🥷', title: 'Move robber', sub: 'no steal' },
-      { effect: 'spawn', icon: '🫵', title: 'Spawn soldier', sub: 'where you have one' },
+      { effect: 'robber', icon: '🥷', title: 'Move robber', sub:""},
+      { effect: 'spawn', icon: '🛡️', title: 'Spawn soldier', sub: 'where you have one' },
     ] as const;
     return (
       <div className={backdropClass}>
