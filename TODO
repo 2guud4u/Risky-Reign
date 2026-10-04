@@ -54,10 +54,6 @@ option for special 5-6 build rule or regular build path
 
 when trying to move without road say have to move through road only
 
-should say who is allowed to trade in the round
-
-zoom in house should say who owns it
-
 trade offer should stay there but cant accept
 
 pass troops modal
@@ -66,24 +62,10 @@ show you want you can do on you turn
 
 timer vote, if everyone vote, person get turn ended, it can be disabled
 
-attack options should open up who you want to attack on the buble
-
 figure out attack mix of soldiers
 
 need a dev game state
 
-
-sandwiched roads should be turned into your road
-
-
-allow reorganize cards b4 stealing
-
 click robber also starts fight
 
-robber moved from knight should not steal
 
-knight card allow spawn of knight near any other soldiers
-
-fix battle hud, should not need to scroll, less text 
-
-after win allow users to still look aroun the map

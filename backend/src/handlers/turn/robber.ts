@@ -10,7 +10,7 @@ import {
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 
 /**
  * Robber-resolution handlers: placing the robber (after a 7 or a knight),
@@ -20,9 +20,9 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
   // Place the robber. Mandatory after a 7 roll and after a played knight
-  // card. After the robber is placed, the thief chooses which card to steal
-  // from a face-down card of an adjacent player (the `chooseSteal` event);
-  // a 7 holds the Dice phase until the steal resolves.
+  // card. After a 7, the thief chooses which card to steal from a face-down
+  // card of an adjacent player (the `chooseSteal` event) and the Dice phase
+  // holds until the steal resolves. A knight only moves the robber — no steal.
   socket.on('moveRobber', (data: { roomId: string; hexId: string }) => {
     const { roomId, hexId } = data;
     const room = gameRooms.get(roomId);
@@ -30,7 +30,7 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -57,35 +57,29 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
       return;
     }
 
-    placeRobber(board, hexId);
     const reason = room.robberMove.reason;
+    placeRobber(board, hexId);
+    room.robberMove = null;
 
     if (reason === 'knight') {
-      // Consume the knight card now that the robber is placed.
+      // A knight only moves the robber: consume the card, no steal.
       const cardIndex = player.developmentCards.indexOf('knight');
       if (cardIndex !== -1) player.developmentCards.splice(cardIndex, 1);
-    }
-
-    // Eligible victims: players adjacent to the chosen hex holding ≥ 1 card.
-    const adjacent = playersAdjacentToHex(board, hexId, player.name);
-    const victims = eligibleVictims(room.players, adjacent);
-
-    if (victims.length > 0) {
-      // Enter the steal phase: the thief picks a face-down card from a
-      // victim. A 7 holds the Dice phase until the steal resolves.
-      room.steal = { thief: player.name, victims, reason };
     } else {
-      // No eligible victim: a 7 completes the Dice phase; a knight is done.
-      if (reason === 'seven') advanceTurn(room);
+      // A 7: steal from an eligible victim (adjacent to the hex, ≥ 1 card)
+      // before the Dice phase completes; with none, it completes now.
+      const adjacent = playersAdjacentToHex(board, hexId, player.name);
+      const victims = eligibleVictims(room.players, adjacent);
+      if (victims.length > 0) room.steal = { thief: player.name, victims };
+      else advanceTurn(room);
     }
-    room.robberMove = null;
 
     applyBonuses(room);
     broadcastRoom(io, room);
   });
 
-  // Resolve a pending steal: the thief takes the face-down card at
-  // `cardIndex` from `victimName`. A 7 completes the Dice phase afterward.
+  // Resolve a pending 7-steal: the thief takes the face-down card at
+  // `cardIndex` from `victimName`, which completes the Dice phase.
   socket.on('chooseSteal', (data: { roomId: string; victimName: string; cardIndex: number }) => {
     const { roomId, victimName, cardIndex } = data;
     const room = gameRooms.get(roomId);
@@ -93,7 +87,7 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
@@ -121,9 +115,8 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Invalid card selection' });
       return;
     }
-    const reason = room.steal.reason;
     room.steal = null;
-    if (reason === 'seven') advanceTurn(room);
+    advanceTurn(room);
 
     applyBonuses(room);
     broadcastRoom(io, room);
@@ -138,7 +131,7 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });

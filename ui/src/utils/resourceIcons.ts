@@ -7,5 +7,5 @@ export const RESOURCE_ICONS: Record<ResourceKey, string> = {
   Brick: '🧱',
   Sheep: '🐑',
   Wheat: '🌾',
-  Ore: '⛏️',
+  Ore: '🪨',
 };

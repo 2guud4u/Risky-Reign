@@ -62,10 +62,18 @@ const NoticeRail: React.FC = () => {
     return () => clearTimeout(hideTimer);
   }, [isMyTurn]);
 
-  if (!gameRoom || !currentPlayer) return null;
+  // Game over: no turn bar or turn notices — the victory overlay takes over.
+  if (!gameRoom || !currentPlayer || gameRoom.gameStatus === 'finished') return null;
 
   // Build the list of action/waiting notices, highest-priority first.
   const notices: { key: string; mine: boolean; text: React.ReactNode }[] = [];
+  if (currentPlayer.eliminated && gameRoom.gameStatus === 'playing') {
+    notices.push({
+      key: 'knocked-out',
+      mine: false,
+      text: '💀 You have been knocked out (no settlements, cities, or soldiers left). You can keep spectating.',
+    });
+  }
   const pendingDiscards = Object.keys(gameRoom.discards ?? {});
   if (pendingDiscards.length > 0 && gameRoom.discards && !(currentPlayer.name in gameRoom.discards)) {
     notices.push({
@@ -88,6 +96,13 @@ const NoticeRail: React.FC = () => {
       text: `${gameRoom.devCardChoice.player} is choosing a card`,
     });
   }
+  if (gameRoom.devCardChoice?.card === 'knight' && gameRoom.devCardChoice.spawn && gameRoom.devCardChoice.player === currentPlayer.name) {
+    notices.push({
+      key: 'knight-spawn',
+      mine: true,
+      text: 'Knight: select a vertex with one of your soldiers to spawn a new one there.',
+    });
+  }
   if (gameRoom.robberMove) {
     const { player, reason } = gameRoom.robberMove;
     const isMe = player === currentPlayer.name;
@@ -99,7 +114,7 @@ const NoticeRail: React.FC = () => {
           ? pendingDiscards.length > 0
             ? 'You rolled a 7 — resolve the discard prompt, then drag the black robber to a hex to move it.'
             : 'You rolled a 7 — drag the black robber to a hex to move it.'
-          : 'Knight: drag the black robber to a hex to place it and steal a card.'
+          : 'Knight: drag the black robber to a hex to place it.'
         : `${player} must move the robber (${reason === 'seven' ? 'rolled a 7' : 'knight card'}).`,
     });
   }
@@ -119,7 +134,9 @@ const NoticeRail: React.FC = () => {
   const showToast = toastVisible && isMyTurn;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[90] flex flex-col items-center gap-2">
+    // z-40: above the board and its controls, but under every modal (z-50:
+    // battle, steal, discard…) so the turn bar never covers a modal.
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
       <TurnOverlay />
       {showToast && (
         <div

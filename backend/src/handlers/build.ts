@@ -16,7 +16,7 @@ import {
 import { advanceTurn } from '../turn';
 import { gameRooms } from '../store';
 import { broadcastRoom } from '../broadcast';
-import { HandlerContext, blockIfFinished } from './context';
+import { HandlerContext, blockIfCannotAct } from './context';
 
 /**
  * Building handlers: settlements, roads (including free Road-Building roads),
@@ -32,7 +32,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -117,7 +117,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -193,7 +193,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -256,7 +256,7 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });

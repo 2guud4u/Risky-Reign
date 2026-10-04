@@ -1,7 +1,8 @@
 import { applyBonuses, injuredLeftToMove, nextRepositionTurn } from 'common';
+import { passKnockedOutTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 
 /**
  * Repositioning handlers: dragging injured soldiers along a road to a
@@ -24,7 +25,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'No battle in progress' });
         return;
       }
-      if (blockIfFinished(room, socket)) return;
+      if (blockIfCannotAct(room, socket)) return;
       const currentPlayer = room.players.find((p) => p.id === socket.id);
       if (!currentPlayer) {
         socket.emit('error', { message: 'Player not found' });
@@ -95,7 +96,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'No battle in progress' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const currentPlayer = room.players.find((p) => p.id === socket.id);
     if (!currentPlayer) {
       socket.emit('error', { message: 'Player not found' });
@@ -155,6 +156,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       // the Action phase advances. Only clear the battle state itself.
       room.battleState = null;
       applyBonuses(room);
+      passKnockedOutTurn(room);
       broadcastRoom(io, room);
     }
   });

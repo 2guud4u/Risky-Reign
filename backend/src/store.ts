@@ -144,6 +144,7 @@ export function resetRoom(room: GameRoom): void {
   for (const p of room.players) {
     p.resources = freshResourceCount(STARTING_RESOURCES);
     p.victoryPoints = 0;
+    p.eliminated = false;
     p.developmentCards = [];
     p.freeRoadsLeft = 0;
     p.devCardsBoughtThisTurn = 0;

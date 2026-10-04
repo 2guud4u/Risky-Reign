@@ -195,12 +195,10 @@ export function createBattleState(
   // The defender faces the enemy troops garrisoned at the target vertex that
   // belong to the chosen defending player (when multiple enemy groups are
   // present the attacker must pick which one to fight). Injured troops sit
-  // out of the front line (Rule 28), but they are still committed: when a
-  // mixed group's last healthy defender falls, the injured survivors roll
-  // off against the attacker's survivors (Rules.md lines 9, 30). When the
-  // chosen group holds ONLY injured troops, that roll-off is the whole
-  // fight — an "injured fight" where the injured defenders DO roll
-  // (defender higher → they flee; otherwise they die).
+  // out of the front line (Rule 28) and don't fight on when the healthy ones
+  // fall — the battle just ends. When the chosen group holds ONLY injured
+  // troops, the whole fight is an "injured fight" where the injured
+  // defenders DO roll (defender higher → they flee; otherwise they die).
   const allEnemySoldiers = Object.values(board.soldiers).filter(
     (s) => s.vertexId === targetVertexId && s.owner !== attackerName && (!defenderName || s.owner === defenderName)
   );

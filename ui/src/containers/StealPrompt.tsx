@@ -26,7 +26,7 @@ const StealPrompt: React.FC = () => {
   }, [active]);
 
   if (!gameRoom || !currentPlayer || !gameRoom.steal) return null;
-  const { thief, victims, reason } = gameRoom.steal;
+  const { thief, victims } = gameRoom.steal;
 
   // Other players see the "choosing a card" notice in the shared NoticeRail.
   if (thief !== currentPlayer.name) return null;
@@ -39,10 +39,7 @@ const StealPrompt: React.FC = () => {
       <div className={`${modalCardClass} max-w-[480px]`}>
         <h2 className="text-lg font-bold text-gray-800 mb-1">Choose a card to steal</h2>
         <p className="text-sm text-gray-500 mb-3">
-          {reason === 'knight'
-            ? 'You played a knight card.'
-            : 'You rolled a 7.'}{' '}
-          Pick a face-down card from one of these players.
+          You rolled a 7. Pick a face-down card from one of these players.
         </p>
 
         {/* Victim buttons (show each victim's total card count). */}

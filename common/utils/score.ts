@@ -165,24 +165,40 @@ export function applyBonuses(room: GameRoom): void {
     hasWarmonger,
     settlementVp,
   };
+  // Knock out every player left with no settlements/cities and no soldiers
+  // (injured soldiers still count). Not during setup — nobody has pieces yet.
+  // Derived each time so undoing a capture restores the victim.
+  const board = room.board;
+  for (const p of room.players) {
+    p.eliminated =
+      !!board &&
+      room.gameStatus !== 'waiting' &&
+      room.turnState.phase !== 'SetUp' &&
+      !Object.values(board.settlements).some((s) => s.ownerId === p.name) &&
+      !Object.values(board.soldiers).some((s) => s.owner === p.name);
+  }
   checkWinCondition(room);
 }
 
 /**
  * Win condition: the first player to reach the room's `pointsToWin`
- * threshold (default 10, the standard Catan value) wins. The check prefers
- * the acting player — a player wins on their own turn — and falls back to
- * the first player in turn order with enough points (deterministic).
+ * threshold (default 10, the standard Catan value) wins, or the last player
+ * standing once every other player is knocked out. Knocked-out players can't
+ * win. The check prefers the acting player — a player wins on their own
+ * turn — and falls back to the first player in turn order with enough
+ * points (deterministic).
  * Idempotent: once `gameStatus` is 'finished' the room is never changed
  * again, so it is safe to run on every broadcast.
  */
 export function checkWinCondition(room: GameRoom): void {
   if (room.gameStatus !== 'playing') return;
   const threshold = room.pointsToWin;
-  const acting = room.players.find((p) => p.name === room.turnState.player);
+  const standing = room.players.filter((p) => !p.eliminated);
+  const acting = standing.find((p) => p.name === room.turnState.player);
   const winner =
     (acting && acting.victoryPoints >= threshold ? acting : null) ??
-    room.players.find((p) => p.victoryPoints >= threshold);
+    standing.find((p) => p.victoryPoints >= threshold) ??
+    (room.players.length > 1 && standing.length === 1 ? standing[0] : null);
   if (winner) {
     room.gameStatus = 'finished';
     room.winner = winner.name;

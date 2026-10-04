@@ -10,7 +10,7 @@ import {
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 
 /** Remove a soldier id from the per-turn tracking arrays (used by undo). */
 function removeSoldierTracking(turnState: TurnState, soldierId: string): void {
@@ -36,7 +36,7 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     // Only the acting player may end their turn, and not mid-battle.
     const caller = room.players.find((p) => p.id === socket.id);
     if (!caller) {
@@ -69,7 +69,7 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
         message:
           room.robberMove?.reason === 'seven'
             ? 'Move the robber before ending the Dice phase'
-            : room.steal?.reason === 'seven'
+            : room.steal
               ? 'Resolve the steal before ending the Dice phase'
               : 'Roll both dice to end this phase',
       });
@@ -107,7 +107,7 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     // Only the acting player may undo, and never mid-battle (an undo could
     // teleport a soldier that's committed to an in-progress fight).
     const caller = room.players.find((p) => p.id === socket.id);

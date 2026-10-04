@@ -4,17 +4,19 @@ import {
   subtractPrice,
   generateDevelopmentCardDeck,
   applyBonuses,
+  canKnightSpawnAt,
   ResourceKey,
   RESOURCES,
 } from 'common';
 import { gameRooms } from '../store';
 import { broadcastRoom } from '../broadcast';
-import { HandlerContext, blockIfFinished } from './context';
+import { HandlerContext, blockIfCannotAct } from './context';
 
 /**
  * Development-card handlers: drawing a card from the shared deck, playing a
- * card from the hand (with per-type effects), and resolving a pending
- * Year-of-Plenty / Monopoly choice.
+ * card from the hand (with per-type effects), resolving a pending
+ * Year-of-Plenty / Monopoly choice, and resolving a Knight (move the robber,
+ * or spawn a soldier where the player already has one).
  */
 export function registerDevCardHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
@@ -28,7 +30,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
@@ -81,7 +83,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not found in room' });
@@ -116,11 +118,10 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       return;
     }
 
-    // The knight holds its card until the robber is placed (the moveRobber
-    // handler consumes it and performs the steal); Year of Plenty and
-    // Monopoly hold their cards until the player makes their choice (the
-    // resolveDevCardChoice handler consumes them); every other card
-    // resolves immediately and is removed from the hand now.
+    // Knight, Year of Plenty and Monopoly hold their cards until the player
+    // makes their choice (the knight's robber branch is consumed by the
+    // moveRobber handler; the rest by their resolve handlers); every other
+    // card resolves immediately and is removed from the hand now.
     const holdsCard =
       card === 'knight' || card === 'year_of_plenty' || card === 'monopoly';
     if (!holdsCard) {
@@ -129,11 +130,10 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
 
     switch (card) {
       case 'knight': {
-        // Knight: the player chooses where to place the robber (see the
-        // moveRobber handler, which consumes the card and steals a card
-        // from a player adjacent to the chosen hex).
+        // Knight: the player picks an effect — move the robber, or spawn a
+        // soldier (see chooseKnightEffect / knightSpawnSoldier).
         if (!room.board) break;
-        room.robberMove = { player: player.name, reason: 'knight' };
+        room.devCardChoice = { player: player.name, card: 'knight', cardIndex };
         break;
       }
 
@@ -182,13 +182,13 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
-      if (blockIfFinished(room, socket)) return;
+      if (blockIfCannotAct(room, socket)) return;
       const player = room.players.find((p) => p.id === socket.id);
       if (!player) {
         socket.emit('error', { message: 'Player not found in room' });
         return;
       }
-      if (!room.devCardChoice || room.devCardChoice.player !== player.name) {
+      if (!room.devCardChoice || room.devCardChoice.player !== player.name || room.devCardChoice.card === 'knight') {
         socket.emit('error', { message: 'No pending card choice' });
         return;
       }
@@ -247,4 +247,74 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       broadcastRoom(io, room);
     }
   );
+
+  // Knight: pick the effect. 'robber' hands off to the moveRobber flow (which
+  // consumes the card); 'spawn' waits for knightSpawnSoldier. Re-picking is
+  // allowed until the knight resolves (e.g. back out of spawn mode).
+  socket.on('chooseKnightEffect', (data: { roomId: string; effect: string }) => {
+    const { roomId, effect } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (blockIfCannotAct(room, socket)) return;
+    const player = room.players.find((p) => p.id === socket.id);
+    const choice = room.devCardChoice;
+    if (!player || !choice || choice.player !== player.name || choice.card !== 'knight') {
+      socket.emit('error', { message: 'No pending knight card' });
+      return;
+    }
+    if (effect === 'robber') {
+      room.devCardChoice = null;
+      room.robberMove = { player: player.name, reason: 'knight' };
+    } else if (effect === 'spawn') {
+      room.devCardChoice = { ...choice, spawn: true };
+    } else {
+      socket.emit('error', { message: 'Invalid knight effect' });
+      return;
+    }
+    applyBonuses(room);
+    broadcastRoom(io, room);
+  });
+
+  // Knight spawn: a free soldier joins a vertex where the player already has
+  // a soldier. Like a recruit, it can't move or act this turn (Rule 24).
+  socket.on('knightSpawnSoldier', (data: { roomId: string; vertexId: string }) => {
+    const { roomId, vertexId } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (blockIfCannotAct(room, socket)) return;
+    const board = room.board;
+    const player = room.players.find((p) => p.id === socket.id);
+    const choice = room.devCardChoice;
+    if (!board || !player || !choice || choice.player !== player.name || choice.card !== 'knight' || !choice.spawn) {
+      socket.emit('error', { message: 'No pending knight spawn' });
+      return;
+    }
+    const check = canKnightSpawnAt(board, player.name, vertexId);
+    if (!check.allowed) {
+      socket.emit('error', { message: check.reason ?? 'Cannot spawn a soldier here' });
+      return;
+    }
+    const soldierId = `soldier_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    board.soldiers[soldierId] = {
+      id: soldierId,
+      owner: player.name,
+      injured: false,
+      vertexId,
+      type: 'infantry',
+      stationed: true,
+    };
+    room.turnState.soldiersCreatedThisTurn.push(soldierId);
+    room.turnState.soldiersActedThisTurn.push(soldierId);
+    // Consume the held knight and clear the pending choice.
+    player.developmentCards.splice(choice.cardIndex, 1);
+    room.devCardChoice = null;
+    applyBonuses(room);
+    broadcastRoom(io, room);
+  });
 }

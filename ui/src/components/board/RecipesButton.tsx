@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import {
+  BONUS_VP,
   CityPrice,
   DevelopmentCardPrice,
   HealSoldierAmount,
   HealSoldierResources,
+  LARGEST_ARMY_MIN,
+  LONGEST_ROAD_MIN,
   Price,
   RESOURCES,
   RoadPrice,
   SettlementPrice,
   SoldierPrice,
+  WARMONGER_MIN,
+  WIN_VP,
 } from 'common';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import { backdropClass, modalCardClass } from '../../styles';
@@ -39,7 +44,20 @@ const RECIPES: Recipe[] = [
   { icon: '🎴', name: 'Development card', price: DevelopmentCardPrice, note: 'Draw a random development card.' },
 ];
 
-/** The cost as one icon chip per card (e.g. 🌾 🌾 ⛏️ ⛏️ ⛏️). */
+/**
+ * Every way to earn victory points, read from the shared scoring constants
+ * (see `applyBonuses`). Bonuses have one holder; a tie keeps the current one.
+ */
+const ACHIEVEMENTS: { icon: string; name: string; vp: number; note: string }[] = [
+  { icon: '🏠', name: 'Settlement', vp: 1, note: 'Each settlement you own.' },
+  { icon: '🏰', name: 'City', vp: 2, note: 'Each city you own.' },
+  { icon: '⭐', name: 'Victory Point card', vp: 1, note: 'Counted as soon as you draw it.' },
+  { icon: '🛤️', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
+  { icon: '🛡️', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
+  { icon: '🏆', name: 'Warmonger', vp: BONUS_VP, note: `Most battles won against players, at least ${WARMONGER_MIN}.` },
+];
+
+/** The cost as one icon chip per card (e.g. 🌾 🌾 🪨 🪨 🪨). */
 const CostChips: React.FC<{ price: Price }> = ({ price }) => (
   <span className="flex flex-wrap gap-1">
     {RESOURCES.filter((k) => price[k] > 0).map((k) => (
@@ -54,12 +72,19 @@ const CostChips: React.FC<{ price: Price }> = ({ price }) => (
   </span>
 );
 
+/** Info modal tabs, in display order. */
+const TABS = [
+  { key: 'recipes', label: '🧾 Recipes' },
+  { key: 'achievements', label: '🏅 Achievements' },
+] as const;
+
 /**
- * ⓘ button on the map (under the 🤝 trade button). Opens a modal listing every
- * build recipe and its cost.
+ * ⓘ button on the map (under the 🤝 trade button). Opens a tabbed info modal:
+ * every build recipe and its cost, and every way to earn victory points.
  */
 const RecipesButton: React.FC = () => {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('recipes');
 
   // Escape closes the window (stopPropagation keeps the board's Escape
   // handler from also clearing the map selection).
@@ -80,8 +105,8 @@ const RecipesButton: React.FC = () => {
         type="button"
         onClick={() => setOpen(true)}
         onMouseDown={(e) => e.stopPropagation()}
-        title="Recipes"
-        aria-label="Show build recipes"
+        title="Info"
+        aria-label="Show recipes and achievements"
         className="absolute top-16 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full bg-white border-2 border-gray-300 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 hover:border-blue-500 transition-transform"
       >
         <span aria-hidden="true">ℹ️</span>
@@ -98,37 +123,78 @@ const RecipesButton: React.FC = () => {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Recipes"
+            aria-label="Recipes and achievements"
             className={`${modalCardClass} max-w-[440px] max-h-[90vh] overflow-y-auto`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="m-0 text-lg font-bold text-gray-800">ℹ️ Recipes</h2>
+              <h2 className="m-0 text-lg font-bold text-gray-800">ℹ️ Info</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close recipes"
+                aria-label="Close info"
                 className="w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
               >
                 ✕
               </button>
             </div>
-            <ul className="m-0 p-0 list-none flex flex-col gap-2">
-              {RECIPES.map((r) => (
-                <li key={r.name} className="border border-gray-200 rounded-md p-2 bg-white">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-semibold text-gray-800">
-                      {r.icon} {r.name}
-                    </span>
-                    {r.price ? (
-                      <CostChips price={r.price} />
-                    ) : (
-                      <span className="text-[13px]">{r.costText}</span>
-                    )}
-                  </div>
-                  <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
-                </li>
+            <div role="tablist" className="flex gap-1 mb-3 border-b border-gray-200">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`px-3 py-1.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer ${
+                    tab === t.key
+                      ? 'border-blue-600 text-blue-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {t.label}
+                </button>
               ))}
-            </ul>
+            </div>
+            {tab === 'recipes' ? (
+              <ul role="tabpanel" className="m-0 p-0 list-none flex flex-col gap-2">
+                {RECIPES.map((r) => (
+                  <li key={r.name} className="border border-gray-200 rounded-md p-2 bg-white">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[14px] font-semibold text-gray-800">
+                        {r.icon} {r.name}
+                      </span>
+                      {r.price ? (
+                        <CostChips price={r.price} />
+                      ) : (
+                        <span className="text-[13px]">{r.costText}</span>
+                      )}
+                    </div>
+                    <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div role="tabpanel">
+                <p className="text-[12px] text-gray-500 m-0 mb-2">
+                  First to {WIN_VP} VP wins. Bonuses go to one player; a tie keeps the current holder.
+                </p>
+                <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                  {ACHIEVEMENTS.map((a) => (
+                    <li key={a.name} className="border border-gray-200 rounded-md p-2 bg-white">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[14px] font-semibold text-gray-800">
+                          {a.icon} {a.name}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-[12px] font-bold text-amber-800">
+                          +{a.vp} VP
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-gray-500 m-0 mt-1">{a.note}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}

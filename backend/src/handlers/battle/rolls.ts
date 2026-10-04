@@ -8,7 +8,7 @@ import {
 } from 'common';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 import { applyRobberFightOutcome } from './resolution';
 
 /**
@@ -27,7 +27,7 @@ export function registerBattleRollHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
-      if (blockIfFinished(room, socket)) return;
+      if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board || !room.battleState) {
         socket.emit('error', { message: 'No battle in progress' });

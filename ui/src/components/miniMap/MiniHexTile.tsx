@@ -24,6 +24,7 @@ export const MiniHexTile: React.FC<{ hex: HexNode }> = ({ hex }) => {
           fill="#FFF"
           fontSize={16}
           fontWeight="bold"
+          className="select-none"
         >
           {hex.rollNumber}
         </text>

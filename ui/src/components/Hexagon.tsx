@@ -59,6 +59,7 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           paintOrder="stroke"
           stroke="#000"
           strokeWidth={ROLL_NUMBER_STROKE_W}
+          className="select-none"
           style={litUp ? { filter: `drop-shadow(0 0 5px ${LIT_HEX_GOLD})` } : undefined}
         >
           {hex.rollNumber}

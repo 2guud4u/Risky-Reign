@@ -106,12 +106,12 @@ function resolveInjuredFight(
 
 /**
  * Resolve the current round once every committed soldier has rolled.
- * Returns the post-round battle state: 'betweenRounds' when both sides still
- * have survivors (the attacker decides whether to continue), 'rolling' when
- * the last healthy defender fell but injured defenders remain — the battle
- * switches into an injured-fight roll-off (Rules.md lines 9, 30) — and
- * `battleComplete` true when a side is eliminated (the backend then clears
- * the battle state).
+ * Returns the post-round battle state ('betweenRounds': the attacker
+ * continues or ends) and `battleComplete` true when a side has no living,
+ * uninjured troops left. Injured defenders left behind when the last healthy
+ * one falls do NOT fight on: the battle ends and they stay injured (they
+ * reposition like any injured survivor). Attacking them is a separate
+ * injured fight that needs a fresh action.
  */
 export function resolveBattleRoundIfComplete(
   battleState: BattleState
@@ -149,39 +149,14 @@ export function resolveBattleRoundIfComplete(
   const livingDefenders = sideOf(updatedStates, battleState.defender).filter(
     (s) => !s.dead && !s.injured
   ).length;
-  // A normal round that eliminated the last UNINJURED defender doesn't end
-  // the battle when injured defenders remain (Rules.md lines 9, 30): those
-  // injured troops roll off against the attacker's survivors — defender
-  // higher → they flee (stay injured); otherwise they die. The attacker
-  // keeps their rolled dice and sits the roll-off out ("attacker has left");
-  // only the injured defenders roll, so their dice (including troops that
-  // were injured this round) are reset. If the attacker is fully eliminated
-  // there is nothing left to roll against, so the battle ends as normal.
-  const injuredDefenders = sideOf(updatedStates, battleState.defender).filter(
-    (s) => !s.dead && s.injured
-  ).length;
-  const defendersRollOff =
-    !battleState.robberFight &&
-    !battleState.injuredFight &&
-    livingAttackers > 0 &&
-    livingDefenders === 0 &&
-    injuredDefenders > 0;
-  if (defendersRollOff) {
-    for (const s of sideOf(updatedStates, battleState.defender)) {
-      s.rollNum = null;
-    }
-  }
-  const battleComplete =
-    battleState.robberFight || livingAttackers === 0 || (livingDefenders === 0 && !defendersRollOff);
+  const battleComplete = battleState.robberFight || livingAttackers === 0 || livingDefenders === 0;
 
   // Keep the rolled values so the UI can show how the dice compared this
   // round. Rolls are reset by the backend when the attacker continues.
   const updated: BattleState = {
     ...battleState,
     states: updatedStates,
-    phase: defendersRollOff ? 'rolling' : 'betweenRounds',
-    round: defendersRollOff ? battleState.round + 1 : battleState.round,
-    injuredFight: battleState.injuredFight || defendersRollOff,
+    phase: 'betweenRounds',
   };
 
   return { updatedBattleState: updated, deadSoldierIds, injuredSoldierIds, battleComplete };

@@ -31,6 +31,8 @@ export interface BubbleAction {
   angle?: number;
   /** Choice bubbles only: expand upward into a vertical column (attack). */
   column?: boolean;
+  /** Column choices only: a player color swatch shown beside the label (attack target). */
+  color?: string;
 }
 
 interface ActionBubbleProps {
@@ -148,28 +150,60 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
         }
         // Expanded choice pill: the action's icon/label plus one button per
         // eligible choice (ineligible ones, e.g. no Wheat, are not shown).
-        // A column bubble (attack) instead stacks the options vertically,
-        // extending upward from the base bubble.
         const isColumn = !!a.column;
+        if (isColumn) {
+          // Column (attack): the bubble stays put, lit up, and the options
+          // pop up above it as a stack of name chips — nearest first.
+          const options = a.choices?.filter((c) => c.eligible) ?? [];
+          return (
+            <div key={a.key} role="group" aria-label={a.label} className="relative flex flex-col items-center">
+              <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center gap-2">
+                {options.map((c, i) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => {
+                      c.run();
+                      setExpanded(null);
+                    }}
+                    aria-label={`${a.label}: ${c.label}`}
+                    title={c.label}
+                    className="bubble-pop flex items-center gap-2 h-10 pl-2 pr-4 rounded-full bg-white border-2 shadow-lg text-[14px] font-bold text-gray-800 whitespace-nowrap cursor-pointer transition-transform duration-150 hover:scale-110"
+                    style={{ borderColor: c.color ?? '#d1d5db', animationDelay: `${i * 50}ms` }}
+                  >
+                    <span
+                      className="w-6 h-6 rounded-full border-2 border-white shadow-inner"
+                      style={{ background: c.color ?? '#9ca3af' }}
+                      aria-hidden="true"
+                    />
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => onBubbleClick(a)}
+                aria-expanded="true"
+                aria-label={`Close ${a.label}`}
+                title={a.label}
+                className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-blue-700 bg-blue-600 ring-4 ring-blue-300/60 shadow-lg text-2xl leading-none cursor-pointer transition-all duration-200"
+              >
+                <span aria-hidden="true">{a.icon}</span>
+              </button>
+            </div>
+          );
+        }
         return (
           <div
             key={a.key}
             role="group"
             aria-label={a.label}
-            className={
-              isColumn
-                ? 'flex flex-col items-end gap-2 pl-2 pr-2 py-2 rounded-2xl border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200'
-                : 'flex items-center gap-2 pl-3 pr-4 h-14 rounded-full border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200'
-            }
+            className="flex items-center gap-2 pl-3 pr-4 h-14 rounded-full border-2 border-blue-700 bg-blue-600 text-white shadow-lg transition-all duration-200"
           >
-            {!isColumn && (
-              <>
-                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-2xl leading-none" aria-hidden="true">
-                  {a.icon}
-                </span>
-                <span className="text-[13px] font-bold whitespace-nowrap">{a.label}</span>
-              </>
-            )}
+            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-2xl leading-none" aria-hidden="true">
+              {a.icon}
+            </span>
+            <span className="text-[13px] font-bold whitespace-nowrap">{a.label}</span>
             {a.choices
               ?.filter((c) => c.eligible)
               .map((c) => (
@@ -182,11 +216,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                   }}
                   aria-label={`Confirm: ${c.label}`}
                   title={`${c.label} — ${c.costText}`}
-                  className={
-                    isColumn
-                      ? 'flex items-center gap-2 px-3 h-9 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105'
-                      : 'flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105'
-                  }
+                  className="flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105"
                 >
                   {c.direction ? (
                     <svg
@@ -201,24 +231,9 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                   ) : (
                     <span aria-hidden="true">{c.icon}</span>
                   )}
-                  {isColumn ? (
-                    <>
-                      <span className="text-[13px] font-bold">{c.label}</span>
-                      <span className="text-[12px] opacity-90">{c.costText}</span>
-                    </>
-                  ) : (
-                    <span className="text-[12px] font-bold">{c.costText}</span>
-                  )}
+                  <span className="text-[12px] font-bold">{c.costText}</span>
                 </button>
               ))}
-            {isColumn && (
-              <span className="flex items-center gap-2 pl-2 pr-3 py-1">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-xl leading-none" aria-hidden="true">
-                  {a.icon}
-                </span>
-                <span className="text-[13px] font-bold">{a.label}</span>
-              </span>
-            )}
           </div>
         );
       })}

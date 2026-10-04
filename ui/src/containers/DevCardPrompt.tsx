@@ -7,7 +7,9 @@ import { RESOURCE_ICONS } from '../utils/resourceIcons';
 
 /**
  * Development-card choice prompt. Shown when the current player plays a
- * Year of Plenty or Monopoly card. The player chooses:
+ * Knight, Year of Plenty or Monopoly card. The player chooses:
+ *  - Knight: move the robber (no steal), or spawn a soldier (then picks a vertex with
+ *    one of their soldiers on the map — no modal while placing);
  *  - Year of Plenty: 2 resources to take from the bank (may be 2 of the
  *    same type);
  *  - Monopoly: 1 resource type to name (all other players give their
@@ -16,7 +18,7 @@ import { RESOURCE_ICONS } from '../utils/resourceIcons';
  */
 const DevCardPrompt: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
-  const { resolveDevCardChoice } = useSocket();
+  const { resolveDevCardChoice, chooseKnightEffect } = useSocket();
   const [counts, setCounts] = useState<Record<ResourceKey, number>>({
     Wood: 0,
     Brick: 0,
@@ -34,11 +36,41 @@ const DevCardPrompt: React.FC = () => {
   }, [active]);
 
   if (!gameRoom || !currentPlayer || !gameRoom.devCardChoice) return null;
-  const { player, card } = gameRoom.devCardChoice;
+  const { player, card, spawn } = gameRoom.devCardChoice;
   const isYearOfPlenty = card === 'year_of_plenty';
 
   // Other players see the "choosing a card" notice in the shared NoticeRail.
   if (player !== currentPlayer.name) return null;
+
+  if (card === 'knight') {
+    // Spawn picked: the player places it on the map (see the NoticeRail hint).
+    if (spawn) return null;
+    const options = [
+      { effect: 'robber', icon: '🥷', title: 'Move robber', sub: 'no steal' },
+      { effect: 'spawn', icon: '🫵', title: 'Spawn soldier', sub: 'where you have one' },
+    ] as const;
+    return (
+      <div className={backdropClass}>
+        <div className={`${modalCardClass} max-w-[420px]`}>
+          <h2 className="text-lg font-bold text-gray-800 mb-3">Knight</h2>
+          <div className="flex gap-3">
+            {options.map((o) => (
+              <button
+                key={o.effect}
+                type="button"
+                onClick={() => chooseKnightEffect(gameRoom.id, o.effect)}
+                className="flex-1 py-4 rounded-md border-2 border-gray-300 bg-white hover:border-blue-500 hover:bg-blue-50 flex flex-col items-center gap-1 cursor-pointer"
+              >
+                <span className="text-3xl">{o.icon}</span>
+                <span className="text-sm font-semibold text-gray-800">{o.title}</span>
+                <span className="text-[11px] text-gray-500">{o.sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const total = RESOURCES.reduce((sum, r) => sum + (counts[r] ?? 0), 0);
 

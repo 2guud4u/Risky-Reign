@@ -37,6 +37,21 @@ export function canRecruitSoldierAt(
 }
 
 /**
+ * Knight-card spawn check (Rules.md "Knight Dev Card"): the new soldier joins
+ * a vertex where the player already has a soldier. Turn ownership and the
+ * held card are checked by the caller (they live on the room, not the board).
+ */
+export function canKnightSpawnAt(board: Board, playerName: string, vertexId: VertexId): BuildCheck {
+  if (!board.vertices[vertexId]) return { allowed: false, reason: 'Vertex not found' };
+  const hasOwnSoldier = Object.values(board.soldiers).some(
+    (s) => s.vertexId === vertexId && s.owner === playerName
+  );
+  if (!hasOwnSoldier)
+    return { allowed: false, reason: 'A knight can only spawn where you already have a soldier' };
+  return { allowed: true, reason: null };
+}
+
+/**
  * Authoritative soldier heal check (Rules.md line 27): only during Action phase,
  * on your turn, for one of your own injured soldiers standing on a settlement you
  * own, and you must afford the heal cost — 1 card of either Wheat or Sheep.

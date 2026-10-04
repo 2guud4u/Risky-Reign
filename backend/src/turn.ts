@@ -4,6 +4,7 @@ import { GameRoom, nextTurnPosition } from 'common';
  * Advance the room's turn/phase state machine based on the current phase.
  * The order itself comes from `nextTurnPosition` (shared with the UI's turn
  * timeline); this applies it plus each transition's per-phase resets.
+ * Knocked-out players are skipped (they spectate, no more turns).
  * Mutates `room.turnState` (and `room.roll` when a new Dice phase begins).
  */
 export function advanceTurn(room: GameRoom): void {
@@ -12,7 +13,8 @@ export function advanceTurn(room: GameRoom): void {
   if (room.gameStatus === 'finished') return;
   const turnState = room.turnState;
   const from = turnState.phase;
-  const next = nextTurnPosition(turnState);
+  const knockedOut = room.players.filter((p) => p.eliminated).map((p) => p.name);
+  const next = nextTurnPosition(turnState, knockedOut);
   room.turnState = { ...turnState, ...next, undoLog: [] };
 
   if (from === 'SetUp' && next.phase === 'SetUp') {
@@ -43,4 +45,14 @@ export function advanceTurn(room: GameRoom): void {
       for (const p of room.players) p.devCardsBoughtThisTurn = 0;
     }
   }
+}
+
+/**
+ * Pass the turn when the acting player has been knocked out mid-turn (their
+ * last soldier died in their own battle). They can't act any more, so the
+ * turn would otherwise wedge. Waits until the battle is closed.
+ */
+export function passKnockedOutTurn(room: GameRoom): void {
+  if (room.gameStatus !== 'playing' || room.battleState) return;
+  if (room.players.find((p) => p.name === room.turnState.player)?.eliminated) advanceTurn(room);
 }

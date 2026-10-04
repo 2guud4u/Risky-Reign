@@ -50,7 +50,8 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
   if (!gameRoom || !currentPlayer) return null;
   const colors = playerColorMap(gameRoom);
-  const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD)];
+  const knockedOut = gameRoom.players.filter((p) => p.eliminated).map((p) => p.name);
+  const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD, knockedOut)];
   return createPortal(
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] max-w-[calc(100vw-2rem)] rounded-xl bg-white/95 shadow-2xl border border-gray-200 p-3">
       <div className="flex items-center mb-2">

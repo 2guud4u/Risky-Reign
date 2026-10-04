@@ -8,11 +8,11 @@ import { OpenTradeDetail } from '../../types/openTrade';
 
 /**
  * 🤝 button in the top-left corner of the map that opens the trade window
- * (`TradeTab`). Green ring = it's your turn and you can trade; grey = only
- * the turn owner can trade (the tooltip names them). The red badge counts
- * offers waiting on your decision: a direct offer to you, another player's
- * open ("Anyone") offer nobody has taken yet, or an open offer of yours that
- * someone took.
+ * (`TradeTab`). While you can trade (your turn) it is solid green with a
+ * pulsing halo and a "Trade" tag; otherwise it is greyed (the tooltip names
+ * the player who can trade). The red badge counts offers waiting on your
+ * decision: a direct offer to you, another player's open ("Anyone") offer
+ * nobody has taken yet, or an open offer of yours that someone took.
  */
 const TradeButton: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -67,11 +67,26 @@ const TradeButton: React.FC = () => {
         onMouseDown={(e) => e.stopPropagation()}
         title={tradeHint}
         aria-label={waiting > 0 ? `${tradeHint} (${waiting} offer${waiting === 1 ? '' : 's'} waiting)` : tradeHint}
-        className={`absolute top-2 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full bg-white border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 hover:border-blue-500 transition-transform ${
-          canTrade ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300 opacity-80'
+        className={`absolute top-2 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 transition-transform ${
+          canTrade
+            ? 'bg-green-500 border-green-700 hover:bg-green-400'
+            : 'bg-white border-gray-300 opacity-80 hover:border-blue-500'
         }`}
       >
-        <span aria-hidden="true">🤝</span>
+        {canTrade && (
+          // Soft pulsing halo: "you can trade now".
+          <span className="trade-halo absolute inset-0 rounded-full bg-green-400" aria-hidden="true" />
+        )}
+        <span className="relative" aria-hidden="true">🤝</span>
+        {canTrade && (
+          // Tag beside the button so the cue reads at a glance.
+          <span
+            className="absolute left-full ml-2 px-2 py-0.5 rounded-full bg-green-600 text-white text-[12px] font-bold whitespace-nowrap shadow pointer-events-none"
+            aria-hidden="true"
+          >
+            Trade
+          </span>
+        )}
         {waiting > 0 && (
           // Red notification dot with the count; a white ring separates it from the map.
           <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 ring-2 ring-white text-white text-[11px] font-bold flex items-center justify-center">
@@ -92,7 +107,7 @@ const TradeButton: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-label="Trade"
-            className={`${modalCardClass} max-w-[440px] max-h-[90vh] overflow-y-auto`}
+            className={`${modalCardClass} max-w-[480px] max-h-[90vh] overflow-y-auto`}
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="m-0 text-lg font-bold text-gray-800">🤝 Trade</h2>

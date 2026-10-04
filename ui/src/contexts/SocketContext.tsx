@@ -37,6 +37,8 @@ interface SocketContextType {
   chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
   resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
   resolveDevCardChoice: (playerId: string, resources: string[], roomId: string) => void;
+  chooseKnightEffect: (roomId: string, effect: 'robber' | 'spawn') => void;
+  knightSpawnSoldier: (roomId: string, vertexId: string) => void;
   healSoldier: (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => void;
   rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
@@ -82,6 +84,8 @@ const SocketContext = createContext<SocketContextType>({
   chooseSteal: () => { },
   resolveDiscard: () => { },
   resolveDevCardChoice: () => { },
+  chooseKnightEffect: () => { },
+  knightSpawnSoldier: () => { },
   healSoldier: () => { },
   startAttack: () => { },
   rollBattleDie: () => { },
@@ -145,6 +149,12 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   const resolveDevCardChoice = (playerId: string, resources: string[], roomId: string) =>
     emitAction(socket, 'resolveDevCardChoice', { roomId, playerId, resources }, { requirePlayerId: true });
+
+  const chooseKnightEffect = (roomId: string, effect: 'robber' | 'spawn') =>
+    emitAction(socket, 'chooseKnightEffect', { roomId, effect });
+
+  const knightSpawnSoldier = (roomId: string, vertexId: string) =>
+    emitAction(socket, 'knightSpawnSoldier', { roomId, vertexId });
 
   const healSoldier = (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) =>
     emitAction(socket, 'healSoldier', { roomId, playerId, soldierId, payWith }, { requirePlayerId: true });
@@ -275,6 +285,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         chooseSteal,
         resolveDiscard,
         resolveDevCardChoice,
+        chooseKnightEffect,
+        knightSpawnSoldier,
         healSoldier,
         startAttack,
         rollBattleDie,

@@ -36,7 +36,7 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
             key={player.id}
             className={`border border-white/50 rounded-md p-2 backdrop-blur-sm shadow ${
               player.id === currentPlayerId ? 'bg-blue-50/70' : 'bg-white/70'
-            }`}
+            } ${player.eliminated ? 'opacity-60' : ''}`}
           >
             <div className="flex items-center gap-2 flex-wrap">
               <span
@@ -44,8 +44,16 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
                 style={{ background: player.color || '#999' }}
                 title={player.color}
               />
-              <strong>{player.name}</strong>
+              <strong className={player.eliminated ? 'line-through' : undefined}>{player.name}</strong>
               {player.id === currentPlayerId && <span>(you)</span>}
+              {player.eliminated && (
+                <span
+                  className="text-[12px] text-gray-600 font-semibold"
+                  title="No settlements, cities, or soldiers left — spectating"
+                >
+                  💀 Knocked out
+                </span>
+              )}
               {(player.victoryPoints ?? 0) > 0 && (
                 <span className="text-[12px] text-yellow-700" title="Victory points">
                   ⭐ {player.victoryPoints}

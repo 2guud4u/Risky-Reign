@@ -175,9 +175,8 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
     });
   }
 
-  // Attack: one bubble per enemy player garrisoned here; when several
-  // enemies share the vertex (3 or more groups) they collapse into one
-  // bubble that expands upward into a column of one option per enemy.
+  // Attack: one bubble that expands upward into a column of the enemies
+  // garrisoned here, one named option per enemy.
   const enemyOwners = Array.from(
     new Set(
       Object.values(board.soldiers)
@@ -185,47 +184,34 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
         .map((s) => s.owner)
     )
   );
-  if (enemyOwners.length >= 3) {
+  if (enemyOwners.length > 0) {
     const choices = enemyOwners.map((defender) => {
       const check = attackCheck(group, vertex.id, defender);
       return {
         key: `attack-${defender}`,
         icon: '⚔️',
         label: defender,
-        costText: `with ${group.length}`,
+        costText: 'free',
         check,
         run: () => {
           startAttack(currentPlayer.id, group, vertex.id, gameRoom.id, defender);
           clearPicks();
         },
         eligible: check.allowed,
+        color: gameRoom.players.find((p) => p.name === defender)?.color,
       };
     });
     const anyEligible = choices.some((c) => c.eligible);
     actions.push({
       key: 'attack',
       kind: 'attack',
-      label: `Attack ${enemyOwners.length} with ${group.length}`,
-      costText: 'Pick an enemy',
+      label: `Attack with ${group.length}`,
+      costText: 'Pick who to attack',
       check: anyEligible ? ALLOWED : choices[0].check,
       run: () => {}, // expanded bubble: an enemy is picked instead
       choices,
       column: true, // expand upward into a vertical column
     });
-  } else {
-    for (const defender of enemyOwners) {
-      actions.push({
-        key: `attack-${defender}`,
-        kind: 'attack',
-        label: `Attack ${defender} with ${group.length}`,
-        costText: 'free',
-        check: attackCheck(group, vertex.id, defender),
-        run: () => {
-          startAttack(currentPlayer.id, group, vertex.id, gameRoom.id, defender);
-          clearPicks();
-        },
-      });
-    }
   }
 
   // Capture: a settlement/city here that isn't yours. A capture takes one

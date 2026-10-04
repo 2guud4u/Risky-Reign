@@ -3,10 +3,11 @@ Actions:
 Spawn, move, heal, attack, capture settlement/city, upgrade/downgrade soldier, unstation/destation cannon, sneak
 Capturing a settlement/city also transfers to you every road sandwiched between the captured one and your settlements/cities — a road chain (through empty vertices only) linking them becomes your color
 Clockwise to persons turn
+Knocked out: a player with no settlements, no cities, and no alive soldiers (injured soldiers count as alive) is knocked out — they get no more turns and can't act, but can still spectate. The last player standing wins.
 Wheat can be played for an extra movement
 Specific Battle rules
 When attacking, you choose how many soldiers to attack with. Defender defend with whatever is on the defending turf. The attacker can continue attack as long as they have soldier but soldier amount is locked.
-When battling in turf with a mix between injured and full health soldiers. You roll the first round for only full health soldiers. Finish that battle round, keep dice, attacker has left. Defender then rolls for their injured soldiers. Attacker only used one action for this.
+When battling in turf with a mix between injured and full health soldiers, only the full health soldiers fight. Once they are all gone the battle ends — the injured defenders do not fight on and stay injured. Attacking them is a separate fight that needs a new action.
 When cannon splash attack on own tile, canon itself is immune but ally troops can still get hit
 When mix fight with cannon in turf, cannon is lowest roll
 Reroll if tie on ambiguous turf
@@ -60,7 +61,7 @@ Only shoot once per attack
 
 
 Knight Dev Card
-Can use to spawn soldier in a battle or move robber and steal or look at other players battle line up
+Can use to spawn soldier in a battle or move robber (no steal — only a rolled 7 steals) or look at other players battle line up
 
 Resource mines
 Randomly place a few huts(monopoly houses) in the middle of hexes (perferably one on each resource). You can claim mines by having a soldier go into it. When claimed, the resource of that hex is claimed when dice rolls on it. Cannons can not hold a mine.

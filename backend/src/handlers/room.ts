@@ -18,6 +18,7 @@ import {
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
+import { passKnockedOutTurn } from '../turn';
 import { DEV_PRESET, applyDevPreset } from '../devPreset';
 import { broadcastRoom } from '../broadcast';
 import { MAX_ROOMS } from '../constants';
@@ -130,6 +131,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       token: seatToken,
       resources: freshResourceCount(STARTING_RESOURCES),
       victoryPoints: 0,
+      eliminated: false,
       developmentCards: [],
       freeRoadsLeft: 0,
       devCardsBoughtThisTurn: 0,
@@ -387,6 +389,8 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     socket.leave(roomId);
     applyBonuses(room);
+    // The turn may have landed on a knocked-out player.
+    passKnockedOutTurn(room);
     broadcastRoom(io, room);
   });
 

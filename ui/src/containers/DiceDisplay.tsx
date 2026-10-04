@@ -52,8 +52,9 @@ const DiceDisplay: React.FC = () => {
 
   // Giant roller: while waiting for the roll, plus the linger after it. A 7
   // holds the Dice phase (robber move + steal still pending), so otherwise
-  // hide as soon as both dice are in.
-  if ((turn.phase === 'Dice' && !bothRolled) || linger) {
+  // hide as soon as both dice are in. Never once the game is over — nothing
+  // is left to roll, and it would cover the results / final map.
+  if (gameRoom.gameStatus !== 'finished' && ((turn.phase === 'Dice' && !bothRolled) || linger)) {
     const isDicePlayer = turn.player === currentPlayer.name;
     const status = bothRolled
       ? `${turn.player} rolled ${(roll.die1 ?? 0) + (roll.die2 ?? 0)}`

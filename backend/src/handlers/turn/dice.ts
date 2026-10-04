@@ -8,7 +8,7 @@ import {
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 
 /**
  * Dice-roll handler: rolling the dice one die per click during the Dice
@@ -24,7 +24,7 @@ export function registerDiceHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
       socket.emit('error', { message: 'Game board is not available' });
@@ -44,7 +44,7 @@ export function registerDiceHandlers(ctx: HandlerContext): void {
 
     // A pending 7 (robber move or steal) must be resolved before any
     // further roll.
-    if (room.robberMove?.reason === 'seven' || room.steal?.reason === 'seven') {
+    if (room.robberMove?.reason === 'seven' || room.steal) {
       socket.emit('error', { message: 'Resolve the 7 before rolling again' });
       return;
     }
@@ -70,9 +70,11 @@ export function registerDiceHandlers(ctx: HandlerContext): void {
         room.robberMove = { player: dicePlayer, reason: 'seven' };
         // Standard 7: every player holding 8+ resource cards must discard
         // down to half (floor). Discards must be resolved before the
-        // robber can be moved.
+        // robber can be moved. Knocked-out players can't act, so they're
+        // exempt (their discard would wedge the Dice phase).
         const discards: Record<string, number> = {};
         for (const p of room.players) {
+          if (p.eliminated) continue;
           const hand = RESOURCES.reduce((sum, r) => sum + p.resources[r], 0);
           if (hand >= 8) discards[p.name] = Math.floor(hand / 2);
         }

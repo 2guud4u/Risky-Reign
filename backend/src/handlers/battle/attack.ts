@@ -1,7 +1,7 @@
 import { canStartBattle, createBattleState } from 'common';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 
 /**
  * Battle-start handler: beginning an attack on a vertex (or a robber
@@ -19,7 +19,7 @@ export function registerBattleAttackHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
-      if (blockIfFinished(room, socket)) return;
+      if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board) {
         socket.emit('error', { message: 'Game board is not available' });

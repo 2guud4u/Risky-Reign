@@ -36,7 +36,7 @@ export const DEVELOPMENT_CARD_META: Record<DevelopmentCardType, { label: string;
   knight: {
     label: 'Knight',
     icon: '⚔️',
-    description: 'Move the robber to a new hex and steal a random resource card from a player next to that hex.',
+    description: 'Either move the robber (no steal), or spawn a soldier where you already have one.',
   },
   road_building: {
     label: 'Road Building',

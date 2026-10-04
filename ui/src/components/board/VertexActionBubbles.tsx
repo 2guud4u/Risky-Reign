@@ -8,8 +8,9 @@ import ActionBubbles, { BubbleAction } from './ActionBubbles';
 /** Emoji shown in each collapsed build bubble. */
 const ICONS: Record<VertexBuildAction['key'], string> = {
   settlement: '🏠',
-  city: '⬆️',
+  city: '🏰',
   soldier: '🫵',
+  knight: '⚔️',
 };
 
 /** Emoji shown in each collapsed soldier-action bubble. */
@@ -35,7 +36,7 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
       key: a.key,
       icon: ICONS[a.key],
       label: a.label,
-      costText: priceLabel(a.price),
+      costText: a.key === 'knight' ? 'Knight card' : priceLabel(a.price),
       check: a.check,
       run: a.run,
     })),

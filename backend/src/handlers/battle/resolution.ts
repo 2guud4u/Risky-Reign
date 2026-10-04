@@ -11,7 +11,7 @@ import {
 } from 'common';
 import { gameRooms, freshResourceCount } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfFinished } from '../context';
+import { HandlerContext, blockIfCannotAct } from '../context';
 
 /**
  * Battle-resolution handlers and helpers: committing a resolved round's
@@ -33,7 +33,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board || !room.battleState) {
       socket.emit('error', { message: 'No battle in progress' });
@@ -99,7 +99,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    if (blockIfFinished(room, socket)) return;
+    if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board || !room.battleState) {
       socket.emit('error', { message: 'No battle in progress' });
@@ -139,7 +139,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
-      if (blockIfFinished(room, socket)) return;
+      if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board) {
         socket.emit('error', { message: 'Game board is not available' });

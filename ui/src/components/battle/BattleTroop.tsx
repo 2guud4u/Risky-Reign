@@ -10,7 +10,11 @@ import {
   SOLDIER_ICON_HEIGHT,
   SOLDIER_ICON_LIFT,
   SOLDIER_ICON_WIDTH,
+  TROOP_LABEL_OUTLINE,
+  TROOP_LABEL_OUTLINE_WIDTH,
   TROOP_LABEL_SIZE,
+  TROOP_ROLL_BADGE_FILL,
+  TROOP_ROLL_BADGE_R,
   TROOP_ROLL_LABEL_SIZE,
 } from './constants';
 
@@ -104,12 +108,27 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
           />
         </svg>
       )}
+      {/* Dark disc behind a rolled number so it reads on any owner color. */}
+      {!dead && !rolling && s.rollNum !== null && (
+        <circle
+          cx={x}
+          cy={y}
+          r={TROOP_ROLL_LABEL_SIZE * TROOP_ROLL_BADGE_R}
+          fill={TROOP_ROLL_BADGE_FILL}
+          pointerEvents="none"
+        />
+      )}
       <text
         x={x}
         y={y}
         textAnchor="middle"
         dominantBaseline="central"
         fill="#fff"
+        // Dark outline painted under the fill: legible on light or dark art.
+        stroke={TROOP_LABEL_OUTLINE}
+        strokeWidth={TROOP_LABEL_OUTLINE_WIDTH}
+        strokeLinejoin="round"
+        paintOrder="stroke"
         fontSize={labelSize}
         fontWeight="bold"
         // Hit the whole dice label, not just the soldier art behind it.

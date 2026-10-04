@@ -28,3 +28,12 @@ export const TROOP_LABEL_SIZE = 10;
 
 /** Label size once the troop's die value is shown. */
 export const TROOP_ROLL_LABEL_SIZE = 13;
+
+/** Dark disc behind a rolled die value so it reads on any owner color. */
+export const TROOP_ROLL_BADGE_FILL = 'rgba(17, 24, 39, 0.75)';
+/** Badge radius, as a multiple of TROOP_ROLL_LABEL_SIZE. */
+export const TROOP_ROLL_BADGE_R = 0.8;
+
+/** Dark outline around every troop label (drawn under the white fill). */
+export const TROOP_LABEL_OUTLINE = 'rgba(17, 24, 39, 0.9)';
+export const TROOP_LABEL_OUTLINE_WIDTH = 3;

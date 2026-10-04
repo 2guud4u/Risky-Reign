@@ -42,35 +42,38 @@ export interface RoomBonuses {
 /**
  * Pending robber placement. While set, the named player must resolve it via
  * the `moveRobber` event: a 'seven' holds the Dice phase from advancing,
- * and a 'knight' holds the card (and its steal) until the robber is placed.
+ * and a 'knight' holds the card until the robber is placed.
  */
 export interface RobberMoveRequest {
   player: string;
   reason: 'seven' | 'knight';
 }
 /**
- * Pending steal. While set, the thief must resolve it via the `chooseSteal`
- * event: they pick one face-down card from one of `victims`. A 'seven'
- * holds the Dice phase until the steal resolves; a 'knight' is an action
- * (no turn advance).
+ * Pending steal after a 7. While set, the thief must resolve it via the
+ * `chooseSteal` event: they pick one face-down card from one of `victims`.
+ * Holds the Dice phase until the steal resolves. (A knight moves the robber
+ * without stealing.)
  */
 export interface StealState {
   thief: string;
   /** Names of eligible victims (adjacent to the robber's hex, ≥ 1 card). */
   victims: string[];
-  reason: 'seven' | 'knight';
 }
 /**
  * Pending development-card choice. While set, the named player must resolve
- * it via the `resolveDevCardChoice` event: Year of Plenty picks 2 resources
- * from the bank; Monopoly names 1 resource type (all other players give
- * their cards of that type). The card is held in the hand until resolved.
+ * it: Year of Plenty picks 2 resources from the bank and Monopoly names 1
+ * resource type (both via `resolveDevCardChoice`); Knight picks its effect
+ * via `chooseKnightEffect` — move the robber, or spawn a soldier (then
+ * `knightSpawnSoldier` on a vertex holding one of their soldiers). The card
+ * is held in the hand until resolved.
  */
 export interface DevCardChoice {
   player: string;
-  card: 'year_of_plenty' | 'monopoly';
+  card: 'year_of_plenty' | 'monopoly' | 'knight';
   /** Index of the held card in the player's hand. */
   cardIndex: number;
+  /** Knight only: true once the player chose to spawn (awaiting a vertex). */
+  spawn?: boolean;
 }
 /**
  * Pending 7-discards, keyed by player name. While a player's entry is set,
