@@ -2,7 +2,7 @@ import { GameRoom } from '../types/Room';
 import { Price, ResourceCount, ResourceKey, TradeCheck, TradeOffer } from '../types/Logic';
 import { Player } from '../types/Player';
 import { Board, VertexNode } from '../types/Board';
-import { RESOURCES, MAX_BANK_TRADE_PER_TURN } from '../Constant';
+import { RESOURCES } from '../Constant';
 
 /** Normalize an unknown input into a valid Price (clamped to >= 0). */
 export function normalizePrice(input: unknown): Price {
@@ -177,9 +177,9 @@ function hasSettlementOnVertex(board: Board, v: VertexNode, player: Player): boo
 /**
  * Check whether a player can trade with the bank. Uses the best available
  * ratio (2:1 on a matching special port, 3:1 on a generic port, else 4:1)
- * and validates the trade: valid distinct resources, enough to give, the
- * per-turn limit (at most 4 of one resource type per turn), and — when a
- * bank supply is provided — enough of the wanted resource in the bank.
+ * and validates the trade: valid distinct resources, enough to give, and —
+ * when a bank supply is provided — enough of the wanted resource in the
+ * bank. There is no per-turn limit on bank trades.
  *
  * @param room - the game room
  * @param playerName - the player attempting the trade
@@ -222,10 +222,6 @@ export function canBankTrade(
   if (player.resources[giveResource] < giveCount) {
     return { allowed: false, reason: `Not enough ${giveResource} (have ${player.resources[giveResource]}, need ${giveCount})` };
   }
-  const tradedThisTurn = player.bankTradesThisTurn[giveResource] ?? 0;
-  if (tradedThisTurn + giveCount > MAX_BANK_TRADE_PER_TURN) {
-    return { allowed: false, reason: `You can only trade ${MAX_BANK_TRADE_PER_TURN} of one resource per turn (already traded ${tradedThisTurn} ${giveResource})` };
-  }
   if (supply && supply[wantResource] < wantCount) {
     return { allowed: false, reason: `Not enough ${wantResource} in supply (have ${supply[wantResource]}, need ${wantCount})` };
   }
@@ -234,7 +230,7 @@ export function canBankTrade(
 
 /**
  * Apply a bank trade: subtract `giveCount` of `giveResource`, add `wantCount` of `wantResource`,
- * record it against the per-turn limit, and deplete the bank supply when provided.
+ * and deplete the bank supply when provided.
  * Mutates the player in place. Returns the number of `wantResource` received.
  */
 export function applyBankTrade(
@@ -250,8 +246,6 @@ export function applyBankTrade(
   const wantCount = Math.floor(giveCount / ratio);
   player.resources[giveResource] -= giveCount;
   player.resources[wantResource] += wantCount;
-  player.bankTradesThisTurn[giveResource] =
-    (player.bankTradesThisTurn[giveResource] ?? 0) + giveCount;
   if (supply) {
     supply[wantResource] -= wantCount;
   }

@@ -9,6 +9,8 @@ interface PlayersListProps {
     largestArmy: Record<string, number>;
     hasLongestRoad: Record<string, boolean>;
     hasLargestArmy: Record<string, boolean>;
+    battlesWon: Record<string, number>;
+    hasWarmonger: Record<string, boolean>;
   };
   currentPlayerId?: string;
 }
@@ -25,6 +27,8 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         const hasRoad = bonuses?.hasLongestRoad?.[player.name] ?? false;
         const hasArmy = bonuses?.hasLargestArmy?.[player.name] ?? false;
         const roadLen = bonuses?.longestRoad?.[player.name] ?? 0;
+        const hasWar = bonuses?.hasWarmonger?.[player.name] ?? false;
+        const battlesWon = bonuses?.battlesWon?.[player.name] ?? 0;
         // Opponents' hands are masked server-side; the public total is all we show.
         const totalResources = player.resourceCount;
         return (
@@ -63,10 +67,21 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
                   ⚔️ Largest army ({soldiers})
                 </span>
               )}
+              {hasWar && (
+                <span
+                  className="text-[12px] text-orange-700 font-semibold"
+                  title={`Warmonger: ${battlesWon} battles won (+2 VP)`}
+                >
+                  🔥 Warmonger ({battlesWon})
+                </span>
+              )}
             </div>
             <div className="text-xs text-gray-600 mt-1">
               <span className="mr-2.5" title="Soldiers on the board">
                 ⚔️ {soldiers}
+              </span>
+              <span className="mr-2.5" title="Battles won">
+                🏆 {battlesWon}
               </span>
               {player.id === currentPlayerId ? (
                 Object.entries(player.resources).map(([resource, value]) => (

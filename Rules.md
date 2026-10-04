@@ -1,7 +1,7 @@
 Rules in place
 Actions:
 Spawn, move, heal, attack, capture settlement/city, upgrade/downgrade soldier, unstation/destation cannon, sneak
-Capturing a settlement/city also transfers to you the road between your settlement/city and the captured one (it becomes your color)
+Capturing a settlement/city also transfers to you every road sandwiched between the captured one and your settlements/cities — a road chain (through empty vertices only) linking them becomes your color
 Clockwise to persons turn
 Wheat can be played for an extra movement
 Specific Battle rules

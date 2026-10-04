@@ -132,29 +132,20 @@ const BattleModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl p-5 flex flex-col gap-3 max-h-[94vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="m-0 text-xl font-bold">⚔ Battle</h2>
-          <span className="text-[13px] text-gray-500">Round {battle.round}</span>
+      {/* Fixed to the viewport height: the map shrinks to fit, never scrolls. */}
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-4 flex flex-col gap-3 overflow-hidden">
+        <div className="flex items-baseline justify-between gap-3 shrink-0">
+          <h2 className="m-0 text-lg font-bold truncate">
+            ⚔ {battle.attacker} <span className="text-gray-400 font-normal">vs</span>{' '}
+            {battle.defender || 'Defender'}
+          </h2>
+          <span className="text-[13px] text-gray-500 shrink-0">Round {battle.round}</span>
         </div>
-        {/* The battle arena: the vertex mini-map with both armies on it. In the
-            repositioning phase it instead shows a left staging rail of injured
-            troops; the active player picks one and clicks a lit vertex to
-            place it (placed troops stack on the vertex). */}
-        {vertex && (
-          <div className="flex items-stretch gap-3">
-            {phase === 'repositioning' && (
-              <RepositionRail
-                stagedTroops={stagedTroops}
-                selectedSoldierId={selected?.soldierId ?? null}
-                selectedTargetCount={selected?.validTargets.length ?? 0}
-                currentPlayerName={currentPlayer?.name}
-                colors={colors}
-                isMyRepositionTurn={isMyRepositionTurn()}
-                onSelect={selectTroop}
-              />
-            )}
-            <div className="flex-1 min-w-0">
+        <div className="flex-1 min-h-0 flex gap-4">
+          {/* The arena: the vertex mini-map with both armies on it, or (when
+              repositioning) lit targets for the selected injured troop. */}
+          <div className="flex-1 min-w-0 min-h-0">
+            {vertex && (
               <MiniView
                 board={board}
                 type="vertex"
@@ -163,6 +154,7 @@ const BattleModal: React.FC = () => {
                 showGarrisonedSoldiers={false}
                 svgRef={svgRef}
                 minViewSize={BATTLE_MINI_MIN_VIEW_SIZE}
+                className="h-full w-full"
               >
                 {phase === 'repositioning' ? (
                   <RepositionOverlay
@@ -187,47 +179,46 @@ const BattleModal: React.FC = () => {
                   />
                 )}
               </MiniView>
-            </div>
+            )}
           </div>
-        )}
-        {/* Attacker vs defender (no location link — the mini-map shows it). */}
-        <div className="text-[13px] text-gray-700">
-          <strong>{battle.attacker}</strong> attacks <strong>{battle.defender || 'the defender'}</strong>
+
+          {/* Side panel: status and controls for the current phase. */}
+          <div className="w-64 shrink-0 flex flex-col gap-3 min-h-0 overflow-y-auto">
+            {phase === 'rolling' && <RollingPrompt waitingLines={waitingLines} rolling={rollingSoldierId !== null} />}
+
+            {(phase === 'betweenRounds' || phase === 'finished') && <DiceMatchupPanel matchup={matchup} />}
+
+            <BetweenRoundsControls
+              battle={battle}
+              canContinue={canContinue}
+              attackerAlive={attackerAlive}
+              defenderAlive={defenderAlive}
+              onContinue={handleContinue}
+              onEnd={handleEnd}
+            />
+            <BattleOutcomePanel
+              battle={battle}
+              board={board}
+              outcome={outcome}
+              currentPlayer={currentPlayer}
+              roomId={gameRoom.id}
+              robberDefeatedBy={gameRoom.robberDefeatedBy}
+              finishRepositioning={finishRepositioning}
+              moveRobberAfterWin={moveRobberAfterWin}
+              onExit={handleExit}
+            >
+              <RepositionRail
+                stagedTroops={stagedTroops}
+                selectedSoldierId={selected?.soldierId ?? null}
+                selectedTargetCount={selected?.validTargets.length ?? 0}
+                currentPlayerName={currentPlayer?.name}
+                colors={colors}
+                isMyRepositionTurn={isMyRepositionTurn()}
+                onSelect={selectTroop}
+              />
+            </BattleOutcomePanel>
+          </div>
         </div>
-
-        {/* Rolling phase: players roll their own dice, one per troop. */}
-        {phase === 'rolling' && <RollingPrompt waitingLines={waitingLines} rolling={rollingSoldierId !== null} />}
-
-        {/* Between rounds / finished: show how the dice compared. */}
-        {(phase === 'betweenRounds' || phase === 'finished') && (
-          <DiceMatchupPanel round={battle.round} matchup={matchup} attacker={battle.attacker} defender={battle.defender} />
-        )}
-
-        {/* Battle over: show the outcome and let players exit. In the
-            repositioning phase the window stays open so owners can drag their
-            injured troops to a neighboring vertex (or leave them in place). */}
-        <BattleOutcomePanel
-          battle={battle}
-          board={board}
-          outcome={outcome}
-          currentPlayer={currentPlayer}
-          roomId={gameRoom.id}
-          robberDefeatedBy={gameRoom.robberDefeatedBy}
-          finishRepositioning={finishRepositioning}
-          moveRobberAfterWin={moveRobberAfterWin}
-          onExit={handleExit}
-        />
-
-        {/* Between rounds only: let the attacker continue or end at their choosing. */}
-        <BetweenRoundsControls
-          battle={battle}
-          canContinue={canContinue}
-          attackerAlive={attackerAlive}
-          defenderAlive={defenderAlive}
-          currentPlayer={currentPlayer}
-          onContinue={handleContinue}
-          onEnd={handleEnd}
-        />
       </div>
     </div>
   );

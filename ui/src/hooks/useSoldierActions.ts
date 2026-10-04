@@ -228,17 +228,21 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
     }
   }
 
-  // Capture: a settlement/city here that isn't yours.
+  // Capture: a settlement/city here that isn't yours. A capture takes one
+  // soldier, so the first picked soldier that may capture goes.
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   if (settlement && settlement.ownerId !== playerName) {
+    const checks = group.map((id) => ({ id, check: captureCheck(id, vertex.id) }));
+    const capturer = checks.find((c) => c.check.allowed);
     actions.push({
       key: 'capture',
       kind: 'capture',
       label: `Capture ${settlement.level}`,
-      costText: 'free',
-      check: group.map((id) => captureCheck(id, vertex.id)).find((c) => !c.allowed) ?? ALLOWED,
+      costText: '1 soldier',
+      check: capturer ? ALLOWED : checks[0].check,
       run: () => {
-        captureSettlement(currentPlayer.id, group, vertex.id, gameRoom.id);
+        if (!capturer) return;
+        captureSettlement(currentPlayer.id, capturer.id, vertex.id, gameRoom.id);
         clearPicks();
       },
     });

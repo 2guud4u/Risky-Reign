@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import EndTurnButton from './game/EndTurnButton';
+import TurnTimeline from './TurnTimeline';
 
 /** Tailwind classes for the turn overlay, keyed to the current phase. */
-const phaseColor = (phase: string): string => {
+export const phaseColor = (phase: string): string => {
   switch (phase) {
     case 'SetUp':
       return 'bg-blue-600';
@@ -20,13 +21,14 @@ const phaseColor = (phase: string): string => {
 };
 
 /**
- * Turn status bar: phase + control, colored by phase. Shows the current phase,
- * an undo button (when available), and the end-turn button. Positioned by
- * NoticeRail (top center, above the notices).
+ * Turn status bar: phase + control, colored by phase. Shows the current phase
+ * (click it to open the turn timeline), an undo button (when available), and
+ * the end-turn button. Positioned by NoticeRail (top center, above the notices).
  */
 const TurnOverlay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { undoBuild } = useSocket();
+  const [timelineOpen, setTimelineOpen] = useState(false);
   if (!gameRoom || !currentPlayer) return null;
 
   // Undo is available only while it is this player's turn, in the Build or
@@ -43,9 +45,15 @@ const TurnOverlay: React.FC = () => {
       className={`shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)}`}
     >
       <div className="flex items-center gap-2.5">
-        <span className="px-2 py-0.5 rounded-md bg-white/20 text-[11px] font-bold uppercase tracking-wide">
-          {gameRoom.turnState.phase}
-        </span>
+        <button
+          type="button"
+          onClick={() => setTimelineOpen((o) => !o)}
+          className="px-2 py-0.5 rounded-md bg-white/20 text-[11px] font-bold uppercase tracking-wide cursor-pointer hover:bg-white/35"
+          title="Show upcoming turns"
+          aria-expanded={timelineOpen}
+        >
+          {gameRoom.turnState.phase} ▾
+        </button>
         <div className="ml-auto flex items-center gap-2">
           {canUndo && (
             <button
@@ -61,6 +69,7 @@ const TurnOverlay: React.FC = () => {
           <EndTurnButton variant="snackbar" />
         </div>
       </div>
+      {timelineOpen && <TurnTimeline onClose={() => setTimelineOpen(false)} />}
     </div>
   );
 };

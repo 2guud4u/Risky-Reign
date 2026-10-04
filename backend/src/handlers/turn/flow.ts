@@ -199,10 +199,8 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
           const road = board.roads[t.roadId];
           if (road) road.ownerId = t.originalOwnerId;
         }
-        // Refund the actions so the capturing soldiers can act again this phase.
-        for (const id of entry.soldierIds) {
-          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter((x) => x !== id);
-        }
+        // Refund the action so the capturing soldier can act again this phase.
+        turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter((x) => x !== entry.soldierId);
         break;
       }
     }

@@ -72,8 +72,8 @@ export type UndoEntry =
       settlementId: string;
       /** The owner before the capture (restored on undo). */
       originalOwnerId: string;
-      /** The soldiers that performed the capture (their actions are refunded on undo). */
-      soldierIds: string[];
+      /** The soldier that performed the capture (its action is refunded on undo). */
+      soldierId: string;
       /** Roads that transferred to the capturer (ownership restored on undo). */
       roadTransfers: { roadId: string; originalOwnerId: string }[];
     };
@@ -133,9 +133,9 @@ export interface BattleState {
   injuredFight?: boolean;
   /**
    * Current resting vertex per injured soldier. Present during 'repositioning'
-   * — it records each injured troop's board position so the UI can drag them
-   * to an adjacent vertex (they start at the battle vertex and can be moved
-   * along a road to a neighboring vertex, or left in place).
+   * — it records each injured troop's board position so the UI can move them
+   * (they start at the battle vertex and MUST move one road-step to a
+   * neighboring vertex, unless the battle vertex has no road out).
    */
   injuredSettled?: Record<string, string>;
   /**

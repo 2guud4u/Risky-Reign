@@ -47,6 +47,8 @@ export interface MiniViewProps {
    * the battle arena so a wide troop formation isn't zoomed in too much.
    */
   minViewSize?: number;
+  /** Extra classes for the SVG (e.g. `h-full` to fit a fixed-height container). */
+  className?: string;
 }
 
 /** Stroke style for an edge line in the mini map (thicker when a road is built). */

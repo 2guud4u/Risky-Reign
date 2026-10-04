@@ -4,6 +4,7 @@ import {
   RESOURCES,
   canMoveRobberAdjacent,
   placeRobber,
+  nextRepositionTurn,
   Board,
   BattleState,
   GameRoom,
@@ -66,11 +67,11 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
     );
 
     if (!attackersAlive || !defendersAlive) {
-      // A side is gone: continuing ends the battle. Injured survivors
-      // stay put and the battle enters 'repositioning': the window shows the
-      // outcome and lets each owner drag their injured troops along a road
-      // to a neighboring vertex (or leave them in place).
-      room.battleState = { ...battle, phase: 'repositioning', injuredSettled, repositionTurn: initialRepositionTurn(battle) };
+      // A side is gone: continuing ends the battle and enters
+      // 'repositioning': each owner must move their injured troops along a
+      // road to a neighboring vertex (unless there is no road out).
+      recordBattleWin(room, battle);
+      room.battleState = { ...battle, phase: 'repositioning', injuredSettled, repositionTurn: nextRepositionTurn(board, battle, null) };
     } else {
       // Both sides still standing: reset ALL rolls so no troop carries a
       // stale die into the next round. Injured troops are out of the fight
@@ -119,7 +120,8 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
 
     const battle = room.battleState;
     const injuredSettled = applyRoundCasualties(board, battle);
-    room.battleState = { ...battle, phase: 'repositioning', injuredSettled, repositionTurn: initialRepositionTurn(battle) };
+    recordBattleWin(room, battle);
+    room.battleState = { ...battle, phase: 'repositioning', injuredSettled, repositionTurn: nextRepositionTurn(board, battle, null) };
 
     applyBonuses(room);
     broadcastRoom(io, room);
@@ -198,16 +200,20 @@ export function applyRoundCasualties(board: Board, battleState: BattleState): Re
 }
 
 /**
- * The repositioning turn to start on (Rules.md: the attacker gets to move
- * injured soldiers away first): the attacker if they have injured troops,
- * else the defender if they do, else null (nothing to reposition).
+ * Count a won player-vs-player battle toward the Warmonger bonus: the battle
+ * is won by the side that still has living, uninjured troops when the other
+ * side has none. Robber fights and battles ended with both sides standing
+ * have no winner and count for nobody.
  */
-export function initialRepositionTurn(battle: BattleState): 'attacker' | 'defender' | null {
-  const hasInjured = (name: string) =>
-    (battle.states[name]?.soldiers ?? []).some((s) => s.injured && !s.dead);
-  if (hasInjured(battle.attacker)) return 'attacker';
-  if (hasInjured(battle.defender)) return 'defender';
-  return null;
+function recordBattleWin(room: GameRoom, battle: BattleState): void {
+  if (battle.robberFight) return;
+  const standing = (side: string) =>
+    (battle.states[side]?.soldiers ?? []).some((s) => !s.dead && !s.injured);
+  const atk = standing(battle.attacker);
+  const def = standing(battle.defender);
+  const winner = atk && !def ? battle.attacker : def && !atk ? battle.defender : null;
+  if (!winner || !room.players.some((p) => p.name === winner)) return;
+  room.battlesWon[winner] = (room.battlesWon[winner] ?? 0) + 1;
 }
 
 /**

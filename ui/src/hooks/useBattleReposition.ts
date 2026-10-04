@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import { BattleState, Board, Player } from 'common';
+import { BattleState, Board, Player, roadNeighbors } from 'common';
 import { RepositionTroop } from '../types/battleModal';
-import { adjacentViaRoad, injuredTroopsOf } from '../utils/battleModal';
+import { injuredTroopsOf } from '../utils/battleModal';
 
 /**
  * Post-battle repositioning (click-to-assign): injured survivors collect in a
@@ -51,7 +51,7 @@ export function useBattleReposition(opts: {
       setSelected(null);
       return;
     }
-    setSelected({ soldierId: troop.soldierId, validTargets: adjacentViaRoad(board, troop.vertexId) });
+    setSelected({ soldierId: troop.soldierId, validTargets: roadNeighbors(board, troop.vertexId) });
   };
 
   /** Place the selected troop onto a target vertex. */

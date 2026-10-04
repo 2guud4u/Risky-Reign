@@ -18,6 +18,7 @@ import {
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
+import { DEV_PRESET, applyDevPreset } from '../devPreset';
 import { broadcastRoom } from '../broadcast';
 import { MAX_ROOMS } from '../constants';
 import { HandlerContext } from './context';
@@ -132,7 +133,6 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       developmentCards: [],
       freeRoadsLeft: 0,
       devCardsBoughtThisTurn: 0,
-      bankTradesThisTurn: freshResourceCount(0),
     };
 
     room.players.push(player);
@@ -305,6 +305,8 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       return;
     }
     room.gameStatus = 'playing';
+    // Dev mode: skip setup with a preset board (see devPreset.ts).
+    if (DEV_PRESET) applyDevPreset(room);
     applyBonuses(room);
     broadcastRoom(io, room, 'roomUpdate');
   });

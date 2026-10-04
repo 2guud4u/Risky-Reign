@@ -139,29 +139,53 @@ export function canCaptureSettlementAt(
 
 /**
  * Authoritative capture road transfer (Rules.md "capture settlement/city"):
- * when a player captures a settlement/city, the road(s) connecting the
- * captured vertex to any of the capturer's OTHER settlements/cities become
- * the capturer's. Returns the roads to transfer with their current owners
- * (so a capture undo can restore them).
+ * when a player captures a settlement/city, every road "sandwiched" between
+ * the captured vertex and one of the capturer's OTHER settlements/cities
+ * becomes the capturer's — i.e. each road on a continuous road chain running
+ * from the captured vertex to a vertex with the capturer's building. A chain
+ * may run through empty vertices only: any other building on the way ends it
+ * (it is not sandwiched). Roads the capturer already owns are kept as-is.
+ * Returns the roads to transfer with their current owners (so a capture undo
+ * can restore them).
  */
 export function captureRoadTransfers(
   board: Board,
   capturingPlayer: string,
   capturedVertexId: string
 ): { roadId: string; originalOwnerId: string }[] {
-  const myVertices = playerSettlementVertexIds(board, capturingPlayer).filter(
-    (v) => v !== capturedVertexId
+  const myVertices = new Set(
+    playerSettlementVertexIds(board, capturingPlayer).filter((v) => v !== capturedVertexId)
   );
-  if (myVertices.length === 0) return [];
+  if (myVertices.size === 0) return [];
+
+  // DFS over simple road paths from the captured vertex. When a path reaches
+  // one of my buildings, every road on it is sandwiched.
+  const sandwiched = new Set<string>();
+  const pathRoads: string[] = [];
+  const visited = new Set<string>([capturedVertexId]);
+  const walk = (vertexId: string): void => {
+    for (const edgeId of board.vertices[vertexId]?.roadIds ?? []) {
+      const edge = board.edges[edgeId];
+      if (!edge || edge.roadId === null || !board.roads[edge.roadId]) continue;
+      const next = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
+      if (visited.has(next)) continue;
+      pathRoads.push(edge.roadId);
+      if (myVertices.has(next)) {
+        for (const r of pathRoads) sandwiched.add(r);
+      } else if (!board.vertices[next]?.settlementId) {
+        visited.add(next);
+        walk(next);
+        visited.delete(next);
+      }
+      pathRoads.pop();
+    }
+  };
+  walk(capturedVertexId);
+
   const out: { roadId: string; originalOwnerId: string }[] = [];
-  for (const edgeId of board.vertices[capturedVertexId]?.roadIds ?? []) {
-    const edge = board.edges[edgeId];
-    if (!edge || edge.roadId === null) continue;
-    const other = edge.vertexAId === capturedVertexId ? edge.vertexBId : edge.vertexAId;
-    if (!myVertices.includes(other)) continue;
-    const road = board.roads[edge.roadId];
-    if (!road) continue;
-    out.push({ roadId: road.id, originalOwnerId: road.ownerId });
+  for (const roadId of sandwiched) {
+    const road = board.roads[roadId];
+    if (road && road.ownerId !== capturingPlayer) out.push({ roadId, originalOwnerId: road.ownerId });
   }
   return out;
 }

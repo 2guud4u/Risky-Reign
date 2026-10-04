@@ -15,7 +15,13 @@ import {
   PORT_SPECIAL_FILL,
   PORT_STROKE,
   PORT_TEXT,
+  OPEN_TRADE_EVENT,
 } from '../constants';
+import { OpenTradeDetail } from '../types/openTrade';
+
+/** Open the trade window preset to this port's bank trade. */
+const openPortTrade = (port: PortType) =>
+  window.dispatchEvent(new CustomEvent<OpenTradeDetail>(OPEN_TRADE_EVENT, { detail: { port } }));
 
 /**
  * A plank bridge from the port badge to one vertex it serves: a wooden deck
@@ -113,7 +119,17 @@ const PortDockInner: React.FC<{
     <g>
       {/* Plank bridges from the harbor badge to each vertex it serves (one or two). */}
       {vertices.map((v, i) => <PlankBridge key={i} from={{ x, y }} to={v} size={size} />)}
-      {/* Harbor medallion: soft drop shadow, colored ring, white coin face. */}
+      {/* Harbor medallion: soft drop shadow, colored ring, white coin face.
+          Clicking it opens the trade window on this port's bank trade. */}
+      <g
+        role="button"
+        aria-label={`Trade at ${isGeneric ? 'generic' : port} port (${ratio})`}
+        style={{ cursor: 'pointer' }}
+        // Keep the press from starting a board pan.
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={() => openPortTrade(port)}
+      >
+        <title>{`Trade at this port (${ratio})`}</title>
       <ellipse cx={x} cy={y + r * 0.12} rx={r} ry={r * 0.92} fill="#0a2434" opacity={0.18} />
       <circle cx={x} cy={y} r={r} fill={ring} stroke={PORT_STROKE} strokeWidth={1} />
       <circle cx={x} cy={y} r={r * 0.8} fill={PORT_FACE_FILL} />
@@ -138,6 +154,7 @@ const PortDockInner: React.FC<{
       >
         {ratio}
       </text>
+      </g>
     </g>
   );
 };

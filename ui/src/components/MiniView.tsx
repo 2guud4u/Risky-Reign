@@ -26,6 +26,7 @@ const MiniView: React.FC<MiniViewProps> = ({
   onMouseUp,
   onMouseLeave,
   minViewSize,
+  className,
 }) => {
   const layout = vertexMiniLayout(board, id, showGarrisonedSoldiers);
   if (!layout) return null;
@@ -40,7 +41,7 @@ const MiniView: React.FC<MiniViewProps> = ({
       width="100%"
       height="auto"
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.size} ${viewBox.size}`}
-      className="mx-auto rounded-md bg-gray-50"
+      className={`mx-auto rounded-md bg-gray-50 ${className ?? ''}`}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}

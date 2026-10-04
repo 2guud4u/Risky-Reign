@@ -4,11 +4,12 @@ import {
   allSoldiersRolled,
   resolveBattleRoundIfComplete,
   applyBonuses,
+  nextRepositionTurn,
 } from 'common';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
-import { applyRobberFightOutcome, initialRepositionTurn } from './resolution';
+import { applyRobberFightOutcome } from './resolution';
 
 /**
  * Battle-roll handler: rolling the die for one soldier during the rolling
@@ -60,7 +61,7 @@ export function registerBattleRollHandlers(ctx: HandlerContext): void {
         // battle so the player can dismiss it.
         if (battle.robberFight) {
           applyRobberFightOutcome(io, room, battle);
-          room.battleState = { ...room.battleState, phase: 'repositioning', repositionTurn: initialRepositionTurn(battle) };
+          room.battleState = { ...room.battleState, phase: 'repositioning', repositionTurn: nextRepositionTurn(board, battle, null) };
         }
       }
 

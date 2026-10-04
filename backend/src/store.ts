@@ -16,6 +16,8 @@ export function emptyBonuses() {
     largestArmy: {},
     hasLongestRoad: {},
     hasLargestArmy: {},
+    battlesWon: {},
+    hasWarmonger: {},
     settlementVp: {},
   };
 }
@@ -94,6 +96,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     robberBag: freshResourceCount(0),
     bankSupply: freshBankSupply(),
     bonuses: emptyBonuses(),
+    battlesWon: {},
     lastActivityAt: Date.now(),
   };
   gameRooms.set(roomId, room);
@@ -136,6 +139,7 @@ export function resetRoom(room: GameRoom): void {
   room.robberBag = freshResourceCount(0);
   room.bankSupply = freshBankSupply();
   room.bonuses = emptyBonuses();
+  room.battlesWon = {};
   room.lastActivityAt = Date.now();
   for (const p of room.players) {
     p.resources = freshResourceCount(STARTING_RESOURCES);
@@ -143,7 +147,6 @@ export function resetRoom(room: GameRoom): void {
     p.developmentCards = [];
     p.freeRoadsLeft = 0;
     p.devCardsBoughtThisTurn = 0;
-    p.bankTradesThisTurn = freshResourceCount(0);
   }
 }
 

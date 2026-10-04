@@ -1,5 +1,5 @@
 import React from 'react';
-import { BattleState, Player } from 'common';
+import { BattleState } from 'common';
 
 interface BetweenRoundsControlsProps {
   battle: BattleState;
@@ -7,62 +7,46 @@ interface BetweenRoundsControlsProps {
   canContinue: boolean;
   attackerAlive: boolean;
   defenderAlive: boolean;
-  currentPlayer: Player | null;
   onContinue: () => void;
   onEnd: () => void;
 }
 
 /**
- * Between rounds only: let the attacker continue or end at their choosing.
- * Everyone else sees a waiting message.
+ * Between rounds only: the attacker continues or ends; everyone else waits.
  */
 export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
   battle,
   canContinue,
   attackerAlive,
   defenderAlive,
-  currentPlayer,
   onContinue,
   onEnd,
 }) => {
   if (battle.phase !== 'betweenRounds') return null;
-  return canContinue ? (
-    <div className="flex flex-col gap-2">
-      {attackerAlive && defenderAlive ? (
-        <>
-          <button
-            type="button"
-            onClick={onContinue}
-            className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
-          >
-            Continue to Round {battle.round + 1}
-          </button>
-          <button
-            type="button"
-            onClick={onEnd}
-            className="w-full bg-gray-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-700"
-          >
-            End Battle Now
-          </button>
-          <div className="text-[12px] text-gray-500 text-center">
-            Keep fighting while you have troops standing, or end the battle now.
-          </div>
-        </>
-      ) : (
+  if (!canContinue) {
+    return <div className="text-[13px] text-gray-500">Waiting for {battle.attacker}…</div>;
+  }
+  const bothStanding = attackerAlive && defenderAlive;
+  return (
+    <div className="flex gap-2">
+      {bothStanding && (
         <button
           type="button"
-          onClick={onEnd}
-          className="w-full bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
+          onClick={onContinue}
+          className="flex-1 bg-red-600 text-white rounded-md py-2 text-sm font-semibold hover:bg-red-700"
         >
-          End Battle
+          Round {battle.round + 1}
         </button>
       )}
-    </div>
-  ) : (
-    <div className="text-[13px] text-gray-500">
-      {currentPlayer && battle.attacker !== currentPlayer.name
-        ? `Waiting for ${battle.attacker} to continue or end the battle…`
-        : 'Waiting for the attacker…'}
+      <button
+        type="button"
+        onClick={onEnd}
+        className={`flex-1 text-white rounded-md py-2 text-sm font-semibold ${
+          bothStanding ? 'bg-gray-600 hover:bg-gray-700' : 'bg-red-600 hover:bg-red-700'
+        }`}
+      >
+        End battle
+      </button>
     </div>
   );
 };

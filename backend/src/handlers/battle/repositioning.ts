@@ -1,4 +1,4 @@
-import { applyBonuses } from 'common';
+import { applyBonuses, injuredLeftToMove, nextRepositionTurn } from 'common';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, blockIfFinished } from '../context';
@@ -11,9 +11,10 @@ import { HandlerContext, blockIfFinished } from '../context';
 export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
-  // A player drags one of their injured soldiers (from the repositioning
-  // battle window) along a road to a neighboring vertex of its current
-  // resting place. The board and the repositioning map are updated.
+  // A player moves one of their injured soldiers (from the repositioning
+  // battle window) off the battle vertex along a road to a neighboring
+  // vertex. Each troop moves exactly one step; the board and the
+  // repositioning map are updated.
   socket.on(
     'repositionSoldier',
     (data: { roomId: string; soldierId: string; targetVertexId: string }) => {
@@ -53,9 +54,14 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: 'You cannot move that soldier' });
         return;
       }
-      // Must be one of this battle's injured survivors.
+      // Must be one of this battle's injured survivors still on the battle
+      // vertex (each troop gets exactly one step away).
       if (!(room.battleState.injuredSettled ?? {})[soldierId]) {
         socket.emit('error', { message: 'Only injured soldiers from this battle can be moved' });
+        return;
+      }
+      if (soldier.vertexId !== room.battleState.vertexId) {
+        socket.emit('error', { message: 'This soldier has already moved away from the battle' });
         return;
       }
       // Destination must be adjacent via an existing road.
@@ -81,7 +87,7 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
 
   // The side whose repositioning turn it is signals they are done moving
   // their injured troops; the turn passes to the other side if they have
-  // injured troops to settle (Rules.md: the attacker moves first).
+  // injured troops to move (Rules.md: the attacker moves first).
   socket.on('finishRepositioning', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);
@@ -114,34 +120,23 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'It is not your turn to reposition injured soldiers' });
       return;
     }
-    // All of this side's injured troops must be moved (off the battle
-    // vertex) before the player can confirm.
+    // All of this side's injured troops must be moved off the battle vertex
+    // before the player can confirm (unless there is no road out).
     const mySide = isAttacker ? room.battleState.attacker : room.battleState.defender;
-    const myInjured = (room.battleState.states[mySide]?.soldiers ?? []).filter(
-      (s) => s.injured && !s.dead
-    );
-    const settled = room.battleState.injuredSettled ?? {};
-    const allMoved = myInjured.every(
-      (s) => settled[s.soldier.id] !== room.battleState!.vertexId
-    );
-    if (!allMoved) {
+    if (injuredLeftToMove(room.board!, room.battleState, mySide).length > 0) {
       socket.emit('error', { message: 'Move all your injured troops before confirming' });
       return;
     }
-    const hasInjured = (name: string) =>
-      (room.battleState!.states[name]?.soldiers ?? []).some((s) => s.injured && !s.dead);
-    const next =
-      turn === 'attacker' ? (hasInjured(room.battleState.defender) ? 'defender' : null) : null;
+    const next = nextRepositionTurn(room.board!, room.battleState, turn);
     room.battleState = { ...room.battleState, repositionTurn: next };
     applyBonuses(room);
     broadcastRoom(io, room);
   });
 
   // A player can dismiss the battle window once they have seen the outcome.
-  // In the repositioning phase the window can be dismissed at any time: the
-  // "attacker moves first" rule sets the ORDER of repositioning, not a gate
-  // on exiting. Any injured troops not yet repositioned simply stay where the
-  // fight ended (injured until healed).
+  // While repositioning is pending (an injured troop still has to move off
+  // the battle vertex) the window cannot be dismissed: injured troops MUST
+  // leave unless there is no road out.
   socket.on('exitBattle', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);
@@ -151,6 +146,10 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
     }
     const bs = room.battleState;
     if (bs && (bs.phase === 'finished' || bs.phase === 'repositioning')) {
+      if (bs.phase === 'repositioning' && bs.repositionTurn) {
+        socket.emit('error', { message: 'Injured troops must be moved before the battle can be closed' });
+        return;
+      }
       // A pending post-win robber move (robberDefeatedBy) survives the
       // dismissal — it is resolved by `moveRobberAfterWin`, or expires when
       // the Action phase advances. Only clear the battle state itself.

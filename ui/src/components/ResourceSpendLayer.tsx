@@ -42,6 +42,8 @@ const ResourceSpendLayer: React.FC = () => {
       const info = (e as CustomEvent<BuildAnimationInfo>).detail;
       const room = gameRoomRef.current;
       if (!room || !room.board) return;
+      // Setup placements are free: nothing is spent, so nothing flies.
+      if (room.turnState.phase === 'SetUp') return;
       const board = room.board;
       const svg = document.querySelector<SVGSVGElement>('[data-board-svg]');
       if (!svg) return;

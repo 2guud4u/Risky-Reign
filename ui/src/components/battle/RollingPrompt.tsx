@@ -1,32 +1,21 @@
 import React from 'react';
 
 interface RollingPromptProps {
-  /** "X to roll N dice" lines for owners who still owe a roll this round. */
+  /** "Name (N)" entries for owners who still owe a roll this round. */
   waitingLines: string[];
   /** True while a roll is in flight (clicked, awaiting the result). */
   rolling: boolean;
 }
 
 /**
- * Rolling-phase banner: players roll their own dice, one per troop. Hidden
- * outside the 'rolling' phase. Prominent (bold, pulsing) so the "click a
- * troop to roll" cue is impossible to miss — a missed cue is what made the
- * fight feel like it hung with no result.
+ * Rolling-phase banner. Bold and pulsing so the "click a troop to roll" cue
+ * is impossible to miss — a missed cue made the fight feel hung.
  */
 export const RollingPrompt: React.FC<RollingPromptProps> = ({ waitingLines, rolling }) => (
-  <div className="text-[15px] font-bold text-amber-800 bg-amber-100 border-2 border-amber-400 rounded-md p-3 blink-circle">
-    {rolling ? (
-      'Rolling…'
-    ) : (
-      <>
-        🎲 <strong>Click a glowing troop to roll its die</strong> — each front-line troop rolls
-        once. Your strongest rolls face their strongest.
-      </>
-    )}
+  <div className="text-[14px] font-bold text-amber-800 bg-amber-100 border-2 border-amber-400 rounded-md px-3 py-2 blink-circle">
+    {rolling ? 'Rolling…' : '🎲 Click a glowing troop to roll'}
     {waitingLines.length > 0 && (
-      <div className="text-[13px] font-normal text-amber-700 mt-1">
-        Waiting on: {waitingLines.join(', ')}
-      </div>
+      <div className="text-[12px] font-normal text-amber-700">Waiting on {waitingLines.join(', ')}</div>
     )}
   </div>
 );

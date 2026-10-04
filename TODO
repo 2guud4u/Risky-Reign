@@ -25,12 +25,6 @@ tutorial of what to do , walk through
 allow simple art view 
 -play one with sister and try to host
 
-bug:
-buy dev card and resource icon looks diff
-for setupphase dont need to show spending of resources
-
-when roll last number let it linger there for 2 seconds 
-
 Far future requests:
 rule customization
 - unlimited property
@@ -42,24 +36,19 @@ can not build on water tiles vertex that is not next to land hex
 music
 
 
-injured soldiers screen logic needs to be fixed
-
  server should plan out on device database 
 
-handle rejoin ns stuff gracefully
+handle rejoin and stuff gracefully
 
 make trade look better
 
 add chat
 
 
-make look like dice 
-
-always show receipe 
 Tutorial:
 - a little finger
 - have arrow saying try click on this 
-- little i icon to show receipe of everything
+
 
 option for special 5-6 build rule or regular build path
 
@@ -71,39 +60,21 @@ zoom in house should say who owns it
 
 trade offer should stay there but cant accept
 
-maybe a turn time line
-
 pass troops modal
-
-notifcation even on outgoing to any one trade
 
 show you want you can do on you turn 
 
-trade needs to be more clear on who can trade
-
 timer vote, if everyone vote, person get turn ended, it can be disabled
-
-fix who wins largest army and longest road on a tie, only one player in lobby gets largest army or longest, road, you have to beat the current holder to get it
 
 attack options should open up who you want to attack on the buble
 
-injured soldiers have to move away from the space
-
 figure out attack mix of soldiers
-
-bug where defender won but got injured should be attacker get injured defender rolled a 3 and attacker rolled a 2
-
-injured movement is bugged, the user has to move th einjured soldier a a new space unless there is nowhere to go
 
 need a dev game state
 
-sometimes i dont get the resouce even though i rolled 
 
-sandwich roads should be turned into your road
+sandwiched roads should be turned into your road
 
-when no more settlements or cities or alive soldiers, you are knocked out of the game: no more turns for you but you can stil spectate
-
-robbers bag should be above shiiping doc  and all other uiui and house should be over dock bridge
 
 allow reorganize cards b4 stealing
 
@@ -115,6 +86,4 @@ knight card allow spawn of knight near any other soldiers
 
 fix battle hud, should not need to scroll, less text 
 
-most battles won acheivement
-
-bank trade should have no limit
+after win allow users to still look aroun the map

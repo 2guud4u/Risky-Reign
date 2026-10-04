@@ -1,16 +1,34 @@
 import React, { useEffect, useState } from 'react';
+import { diceOwner, PortType } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import TradeTab from '../../containers/game/TradeTab';
 import { backdropClass, modalCardClass } from '../../styles';
+import { OPEN_TRADE_EVENT } from '../../constants';
+import { OpenTradeDetail } from '../../types/openTrade';
 
 /**
  * 🤝 button in the top-left corner of the map that opens the trade window
- * (`TradeTab`). The red badge counts offers waiting on your decision: a direct
- * offer to you, or an open offer of yours that someone took.
+ * (`TradeTab`). Green ring = it's your turn and you can trade; grey = only
+ * the turn owner can trade (the tooltip names them). The red badge counts
+ * offers waiting on your decision: a direct offer to you, another player's
+ * open ("Anyone") offer nobody has taken yet, or an open offer of yours that
+ * someone took.
  */
 const TradeButton: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const [open, setOpen] = useState(false);
+  // Port clicked to open the window (presets the bank form); null = 🤝 button.
+  const [port, setPort] = useState<PortType | null>(null);
+
+  // A port click on the board opens the window on that port's bank trade.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      setPort((e as CustomEvent<OpenTradeDetail>).detail?.port ?? null);
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_TRADE_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_TRADE_EVENT, onOpen);
+  }, []);
 
   // Escape closes the window (stopPropagation keeps the board's Escape
   // handler from also clearing the map selection).
@@ -28,18 +46,30 @@ const TradeButton: React.FC = () => {
   if (!gameRoom || !currentPlayer) return null;
   const me = currentPlayer.name;
   const waiting = (gameRoom.tradeOffers ?? []).filter(
-    (o) => o.status === 'pending' && (o.to === me || (o.to === null && o.from === me && !!o.claimer))
+    (o) =>
+      o.status === 'pending' &&
+      (o.to === me ||
+        (o.to === null && o.from !== me && !o.claimer) ||
+        (o.to === null && o.from === me && !!o.claimer))
   ).length;
+  const turnOwner = diceOwner(gameRoom);
+  const canTrade = turnOwner === me;
+  const tradeHint = canTrade ? 'Trade — your turn, you can trade' : `Trade — only ${turnOwner} can trade now`;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setPort(null);
+          setOpen(true);
+        }}
         onMouseDown={(e) => e.stopPropagation()}
-        title="Trade"
-        aria-label={waiting > 0 ? `Trade (${waiting} offer${waiting === 1 ? '' : 's'} waiting)` : 'Trade'}
-        className="absolute top-2 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full bg-white border-2 border-gray-300 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 hover:border-blue-500 transition-transform"
+        title={tradeHint}
+        aria-label={waiting > 0 ? `${tradeHint} (${waiting} offer${waiting === 1 ? '' : 's'} waiting)` : tradeHint}
+        className={`absolute top-2 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full bg-white border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 hover:border-blue-500 transition-transform ${
+          canTrade ? 'border-green-500 ring-2 ring-green-300' : 'border-gray-300 opacity-80'
+        }`}
       >
         <span aria-hidden="true">🤝</span>
         {waiting > 0 && (
@@ -75,7 +105,8 @@ const TradeButton: React.FC = () => {
                 ✕
               </button>
             </div>
-            <TradeTab />
+            {/* Keyed by the port so a new port click re-presets the form. */}
+            <TradeTab key={port ?? 'none'} port={port} />
           </div>
         </div>
       )}

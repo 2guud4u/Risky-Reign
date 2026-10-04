@@ -17,9 +17,8 @@ interface RepositionRailProps {
 }
 
 /**
- * The left staging column: injured troops collect here after the battle.
- * The active player clicks a troop to select it (its road-adjacent targets
- * light up on the map), then clicks a target vertex to place it.
+ * Injured troops still on the battle vertex. The active player clicks one
+ * (its road-adjacent targets light up on the map), then clicks a target.
  */
 export const RepositionRail: React.FC<RepositionRailProps> = ({
   stagedTroops,
@@ -29,13 +28,11 @@ export const RepositionRail: React.FC<RepositionRailProps> = ({
   colors,
   isMyRepositionTurn,
   onSelect,
-}) => (
-  <div className="w-40 shrink-0 flex flex-col gap-2 border-r border-gray-200 pr-3">
-    <div className={sectionTitleClass}>Injured to place</div>
-    {stagedTroops.length === 0 ? (
-      <p className="text-[12px] text-gray-400 m-0">None left to place.</p>
-    ) : (
-      <div className="flex flex-col gap-1.5">
+}) =>
+  stagedTroops.length === 0 ? null : (
+    <div className="flex flex-col gap-1">
+      <div className={sectionTitleClass}>Injured</div>
+      <div className="flex flex-wrap gap-1">
         {stagedTroops.map((t) => {
           const mine = t.ownerName === currentPlayerName;
           const sel = selectedSoldierId === t.soldierId;
@@ -46,34 +43,28 @@ export const RepositionRail: React.FC<RepositionRailProps> = ({
               type="button"
               onClick={() => canClick && onSelect(t)}
               disabled={!canClick}
-              title={mine ? 'Select, then click a lit vertex' : `${t.ownerName}'s troop`}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-md border text-left text-[12px] font-semibold ${
+              title={t.ownerName}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[12px] font-semibold ${
                 sel
                   ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-400'
-                  : mine
-                  ? 'border-gray-300 bg-white hover:bg-gray-50 cursor-pointer'
+                  : canClick
+                  ? 'border-gray-300 bg-white hover:bg-gray-50 cursor-pointer blink-circle'
                   : 'border-gray-200 bg-gray-50 text-gray-400'
               }`}
             >
               <span
-                className="w-4 h-4 rounded-sm inline-block"
+                className="w-3 h-3 rounded-sm inline-block"
                 style={{ background: colors[t.ownerName] ?? FALLBACK_OWNER_COLOR }}
               />
-              <span className="truncate">{t.ownerName}</span>
+              {t.ownerName}
             </button>
           );
         })}
       </div>
-    )}
-    {isMyRepositionTurn && selectedSoldierId && (
-      <p className="text-[11px] text-emerald-700 m-0">
-        {selectedTargetCount > 0
-          ? 'Click a glowing vertex to place this troop.'
-          : 'No road-adjacent vertex to move to.'}
-      </p>
-    )}
-    {!isMyRepositionTurn && stagedTroops.length > 0 && (
-      <p className="text-[11px] text-gray-400 m-0">Waiting for the other side to reposition.</p>
-    )}
-  </div>
-);
+      {isMyRepositionTurn && selectedSoldierId && (
+        <p className="text-[12px] text-emerald-700 m-0">
+          {selectedTargetCount > 0 ? 'Click a glowing vertex' : 'No road out'}
+        </p>
+      )}
+    </div>
+  );

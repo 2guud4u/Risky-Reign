@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Price, RESOURCES, ResourceKey, TradeOffer, BuildCheck, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
+import { Price, PortType, RESOURCES, ResourceKey, TradeOffer, BuildCheck, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
 import { ReasonNotice } from './ReasonNotice';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
@@ -41,7 +41,9 @@ const OfferRow: React.FC<{
   offer: TradeOffer;
   canAccept: boolean;
   canTake: boolean;
-}> = ({ offer, canAccept, canTake }) => {
+  /** Why I can't act on this offer (shown instead of a missing button). */
+  blockedReason?: string | null;
+}> = ({ offer, canAccept, canTake, blockedReason }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { acceptTrade, declineTrade, cancelTrade, takeTrade } = useSocket();
   if (!gameRoom || !currentPlayer) return null;
@@ -130,6 +132,10 @@ const OfferRow: React.FC<{
         </div>
       )}
 
+      {offer.status === 'pending' && blockedReason && (
+        <p className="text-[12px] text-amber-700 mt-1 m-0">🔒 {blockedReason}</p>
+      )}
+
       {offer.status !== 'pending' && (
         <p className="text-[12px] text-gray-500 mt-1 m-0 capitalize">Status: {offer.status}</p>
       )}
@@ -164,14 +170,23 @@ const TradeButton: React.FC<{
  * allowed only on your turn (you rolled the dice). The bank ratio shown
  * reflects your settlements/cities on ports (2:1 special, 3:1 generic, 4:1).
  */
-const TradeTab: React.FC = () => {
+const TradeTab: React.FC<{
+  /** Port clicked to open the window: presets the Bank form (its resource as the give). */
+  port?: PortType | null;
+}> = ({ port = null }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { createTradeOffer, bankTrade } = useSocket();
-  const [counterparty, setCounterparty] = useState('');
-  // Bank form: give `bankCount` of `bankGive` for `bankWant`.
-  const [bankGive, setBankGive] = useState<ResourceKey>('Wood');
-  const [bankWant, setBankWant] = useState<ResourceKey>('Brick');
-  const [bankCount, setBankCount] = useState(4);
+  // A port click opens straight on the Bank form.
+  const [counterparty, setCounterparty] = useState(port ? 'Bank' : '');
+  // Bank form: give `bankCount` of `bankGive` for `bankWant`. A resource
+  // port presets its resource as the give (a generic port leaves it alone).
+  const portGive = port && port !== 'generic' ? (port as ResourceKey) : null;
+  const [bankGive, setBankGive] = useState<ResourceKey>(portGive ?? 'Wood');
+  const [bankWant, setBankWant] = useState<ResourceKey>(portGive === 'Brick' ? 'Wood' : 'Brick');
+  // Start at one batch of the give resource's ratio (a 3:1 port can't trade 4).
+  const [bankCount, setBankCount] = useState(() =>
+    gameRoom?.board && currentPlayer ? bestBankTradeRatio(gameRoom.board, currentPlayer, portGive ?? 'Wood') : 4
+  );
   // Player-offer form: multi-resource give/want.
   const [give, setGive] = useState<Price>({ ...emptyPrice });
   const [want, setWant] = useState<Price>({ ...emptyPrice });
@@ -226,27 +241,44 @@ const TradeTab: React.FC = () => {
 
   return (
     <div>
-      <h4 className="text-[13px] font-semibold m-0 mb-2">New Trade</h4>
-      <select
-        value={counterparty}
-        onChange={(e) => setCounterparty(e.target.value)}
-        className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[13px] mb-2"
-      >
-        <option value="">Trade with...</option>
-        <option value="Bank">Bank</option>
-        <option value="Anyone">Anyone (post offer)</option>
-        {others.map((p) => (
-          <option key={p.id} value={p.name}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-
-      {counterparty === '' && (
-        <p className="text-[12px] text-gray-500 m-0">Select who to trade with.</p>
+      {/* Who can trade right now: only the turn owner makes trades; everyone
+          else can only respond to the turn owner's offers. */}
+      {isTurnOwner ? (
+        <div className="text-[13px] rounded-md p-2 mb-3 border-2 border-green-500 bg-green-50 text-green-800">
+          🟢 <strong>Your turn — you can trade</strong> with the bank or any player.
+        </div>
+      ) : (
+        <div className="text-[13px] rounded-md p-2 mb-3 border-2 border-amber-400 bg-amber-50 text-amber-800">
+          🔒 <strong>Only {turnOwner} can make trades right now</strong> (it's their turn). You can
+          still accept or take <strong>{turnOwner}</strong>'s offers below.
+        </div>
       )}
 
-      {isBank && (
+      {isTurnOwner && (
+        <>
+          <h4 className="text-[13px] font-semibold m-0 mb-2">New Trade</h4>
+          <select
+            value={counterparty}
+            onChange={(e) => setCounterparty(e.target.value)}
+            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[13px] mb-2"
+          >
+            <option value="">Trade with...</option>
+            <option value="Bank">🏦 Bank</option>
+            <option value="Anyone">📢 Anyone (post an open offer)</option>
+            {others.map((p) => (
+              <option key={p.id} value={p.name}>
+                👤 {p.name} — {p.resourceCount} card{p.resourceCount === 1 ? '' : 's'}
+              </option>
+            ))}
+          </select>
+
+          {counterparty === '' && (
+            <p className="text-[12px] text-gray-500 m-0">Select who to trade with.</p>
+          )}
+        </>
+      )}
+
+      {isTurnOwner && isBank && (
         <div>
           <p className="text-[12px] text-gray-600 m-0 mb-2">
             Ratio: {bankRatio}:1 · Bank {bankWant}: {gameRoom.bankSupply[bankWant]}
@@ -291,7 +323,7 @@ const TradeTab: React.FC = () => {
         </div>
       )}
 
-      {counterparty !== '' && !isBank && (
+      {isTurnOwner && counterparty !== '' && !isBank && (
         <div>
           <div className="mb-1">
             <p className="text-[12px] text-gray-600 m-0 mb-1">I give:</p>
@@ -342,17 +374,31 @@ const TradeTab: React.FC = () => {
               ? covers(p.resources, price)
               : p.resourceCount >= Object.values(price).reduce((a, b) => a + b, 0));
           const openClaimed = isOpenOffer(o) && o.from === me && !!o.claimer;
+          const isDirectedToMe = o.to === me;
+          const turnOk = !isDirectedToMe || turnOwner === o.from || turnOwner === o.to;
           const canAccept =
             o.status === 'pending' &&
-            (o.to === me ? (turnOwner === o.from || turnOwner === o.to) : openClaimed) &&
+            (isDirectedToMe ? turnOk : openClaimed) &&
             canAfford(from, o.give) &&
             canAfford(counter, o.want);
+          const blockedReason = canAccept
+            ? null
+            : !turnOk
+            ? `Can only be accepted on ${o.from}'s turn (it's ${turnOwner}'s turn now)`
+            : !canAfford(from, o.give)
+            ? `${o.from} can't afford their side right now`
+            : !canAfford(counter, o.want)
+            ? counter?.id === currentPlayer.id
+              ? `You need ${priceLabel(o.want)} to accept`
+              : `${cpName} can't afford their side right now`
+            : null;
           return (
             <OfferRow
               key={o.id}
               offer={o}
               canAccept={canAccept}
               canTake={false}
+              blockedReason={blockedReason}
             />
           );
         })
@@ -365,8 +411,9 @@ const TradeTab: React.FC = () => {
       ) : (
         openOffers.map((o) => {
           const canTake = o.status === 'pending' && !o.claimer && covers(currentPlayer.resources, o.want);
+          const blockedReason = canTake ? null : `You need ${priceLabel(o.want)} to take this offer`;
           return (
-            <OfferRow key={o.id} offer={o} canAccept={false} canTake={canTake} />
+            <OfferRow key={o.id} offer={o} canAccept={false} canTake={canTake} blockedReason={blockedReason} />
           );
         })
       )}

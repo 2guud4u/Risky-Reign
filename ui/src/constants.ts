@@ -146,6 +146,8 @@ export const BOARD_MAX_SCALE = 1.25;
 
 /** How long (ms) a transient error toast stays visible before auto-dismissing. */
 export const TOAST_DURATION_MS = 4000;
+/** How long (ms) the giant dice stay up after the second die lands. */
+export const DICE_RESULT_LINGER_MS = 2000;
 
 // ── BattleModal ────────────────────────────────────────────────────────────
 
@@ -194,6 +196,8 @@ export const SPEND_DURATION = 5000;
 export const SPEND_STAGGER = 1100;
 /** Event that animates a build's spent resources flying to the location. */
 export const BUILD_ANIMATION_EVENT = 'build:animation';
+/** Event that opens the trade window (detail: `OpenTradeDetail`), e.g. from a port click. */
+export const OPEN_TRADE_EVENT = 'trade:open';
 
 /** Board center (the desert hex). */
 export const BOARD_CENTER = { q: 0, r: 0, s: 0 };

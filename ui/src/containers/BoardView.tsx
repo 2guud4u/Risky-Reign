@@ -289,17 +289,14 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
           {/* Edges layer */}
           <EdgeLayer edges={edges} onClick={handleEdgeClick} onHover={setHoveredEdgeId} />
+          {/* Trade ports (harbors): one icon per dock, with a little road
+              to each of the 1-2 vertices it serves. */}
+          <PortLayer portGroups={portGroups} />
 
           {/* Vertices layer */}
           <VertexLayer vertices={vertices} onClick={handleVertexClick} onHover={setHoveredVertexId} />
 
-          {/* Robber's bag: dialog popup over the hovered robber (top layer so
-              it isn't covered by the hexes). */}
-          <RobberBagPopup hex={hexes.find((h) => h.id === hoveredRobberHexId) ?? null} />
 
-          {/* Trade ports (harbors): one icon per dock, with a little road
-              to each of the 1-2 vertices it serves. */}
-          <PortLayer portGroups={portGroups} />
 
           {/* Soldiers: count badges below DETAIL_ZOOM_IN; individual soldier
               SVGs at or above that zoom. */}
@@ -333,6 +330,9 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             vertices={board.vertices}
             colorOf={colorOf}
           />
+          {/* Robber's bag: dialog popup over the hovered robber (top layer so
+              it isn't covered by the hexes). */}
+          <RobberBagPopup hex={hexes.find((h) => h.id === hoveredRobberHexId) ?? null} />
         </svg>
         {/* <image  href="/art/settlement.svg#settlement-shape" enableBackground={}/> */}
 

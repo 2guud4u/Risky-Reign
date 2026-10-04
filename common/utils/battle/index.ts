@@ -20,3 +20,4 @@ export {
   resolveBattleRoundIfComplete,
   escapeInjuredSurvivors,
 } from './resolution';
+export { roadNeighbors, injuredLeftToMove, nextRepositionTurn } from './reposition';

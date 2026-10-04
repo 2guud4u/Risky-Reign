@@ -53,7 +53,7 @@ const BuyDevCardBubble: React.FC<{ check: BuildCheck; onBuy: () => void }> = ({ 
         <ActionBubble
           action={{
             key: 'buyDevCard',
-            icon: '🃏',
+            icon: '🎴',
             label: 'Buy Dev Card',
             costText: priceLabel(DevelopmentCardPrice),
             check,

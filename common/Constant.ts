@@ -118,6 +118,8 @@ export const terrainColors: Record<string, string> = {
 export const LONGEST_ROAD_MIN = 5;
 /** Minimum soldier count for the Largest Army bonus. */
 export const LARGEST_ARMY_MIN = 3;
+/** Minimum battles won for the Warmonger bonus. */
+export const WARMONGER_MIN = 3;
 /** Victory points awarded by each bonus. */
 export const BONUS_VP = 2;
 /** Victory points needed to win the game (standard Catan: first to 10 VP on your turn). */
@@ -134,9 +136,6 @@ export const MAX_ROADS = 15;
 
 /** The bank holds this many cards of each resource (95 total, official). */
 export const BANK_SUPPLY_PER_RESOURCE = 19;
-
-/** A player may trade at most this many of one resource type per turn (official). */
-export const MAX_BANK_TRADE_PER_TURN = 4;
 
 /** Maximum soldiers that may fight on a side in a single battle round. */
 export const MAX_PER_ROUND = 3;

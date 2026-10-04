@@ -36,5 +36,6 @@ export * from './utils/placement';
 export * from './utils/trade';
 export * from './utils/battle';
 export * from './utils/score';
+export * from './utils/turnOrder';
 export * from './utils/color';
 export * from './adapters/boardAdapter';

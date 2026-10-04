@@ -11,7 +11,45 @@ interface DiceProps {
   onRoll?: () => void;
 }
 
-/** A single die. Shows its value (or "?" when unrolled); clickable to roll. */
+/** Pip positions on a 100x100 face (x, y) for each die value 1-6. */
+const PIP_LAYOUTS: Record<number, [number, number][]> = {
+  1: [[50, 50]],
+  2: [
+    [28, 28],
+    [72, 72],
+  ],
+  3: [
+    [28, 28],
+    [50, 50],
+    [72, 72],
+  ],
+  4: [
+    [28, 28],
+    [72, 28],
+    [28, 72],
+    [72, 72],
+  ],
+  5: [
+    [28, 28],
+    [72, 28],
+    [50, 50],
+    [28, 72],
+    [72, 72],
+  ],
+  6: [
+    [28, 28],
+    [28, 50],
+    [28, 72],
+    [72, 28],
+    [72, 50],
+    [72, 72],
+  ],
+};
+
+/** Radius of a pip on the 100x100 face. */
+const PIP_RADIUS = 9;
+
+/** A single die. Shows its value as pips (dots) or "?" when unrolled; clickable to roll. */
 const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll }) => (
   <button
     type="button"
@@ -21,10 +59,18 @@ const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll }) => (
         ? 'border-amber-500 bg-amber-50 cursor-pointer hover:bg-amber-100'
         : 'border-gray-300 bg-white'
     }`}
-    style={{ width: size, height: size, fontSize: size * 0.4 }}
+    style={{ width: size, height: size }}
     title={canRoll ? 'Click to roll' : undefined}
   >
-    {value ?? '?'}
+    {value === null ? (
+      <span style={{ fontSize: size * 0.4 }}>?</span>
+    ) : (
+      <svg width={size} height={size} viewBox="0 0 100 100" aria-label={`Die showing ${value}`}>
+        {PIP_LAYOUTS[value].map(([cx, cy], i) => (
+          <circle key={i} cx={cx} cy={cy} r={PIP_RADIUS} fill="#374151" />
+        ))}
+      </svg>
+    )}
   </button>
 );
 

@@ -73,8 +73,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
 
   socket.on(
     'captureSettlement',
-    (data: { roomId: string; soldierIds: string[]; vertexId: string }) => {
-      const { roomId, soldierIds, vertexId } = data;
+    (data: { roomId: string; soldierId: string; vertexId: string }) => {
+      const { roomId, soldierId, vertexId } = data;
       const room = gameRooms.get(roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
@@ -93,22 +93,24 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
         return;
       }
 
-      // Authoritative rules live in common (shared with the UI). Every
-      // capturing soldier must pass the check (own, on the vertex, no
-      // enemy or other troops there, action still available).
-      for (const soldierId of soldierIds) {
-        const check = canCaptureSettlementAt(board, turnState, currentPlayer.name, soldierId, vertexId);
-        if (!check.allowed) {
-          socket.emit('error', { message: check.reason ?? 'Cannot capture this settlement' });
-          return;
-        }
+      // Authoritative rules live in common (shared with the UI). A capture
+      // is done by exactly one soldier (own, on the vertex, no enemy or
+      // other troops there, action still available).
+      if (typeof soldierId !== 'string') {
+        socket.emit('error', { message: 'Pick one soldier to capture with' });
+        return;
+      }
+      const check = canCaptureSettlementAt(board, turnState, currentPlayer.name, soldierId, vertexId);
+      if (!check.allowed) {
+        socket.emit('error', { message: check.reason ?? 'Cannot capture this settlement' });
+        return;
       }
 
       // Transfer the settlement/city to the acting player, recording the
       // previous owner so the capture can be undone this phase. Also
-      // transfer to the capturer the road(s) connecting the captured vertex
-      // to their other settlements/cities (Rules.md "capture settlement/city"),
-      // recording the previous road owners for undo.
+      // transfer to the capturer the road(s) sandwiched between the captured
+      // vertex and their other settlements/cities (Rules.md "capture
+      // settlement/city"), recording the previous road owners for undo.
       const vertex = board.vertices[vertexId];
       const settlement = vertex?.settlementId ? board.settlements[vertex.settlementId] : undefined;
       if (settlement) {
@@ -117,7 +119,7 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
           kind: 'captureSettlement',
           settlementId: settlement.id,
           originalOwnerId: settlement.ownerId,
-          soldierIds: [...soldierIds],
+          soldierId,
           roadTransfers,
         });
         settlement.ownerId = currentPlayer.name;
@@ -127,10 +129,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
         }
       }
 
-      // Each capturing soldier gets one action per Action phase (Rules.md line 30).
-      for (const soldierId of soldierIds) {
-        turnState.soldiersActedThisTurn.push(soldierId);
-      }
+      // The capturing soldier spends its one action per Action phase (Rules.md line 30).
+      turnState.soldiersActedThisTurn.push(soldierId);
 
       applyBonuses(room);
       broadcastRoom(io, room);

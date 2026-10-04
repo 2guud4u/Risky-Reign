@@ -1,5 +1,5 @@
 import React from 'react';
-import { adjacentHexIds, BattleState, Board, Player } from 'common';
+import { adjacentHexIds, BattleState, Board, injuredLeftToMove, Player } from 'common';
 import { BattleOutcome } from '../../types/battleModal';
 
 interface BattleOutcomePanelProps {
@@ -12,12 +12,26 @@ interface BattleOutcomePanelProps {
   finishRepositioning: (playerId: string, roomId: string) => void;
   moveRobberAfterWin: (playerId: string, hexId: string, roomId: string) => void;
   onExit: () => void;
+  /** Repositioning controls (the injured-troop picker), shown under the prompt. */
+  children?: React.ReactNode;
 }
 
+/** One side's tally: standing / injured / killed as icon counts. */
+const Tally: React.FC<{ name: string; alive: number; inj: number; dead: number }> = ({ name, alive, inj, dead }) => (
+  <div className="flex items-center justify-between text-[13px]">
+    <span className="font-semibold truncate">{name}</span>
+    <span className="flex gap-2 text-gray-600 shrink-0" title="standing / injured / killed">
+      <span>🛡 {alive}</span>
+      <span className="text-amber-600">✚ {inj}</span>
+      <span className="text-red-600">☠ {dead}</span>
+    </span>
+  </div>
+);
+
 /**
- * Battle over: show the outcome and let players exit. In the repositioning
- * phase the window stays open so owners can drag their injured troops to a
- * neighboring vertex (or leave them in place).
+ * Battle over: the outcome plus the repositioning / robber / exit controls.
+ * The window stays open until every injured troop has moved off the battle
+ * vertex (unless there is no road out).
  */
 export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
   battle,
@@ -29,111 +43,64 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
   finishRepositioning,
   moveRobberAfterWin,
   onExit,
+  children,
 }) => {
   const phase = battle.phase;
   if ((phase !== 'repositioning' && phase !== 'finished') || !outcome) return null;
-  // Robber fight: the two die values and who won the roll (the attacker wins
-  // only on a strictly higher roll; a tie or higher robber roll kills the
-  // soldier). Shown in the panel so the result is visible, not just in the
-  // auto-dismissing toast.
-  const soldierRoll = battle.robberFight
-    ? battle.states[battle.attacker]?.soldiers[0]?.rollNum ?? null
-    : null;
+  // Robber fight: show both dice; the attacker wins only on a strictly higher roll.
+  const soldierRoll = battle.robberFight ? battle.states[battle.attacker]?.soldiers[0]?.rollNum ?? null : null;
   const robberRoll = battle.robberFight ? battle.states['Robber']?.soldiers[0]?.rollNum ?? null : null;
   const wonRoll = soldierRoll !== null && robberRoll !== null && soldierRoll > robberRoll;
+
+  const turn = battle.repositionTurn ?? null;
+  const pending = phase === 'repositioning' && turn !== null;
+  const isAttacker = currentPlayer?.name === battle.attacker;
+  const isDefender = currentPlayer?.name === battle.defender;
+  const myTurn = pending && (isAttacker || isDefender) && turn === (isAttacker ? 'attacker' : 'defender');
+  const allMoved =
+    myTurn && injuredLeftToMove(board, battle, isAttacker ? battle.attacker : battle.defender).length === 0;
+  const moverName = turn === 'attacker' ? battle.attacker : battle.defender;
+
   return (
-    <div className="border border-gray-300 rounded-lg p-3 flex flex-col gap-2">
-      <div className="text-[14px] font-semibold">
-        {outcome.winner
-          ? `🏆 ${outcome.winner} wins the battle!`
-          : 'The battle is a draw.'}
-      </div>
+    <div className="flex flex-col gap-2">
+      <div className="text-[15px] font-bold">{outcome.winner ? `🏆 ${outcome.winner} wins` : 'Draw'}</div>
 
-      {battle.robberFight && (
-        <div className="text-[13px] font-semibold">
-          🎲 Your soldier rolled <strong>{soldierRoll}</strong> vs the robber's{' '}
-          <strong>{robberRoll}</strong> —{' '}
-          {wonRoll ? 'you took the robber bag!' : 'the robber killed your soldier.'}
+      {battle.robberFight ? (
+        <div className="text-[13px]">
+          🎲 {soldierRoll} vs robber {robberRoll} — {wonRoll ? 'bag taken' : 'soldier killed'}
         </div>
-      )}
-      <div className="text-[12px] text-gray-600">
-        {battle.attacker}: {outcome.atkAlive} standing, {outcome.atkDead} killed,{' '}
-        {outcome.atkInj} injured
-      </div>
-      <div className="text-[12px] text-gray-600">
-        {battle.defender || 'Defender'}: {outcome.defAlive} standing, {outcome.defDead} killed,{' '}
-        {outcome.defInj} injured
-      </div>
-
-      {phase === 'repositioning' && (
-        <div className="text-[12px] text-gray-700 bg-amber-50 border border-amber-200 rounded-md p-2">
-          {battle.repositionTurn == null ? (
-            <span>All troops have been repositioned.</span>
-          ) : (
-            <>
-              <strong>
-                {battle.repositionTurn === 'attacker'
-                  ? `${battle.attacker} (attacker) repositions first`
-                  : `${battle.defender || 'The defender'} repositions next`}
-              </strong>{' '}
-              — drag each highlighted (injured) troop onto a neighboring vertex
-              connected by a road. Any troop left behind stays where it fell.
-            </>
-          )}
+      ) : (
+        <div className="flex flex-col gap-0.5">
+          <Tally name={battle.attacker} alive={outcome.atkAlive} inj={outcome.atkInj} dead={outcome.atkDead} />
+          <Tally name={battle.defender || 'Defender'} alive={outcome.defAlive} inj={outcome.defInj} dead={outcome.defDead} />
         </div>
       )}
 
-      {phase === 'finished' && (
-        <div className="text-[11px] text-gray-400">
-          Surviving troops remain where the battle ended.
+      {pending && (
+        <div className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+          {myTurn ? 'Move your injured troops off the battle site' : `${moverName} is moving injured troops…`}
         </div>
       )}
 
-      {/* The side whose repositioning turn it is finishes first
-          (attacker before defender). */}
-      {phase === 'repositioning' &&
-        battle.repositionTurn !== null &&
-        battle.repositionTurn !== undefined &&
-        (() => {
-          const isAttacker = currentPlayer?.name === battle.attacker;
-          const isDefender = currentPlayer?.name === battle.defender;
-          if (!isAttacker && !isDefender) return null;
-          if (battle.repositionTurn !== (isAttacker ? 'attacker' : 'defender')) return null;
-          // All of this side's injured troops must be moved (off the
-          // battle vertex) before the player can confirm.
-          const mySide = isAttacker ? battle.attacker : battle.defender;
-          const myInjured = (battle.states[mySide]?.soldiers ?? []).filter(
-            (s) => s.injured && !s.dead
-          );
-          const settled = battle.injuredSettled ?? {};
-          const allMoved = myInjured.every(
-            (s) => settled[s.soldier.id] !== battle.vertexId
-          );
-          return (
-            <button
-              type="button"
-              disabled={!allMoved}
-              onClick={() => finishRepositioning(currentPlayer!.id, roomId)}
-              className={`w-full rounded-md py-2 text-sm font-semibold ${
-                allMoved
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              title={allMoved ? 'Confirm your troop moves' : 'Move every injured troop off the battle site first'}
-            >
-              Confirm Moves
-            </button>
-          );
-        })()}
+      {phase === 'repositioning' && children}
 
-      {/* After defeating the robber, the winner may move it to any
-          adjacent hex (Rules.md). */}
-      {robberDefeatedBy &&
-        robberDefeatedBy.playerName === currentPlayer?.name && (
+      {myTurn && (
+        <button
+          type="button"
+          disabled={!allMoved}
+          onClick={() => finishRepositioning(currentPlayer!.id, roomId)}
+          className={`w-full rounded-md py-2 text-sm font-semibold ${
+            allMoved ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          Confirm moves
+        </button>
+      )}
+
+      {/* After defeating the robber, the winner may move it to an adjacent hex. */}
+      {robberDefeatedBy && robberDefeatedBy.playerName === currentPlayer?.name && (
         <div className="flex flex-col gap-1">
-          <div className="text-[12px] font-semibold text-gray-600">
-            🛡 You defeated the robber — move it to an adjacent hex:
-          </div>
+          <div className="text-[12px] font-semibold text-gray-600">Move robber to:</div>
           <div className="flex flex-wrap gap-1">
             {adjacentHexIds(board, robberDefeatedBy.fromHexId)
               .filter((hexId) => board.hexes[hexId]?.terrain !== 'Desert')
@@ -145,7 +112,6 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
                     type="button"
                     onClick={() => moveRobberAfterWin(currentPlayer!.id, hexId, roomId)}
                     className="px-2 py-1 rounded border border-gray-300 bg-white text-[12px] hover:bg-gray-100"
-                    title={`Move the robber to the ${hex.terrain} hex`}
                   >
                     {hex.terrain}
                     {hex.rollNumber !== null ? ` (${hex.rollNumber})` : ''}
@@ -159,9 +125,12 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
       <button
         type="button"
         onClick={onExit}
-        className="w-full bg-gray-800 text-white rounded-md py-2 text-sm font-semibold hover:bg-gray-900"
+        disabled={pending}
+        className={`w-full rounded-md py-2 text-sm font-semibold ${
+          pending ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-800 text-white hover:bg-gray-900'
+        }`}
       >
-        Exit Battle
+        Close
       </button>
     </div>
   );

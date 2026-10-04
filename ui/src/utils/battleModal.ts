@@ -143,20 +143,6 @@ export const canRollSoldier = (
   s.rollNum === null &&
   isActiveSoldier(battle, s);
 
-/** Neighboring vertices reachable from `vertexId` via an existing road. */
-export function adjacentViaRoad(board: Board, vertexId: string): string[] {
-  const v = board.vertices[vertexId];
-  if (!v) return [];
-  const targets: string[] = [];
-  for (const edgeId of v.roadIds) {
-    const edge = board.edges[edgeId];
-    if (!edge || edge.roadId === null) continue;
-    const other = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
-    if (other !== vertexId) targets.push(other);
-  }
-  return targets;
-}
-
 /**
  * Injured survivors of this battle, keyed by their current resting vertex
  * (from the repositioning map), so each can be dragged one road-step at a time.
@@ -213,7 +199,7 @@ export function computeWaitingLines(battle: BattleState, phase: BattlePhase): st
           if (s.soldier.owner === name && s.rollNum === null) n++;
         }
       }
-      if (n > 0) waitingLines.push(`${name} still has ${n} troop${n > 1 ? 's' : ''} to roll`);
+      if (n > 0) waitingLines.push(`${name} (${n})`);
     }
   }
   return waitingLines;
