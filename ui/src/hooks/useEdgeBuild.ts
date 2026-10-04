@@ -32,7 +32,7 @@ export function useEdgeBuild(board: Board, edge: EdgeNode): EdgeBuildAction {
     check: roadCheck(edge.id),
     run: () => {
       if (!gameRoom || !currentPlayer) return;
-      buildRoad(currentPlayer.id, edge.id, gameRoom.id);
+      buildRoad(edge.id, gameRoom.id);
       // A free (Road Building) road spends nothing, so nothing flies.
       if (!hasFreeRoad) triggerBuildAnimation({ type: 'road', locationId: edge.id });
     },

@@ -1,52 +1,61 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Price, HexLayout, ResourceKey } from 'common';
+import {
+  ClientToServerEvents,
+  HexLayout,
+  Price,
+  ResourceKey,
+  ServerToClientEvents,
+} from 'common';
 import { SOCKET_URL } from '../config';
 import { readSavedSession, saveSession } from '../utils/session';
 
 /**
- * Generic emit helper: guards against a missing socket/roomId and validates
- * the required playerId (when provided), then emits the event. Keeps each
- * action function a one-liner instead of repeating the same boilerplate.
+ * Client socket bound to the shared event contract: it listens for
+ * ServerToClientEvents and emits ClientToServerEvents.
  */
-const emitAction = (
-  socket: Socket | null,
-  event: string,
-  payload: Record<string, unknown>,
-  { requirePlayerId = false }: { requirePlayerId?: boolean } = {}
+type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
+/**
+ * Emit a room action if we have a live socket and a roomId. The server knows
+ * the caller by socket.id, so payloads never carry an identity — just roomId
+ * and the event's own fields.
+ */
+const emitAction = <E extends keyof ClientToServerEvents>(
+  socket: GameSocket | null,
+  event: E,
+  payload: Parameters<ClientToServerEvents[E]>[0]
 ) => {
   if (!socket || !payload.roomId) return;
-  if (requirePlayerId && !payload.playerId) {
-    console.error(`No current player found for ${event}`);
-    return;
-  }
-  socket.emit(event, payload);
+  // Loose emit: `E` stays generic here, so the typed `socket.emit` overload
+  // can't be satisfied directly — the call sites above are already checked.
+  (socket.emit as (ev: string, data: unknown) => void)(event, payload);
 };
 
 interface SocketContextType {
-  socket: Socket | null;
+  socket: GameSocket | null;
   isConnected: boolean;
-  buildSettlement: (playerId: string, vertexId: string, roomId: string) => void;
-  buildRoad: (playerId: string, edgeId: string, roomId: string) => void;
-  upgradeSettlementToCity: (playerId: string, vertexId: string, roomId: string) => void;
-  recruitSoldier: (playerId: string, vertexId: string, roomId: string) => void;
-  moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
-  captureSettlement: (playerId: string, soldierId: string, vertexId: string, roomId: string) => void;
-  fightRobber: (playerId: string, soldierId: string, vertexId: string, roomId: string) => void;
-  moveRobber: (playerId: string, hexId: string, roomId: string) => void;
-  chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
-  resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
-  resolveDevCardChoice: (playerId: string, resources: string[], roomId: string) => void;
+  buildSettlement: (vertexId: string, roomId: string) => void;
+  buildRoad: (edgeId: string, roomId: string) => void;
+  upgradeSettlementToCity: (vertexId: string, roomId: string) => void;
+  recruitSoldier: (vertexId: string, roomId: string) => void;
+  moveSoldier: (soldierId: string, targetVertexId: string, roomId: string) => void;
+  captureSettlement: (soldierId: string, vertexId: string, roomId: string) => void;
+  fightRobber: (soldierId: string, vertexId: string, roomId: string) => void;
+  moveRobber: (hexId: string, roomId: string) => void;
+  chooseSteal: (victimName: string, cardIndex: number, roomId: string) => void;
+  resolveDiscard: (discards: Record<string, number>, roomId: string) => void;
+  resolveDevCardChoice: (resources: string[], roomId: string) => void;
   chooseKnightEffect: (roomId: string, effect: 'robber' | 'spawn' | 'cancel') => void;
   knightSpawnSoldier: (roomId: string, vertexId: string) => void;
-  healSoldier: (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) => void;
-  startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => void;
-  rollBattleDie: (playerId: string, soldierId: string, roomId: string) => void;
-  repositionSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
-  finishRepositioning: (playerId: string, roomId: string) => void;
-  moveRobberAfterWin: (playerId: string, hexId: string, roomId: string) => void;
-  continueBattle: (playerId: string, roomId: string) => void;
-  endBattle: (playerId: string, roomId: string) => void;
+  healSoldier: (soldierId: string, roomId: string, payWith?: ResourceKey) => void;
+  startAttack: (soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => void;
+  rollBattleDie: (soldierId: string, roomId: string) => void;
+  repositionSoldier: (soldierId: string, targetVertexId: string, roomId: string) => void;
+  finishRepositioning: (roomId: string) => void;
+  moveRobberAfterWin: (hexId: string, roomId: string) => void;
+  continueBattle: (roomId: string) => void;
+  endBattle: (roomId: string) => void;
   exitBattle: (roomId: string) => void;
   rollDice: (roomId: string) => void;
   joinRoom: (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => void;
@@ -59,8 +68,8 @@ interface SocketContextType {
   editBoard: (roomId: string, layouts: HexLayout[]) => void;
   endTurn: (roomId: string) => void;
   undoBuild: (roomId: string) => void;
-  drawDevelopmentCard: (playerId: string, roomId: string) => void;
-  playDevelopmentCard: (playerId: string, roomId: string, cardIndex: number) => void;
+  drawDevelopmentCard: (roomId: string) => void;
+  playDevelopmentCard: (roomId: string, cardIndex: number) => void;
   createTradeOffer: (roomId: string, to: string | null, give: Price, want: Price) => void;
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
@@ -73,132 +82,104 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
-  buildSettlement: () => { },
-  buildRoad: () => { },
-  upgradeSettlementToCity: () => { },
-  recruitSoldier: () => { },
-  moveSoldier: () => { },
-  captureSettlement: () => { },
-  fightRobber: () => { },
-  moveRobber: () => { },
-  chooseSteal: () => { },
-  resolveDiscard: () => { },
-  resolveDevCardChoice: () => { },
-  chooseKnightEffect: () => { },
-  knightSpawnSoldier: () => { },
-  healSoldier: () => { },
-  startAttack: () => { },
-  rollBattleDie: () => { },
-  repositionSoldier: () => { },
-  finishRepositioning: () => { },
-  moveRobberAfterWin: () => { },
-  continueBattle: () => { },
-  endBattle: () => { },
-  exitBattle: () => { },
-  rollDice: () => { },
-  joinRoom: () => { },
-  updatePlayerColor: () => { },
-  updatePlayerName: () => { },
-  startGame: () => { },
-  resetGame: () => { },
-  refreshMap: () => { },
-  updatePointsToWin: () => { },
-  editBoard: () => { },
-  endTurn: () => { },
-  undoBuild: () => { },
-  drawDevelopmentCard: () => { },
-  playDevelopmentCard: () => { },
-  createTradeOffer: () => { },
-  acceptTrade: () => { },
-  declineTrade: () => { },
-  cancelTrade: () => { },
-  takeTrade: () => { },
-  bankTrade: () => { },
-  leaveGame: () => { },
+  buildSettlement: () => {},
+  buildRoad: () => {},
+  upgradeSettlementToCity: () => {},
+  recruitSoldier: () => {},
+  moveSoldier: () => {},
+  captureSettlement: () => {},
+  fightRobber: () => {},
+  moveRobber: () => {},
+  chooseSteal: () => {},
+  resolveDiscard: () => {},
+  resolveDevCardChoice: () => {},
+  chooseKnightEffect: () => {},
+  knightSpawnSoldier: () => {},
+  healSoldier: () => {},
+  startAttack: () => {},
+  rollBattleDie: () => {},
+  repositionSoldier: () => {},
+  finishRepositioning: () => {},
+  moveRobberAfterWin: () => {},
+  continueBattle: () => {},
+  endBattle: () => {},
+  exitBattle: () => {},
+  rollDice: () => {},
+  joinRoom: () => {},
+  updatePlayerColor: () => {},
+  updatePlayerName: () => {},
+  startGame: () => {},
+  resetGame: () => {},
+  refreshMap: () => {},
+  updatePointsToWin: () => {},
+  editBoard: () => {},
+  endTurn: () => {},
+  undoBuild: () => {},
+  drawDevelopmentCard: () => {},
+  playDevelopmentCard: () => {},
+  createTradeOffer: () => {},
+  acceptTrade: () => {},
+  declineTrade: () => {},
+  cancelTrade: () => {},
+  takeTrade: () => {},
+  bankTrade: () => {},
+  leaveGame: () => {},
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<GameSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  const buildSettlement = (playerId: string, vertexId: string, roomId: string) =>
-    emitAction(socket, 'buildSettlement', { roomId, playerId, vertexId }, { requirePlayerId: true });
-
-  const buildRoad = (playerId: string, edgeId: string, roomId: string) =>
-    emitAction(socket, 'buildRoad', { roomId, playerId, edgeId }, { requirePlayerId: true });
-
-  const upgradeSettlementToCity = (playerId: string, vertexId: string, roomId: string) =>
-    emitAction(socket, 'upgradeSettlementToCity', { roomId, playerId, vertexId }, { requirePlayerId: true });
-
-  const recruitSoldier = (playerId: string, vertexId: string, roomId: string) =>
-    emitAction(socket, 'recruitSoldier', { roomId, playerId, vertexId }, { requirePlayerId: true });
-
-  const moveSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
-    emitAction(socket, 'moveSoldier', { roomId, playerId, soldierId, targetVertexId }, { requirePlayerId: true });
-  const captureSettlement = (playerId: string, soldierId: string, vertexId: string, roomId: string) =>
-    emitAction(socket, 'captureSettlement', { roomId, playerId, soldierId, vertexId }, { requirePlayerId: true });
-  const fightRobber = (playerId: string, soldierId: string, vertexId: string, roomId: string) =>
-    emitAction(socket, 'fightRobber', { roomId, playerId, soldierId, vertexId }, { requirePlayerId: true });
-  const moveRobber = (playerId: string, hexId: string, roomId: string) =>
-    emitAction(socket, 'moveRobber', { roomId, playerId, hexId }, { requirePlayerId: true });
-
-  const chooseSteal = (playerId: string, victimName: string, cardIndex: number, roomId: string) =>
-    emitAction(socket, 'chooseSteal', { roomId, playerId, victimName, cardIndex }, { requirePlayerId: true });
-  const resolveDiscard = (playerId: string, discards: Record<string, number>, roomId: string) =>
-    emitAction(socket, 'resolveDiscard', { roomId, playerId, discards }, { requirePlayerId: true });
-
-  const resolveDevCardChoice = (playerId: string, resources: string[], roomId: string) =>
-    emitAction(socket, 'resolveDevCardChoice', { roomId, playerId, resources }, { requirePlayerId: true });
-
+  const buildSettlement = (vertexId: string, roomId: string) =>
+    emitAction(socket, 'buildSettlement', { roomId, vertexId });
+  const buildRoad = (edgeId: string, roomId: string) =>
+    emitAction(socket, 'buildRoad', { roomId, edgeId });
+  const upgradeSettlementToCity = (vertexId: string, roomId: string) =>
+    emitAction(socket, 'upgradeSettlementToCity', { roomId, vertexId });
+  const recruitSoldier = (vertexId: string, roomId: string) =>
+    emitAction(socket, 'recruitSoldier', { roomId, vertexId });
+  const moveSoldier = (soldierId: string, targetVertexId: string, roomId: string) =>
+    emitAction(socket, 'moveSoldier', { roomId, soldierId, targetVertexId });
+  const captureSettlement = (soldierId: string, vertexId: string, roomId: string) =>
+    emitAction(socket, 'captureSettlement', { roomId, soldierId, vertexId });
+  const fightRobber = (soldierId: string, vertexId: string, roomId: string) =>
+    emitAction(socket, 'fightRobber', { roomId, soldierId, vertexId });
+  const moveRobber = (hexId: string, roomId: string) =>
+    emitAction(socket, 'moveRobber', { roomId, hexId });
+  const chooseSteal = (victimName: string, cardIndex: number, roomId: string) =>
+    emitAction(socket, 'chooseSteal', { roomId, victimName, cardIndex });
+  const resolveDiscard = (discards: Record<string, number>, roomId: string) =>
+    emitAction(socket, 'resolveDiscard', { roomId, discards });
+  const resolveDevCardChoice = (resources: string[], roomId: string) =>
+    emitAction(socket, 'resolveDevCardChoice', { roomId, resources });
   const chooseKnightEffect = (roomId: string, effect: 'robber' | 'spawn' | 'cancel') =>
     emitAction(socket, 'chooseKnightEffect', { roomId, effect });
-
   const knightSpawnSoldier = (roomId: string, vertexId: string) =>
     emitAction(socket, 'knightSpawnSoldier', { roomId, vertexId });
-
-  const healSoldier = (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) =>
-    emitAction(socket, 'healSoldier', { roomId, playerId, soldierId, payWith }, { requirePlayerId: true });
-
-  const startAttack = (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) =>
-    emitAction(socket, 'startAttack', { roomId, playerId, soldierIds, targetVertexId, defenderName }, { requirePlayerId: true });
-
-  const rollBattleDie = (playerId: string, soldierId: string, roomId: string) =>
-    emitAction(socket, 'rollBattleDie', { roomId, playerId, soldierId }, { requirePlayerId: true });
-
-  const repositionSoldier = (playerId: string, soldierId: string, targetVertexId: string, roomId: string) =>
-    emitAction(
-      socket,
-      'repositionSoldier',
-      { roomId, playerId, soldierId, targetVertexId },
-      { requirePlayerId: true }
-    );
-
-  const finishRepositioning = (playerId: string, roomId: string) =>
-    emitAction(socket, 'finishRepositioning', { roomId, playerId }, { requirePlayerId: true });
-
-  const moveRobberAfterWin = (playerId: string, hexId: string, roomId: string) =>
-    emitAction(socket, 'moveRobberAfterWin', { roomId, playerId, hexId }, { requirePlayerId: true });
-
-  const continueBattle = (playerId: string, roomId: string) =>
-    emitAction(socket, 'continueBattle', { roomId, playerId }, { requirePlayerId: true });
-
-  const endBattle = (playerId: string, roomId: string) =>
-    emitAction(socket, 'endBattle', { roomId, playerId }, { requirePlayerId: true });
-
-  const exitBattle = (roomId: string) =>
-    emitAction(socket, 'exitBattle', { roomId }, { requirePlayerId: false });
-
-  const endTurn = (roomId: string) => emitAction(socket, 'endTurn', { roomId });
-
-  const undoBuild = (roomId: string) => emitAction(socket, 'undoBuild', { roomId });
-
-  const drawDevelopmentCard = (playerId: string, roomId: string) =>
-    emitAction(socket, 'drawDevelopmentCard', { roomId, playerId }, { requirePlayerId: true });
-
-  const playDevelopmentCard = (playerId: string, roomId: string, cardIndex: number) =>
-    emitAction(socket, 'playDevelopmentCard', { roomId, playerId, cardIndex }, { requirePlayerId: true });
-
+  const healSoldier = (soldierId: string, roomId: string, payWith?: ResourceKey) =>
+    emitAction(socket, 'healSoldier', { roomId, soldierId, payWith });
+  const startAttack = (soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) =>
+    emitAction(socket, 'startAttack', { roomId, soldierIds, targetVertexId, defenderName });
+  const rollBattleDie = (soldierId: string, roomId: string) =>
+    emitAction(socket, 'rollBattleDie', { roomId, soldierId });
+  const repositionSoldier = (soldierId: string, targetVertexId: string, roomId: string) =>
+    emitAction(socket, 'repositionSoldier', { roomId, soldierId, targetVertexId });
+  const finishRepositioning = (roomId: string) =>
+    emitAction(socket, 'finishRepositioning', { roomId });
+  const moveRobberAfterWin = (hexId: string, roomId: string) =>
+    emitAction(socket, 'moveRobberAfterWin', { roomId, hexId });
+  const continueBattle = (roomId: string) =>
+    emitAction(socket, 'continueBattle', { roomId });
+  const endBattle = (roomId: string) =>
+    emitAction(socket, 'endBattle', { roomId });
+  const exitBattle = (roomId: string) => emitAction(socket, 'exitBattle', { roomId });
   const rollDice = (roomId: string) => emitAction(socket, 'rollDice', { roomId });
+  const endTurn = (roomId: string) => emitAction(socket, 'endTurn', { roomId });
+  const undoBuild = (roomId: string) => emitAction(socket, 'undoBuild', { roomId });
+  const drawDevelopmentCard = (roomId: string) =>
+    emitAction(socket, 'drawDevelopmentCard', { roomId });
+  const playDevelopmentCard = (roomId: string, cardIndex: number) =>
+    emitAction(socket, 'playDevelopmentCard', { roomId, cardIndex });
 
   const joinRoom = (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => {
     if (!socket) return;
@@ -206,60 +187,50 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     // the session is for this exact room — never leak a stale token).
     const saved = readSavedSession();
     const token = saved && saved.roomId === roomId ? saved.token : undefined;
-    socket.emit('joinRoom', { roomId, playerName, color, ...(token ? { token } : {}), ...(layouts && layouts.length > 0 ? { layouts } : {}) });
+    socket.emit('joinRoom', {
+      roomId,
+      playerName,
+      color,
+      ...(token ? { token } : {}),
+      ...(layouts && layouts.length > 0 ? { layouts } : {}),
+    });
   };
 
   const updatePlayerColor = (roomId: string, color: string) =>
     emitAction(socket, 'updatePlayerColor', { roomId, color });
   const updatePlayerName = (roomId: string, name: string) =>
     emitAction(socket, 'updatePlayerName', { roomId, name });
-
   const startGame = (roomId: string) => emitAction(socket, 'startGame', { roomId });
-
   const resetGame = (roomId: string) => emitAction(socket, 'resetGame', { roomId });
-
   const refreshMap = (roomId: string) => emitAction(socket, 'refreshMap', { roomId });
-
   const updatePointsToWin = (roomId: string, pointsToWin: number) =>
     emitAction(socket, 'updatePointsToWin', { roomId, pointsToWin });
   const editBoard = (roomId: string, layouts: HexLayout[]) =>
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
-
   const createTradeOffer = (roomId: string, to: string | null, give: Price, want: Price) =>
     emitAction(socket, 'createTradeOffer', { roomId, to, give, want });
-
   const acceptTrade = (roomId: string, tradeId: string) =>
     emitAction(socket, 'acceptTrade', { roomId, tradeId });
-
   const declineTrade = (roomId: string, tradeId: string) =>
     emitAction(socket, 'declineTrade', { roomId, tradeId });
-
   const cancelTrade = (roomId: string, tradeId: string) =>
     emitAction(socket, 'cancelTrade', { roomId, tradeId });
-
   const takeTrade = (roomId: string, tradeId: string) =>
     emitAction(socket, 'takeTrade', { roomId, tradeId });
-
   const bankTrade = (roomId: string, giveResource: string, wantResource: string, giveCount: number) =>
     emitAction(socket, 'bankTrade', { roomId, giveResource, wantResource, giveCount });
+
   useEffect(() => {
-    const newSocket = io(SOCKET_URL);
+    const newSocket: GameSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
-    newSocket.on('connect', () => {
-      setIsConnected(true);
-      console.log('Connected to server');
-    });
-
-    newSocket.on('disconnect', () => {
-      setIsConnected(false);
-      console.log('Disconnected from server');
-    });
+    newSocket.on('connect', () => setIsConnected(true));
+    newSocket.on('disconnect', () => setIsConnected(false));
 
     // The server hands each joined socket a secret seat token; persist it so
     // a reload can re-attach to the same seat instead of joining as new.
-    newSocket.on('joined', (data: { token: string }) => {
+    newSocket.on('joined', (data) => {
       const saved = readSavedSession();
       if (saved) saveSession({ ...saved, token: data.token });
     });

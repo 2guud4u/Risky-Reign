@@ -99,7 +99,7 @@ const DevCardPrompt: React.FC = () => {
     for (const r of RESOURCES) {
       for (let i = 0; i < (counts[r] ?? 0); i++) resources.push(r);
     }
-    resolveDevCardChoice(currentPlayer.id, resources, gameRoom.id);
+    resolveDevCardChoice(resources, gameRoom.id);
     setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   };
 
@@ -132,7 +132,7 @@ const DevCardPrompt: React.FC = () => {
                 <button
                   key={r}
                   type="button"
-                  onClick={() => resolveDevCardChoice(currentPlayer.id, [r], gameRoom.id)}
+                  onClick={() => resolveDevCardChoice([r], gameRoom.id)}
                   className="py-2 rounded-md border-2 border-gray-300 bg-white flex flex-col items-center gap-1 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
                 >
                   {face}

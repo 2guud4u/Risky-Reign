@@ -1,5 +1,6 @@
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 
+import { GameServer, GameSocket } from './handlers/context';
 import { registerRoomHandlers } from './handlers/room';
 import { registerDevCardHandlers } from './handlers/devCards';
 import { registerTurnHandlers } from './handlers/turn';
@@ -14,10 +15,10 @@ import { registerTradeHandlers } from './handlers/trade';
  * crashing the whole server process. Handlers stay plain `socket.on(...)`;
  * this intercepts `socket.on` once per connection and rebinds the callback.
  */
-function makeSocketCrashSafe(socket: Socket): void {
-  const realOn = socket.on.bind(socket);
-  // Intercept socket.on: register a listener that guards the real one. The cast
-  // bridges our (event: string, listener) signature to socket.io's typed overloads.
+function makeSocketCrashSafe(socket: GameSocket): void {
+  // The real .on, rebound to a loose (event: string) signature — the typed
+  // socket only accepts known event names, but this wrapper must intercept all.
+  const realOn = socket.on.bind(socket) as (event: string, listener: (...args: unknown[]) => void) => Socket;
   const guarded = (event: string, listener: (...args: unknown[]) => void): Socket =>
     realOn(event, (...args: unknown[]) => {
       try {
@@ -26,15 +27,15 @@ function makeSocketCrashSafe(socket: Socket): void {
         console.error(`[socket] handler '${event}' threw:`, err);
         socket.emit('error', { message: 'Invalid request' });
       }
-    }) as Socket;
-  socket.on = guarded as Socket['on'];
+    });
+  socket.on = guarded as GameSocket['on'];
 }
 
 /**
  * Wire up all socket handlers. Each domain module registers its own handlers on
  * the socket, keeping this entrypoint thin and the per-connection setup explicit.
  */
-export function setupSocketHandlers(io: Server): void {
+export function setupSocketHandlers(io: GameServer): void {
   io.on('connection', (socket) => {
     makeSocketCrashSafe(socket);
     const ctx = { io, socket };

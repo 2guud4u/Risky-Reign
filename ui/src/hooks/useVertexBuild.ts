@@ -50,9 +50,9 @@ export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAct
   const { buildSettlement, upgradeSettlementToCity, recruitSoldier, knightSpawnSoldier } = useSocket();
   const { settlementCheck, cityCheck, soldierCheck } = useBuildRules(board);
 
-  const send = (emit: (playerId: string, vertexId: string, roomId: string) => void, type: Exclude<VertexBuildAction['key'], 'knight'>) => () => {
+  const send = (emit: (vertexId: string, roomId: string) => void, type: Exclude<VertexBuildAction['key'], 'knight'>) => () => {
     if (!gameRoom || !currentPlayer) return;
-    emit(currentPlayer.id, vertex.id, gameRoom.id);
+    emit(vertex.id, gameRoom.id);
     triggerBuildAnimation({ type, locationId: vertex.id });
   };
 

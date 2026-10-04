@@ -23,8 +23,8 @@ export function useBattleReposition(opts: {
   battle: BattleState | null;
   currentPlayer: Player | null;
   roomId: string | undefined;
-  repositionSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
-  finishRepositioning: (playerId: string, roomId: string) => void;
+  repositionSoldier: (soldierId: string, targetVertexId: string, roomId: string) => void;
+  finishRepositioning: (roomId: string) => void;
 }) {
   const { board, battle, currentPlayer, roomId, repositionSoldier, finishRepositioning } = opts;
 
@@ -80,10 +80,10 @@ export function useBattleReposition(opts: {
   /** Move the selected troop to a lit vertex; the last move also ends my turn. */
   const assignTo = (vertexId: string) => {
     if (!selectedTroop || !currentPlayer || !roomId || !validTargets.includes(vertexId)) return;
-    repositionSoldier(currentPlayer.id, selectedTroop.soldierId, vertexId, roomId);
+    repositionSoldier(selectedTroop.soldierId, vertexId, roomId);
     setPickedId(null);
     // Socket.io keeps per-connection order, so the server sees the move first.
-    if (myStaged.length === 1) finishRepositioning(currentPlayer.id, roomId);
+    if (myStaged.length === 1) finishRepositioning(roomId);
   };
 
   /** Press on one of my waiting troops: pick it, and arm a drag. */

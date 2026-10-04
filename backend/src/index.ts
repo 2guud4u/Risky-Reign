@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { ClientToServerEvents, ServerToClientEvents } from 'common';
 import cors from 'cors';
 import path from 'path';
 import { setupSocketHandlers } from './sockets';
@@ -8,7 +9,7 @@ import { startRoomSweep } from './roomSweep';
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, {
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
     methods: ['GET', 'POST'],

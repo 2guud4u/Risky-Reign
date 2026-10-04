@@ -30,9 +30,9 @@ export function useBoardDrag(opts: {
   currentPlayer: Player | null;
   svgRef: React.RefObject<SVGSVGElement>;
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
-  moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
-  moveRobber: (playerId: string, hexId: string, roomId: string) => void;
-  moveRobberAfterWin: (playerId: string, hexId: string, roomId: string) => void;
+  moveSoldier: (soldierId: string, targetVertexId: string, roomId: string) => void;
+  moveRobber: (hexId: string, roomId: string) => void;
+  moveRobberAfterWin: (hexId: string, roomId: string) => void;
 }) {
   const {
     board,
@@ -173,7 +173,7 @@ export function useBoardDrag(opts: {
         const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
         const target = nearestWithin(valid, mp, threshold, (hex) => hex.position);
         if (target) {
-          moveRobberAfterWin(currentPlayer.id, target.id, gameRoom.id);
+          moveRobberAfterWin(target.id, gameRoom.id);
         }
       }
       setMousePos(null);
@@ -192,7 +192,7 @@ export function useBoardDrag(opts: {
           (hex) => hex.position
         );
         if (target) {
-          moveRobber(currentPlayer.id, target.id, gameRoom.id);
+          moveRobber(target.id, gameRoom.id);
         }
       }
       setMousePos(null);
@@ -212,7 +212,7 @@ export function useBoardDrag(opts: {
       (tid) => board.vertices[tid]?.position ?? null
     );
     if (target) {
-      moveSoldier(currentPlayer.id, d.soldierId, target, gameRoom.id);
+      moveSoldier(d.soldierId, target, gameRoom.id);
     }
     cancelDrag();
   }, [board, base, gameRoom, currentPlayer, moveRobber, moveRobberAfterWin, moveSoldier, cancelDrag]);

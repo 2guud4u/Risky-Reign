@@ -57,7 +57,7 @@ const DiscardPrompt: React.FC = () => {
 
   const confirm = () => {
     if (total !== required) return;
-    resolveDiscard(currentPlayer.id, counts, gameRoom.id);
+    resolveDiscard(counts, gameRoom.id);
     setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   };
 

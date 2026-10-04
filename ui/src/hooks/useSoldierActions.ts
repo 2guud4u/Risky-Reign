@@ -112,7 +112,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
         costText: `${needed} ${RESOURCE_ICONS[payWith]}`,
         check,
         run: () => {
-          for (const id of injured) healSoldier(currentPlayer.id, id, gameRoom.id, payWith);
+          for (const id of injured) healSoldier(id, gameRoom.id, payWith);
           clearPicks();
         },
         eligible,
@@ -156,7 +156,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
                 ? ALLOWED
                 : { allowed: false, reason: 'No picked soldier can move this way' },
             run: () => {
-              for (const id of movers) moveSoldier(currentPlayer.id, id, target, gameRoom.id);
+              for (const id of movers) moveSoldier(id, target, gameRoom.id);
               clearPicks();
             },
             eligible: movers.length > 0,
@@ -197,7 +197,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
         costText: 'free',
         check,
         run: () => {
-          startAttack(currentPlayer.id, group, vertex.id, gameRoom.id, defender);
+          startAttack(group, vertex.id, gameRoom.id, defender);
           clearPicks();
         },
         eligible: check.allowed,
@@ -231,7 +231,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       check: capturer ? ALLOWED : checks[0].check,
       run: () => {
         if (!capturer) return;
-        captureSettlement(currentPlayer.id, capturer.id, vertex.id, gameRoom.id);
+        captureSettlement(capturer.id, vertex.id, gameRoom.id);
         clearPicks();
       },
     });
@@ -249,7 +249,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       check: fighter ? ALLOWED : checks[0].check,
       run: () => {
         if (!fighter) return;
-        fightRobber(currentPlayer.id, fighter.id, vertex.id, gameRoom.id);
+        fightRobber(fighter.id, vertex.id, gameRoom.id);
         clearPicks();
       },
     });

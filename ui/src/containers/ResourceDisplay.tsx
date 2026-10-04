@@ -103,8 +103,8 @@ const buyCheck: BuildCheck = !isMyTurn
 
 if (!gameRoom || !me) return null;
 
-const handleDrawDevCard = () => drawDevelopmentCard(me.id, gameRoom.id);
-const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(me.id, gameRoom.id, cardIndex);
+const handleDrawDevCard = () => drawDevelopmentCard(gameRoom.id);
+const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(gameRoom.id, cardIndex);
 
    return (
      <div className="relative">

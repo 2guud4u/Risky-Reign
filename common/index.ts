@@ -13,6 +13,7 @@
 export * from './types/Coordinates';
 export * from './types/Board';
 export * from './types/Hex';
+export * from './types/SocketEvents';
 export * from './types/Pieces';
 export * from './types/Player';
 export * from './types/DevelopmentCard';

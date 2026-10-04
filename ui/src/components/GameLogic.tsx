@@ -68,7 +68,7 @@ const GameLogic: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('roomUpdate', (room: PublicGameRoom) => {
+    socket.on('roomUpdate', (room) => {
       setGameRoom(room);
       if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer)) {
         // No longer in this room — clear the saved session.
@@ -77,13 +77,13 @@ const GameLogic: React.FC = () => {
       setError(null);
     });
 
-    socket.on('gameUpdate', (room: PublicGameRoom) => {
+    socket.on('gameUpdate', (room) => {
       setGameRoom(room);
       syncCurrentPlayer(room, socket.id, setCurrentPlayer);
       setError(null);
     });
 
-    socket.on('error', (errorData: { message: string }) => {
+    socket.on('error', (errorData) => {
       setError(errorData.message);
       setToast(errorData.message);
     });

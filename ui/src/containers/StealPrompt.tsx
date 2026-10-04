@@ -77,7 +77,7 @@ const StealPrompt: React.FC = () => {
                   key={i}
                   type="button"
                   onClick={() =>
-                    chooseSteal(currentPlayer.id, selectedPlayer.name, i, gameRoom.id)
+                    chooseSteal(selectedPlayer.name, i, gameRoom.id)
                   }
                   className="w-12 h-16 rounded-md bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center text-2xl font-bold shadow hover:scale-105 hover:shadow-lg transition-transform cursor-pointer"
                   title="Take this card"

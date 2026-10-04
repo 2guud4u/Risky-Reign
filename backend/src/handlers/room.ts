@@ -96,7 +96,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       seat.id = socket.id;
       socket.join(roomId);
       joinedRoomIds.add(roomId);
-      socket.emit('joined', { token: seat.token });
+      if (seat.token) socket.emit('joined', { token: seat.token });
       applyBonuses(room);
       broadcastRoom(io, room, 'roomUpdate');
       return;

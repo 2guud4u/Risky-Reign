@@ -101,7 +101,7 @@ const BattleModal: React.FC = () => {
     );
     if (!committed) return;
     setRollingSoldierId(soldierId);
-    rollBattleDie(currentPlayer.id, soldierId, gameRoom.id);
+    rollBattleDie(soldierId, gameRoom.id);
   };
 
   const canRoll = (s: SoldierBattleState): boolean => canRollSoldier(battle, s, phase, me);
@@ -214,8 +214,8 @@ const BattleModal: React.FC = () => {
               canContinue={canContinue}
               attackerAlive={attackerAlive}
               defenderAlive={defenderAlive}
-              onContinue={() => currentPlayer && continueBattle(currentPlayer.id, gameRoom.id)}
-              onEnd={() => currentPlayer && endBattle(currentPlayer.id, gameRoom.id)}
+              onContinue={() => currentPlayer && continueBattle(gameRoom.id)}
+              onEnd={() => currentPlayer && endBattle(gameRoom.id)}
             />
             <BattleOutcomePanel
               battle={battle}
