@@ -76,20 +76,6 @@ export type UndoEntry =
       soldierIds: string[];
       /** Roads that transferred to the capturer (ownership restored on undo). */
       roadTransfers: { roadId: string; originalOwnerId: string }[];
-    }
-  | {
-      kind: 'fightRobber';
-      /** The player who fought (their once-per-phase fight is refunded on undo). */
-      playerName: string;
-      soldierId: string;
-      /** The fight outcome. */
-      result: 'win' | 'lose';
-      /** The soldier as it was before the fight (restored on undo if it was killed). */
-      soldierSnapshot: SoldierObj;
-      /** The robber bag before the fight (restored on undo if the player won). */
-      bagBefore: ResourceCount;
-      /** The robber's position if the winner moved it after winning (restored on undo). */
-      robberMoved?: { fromHexId: string; toHexId: string };
     };
 
 /** A pending resource trade between two players (or an open offer to anyone). */

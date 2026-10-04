@@ -65,7 +65,7 @@ option for special 5-6 build rule or regular build path
 
 when trying to move without road say have to move through road only
 
-should say who can trade with you
+should say who is allowed to trade in the round
 
 zoom in house should say who owns it
 
@@ -83,7 +83,7 @@ trade needs to be more clear on who can trade
 
 timer vote, if everyone vote, person get turn ended, it can be disabled
 
-fix who wins largest army and longest road on a tie
+fix who wins largest army and longest road on a tie, only one player in lobby gets largest army or longest, road, you have to beat the current holder to get it
 
 attack options should open up who you want to attack on the buble
 
@@ -93,7 +93,7 @@ figure out attack mix of soldiers
 
 bug where defender won but got injured should be attacker get injured defender rolled a 3 and attacker rolled a 2
 
-injured movement is bugged
+injured movement is bugged, the user has to move th einjured soldier a a new space unless there is nowhere to go
 
 need a dev game state
 
@@ -101,15 +101,20 @@ sometimes i dont get the resouce even though i rolled
 
 sandwich roads should be turned into your road
 
-when no more settlements or cities or alive soldiers, you are knocked out of the game
+when no more settlements or cities or alive soldiers, you are knocked out of the game: no more turns for you but you can stil spectate
 
-robbers bag should be above shiiping doc ui and house should be over dock bridge
+robbers bag should be above shiiping doc  and all other uiui and house should be over dock bridge
 
 allow reorganize cards b4 stealing
 
 click robber also starts fight
 
-robber fight took too long for dice result to happen
-
+robber moved from knight should not steal
 
 knight card allow spawn of knight near any other soldiers
+
+fix battle hud, should not need to scroll, less text 
+
+most battles won acheivement
+
+bank trade should have no limit

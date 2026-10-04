@@ -103,6 +103,17 @@ const NoticeRail: React.FC = () => {
         : `${player} must move the robber (${reason === 'seven' ? 'rolled a 7' : 'knight card'}).`,
     });
   }
+  if (gameRoom.robberDefeatedBy) {
+    const winner = gameRoom.robberDefeatedBy.playerName;
+    const isMe = winner === currentPlayer.name;
+    notices.push({
+      key: 'robber-win',
+      mine: isMe,
+      text: isMe
+        ? 'You defeated the robber — drag the black robber to a highlighted adjacent hex to move it.'
+        : `${winner} defeated the robber and must move it to an adjacent hex.`,
+    });
+  }
 
   const phase = gameRoom.turnState.phase;
   const showToast = toastVisible && isMyTurn;

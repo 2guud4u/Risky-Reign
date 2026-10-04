@@ -21,6 +21,8 @@ interface BattleTroopProps {
   phase: BattlePhase;
   /** True while this troop is mine to roll (shows the 🎲 cue, clickable). */
   mine: boolean;
+  /** True while this troop's roll is in flight (clicked, awaiting the result). */
+  rolling: boolean;
   colors: Record<string, string>;
   onRoll: (soldierId: string) => void;
 }
@@ -31,6 +33,7 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
   centerX,
   phase,
   mine,
+  rolling,
   colors,
   onRoll,
 }) => {
@@ -46,6 +49,9 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
   let labelSize = TROOP_LABEL_SIZE;
   if (dead) {
     label = '×';
+  } else if (rolling) {
+    // The roll is in flight — show a pending marker instead of a stale cue.
+    label = '…';
   } else if (s.rollNum !== null) {
     label = s.rollNum;
     labelSize = TROOP_ROLL_LABEL_SIZE;
@@ -58,6 +64,19 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
       style={{ cursor: mine ? 'pointer' : undefined }}
       onClick={mine ? () => onRoll(s.soldier.id) : undefined}
     >
+      {/* Pulsing ring: the only thing that tells the player "click me to
+          roll" — without it the roll cue is easy to miss. */}
+      {mine && !dead && s.rollNum === null && (
+        <circle
+          cx={x}
+          cy={y}
+          r={TROOP_R + 4}
+          fill="none"
+          stroke="#f59e0b"
+          strokeWidth={3}
+          className="blink-circle"
+        />
+      )}
       {isRobber ? (
         /* Robber icon (the full character art, untinted). */
         <image

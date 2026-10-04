@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SoldierBattleState } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -37,6 +37,9 @@ const BattleModal: React.FC = () => {
 
   const battle = gameRoom?.battleState ?? null;
   const board = gameRoom?.board ?? null;
+  // The troop whose roll is in flight (clicked, awaiting the result) —
+  // gives instant feedback so the click doesn't feel dead.
+  const [rollingSoldierId, setRollingSoldierId] = useState<string | null>(null);
 
   // Hooks must run unconditionally, before the early return below.
   const {
@@ -54,7 +57,18 @@ const BattleModal: React.FC = () => {
     roomId: gameRoom?.id,
     repositionSoldier,
   });
-
+  // Clear the pending-roll marker once the result arrives (the troop has a
+  // rollNum) or the phase is no longer 'rolling' — the '…' must not linger.
+  useEffect(() => {
+    if (!battle || battle.phase !== 'rolling') {
+      setRollingSoldierId(null);
+      return;
+    }
+    const s = Object.values(battle.states)
+      .flatMap((side) => side.soldiers)
+      .find((x) => x.soldier.id === rollingSoldierId);
+    if (!s || s.rollNum !== null) setRollingSoldierId(null);
+  }, [battle, rollingSoldierId]);
   if (!gameRoom || !battle || !board) return null;
 
   const vertex = board.vertices[battle.vertexId];
@@ -73,6 +87,7 @@ const BattleModal: React.FC = () => {
       side.soldiers.some((s) => s.soldier.id === soldierId)
     );
     if (!committed) return;
+    setRollingSoldierId(soldierId);
     rollBattleDie(currentPlayer.id, soldierId, gameRoom.id);
   };
 
@@ -166,6 +181,7 @@ const BattleModal: React.FC = () => {
                     defenderSlots={defenderSlots}
                     troopSpread={troopSpread}
                     canRoll={canRoll}
+                    rollingSoldierId={rollingSoldierId}
                     colors={colors}
                     onRoll={handleRoll}
                   />
@@ -180,7 +196,7 @@ const BattleModal: React.FC = () => {
         </div>
 
         {/* Rolling phase: players roll their own dice, one per troop. */}
-        {phase === 'rolling' && <RollingPrompt waitingLines={waitingLines} />}
+        {phase === 'rolling' && <RollingPrompt waitingLines={waitingLines} rolling={rollingSoldierId !== null} />}
 
         {/* Between rounds / finished: show how the dice compared. */}
         {(phase === 'betweenRounds' || phase === 'finished') && (

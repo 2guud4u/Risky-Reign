@@ -139,7 +139,17 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
 
   return (
     <div className="flex flex-col gap-1">
-      {isMyTurn ? (
+      {isMyTurn && gameRoom.turnState.phase === 'Action' && gameRoom.robberDefeatedBy?.playerName === currentPlayer.name ? (
+        <div
+          className={
+            snack
+              ? 'text-[13px] font-bold'
+              : 'w-full px-4 py-2 text-sm text-center rounded-md border border-gray-300 bg-gray-200 text-gray-500'
+          }
+        >
+          Move the robber to an adjacent hex first
+        </div>
+      ) : isMyTurn ? (
         <button onClick={handleClick} className={buttonClass}>
           {phaseText(gameRoom.turnState.phase)}
         </button>

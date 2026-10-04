@@ -32,6 +32,15 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
 }) => {
   const phase = battle.phase;
   if ((phase !== 'repositioning' && phase !== 'finished') || !outcome) return null;
+  // Robber fight: the two die values and who won the roll (the attacker wins
+  // only on a strictly higher roll; a tie or higher robber roll kills the
+  // soldier). Shown in the panel so the result is visible, not just in the
+  // auto-dismissing toast.
+  const soldierRoll = battle.robberFight
+    ? battle.states[battle.attacker]?.soldiers[0]?.rollNum ?? null
+    : null;
+  const robberRoll = battle.robberFight ? battle.states['Robber']?.soldiers[0]?.rollNum ?? null : null;
+  const wonRoll = soldierRoll !== null && robberRoll !== null && soldierRoll > robberRoll;
   return (
     <div className="border border-gray-300 rounded-lg p-3 flex flex-col gap-2">
       <div className="text-[14px] font-semibold">
@@ -39,6 +48,14 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
           ? `🏆 ${outcome.winner} wins the battle!`
           : 'The battle is a draw.'}
       </div>
+
+      {battle.robberFight && (
+        <div className="text-[13px] font-semibold">
+          🎲 Your soldier rolled <strong>{soldierRoll}</strong> vs the robber's{' '}
+          <strong>{robberRoll}</strong> —{' '}
+          {wonRoll ? 'you took the robber bag!' : 'the robber killed your soldier.'}
+        </div>
+      )}
       <div className="text-[12px] text-gray-600">
         {battle.attacker}: {outcome.atkAlive} standing, {outcome.atkDead} killed,{' '}
         {outcome.atkInj} injured

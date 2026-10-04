@@ -7,7 +7,6 @@ import {
   Board,
   BattleState,
   GameRoom,
-  type UndoEntry,
 } from 'common';
 import { gameRooms, freshResourceCount } from '../../store';
 import { broadcastRoom } from '../../broadcast';
@@ -163,18 +162,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
         socket.emit('error', { message: check.reason ?? 'Cannot move the robber there' });
         return;
       }
-      // Record the move on the fight's undo entry so an undo restores the
-      // robber to its pre-fight hex.
-      const entry = [...room.turnState.undoLog]
-        .reverse()
-        .find(
-          (e): e is Extract<UndoEntry, { kind: 'fightRobber' }> =>
-            e.kind === 'fightRobber' && e.playerName === player.name
-        );
       placeRobber(board, hexId);
-      if (entry) {
-        entry.robberMoved = { fromHexId: choice.fromHexId, toHexId: hexId };
-      }
       room.robberDefeatedBy = null;
       applyBonuses(room);
       broadcastRoom(io, room);
@@ -237,18 +225,6 @@ export function applyRobberFightOutcome(io: Server, room: GameRoom, battle: Batt
   const soldierRoll = attackerSoldier.rollNum ?? 0;
   const robberRoll = battle.states['Robber'].soldiers[0].rollNum ?? 0;
   const won = soldierRoll > robberRoll;
-
-  // Record for undo: restore the soldier if it was killed, return the bag
-  // if it was won.
-  const soldier = board.soldiers[soldierId]!;
-  turnState.undoLog.push({
-    kind: 'fightRobber',
-    playerName: battle.attacker,
-    soldierId,
-    result: won ? 'win' : 'lose',
-    soldierSnapshot: { ...soldier },
-    bagBefore: { ...room.robberBag },
-  });
 
   if (won) {
     // The winner takes the entire robber bag.

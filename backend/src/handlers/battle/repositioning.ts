@@ -151,8 +151,10 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
     }
     const bs = room.battleState;
     if (bs && (bs.phase === 'finished' || bs.phase === 'repositioning')) {
+      // A pending post-win robber move (robberDefeatedBy) survives the
+      // dismissal — it is resolved by `moveRobberAfterWin`, or expires when
+      // the Action phase advances. Only clear the battle state itself.
       room.battleState = null;
-      room.robberDefeatedBy = null;
       applyBonuses(room);
       broadcastRoom(io, room);
     }

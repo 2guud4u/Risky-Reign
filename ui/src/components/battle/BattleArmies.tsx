@@ -12,6 +12,8 @@ interface BattleArmiesProps {
   /** Pixel height of the dashed center clash line. */
   troopSpread: number;
   canRoll: (s: SoldierBattleState) => boolean;
+  /** The troop whose roll is in flight (clicked, awaiting the result). */
+  rollingSoldierId: string | null;
   colors: Record<string, string>;
   onRoll: (soldierId: string) => void;
 }
@@ -27,6 +29,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
   defenderSlots,
   troopSpread,
   canRoll,
+  rollingSoldierId,
   colors,
   onRoll,
 }) => (
@@ -50,6 +53,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
         centerX={center.x}
         phase={phase}
         mine={canRoll(slot.s)}
+        rolling={slot.s.soldier.id === rollingSoldierId}
         colors={colors}
         onRoll={onRoll}
       />
@@ -61,6 +65,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
         centerX={center.x}
         phase={phase}
         mine={canRoll(slot.s)}
+        rolling={slot.s.soldier.id === rollingSoldierId}
         colors={colors}
         onRoll={onRoll}
       />

@@ -31,6 +31,8 @@ const TurnOverlay: React.FC = () => {
 
   // Undo is available only while it is this player's turn, in the Build or
   // Action phase, and there is at least one action this phase to undo.
+  // (A robber fight is never logged, so it can't be undone — it happens
+  // after the roll.)
   const canUndo =
     gameRoom.turnState.player === currentPlayer.name &&
     (gameRoom.turnState.phase === 'Build' || gameRoom.turnState.phase === 'Action') &&

@@ -5,8 +5,6 @@ import {
   RoadPrice,
   CityPrice,
   SoldierPrice,
-  placeRobber,
-  RESOURCES,
   type TurnState,
 } from 'common';
 import { advanceTurn } from '../../turn';
@@ -74,6 +72,18 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
             : room.steal?.reason === 'seven'
               ? 'Resolve the steal before ending the Dice phase'
               : 'Roll both dice to end this phase',
+      });
+      return;
+    }
+    // A won robber fight must be resolved before the Action phase ends:
+    // the winner moves the robber to an adjacent hex (Rules.md:18).
+    if (
+      room.turnState.phase === 'Action' &&
+      room.robberDefeatedBy &&
+      room.robberDefeatedBy.playerName === caller.name
+    ) {
+      socket.emit('error', {
+        message: 'Move the robber to an adjacent hex before ending the Action phase',
       });
       return;
     }
@@ -193,32 +203,6 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
         for (const id of entry.soldierIds) {
           turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter((x) => x !== id);
         }
-        break;
-      }
-      case 'fightRobber': {
-        // Refund the soldier's action and the player's once-per-phase fight.
-        turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
-          (id) => id !== entry.soldierId,
-        );
-        turnState.robberFoughtThisPhase = turnState.robberFoughtThisPhase.filter(
-          (name) => name !== entry.playerName,
-        );
-        if (entry.result === 'lose') {
-          // Restore the killed soldier.
-          board.soldiers[entry.soldierId] = entry.soldierSnapshot;
-        } else {
-          // Take the bag back and return it to the robber.
-          for (const r of RESOURCES) {
-            actingPlayer.resources[r] -= entry.bagBefore[r];
-          }
-          room.robberBag = { ...entry.bagBefore };
-        }
-        if (entry.robberMoved) {
-          // Restore the robber to its pre-fight hex.
-          placeRobber(board, entry.robberMoved.fromHexId);
-        }
-        // The move option belonged to the undone fight.
-        room.robberDefeatedBy = null;
         break;
       }
     }

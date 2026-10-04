@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Board, BoardUIState, PublicGameRoom, PixelCoord, Player } from 'common';
+import { Board, BoardUIState, PublicGameRoom, PixelCoord, Player, adjacentHexIds } from 'common';
 import { DROP_THRESHOLD_FRACTION, PROJ_SIZE } from '../constants';
 import { SelectableObject } from '../types';
 import { SoldierDragState } from '../types/board';
@@ -32,24 +32,37 @@ export function useBoardDrag(opts: {
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
   moveSoldier: (playerId: string, soldierId: string, targetVertexId: string, roomId: string) => void;
   moveRobber: (playerId: string, hexId: string, roomId: string) => void;
+  moveRobberAfterWin: (playerId: string, hexId: string, roomId: string) => void;
 }) {
-  const { board, base, gameRoom, currentPlayer, svgRef, setSelectedObject, moveSoldier, moveRobber } =
-    opts;
+  const {
+    board,
+    base,
+    gameRoom,
+    currentPlayer,
+    svgRef,
+    setSelectedObject,
+    moveSoldier,
+    moveRobber,
+    moveRobberAfterWin,
+  } = opts;
 
   // Soldier drag-and-drop state.
   const [drag, setDrag] = useState<SoldierDragState | null>(null);
   const [mousePos, setMousePos] = useState<PixelCoord | null>(null);
   // Robber drag state: true while the user is dragging the robber.
   const [robberDrag, setRobberDrag] = useState(false);
+  // Post-win robber move: the winner drags the robber to an adjacent hex.
+  const [winDrag, setWinDrag] = useState(false);
 
   // Latest-values ref so the memoized callbacks read current drag state
   // without those values being in their dependency lists.
-  const stateRef = useRef({ drag, mousePos, robberDrag });
-  stateRef.current = { drag, mousePos, robberDrag };
+  const stateRef = useRef({ drag, mousePos, robberDrag, winDrag });
+  stateRef.current = { drag, mousePos, robberDrag, winDrag };
 
   const cancelDrag = useCallback(() => {
     setDrag(null);
     setRobberDrag(false);
+    setWinDrag(false);
     setMousePos(null);
   }, []);
 
@@ -76,6 +89,20 @@ export function useBoardDrag(opts: {
       setRobberDrag(true);
     },
     [robberPending]
+  );
+
+  // A won robber fight makes the robber draggable for the winner: dragging
+  // it to an adjacent hex places it there (the move is part of the win).
+  const winPending =
+    !!gameRoom?.robberDefeatedBy && gameRoom.robberDefeatedBy.playerName === currentPlayer?.name;
+  const startWinDrag = useCallback(
+    (e: React.MouseEvent) => {
+      if (!winPending) return;
+      e.preventDefault(); // stop native drag + text selection highlight
+      e.stopPropagation();
+      setWinDrag(true);
+    },
+    [winPending]
   );
 
   /** Whether the current player may drag this owner's soldiers at a vertex. */
@@ -125,15 +152,33 @@ export function useBoardDrag(opts: {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      const { drag: d, robberDrag: r } = stateRef.current;
-      if (!d && !r) return;
+      const { drag: d, robberDrag: r, winDrag: w } = stateRef.current;
+      if (!d && !r && !w) return;
       setMousePos(mouseToSvgPoint(e, svgRef.current));
     },
     [svgRef]
   );
 
   const handleMouseUp = useCallback(() => {
-    const { drag: d, mousePos: mp, robberDrag: rd } = stateRef.current;
+    const { drag: d, mousePos: mp, robberDrag: rd, winDrag: wd } = stateRef.current;
+    // Handle the post-win robber move: drop on a valid adjacent hex.
+    if (wd) {
+      setWinDrag(false);
+      const fromHexId = gameRoom?.robberDefeatedBy?.fromHexId;
+      if (mp && board && currentPlayer && gameRoom && fromHexId) {
+        // Only the hexes adjacent to the robber's current hex are valid.
+        const valid = adjacentHexIds(board, fromHexId)
+          .map((id) => base?.hexes[id])
+          .filter((h): h is NonNullable<typeof h> => !!h && h.terrain !== 'Desert');
+        const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
+        const target = nearestWithin(valid, mp, threshold, (hex) => hex.position);
+        if (target) {
+          moveRobberAfterWin(currentPlayer.id, target.id, gameRoom.id);
+        }
+      }
+      setMousePos(null);
+      return;
+    }
     // Handle robber drag.
     if (rd) {
       setRobberDrag(false);
@@ -170,17 +215,19 @@ export function useBoardDrag(opts: {
       moveSoldier(currentPlayer.id, d.soldierId, target, gameRoom.id);
     }
     cancelDrag();
-  }, [board, base, gameRoom, currentPlayer, moveRobber, moveSoldier, cancelDrag]);
+  }, [board, base, gameRoom, currentPlayer, moveRobber, moveRobberAfterWin, moveSoldier, cancelDrag]);
 
   return {
     drag,
     robberDrag,
     mousePos,
     robberPending,
+    winPending,
     canDragSoldier,
     startDrag,
     startDragSoldier,
     startRobberDrag,
+    startWinDrag,
     handleMouseMove,
     handleMouseUp,
     cancelDrag,

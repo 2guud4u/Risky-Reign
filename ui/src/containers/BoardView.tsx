@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
+import { BOARD_RADIUS, domainToPresentation, BoardUIState, adjacentHexIds } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { SoldierBadges } from '../components/SoldierBadges';
@@ -45,7 +45,7 @@ import {
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const { gameRoom, currentPlayer, selectedObject, setSelectedObject, selectedSoldierIds, setSelectedSoldierIds } =
     useGameRoom();
-  const { moveSoldier, moveRobber } = useSocket();
+  const { moveSoldier, moveRobber, moveRobberAfterWin } = useSocket();
 
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
@@ -110,10 +110,12 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     robberDrag,
     mousePos,
     robberPending,
+    winPending,
     canDragSoldier,
     startDrag,
     startDragSoldier,
     startRobberDrag,
+    startWinDrag,
     handleMouseMove,
     handleMouseUp,
     cancelDrag,
@@ -126,6 +128,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     setSelectedObject,
     moveSoldier,
     moveRobber,
+    moveRobberAfterWin,
   });
 
   const { focusOn, restoreView } = viewport;
@@ -208,6 +211,15 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     (hexId: string, hovering: boolean) => setHoveredRobberHexId(hovering ? hexId : null),
     []
   );
+  // The hexes the post-win robber may be moved to (adjacent to its current
+  // hex, non-desert) — highlighted while the winner must make the move.
+  const winTargetIds = useMemo(() => {
+    const from = gameRoom?.robberDefeatedBy?.fromHexId;
+    if (!board || !from || !winPending) return new Set<string>();
+    return new Set(
+      adjacentHexIds(board, from).filter((id) => board.hexes[id]?.terrain !== 'Desert')
+    );
+  }, [board, gameRoom?.robberDefeatedBy?.fromHexId, winPending]);
 
   // `board` is non-null whenever `base` is (the memo derives from it). This
   // early return must stay below every hook call above.
@@ -267,8 +279,11 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           <HexLayer
             hexes={hexes}
             robberPending={robberPending}
+            winPending={winPending}
+            winTargetIds={winTargetIds}
             rollTotal={rollTotal}
             onRobberMouseDown={startRobberDrag}
+            onWinRobberMouseDown={startWinDrag}
             onRobberHover={onRobberHover}
           />
 
