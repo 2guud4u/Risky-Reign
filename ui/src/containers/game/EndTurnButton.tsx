@@ -172,7 +172,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
               : 'px-2 py-1 text-xs text-center rounded border border-amber-200 bg-amber-50 text-amber-800'
           }
         >
-          ⚠ {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} still have action(s) left
+          ⚠ {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} can still act
         </div>
       )}
     </div>

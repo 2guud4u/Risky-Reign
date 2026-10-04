@@ -46,6 +46,9 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
       check: a.check,
       run: a.run,
       coach: coach?.key === 'settlement' && a.key === 'settlement' && a.check.allowed,
+      // Settling, upgrading or spawning changes the corner (or ends the card);
+      // recruiting keeps the corner selected so you can recruit again or act.
+      closeOnRun: a.key === 'settlement' || a.key === 'city' || a.key === 'knight',
     })),
     ...(selectAll ? [selectAll] : []),
     ...soldier.map((a) => ({
@@ -67,6 +70,7 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
               eligible: c.eligible,
               direction: c.direction,
               angle: c.angle,
+              color: c.color,
             })),
           }
         : {}),

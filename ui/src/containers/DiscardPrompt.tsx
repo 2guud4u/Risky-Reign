@@ -44,10 +44,11 @@ const DiscardPrompt: React.FC = () => {
   const handTotal = RESOURCES.reduce((sum, r) => sum + currentPlayer.resources[r], 0);
   const total = RESOURCES.reduce((sum, r) => sum + (counts[r] ?? 0), 0);
 
-  const increment = (r: ResourceKey) => {
-    if (total >= required) return; // at capacity
-    if ((counts[r] ?? 0) >= currentPlayer.resources[r]) return; // out of that resource
-    setCounts((prev) => ({ ...prev, [r]: (prev[r] ?? 0) + 1 }));
+  const increment = (r: ResourceKey, by = 1) => {
+    // Capped by what's still owed and by how many of `r` the player holds.
+    const room = Math.min(required - total, currentPlayer.resources[r] - (counts[r] ?? 0), by);
+    if (room <= 0) return;
+    setCounts((prev) => ({ ...prev, [r]: (prev[r] ?? 0) + room }));
   };
   const decrement = (r: ResourceKey) => {
     if ((counts[r] ?? 0) <= 0) return;
@@ -62,48 +63,58 @@ const DiscardPrompt: React.FC = () => {
 
   return (
     <div className={backdropClass}>
-      <div className={`${modalCardClass} max-w-[520px]`}>
+      <div className={`${modalCardClass} max-w-[560px]`}>
         <h2 className="text-lg font-bold text-gray-800 mb-1">A 7 was rolled</h2>
         <p className="text-sm text-gray-500 mb-3">
-          You have {handTotal} resource cards. Discard {required} (half, rounded down) — choose
-          which ones to lose.
+          You hold {handTotal} cards — discard {required} of them.
         </p>
 
-        {/* Resource buttons with +/- counters (capped by the player's hand). */}
-        <div className="flex gap-2 mb-4 flex-wrap">
+        {/* One tile per resource: − / count / + and "Max" (capped by the hand). */}
+        <div className="grid grid-cols-5 gap-2 mb-4">
           {RESOURCES.map((r) => {
             const count = counts[r] ?? 0;
             const held = currentPlayer.resources[r];
+            const canAdd = total < required && count < held;
             return (
               <div
                 key={r}
-                className={`w-24 py-3 rounded-md border-2 flex flex-col items-center gap-1 ${
+                className={`py-2 rounded-md border-2 flex flex-col items-center gap-1 ${
                   count > 0 ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
                 }`}
               >
                 <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
-                <span className="text-sm font-semibold text-gray-700">
+                <span className="text-[12px] font-semibold text-gray-700">
                   {r} ({held})
                 </span>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => decrement(r)}
                     disabled={count <= 0}
-                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold"
+                    aria-label={`Discard one less ${r}`}
+                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                   >
                     −
                   </button>
-                  <span className="w-4 text-center text-sm font-bold text-gray-800">{count}</span>
+                  <span className="w-5 text-center text-sm font-bold text-gray-800">{count}</span>
                   <button
                     type="button"
                     onClick={() => increment(r)}
-                    disabled={total >= required || count >= held}
-                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold"
+                    disabled={!canAdd}
+                    aria-label={`Discard one more ${r}`}
+                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                   >
                     +
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => increment(r, held)}
+                  disabled={!canAdd}
+                  className="text-[11px] font-semibold text-red-600 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Max
+                </button>
               </div>
             );
           })}

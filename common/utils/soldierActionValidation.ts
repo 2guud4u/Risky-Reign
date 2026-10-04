@@ -147,7 +147,7 @@ export function canCaptureSettlementAt(
   // every troop present must belong to the capturing player.
   const troopsHere = Object.values(board.soldiers).filter((s) => s.vertexId === vertexId);
   if (troopsHere.some((s) => s.owner !== playerName))
-    return { allowed: false, reason: 'Enemy or other troops are on this vertex' };
+    return { allowed: false, reason: 'Defenders are still here — attack them first' };
 
   return { allowed: true, reason: null };
 }

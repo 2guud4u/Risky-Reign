@@ -46,13 +46,13 @@ const DevCardPrompt: React.FC = () => {
     // Spawn picked: the player places it on the map (see the NoticeRail hint).
     if (spawn) return null;
     const options = [
-      { effect: 'robber', icon: '🥷', title: 'Move robber', sub:""},
+      { effect: 'robber', icon: '🥷', title: 'Move robber', sub: 'and steal a card' },
       { effect: 'spawn', icon: '🛡️', title: 'Spawn soldier', sub: 'where you have one' },
     ] as const;
     return (
       <div className={backdropClass}>
         <div className={`${modalCardClass} max-w-[420px]`}>
-          <h2 className="text-lg font-bold text-gray-800 mb-3">Knight</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-3">⚔️ Knight</h2>
           <div className="flex gap-3">
             {options.map((o) => (
               <button
@@ -67,6 +67,13 @@ const DevCardPrompt: React.FC = () => {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => chooseKnightEffect(gameRoom.id, 'cancel')}
+            className="mt-3 w-full py-1.5 rounded-md text-[13px] font-semibold text-gray-500 hover:bg-gray-100 cursor-pointer"
+          >
+            Keep the card for later
+          </button>
         </div>
       </div>
     );
@@ -98,70 +105,76 @@ const DevCardPrompt: React.FC = () => {
 
   return (
     <div className={backdropClass}>
-      <div className={`${modalCardClass} max-w-[520px]`}>
+      <div className={`${modalCardClass} max-w-[560px]`}>
         <h2 className="text-lg font-bold text-gray-800 mb-1">
-          {isYearOfPlenty ? 'Year of Plenty' : 'Monopoly'}
+          {isYearOfPlenty ? '🎁 Year of Plenty' : '💰 Monopoly'}
         </h2>
         <p className="text-sm text-gray-500 mb-3">
           {isYearOfPlenty
-            ? 'Choose 2 resources to take from the bank (you may take 2 of the same type).'
-            : 'Name a resource type. Every other player gives you their cards of that type.'}
+            ? 'Take any 2 cards from the bank (2 of the same is fine).'
+            : 'Pick a resource — every other player hands you all of theirs.'}
         </p>
 
-        {/* Resource buttons with +/- counters (Year of Plenty) or single-pick (Monopoly). */}
-        <div className="flex gap-2 mb-4 flex-wrap">
+        {/* One tile per resource: +/- counters (Year of Plenty), or the whole
+            tile is the pick (Monopoly). */}
+        <div className="grid grid-cols-5 gap-2 mb-4">
           {RESOURCES.map((r) => {
             const count = counts[r] ?? 0;
+            const face = (
+              <>
+                <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
+                <span className="text-[12px] font-semibold text-gray-700">{r}</span>
+                <span className="text-[11px] text-gray-400">you have {currentPlayer.resources[r] ?? 0}</span>
+              </>
+            );
+            if (!isYearOfPlenty) {
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => resolveDevCardChoice(currentPlayer.id, [r], gameRoom.id)}
+                  className="py-2 rounded-md border-2 border-gray-300 bg-white flex flex-col items-center gap-1 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                >
+                  {face}
+                </button>
+              );
+            }
             return (
               <div
                 key={r}
-                className={`w-24 py-3 rounded-md border-2 flex flex-col items-center gap-1 ${
+                className={`py-2 rounded-md border-2 flex flex-col items-center gap-1 ${
                   count > 0 ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
                 }`}
               >
-                <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
-                <span className="text-sm font-semibold text-gray-700">{r}</span>
-                <span className="text-[11px] text-gray-400">
-                  you have {currentPlayer.resources[r] ?? 0}
-                </span>
-                {isYearOfPlenty ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => decrement(r)}
-                      disabled={count <= 0}
-                      className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold"
-                    >
-                      −
-                    </button>
-                    <span className="w-4 text-center text-sm font-bold text-gray-800">
-                      {count}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => increment(r)}
-                      disabled={total >= 2 || count >= (gameRoom.bankSupply?.[r] ?? Infinity)}
-                      className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold"
-                    >
-                      +
-                    </button>
-                  </div>
-                ) : (
+                {face}
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => resolveDevCardChoice(currentPlayer.id, [r], gameRoom.id)}
-                    className="mt-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700"
+                    onClick={() => decrement(r)}
+                    disabled={count <= 0}
+                    aria-label={`Take one less ${r}`}
+                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                   >
-                    Name it
+                    −
                   </button>
-                )}
+                  <span className="w-4 text-center text-sm font-bold text-gray-800">{count}</span>
+                  <button
+                    type="button"
+                    onClick={() => increment(r)}
+                    disabled={total >= 2 || count >= (gameRoom.bankSupply?.[r] ?? Infinity)}
+                    aria-label={`Take one more ${r}`}
+                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
 
         {/* Confirm button (Year of Plenty only; Monopoly resolves on pick). */}
-        {isYearOfPlenty ? (
+        {isYearOfPlenty && (
           <button
             type="button"
             onClick={confirm}
@@ -172,12 +185,8 @@ const DevCardPrompt: React.FC = () => {
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Take {total}/2 resources
+            Take {total}/2 cards
           </button>
-        ) : (
-          <p className="text-xs text-gray-400 text-center">
-            Click "Name it" on a resource to resolve the card.
-          </p>
         )}
       </div>
     </div>

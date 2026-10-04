@@ -249,8 +249,9 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
   );
 
   // Knight: pick the effect. 'robber' hands off to the moveRobber flow (which
-  // consumes the card); 'spawn' waits for knightSpawnSoldier. Re-picking is
-  // allowed until the knight resolves (e.g. back out of spawn mode).
+  // consumes the card); 'spawn' waits for knightSpawnSoldier; 'cancel' backs
+  // out (the card was only held, so it simply stays in the hand). Re-picking
+  // is allowed until the knight resolves (e.g. leave spawn mode).
   socket.on('chooseKnightEffect', (data: { roomId: string; effect: string }) => {
     const { roomId, effect } = data;
     const room = gameRooms.get(roomId);
@@ -270,6 +271,8 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
       room.robberMove = { player: player.name, reason: 'knight' };
     } else if (effect === 'spawn') {
       room.devCardChoice = { ...choice, spawn: true };
+    } else if (effect === 'cancel') {
+      room.devCardChoice = null;
     } else {
       socket.emit('error', { message: 'Invalid knight effect' });
       return;

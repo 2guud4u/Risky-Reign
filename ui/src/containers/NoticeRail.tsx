@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
+import { useSocket } from '../contexts/SocketContext';
 import TurnOverlay from './TurnOverlay';
 
 /** Tailwind gradient classes for the your-turn toast, keyed to the current phase. */
@@ -38,6 +39,7 @@ const noticeClass = (mine: boolean): string =>
  */
 const NoticeRail: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
+  const { chooseKnightEffect } = useSocket();
   const [toastVisible, setToastVisible] = useState(false);
   const [toastClosing, setToastClosing] = useState(false);
 
@@ -100,7 +102,18 @@ const NoticeRail: React.FC = () => {
     notices.push({
       key: 'knight-spawn',
       mine: true,
-      text: 'Knight: select a vertex with one of your soldiers to spawn a new one there.',
+      text: (
+        <span className="flex items-center gap-3">
+          <span>🛡️ Knight: click a glowing ring to spawn a soldier there.</span>
+          <button
+            type="button"
+            onClick={() => chooseKnightEffect(gameRoom.id, 'cancel')}
+            className="px-2 py-0.5 rounded-md border border-amber-400 bg-white text-[12px] font-semibold text-amber-900 cursor-pointer hover:bg-amber-100"
+          >
+            Cancel
+          </button>
+        </span>
+      ),
     });
   }
   if (gameRoom.robberMove) {
@@ -111,10 +124,12 @@ const NoticeRail: React.FC = () => {
       mine: isMe,
       text: isMe
         ? reason === 'seven'
-          ? pendingDiscards.length > 0
-            ? 'You rolled a 7 — resolve the discard prompt, then drag the black robber to a hex to move it.'
-            : 'You rolled a 7 — drag the black robber to a hex to move it.'
-          : 'Knight: drag the black robber to a hex to place it.'
+          ? currentPlayer.name in (gameRoom.discards ?? {})
+            ? 'You rolled a 7 — discard first, then drag the robber to a new hex.'
+            : pendingDiscards.length > 0
+              ? 'You rolled a 7 — waiting for the others to discard, then drag the robber to a new hex.'
+              : 'You rolled a 7 — drag the robber to a new hex.'
+          : 'Knight: drag the robber to a new hex.'
         : `${player} must move the robber (${reason === 'seven' ? 'rolled a 7' : 'knight card'}).`,
     });
   }

@@ -35,6 +35,10 @@ export interface BubbleAction {
   color?: string;
   /** Tutorial: a bobbing 👇 points at this bubble ("click here"). */
   coach?: boolean;
+  /** Clear the map selection after confirming (placements that change the spot). */
+  closeOnRun?: boolean;
+  /** Runs on the first click (a toggle, not a purchase): no expand/confirm. */
+  instant?: boolean;
 }
 
 interface ActionBubbleProps {
@@ -44,53 +48,65 @@ interface ActionBubbleProps {
 }
 
 /**
- * One round action bubble. Collapsed it shows only the icon; expanded it shows
- * the label plus the cost ("tap to confirm") or, when blocked, the reason.
+ * One round action bubble. Collapsed it shows the icon with a short caption
+ * under it; expanded it shows the label plus the cost ("tap again to
+ * confirm") or, when blocked, the reason.
  * Choice actions (e.g. heal) are rendered as a pill of choices instead, by
  * the container; the caller owns the expand/confirm state.
  */
 export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, onClick }) => {
   const ok = a.check.allowed;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={open}
-      aria-label={open ? (ok ? `Confirm: ${a.label}` : `${a.label} unavailable`) : a.label}
-      title={open ? undefined : a.label}
-      className={`flex items-center gap-2 h-14 rounded-full border-2 shadow-lg transition-all duration-200 cursor-pointer ${
-        open ? 'pl-2 pr-4' : 'w-14 justify-center'
-      } ${
-        ok
-          ? open
-            ? 'bg-blue-600 border-blue-700 text-white'
-            : 'bg-white border-gray-300 hover:scale-110 hover:border-blue-500'
-          : open
-            ? 'bg-white border-gray-300 text-gray-800'
-            : 'bg-gray-200 border-gray-300'
-      }`}
-    >
-      <span
-        className={`flex items-center justify-center text-2xl leading-none ${
-          open ? 'w-10 h-10 rounded-full bg-white/20' : ''
-        } ${ok ? '' : 'grayscale opacity-50'}`}
-        aria-hidden="true"
+    <div className="flex flex-col items-center gap-1">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-expanded={open}
+        aria-label={open ? (ok ? `Confirm: ${a.label}` : `${a.label} unavailable`) : a.label}
+        title={open ? undefined : a.label}
+        className={`flex items-center gap-2 h-14 rounded-full border-2 shadow-lg transition-all duration-200 cursor-pointer ${
+          open ? 'pl-2 pr-4' : 'w-14 justify-center'
+        } ${
+          ok
+            ? open
+              ? 'bg-blue-600 border-blue-700 text-white'
+              : 'bg-white border-gray-300 hover:scale-110 hover:border-blue-500'
+            : open
+              ? 'bg-white border-gray-300 text-gray-800'
+              : 'bg-gray-200 border-gray-300'
+        }`}
       >
-        {a.icon}
-      </span>
-      {open && (
-        <span className="flex flex-col items-start text-left leading-tight whitespace-nowrap">
-          <span className="text-[13px] font-bold">{a.label}</span>
-          {ok ? (
-            <span className="text-[12px] opacity-90">{a.costText} · tap to confirm</span>
-          ) : (
-            <span className="text-[12px] text-red-600 max-w-[220px] whitespace-normal">
-              {a.check.reason ?? 'Not allowed here'}
-            </span>
-          )}
+        <span
+          className={`flex items-center justify-center text-2xl leading-none ${
+            open ? 'w-10 h-10 rounded-full bg-white/20' : ''
+          } ${ok ? '' : 'grayscale opacity-50'}`}
+          aria-hidden="true"
+        >
+          {a.icon}
+        </span>
+        {open && (
+          <span className="flex flex-col items-start text-left leading-tight whitespace-nowrap">
+            <span className="text-[13px] font-bold">{a.label}</span>
+            {ok ? (
+              <span className="text-[12px] opacity-90">{a.costText} · tap again to confirm</span>
+            ) : (
+              <span className="text-[12px] text-red-600 max-w-[220px] whitespace-normal">
+                {a.check.reason ?? 'Not allowed here'}
+              </span>
+            )}
+          </span>
+        )}
+      </button>
+      {/* Collapsed: a short caption so the icon is never a guess. */}
+      {!open && (
+        <span
+          aria-hidden="true"
+          className={`px-1.5 py-px rounded bg-black/60 text-[10px] font-semibold text-white whitespace-nowrap ${ok ? '' : 'opacity-70'}`}
+        >
+          {a.label}
         </span>
       )}
-    </button>
+    </div>
   );
 };
 
@@ -116,6 +132,11 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
   useEffect(() => setExpanded(null), [resetKey]);
 
   const onBubbleClick = (a: BubbleAction) => {
+    if (a.instant && a.check.allowed) {
+      a.run();
+      setExpanded(null);
+      return;
+    }
     if (expanded !== a.key) {
       setExpanded(a.key);
       return;
@@ -131,12 +152,15 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
     }
     a.run();
     setExpanded(null);
+    // A placement changes the spot itself (a road now sits on the edge): drop
+    // the selection so the now-stale bubble doesn't linger greyed.
+    if (a.closeOnRun) setSelectedObject(null);
   };
 
   return (
     <div
       // Bottom center of the map (the turn status bar lives top center).
-      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-end gap-3"
+      className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-start gap-3"
       // Don't let clicks here start a board pan or clear the selection.
       onMouseDown={(e) => e.stopPropagation()}
     >
@@ -242,24 +266,29 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                     >
                       <path d="M12 3 L17 12 L13.5 12 L13.5 21 L10.5 21 L10.5 12 L7 12 Z" fill="currentColor" />
                     </svg>
-                  ) : (
+                  ) : c.icon ? (
                     <span aria-hidden="true">{c.icon}</span>
-                  )}
-                  <span className="text-[12px] font-bold">{c.costText}</span>
+                  ) : null}
+                  <span className="text-[13px] font-bold">{c.costText}</span>
                 </button>
               ))}
           </div>
         );
       })}
-      <button
-        type="button"
-        onClick={() => setSelectedObject(null)}
-        aria-label="Close and zoom back out"
-        title="Close"
-        className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-gray-500"
-      >
-        {'✕'}
-      </button>
+      <div className="flex flex-col items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setSelectedObject(null)}
+          aria-label="Close and zoom back out"
+          title="Close"
+          className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-gray-500"
+        >
+          {'✕'}
+        </button>
+        <span aria-hidden="true" className="px-1.5 py-px rounded bg-black/60 text-[10px] font-semibold text-white">
+          Close
+        </span>
+      </div>
     </div>
   );
 };

@@ -37,7 +37,7 @@ interface SocketContextType {
   chooseSteal: (playerId: string, victimName: string, cardIndex: number, roomId: string) => void;
   resolveDiscard: (playerId: string, discards: Record<string, number>, roomId: string) => void;
   resolveDevCardChoice: (playerId: string, resources: string[], roomId: string) => void;
-  chooseKnightEffect: (roomId: string, effect: 'robber' | 'spawn') => void;
+  chooseKnightEffect: (roomId: string, effect: 'robber' | 'spawn' | 'cancel') => void;
   knightSpawnSoldier: (roomId: string, vertexId: string) => void;
   healSoldier: (playerId: string, soldierId: string, roomId: string, payWith?: ResourceKey) => void;
   startAttack: (playerId: string, soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => void;
@@ -150,7 +150,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const resolveDevCardChoice = (playerId: string, resources: string[], roomId: string) =>
     emitAction(socket, 'resolveDevCardChoice', { roomId, playerId, resources }, { requirePlayerId: true });
 
-  const chooseKnightEffect = (roomId: string, effect: 'robber' | 'spawn') =>
+  const chooseKnightEffect = (roomId: string, effect: 'robber' | 'spawn' | 'cancel') =>
     emitAction(socket, 'chooseKnightEffect', { roomId, effect });
 
   const knightSpawnSoldier = (roomId: string, vertexId: string) =>

@@ -42,6 +42,23 @@ body {
     }
 }
 
+/* A pulsing amber ring around a "your move" card. Unlike .blink-circle it
+   never fades the card's text, so it stays readable throughout. */
+.attention-ring {
+    animation: attention-ring 1.5s ease-in-out infinite;
+}
+
+@keyframes attention-ring {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+    }
+}
+
 /* Move dots in one direction */
 @keyframes move-road-dots {
     from {

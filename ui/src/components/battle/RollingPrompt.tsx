@@ -16,7 +16,7 @@ interface RollingPromptProps {
  */
 export const RollingPrompt: React.FC<RollingPromptProps> = ({ waitingLines, rolling, myRollPending }) =>
   myRollPending || rolling ? (
-    <div className="rounded-lg bg-amber-100 border-2 border-amber-400 px-3 py-2 text-amber-900 blink-circle">
+    <div className="rounded-lg bg-amber-100 border-2 border-amber-400 px-3 py-2 text-amber-900 attention-ring">
       <div className="text-[14px] font-bold">{rolling ? '🎲 Rolling…' : '🎲 Your roll'}</div>
       {!rolling && <div className="text-[12px]">Click each glowing troop on the map to roll its die.</div>}
     </div>

@@ -19,24 +19,23 @@ export interface VertexBuildAction {
 
 /**
  * Select/deselect every soldier that can act on the selected vertex, shown
- * only during the Action phase.
+ * only during the Action phase when there is more than one to pick. A plain
+ * toggle, so it acts on the first click (no expand/confirm step).
  */
 export function useVertexSoldierSelectAll(board: Board, vertex: VertexNode): BubbleAction | null {
   const { gameRoom, currentPlayer, selectedSoldierIds, setSelectedSoldierIds } = useGameRoom();
   const actableIds = actableSoldierIds(gameRoom, currentPlayer?.name, vertex.id);
-  if (gameRoom?.turnState.phase !== 'Action') return null;
+  if (gameRoom?.turnState.phase !== 'Action' || actableIds.length < 2) return null;
   const picked = selectedSoldierIds.filter((id) => actableIds.includes(id));
-  const allSelected = picked.length > 0 && picked.length === actableIds.length;
+  const allSelected = picked.length === actableIds.length;
   return {
     key: 'toggle-select-all-soldiers',
-    icon: '👥',
-    label: allSelected ? 'Deselect All Soldiers' : 'Select All Soldiers',
-    costText: `${actableIds.length} soldier${actableIds.length === 1 ? '' : 's'}`,
-    check:
-      actableIds.length === 0
-        ? { allowed: false, reason: 'No soldiers to select here' }
-        : { allowed: true, reason: null },
+    icon: allSelected ? '👤' : '👥',
+    label: allSelected ? 'Pick none' : `Pick all ${actableIds.length}`,
+    costText: '',
+    check: { allowed: true, reason: null },
     run: () => setSelectedSoldierIds(allSelected ? [] : actableIds),
+    instant: true,
   };
 }
 
@@ -72,29 +71,32 @@ export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAct
     });
   }
 
-  // Buildings exist only in the SetUp/Build phases; the Action phase has no
-  // build bubbles at all (recruit soldier below is the exception).
-  if (phase === 'SetUp' || phase === 'Build') {
-    actions.push(
-      {
-        key: 'settlement',
-        label: 'Build Settlement',
-        price: SettlementPrice,
-        check: settlementCheck(vertex.id),
-        run: send(buildSettlement, 'settlement'),
-      },
-      {
-        key: 'city',
-        label: 'Upgrade to City',
-        price: CityPrice,
-        check: cityCheck(vertex.id),
-        run: send(upgradeSettlementToCity, 'city'),
-      }
-    );
+  // Only offer what can apply to this corner at all: Build Settlement on an
+  // empty corner, Upgrade to City on my own settlement (Build phase only),
+  // Recruit Soldier on my own settlement or city (Action phase only). A bubble
+  // that is shown can still be greyed — not enough cards, distance rule, piece
+  // limit — and expanding it shows why.
+  const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
+  const mine = !!settlement && settlement.ownerId === currentPlayer?.name;
+  if ((phase === 'SetUp' || phase === 'Build') && !settlement) {
+    actions.push({
+      key: 'settlement',
+      label: 'Build Settlement',
+      price: SettlementPrice,
+      check: settlementCheck(vertex.id),
+      run: send(buildSettlement, 'settlement'),
+    });
   }
-
-  // Soldiers are recruited only in the Action phase; hide the bubble otherwise.
-  if (gameRoom?.turnState.phase === 'Action') {
+  if (phase === 'Build' && mine && settlement.level === 'settlement') {
+    actions.push({
+      key: 'city',
+      label: 'Upgrade to City',
+      price: CityPrice,
+      check: cityCheck(vertex.id),
+      run: send(upgradeSettlementToCity, 'city'),
+    });
+  }
+  if (phase === 'Action' && mine) {
     actions.push({
       key: 'soldier',
       label: 'Recruit Soldier',

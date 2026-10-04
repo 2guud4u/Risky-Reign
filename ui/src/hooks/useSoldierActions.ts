@@ -30,6 +30,8 @@ export interface SoldierActionChoice {
   direction?: string;
   /** Move choices only: arrow rotation in degrees (0 = up). */
   angle?: number;
+  /** Attack choices only: the target player's color (swatch beside the name). */
+  color?: string;
 }
 /** One soldier group action available on the selected vertex. */
 export interface SoldierAction {
@@ -105,7 +107,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
           : ruleCheck;
       return {
         key: `heal-${payWith}`,
-        icon: RESOURCE_ICONS[payWith],
+        icon: '', // the cost text below already shows the resource icon
         label: `Heal ${injured.length} with ${payWith}`,
         costText: `${needed} ${RESOURCE_ICONS[payWith]}`,
         check,
@@ -148,7 +150,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
             key: `move-${d.direction.toLowerCase()}`,
             icon: '', // direction arrows are SVG, not emoji
             label: `Move ${movers.length} to ${d.direction}`,
-            costText: 'Action',
+            costText: d.direction,
             check:
               movers.length > 0
                 ? ALLOWED

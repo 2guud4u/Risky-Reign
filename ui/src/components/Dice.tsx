@@ -61,6 +61,7 @@ const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll }) => (
     }`}
     style={{ width: size, height: size }}
     title={canRoll ? 'Click to roll' : undefined}
+    aria-label={canRoll ? 'Roll this die' : value === null ? 'Die not rolled yet' : `Die showing ${value}`}
   >
     {value === null ? (
       <span style={{ fontSize: size * 0.4 }}>?</span>

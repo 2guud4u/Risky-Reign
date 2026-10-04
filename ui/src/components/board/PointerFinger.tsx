@@ -38,8 +38,9 @@ export const PointerFinger: React.FC<{ at: PixelCoord; label?: string; onTargetC
             onTargetClick();
           }}
         >
-          <circle cx={at.x} cy={at.y} r={ringR} fill="#3b82f6" fillOpacity={0.25} />
-          <circle cx={at.x} cy={at.y} r={ringR} fill="none" stroke="#2563eb" strokeWidth={3} className="blink-circle" />
+          <circle cx={at.x} cy={at.y} r={ringR} fill="#3b82f6" fillOpacity={0.3} stroke="#fff" strokeWidth={5} />
+          <circle cx={at.x} cy={at.y} r={ringR} fill="none" stroke="#2563eb" strokeWidth={3} />
+          <circle cx={at.x} cy={at.y} r={ringR * 1.35} fill="none" stroke="#3b82f6" strokeWidth={3} className="blink-circle" />
         </g>
       )}
       <g pointerEvents="none" className="select-none">

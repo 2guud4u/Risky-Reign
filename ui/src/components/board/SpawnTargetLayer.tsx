@@ -35,15 +35,16 @@ export const SpawnTargetLayer = React.memo(function SpawnTargetLayer({
           }}
         >
           <title>Spawn the knight's soldier here</title>
-          <circle cx={t.position.x} cy={t.position.y} r={r} fill="#22c55e" fillOpacity={0.18} />
+          <circle cx={t.position.x} cy={t.position.y} r={r} fill="#22c55e" fillOpacity={0.3} stroke="#fff" strokeWidth={5} />
+          <circle cx={t.position.x} cy={t.position.y} r={r} fill="none" stroke="#16a34a" strokeWidth={3} />
+          {/* Pulsing outer halo: draws the eye without ever fading the ring itself. */}
           <circle
             cx={t.position.x}
             cy={t.position.y}
-            r={r}
+            r={r * 1.35}
             fill="none"
-            stroke="#16a34a"
+            stroke="#22c55e"
             strokeWidth={3}
-            strokeDasharray="6,4"
             className="blink-circle"
           />
         </g>

@@ -19,6 +19,7 @@ const EdgeActionBubbles: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, 
           check: road.check,
           run: road.run,
           coach: coach?.key === 'road' && road.check.allowed,
+          closeOnRun: true,
         },
       ]}
       resetKey={edge.id}
