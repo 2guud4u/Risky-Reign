@@ -71,7 +71,10 @@ const TutorialCoach: React.FC = () => {
       role="dialog"
       aria-label="Tutorial"
       onMouseDown={(e) => e.stopPropagation()}
-      className="slide-in-left absolute left-16 top-4 z-30 w-[260px] rounded-xl border-2 border-blue-300 bg-white/95 shadow-2xl p-3 flex flex-col gap-2"
+      // left-16 clears the top-left button column; right-16 keeps the card off
+      // the right-edge resource strip on narrow screens; max-w keeps it tidy
+      // on desktop. w-auto lets it shrink between the two edges on mobile.
+      className="slide-in-left absolute left-16 right-16 top-4 z-30 w-auto max-w-[260px] rounded-xl border-2 border-blue-300 bg-white/95 shadow-2xl p-3 flex flex-col gap-2"
     >
       {coach ? (
         <>

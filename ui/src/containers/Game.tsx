@@ -30,7 +30,41 @@ const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
   const { leaveGame: emitLeaveGame } = useSocket();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  // True after the user asked for full screen but the browser can't grant it
+  // (iPhone Safari has no element-level fullscreen — Add to Home Screen is the
+  // only way to lose its chrome there).
+  const [fsHint, setFsHint] = useState(false);
   const hintsOn = useTutorialHints();
+  // Track the real fullscreen state so the label stays right when the user
+  // leaves it with a gesture or Esc.
+  useEffect(() => {
+    const onChange = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    setFsHint(false);
+    // Older Safari exposes the prefixed form only.
+    const el = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+    const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> | void };
+    try {
+      if (document.fullscreenElement) {
+        await (document.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
+      } else if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+      } else {
+        setFsHint(true);
+      }
+    } catch {
+      setFsHint(true);
+    }
+  };
   // Browser tab title: flag when it's the player's turn so a backgrounded tab
   // is easy to spot. Restores the app title when it isn't / on unmount.
   const APP_TITLE = 'Risky Reign';
@@ -74,6 +108,19 @@ const Game: React.FC = () => {
             >
               {hintsOn ? '💡 Turn tips off' : '💡 Turn tips on'}
             </button>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+            >
+              {fullscreen ? '⤶ Leave full screen' : '⛶ Full screen'}
+            </button>
+            {fsHint && (
+              <p className="m-0 mb-1 px-2 py-1 text-[11px] leading-snug text-amber-700 bg-amber-50 rounded-md">
+                This browser can't hide its bars. On iPhone, open the Share menu and choose{' '}
+                <b>Add to Home Screen</b> for a bar-free game.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => {
