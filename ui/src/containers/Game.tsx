@@ -95,7 +95,9 @@ const Game: React.FC = () => {
     selectedObject?.type === 'edge' ? gameRoom.board?.edges[selectedObject.id] ?? null : null;
   return (
     <div>
-      <div className="fixed bottom-3 left-3 z-50">
+      {/* Menu button: safe-inset keeps it above the home-indicator / off a
+          landscape notch; the menu pops up from it. */}
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50">
         {menuOpen && (
           <div className="absolute bottom-full left-0 mb-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg p-2 text-gray-800">
             <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
@@ -145,7 +147,7 @@ const Game: React.FC = () => {
         </button>
       </div>
 
-      <div className="fixed inset-0 flex">
+      <div className="fixed inset-0 flex safe-inset">
         <div className="relative flex-1 min-w-0 bg-white">
           {spectating && (
             <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900/80 text-white text-[13px] font-semibold shadow-lg">

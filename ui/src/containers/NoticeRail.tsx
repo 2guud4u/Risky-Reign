@@ -70,7 +70,7 @@ const NoticeRail: React.FC = () => {
   // are all addressed to a seat.
   if (!currentPlayer) {
     return (
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
         <TurnOverlay />
       </div>
     );
@@ -160,7 +160,7 @@ const NoticeRail: React.FC = () => {
   return (
     // z-40: above the board and its controls, but under every modal (z-50:
     // battle, steal, discard…) so the turn bar never covers a modal.
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
+    <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
       <TurnOverlay />
       {showToast && (
         <div

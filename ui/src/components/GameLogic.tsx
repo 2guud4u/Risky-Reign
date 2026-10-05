@@ -161,12 +161,12 @@ const GameLogic: React.FC = () => {
     >
       <ConnectionBanner hidden={isConnected} />
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
           {toast}
         </div>
       )}
       {notice && (
-        <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-[100] bg-amber-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
+        <div className="fixed bottom-[max(3.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-1/2 -translate-x-1/2 z-[100] bg-amber-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
           {notice}
         </div>
       )}

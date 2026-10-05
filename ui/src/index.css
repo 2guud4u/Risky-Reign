@@ -2,10 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+    /* Never let content push the page wider than the viewport: that is what
+     * makes Safari slide/clip the sides horizontally. */
+    width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     margin: 0;
     background: #f5f5f5;
     color: #222;
+}
+
+/* Pad a full-screen shell in past device edges (notch, home indicator,
+ * edge-swipe zones). Pairs with viewport-fit=cover in index.html; on devices
+ * with no insets these resolve to 0. */
+.safe-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
 }
 
 /* SVG selection animations */

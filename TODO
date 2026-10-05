@@ -19,21 +19,19 @@ allow dragging of soldiers in the mini map
 
 
 Feature:
-code should be animals or in the url if they join that link they join the room
-tutorial of what to do , walk through
-
 allow simple art view 
 
-Far future requests:
+# Far future requests:
 rule customization
 - unlimited property
-random late game join, allow random placement of settlement
+- turn timer
+
 allow attack multigroup at the same time
 maybe lock the colors to only 10 colors-use nvidia gpu
 ports customization
 can not build on water tiles vertex that is not next to land hex
 music
-
+cannons and walls
 
  server should plan out on device database 
 
@@ -56,6 +54,5 @@ figure out attack mix of soldiers
 
 click robber also starts fight
 
-prepare for data base saving game state, allow them options to start up lobby again, as them to set a password to the lobby
 
 
