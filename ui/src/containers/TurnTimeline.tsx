@@ -19,7 +19,7 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   if (!gameRoom) return null;
   const colors = playerColorMap(gameRoom);
   const knockedOut = gameRoom.players.filter((p) => p.eliminated).map((p) => p.name);
-  const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD, knockedOut)];
+  const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD, knockedOut, gameRoom.turnMode)];
   return (
     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-[calc(100vw-2rem)] rounded-xl bg-white/95 shadow-2xl border border-gray-200 px-4 pt-2 pb-3 text-gray-800">
       <div className="flex items-center mb-1">

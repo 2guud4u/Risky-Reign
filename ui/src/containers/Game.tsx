@@ -161,9 +161,9 @@ const Game: React.FC = () => {
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
             <ResourceDisplay />
           </div>
-          {/* Trade window, opened from the 🤝 button in the top-left corner. */}
+          {/* Trade window, opened from the 🔄 button in the top-left corner. */}
           <TradeButton />
-          {/* Build-recipe reference, opened from the ℹ️ button under 🤝. */}
+          {/* Build-recipe reference, opened from the ℹ️ button under 🔄. */}
           <RecipesButton />
           {/* Player info column, toggled by the 👤 button under ℹ️. */}
           <PlayersButton />

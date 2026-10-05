@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LOBBY_HEX_SIZE, MIN_PLAYERS, DEFAULT_POINTS_TO_WIN } from 'common';
+import { LOBBY_HEX_SIZE, MIN_PLAYERS, DEFAULT_POINTS_TO_WIN, TURN_MODE_PRESETS, TurnMode } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
@@ -65,6 +65,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     refreshMap: onRefreshMap,
     updatePlayerColor: onUpdatePlayerColor,
     updatePointsToWin: onUpdatePointsToWin,
+    setTurnMode: onSetTurnMode,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
     joinRoom: onJoinRoom,
@@ -267,6 +268,65 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
           >
             Reset to Default
           </button>
+
+          {/* Turn structure: which phases act once per round vs go around the
+              whole table. Host-only; other players see the current setting
+              but can't change it (the backend also rejects non-host edits). */}
+          {(() => {
+            const isHost = gameRoom.players[0]?.id === currentPlayer.id;
+            const mode = gameRoom.turnMode;
+            const scopeSelect = (
+              key: 'build' | 'action',
+              label: string,
+              hint: string,
+            ) => (
+              <div>
+                <label className="block text-[13px] font-semibold mb-1.5">{label}</label>
+                <select
+                  value={mode[key]}
+                  disabled={!isHost}
+                  onChange={(e) =>
+                    onSetTurnMode(gameRoom.id, { ...mode, [key]: e.target.value as TurnMode['build'] })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-[15px] bg-white disabled:opacity-60"
+                >
+                  <option value="around">Around the table</option>
+                  <option value="single">Single (one turn)</option>
+                </select>
+                <p className="mt-1 text-[11px] text-gray-500">{hint}</p>
+              </div>
+            );
+            const presetBtn = (label: string, preset: TurnMode, active: boolean) => (
+              <button
+                onClick={() => isHost && onSetTurnMode(gameRoom.id, { ...preset })}
+                disabled={!isHost}
+                className={`flex-1 py-1.5 px-1 rounded-md text-[11px] font-semibold border cursor-pointer disabled:opacity-60 ${
+                  active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-600'
+                }`}
+              >
+                {label}
+              </button>
+            );
+            return (
+              <div className="mt-5 border-t border-gray-200 pt-3 space-y-3">
+                <p className="text-[13px] font-semibold">Turn Structure</p>
+                <div className="flex gap-1.5">
+                  {presetBtn(
+                    'Regular',
+                    TURN_MODE_PRESETS.catan,
+                    mode.build === 'single' && mode.action === 'single',
+                  )}
+                  {presetBtn(
+                    'Expanded',
+                    TURN_MODE_PRESETS.expanded,
+                    mode.build === 'around' && mode.action === 'around',
+                  )}
+                </div>
+                {scopeSelect('build', 'Build phase', 'around = every player builds; single = only the dice roller')}
+                {scopeSelect('action', 'Action phase', 'around = every player acts; single = only the dice roller')}
+              </div>
+            );
+          })()}
         </div>
         </div>
         <LobbyMenu

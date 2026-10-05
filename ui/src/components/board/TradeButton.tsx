@@ -6,19 +6,44 @@ import { backdropClass, modalCardClass } from '../../styles';
 import { OPEN_TRADE_EVENT } from '../../constants';
 import { OpenTradeDetail } from '../../types/openTrade';
 
+/** localStorage flag: the player has opened the trade window at least once. */
+const TRADE_SEEN_KEY = 'tradeWindowSeen';
+
+function readTradeSeen(): boolean {
+  try {
+    return localStorage.getItem(TRADE_SEEN_KEY) === '1';
+  } catch {
+    // Storage unavailable: still pulse (the flag then lasts for this page).
+    return false;
+  }
+}
+
 /**
- * 🤝 button in the top-left corner of the map that opens the trade window
+ * 🔄 button in the top-left corner of the map that opens the trade window
  * (`TradeTab`). While you can trade (your turn) it is solid green with a
- * pulsing halo and a "Trade" tag; otherwise it is greyed (the tooltip names
- * the player who can trade). The red badge counts offers waiting on your
- * decision: a direct offer to you, another player's open ("Anyone") offer
- * nobody has taken yet, or an open offer of yours that someone took.
+ * "Trade" tag; otherwise it is greyed (the tooltip names the player who can
+ * trade). Until the player first opens the trade window, the green button
+ * also pulses; after that (remembered across games) it stays still. The red
+ * badge counts offers waiting on your decision: a direct offer to you,
+ * another player's open ("Anyone") offer nobody has taken yet, or an open
+ * offer of yours that someone took.
  */
 const TradeButton: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const [open, setOpen] = useState(false);
-  // Port clicked to open the window (presets the bank form); null = 🤝 button.
+  // Port clicked to open the window (presets the bank form); null = 🔄 button.
   const [port, setPort] = useState<PortType | null>(null);
+  // The pulsing halo only teaches where trading is: stop once it's been opened.
+  const [tradeSeen, setTradeSeen] = useState(readTradeSeen);
+  useEffect(() => {
+    if (!open || tradeSeen) return;
+    setTradeSeen(true);
+    try {
+      localStorage.setItem(TRADE_SEEN_KEY, '1');
+    } catch {
+      // Storage unavailable — the halo stays off for this page only.
+    }
+  }, [open, tradeSeen]);
 
   // A port click on the board opens the window on that port's bank trade.
   useEffect(() => {
@@ -73,11 +98,11 @@ const TradeButton: React.FC = () => {
             : 'bg-white border-gray-300 opacity-80 hover:border-blue-500'
         }`}
       >
-        {canTrade && (
-          // Soft pulsing halo: "you can trade now".
+        {canTrade && !tradeSeen && (
+          // Soft pulsing halo: "you can trade now" (until first opened).
           <span className="trade-halo absolute inset-0 rounded-full bg-green-400" aria-hidden="true" />
         )}
-        <span className="relative" aria-hidden="true">🤝</span>
+        <span className="relative" aria-hidden="true">🔄</span>
         {canTrade && (
           // Tag beside the button so the cue reads at a glance.
           <span
@@ -110,7 +135,7 @@ const TradeButton: React.FC = () => {
             className={`${modalCardClass} max-w-[480px] max-h-[90vh] overflow-y-auto`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="m-0 text-lg font-bold text-gray-800">🤝 Trade</h2>
+              <h2 className="m-0 text-lg font-bold text-gray-800">🔄 Trade</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

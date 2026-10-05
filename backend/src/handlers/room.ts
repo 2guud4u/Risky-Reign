@@ -17,6 +17,7 @@ import {
   PLAYER_NAME_MAX,
   GameRoom,
   RejoinSeat,
+  TurnMode,
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
@@ -309,6 +310,34 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       return;
     }
     room.pointsToWin = value;
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Set the turn structure (Build/Action scope per round). Host only, while
+  // waiting — like every other room setting.
+  socket.on('setTurnMode', (data: { roomId: string; turnMode: TurnMode }) => {
+    const { roomId, turnMode } = data;
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'Can only change settings while waiting' });
+      return;
+    }
+    if (room.players[0]?.id !== socket.id) {
+      socket.emit('error', { message: 'Only the host can change settings' });
+      return;
+    }
+    const ok =
+      (turnMode?.build === 'single' || turnMode?.build === 'around') &&
+      (turnMode?.action === 'single' || turnMode?.action === 'around');
+    if (!ok) {
+      socket.emit('error', { message: 'Invalid turn mode' });
+      return;
+    }
+    room.turnMode = { build: turnMode.build, action: turnMode.action };
     broadcastRoom(io, room, 'roomUpdate');
   });
 

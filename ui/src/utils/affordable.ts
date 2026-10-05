@@ -68,7 +68,7 @@ export function affordableSummary(board: Board, player: Player, phase: TurnState
     for (const r of RESOURCES) {
       const ratio = bestBankTradeRatio(board, player, r);
       if (res[r] >= ratio) {
-        lines.push({ icon: '🤝', text: `Trade ${ratio} ${RESOURCE_ICONS[r]} with the bank for any 1 card` });
+        lines.push({ icon: '🔄', text: `Trade ${ratio} ${RESOURCE_ICONS[r]} with the bank for any 1 card` });
       }
     }
   }

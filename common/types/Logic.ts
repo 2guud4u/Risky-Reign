@@ -5,6 +5,21 @@ import { Resource } from './Hex';
  * Turn / trade / battle state types. Types only — the price constants and
  * `canAfford` live in `utils/logic.ts`.
  */
+/**
+ * How a Build or Action phase is scoped within a dice round:
+ * - 'around' — every player takes that phase in turn order (the dice player
+ *   first), then the next phase begins (the Expanded rules).
+ * - 'single' — only the dice player takes that phase; the phase ends as soon
+ *   as they pass, so the game moves straight on (regular Catan's "roll →
+ *   build → act, then the next player rolls").
+ */
+export type PhaseScope = 'single' | 'around';
+
+/** A room's chosen turn structure: independent scope for Build and Action. */
+export interface TurnMode {
+  build: PhaseScope;
+  action: PhaseScope;
+}
 
 export interface TurnState {
   phase: 'SetUp' | 'Dice' | 'Build' | 'Action';

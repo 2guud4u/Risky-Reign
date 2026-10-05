@@ -390,7 +390,7 @@ const TradeTab: React.FC<{
           else can only respond to the turn owner's offers. */}
       {isTurnOwner ? (
         <div className="flex items-center gap-2 text-[13px] rounded-lg px-3 py-2 bg-green-600 text-white shadow-sm">
-          <span aria-hidden="true">🤝</span>
+          <span aria-hidden="true">🔄</span>
           <span>
             <strong>Your turn</strong> — trade with the bank or any player.
           </span>

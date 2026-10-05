@@ -7,6 +7,7 @@ import {
   DEFAULT_POINTS_TO_WIN,
   generateStandardBoard,
   generateDevelopmentCardDeck,
+  TURN_MODE_PRESETS,
 } from 'common';
 
 /** Empty bonuses map for a fresh room (recomputed on every broadcast). */
@@ -83,6 +84,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     },
     gameStatus: 'waiting',
     pointsToWin: DEFAULT_POINTS_TO_WIN,
+    turnMode: TURN_MODE_PRESETS.expanded,
     winner: null,
     tradeOffers: [],
     battleState: null,

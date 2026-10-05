@@ -6,6 +6,7 @@ import {
   Price,
   ResourceKey,
   ServerToClientEvents,
+  TurnMode,
 } from 'common';
 import { SOCKET_URL } from '../config';
 import { readSavedSession, saveSession } from '../utils/session';
@@ -70,6 +71,7 @@ interface SocketContextType {
   undoBuild: (roomId: string) => void;
   drawDevelopmentCard: (roomId: string) => void;
   playDevelopmentCard: (roomId: string, cardIndex: number) => void;
+  setTurnMode: (roomId: string, turnMode: TurnMode) => void;
   createTradeOffer: (roomId: string, to: string | null, give: Price, want: Price) => void;
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
@@ -128,6 +130,7 @@ const SocketContext = createContext<SocketContextType>({
   leaveGame: () => {},
   claimSeat: () => {},
   spectateRoom: () => {},
+  setTurnMode: () => {},
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -209,6 +212,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const refreshMap = (roomId: string) => emitAction(socket, 'refreshMap', { roomId });
   const updatePointsToWin = (roomId: string, pointsToWin: number) =>
     emitAction(socket, 'updatePointsToWin', { roomId, pointsToWin });
+  const setTurnMode = (roomId: string, turnMode: TurnMode) =>
+    emitAction(socket, 'setTurnMode', { roomId, turnMode });
   const editBoard = (roomId: string, layouts: HexLayout[]) =>
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
@@ -281,6 +286,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         resetGame,
         refreshMap,
         updatePointsToWin,
+        setTurnMode,
         editBoard,
         leaveGame,
         claimSeat,

@@ -14,7 +14,7 @@ export function advanceTurn(room: GameRoom): void {
   const turnState = room.turnState;
   const from = turnState.phase;
   const knockedOut = room.players.filter((p) => p.eliminated).map((p) => p.name);
-  const next = nextTurnPosition(turnState, knockedOut);
+  const next = nextTurnPosition(turnState, knockedOut, room.turnMode);
   room.turnState = { ...turnState, ...next, undoLog: [] };
 
   if (from === 'SetUp' && next.phase === 'SetUp') {

@@ -24,7 +24,7 @@ interface BattleTroopProps {
   /** The clash-line center x — troops left of it face the other way. */
   centerX: number;
   phase: BattlePhase;
-  /** True while this troop is mine to roll (shows the 🎲 cue, clickable). */
+  /** True while this troop is mine to roll (shows the 🎲 label, clickable). */
   mine: boolean;
   /** True while this troop's roll is in flight (clicked, awaiting the result). */
   rolling: boolean;
@@ -89,20 +89,6 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
           rx={6}
           fill="transparent"
           pointerEvents="all"
-        />
-      )}
-      {/* Pulsing ring: the only thing that tells the player "click me to
-          roll" — without it the roll cue is easy to miss. */}
-      {mine && !dead && s.rollNum === null && (
-        <circle
-          cx={x}
-          cy={y}
-          r={TROOP_R + 4}
-          fill="none"
-          stroke="#f59e0b"
-          strokeWidth={3}
-          pointerEvents="none"
-          className="blink-circle"
         />
       )}
       {isRobber ? (

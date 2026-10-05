@@ -20,7 +20,7 @@ const phaseGradient = (phase: string): string => {
 };
 
 /** How long (ms) the your-turn toast stays visible before auto-hiding. */
-const TOAST_DURATION_MS = 3000;
+const TOAST_DURATION_MS = 5000;
 /** How long (ms) the fade-out takes. */
 const FADE_OUT_MS = 300;
 

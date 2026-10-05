@@ -35,15 +35,16 @@ const TurnOverlay: React.FC = () => {
   // Action phase, and there is at least one action this phase to undo.
   // (A robber fight is never logged, so it can't be undone — it happens
   // after the roll.)
+  const myTurn = !!currentPlayer && gameRoom.turnState.player === currentPlayer.name;
   const canUndo =
-    !!currentPlayer &&
-    gameRoom.turnState.player === currentPlayer.name &&
+    myTurn &&
     (gameRoom.turnState.phase === 'Build' || gameRoom.turnState.phase === 'Action') &&
     (gameRoom.turnState.undoLog?.length ?? 0) > 0;
 
   return (
     <div
-      className={`relative z-10 shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)}`}
+      // On my turn, a gradient sweeps around the border (.turn-glow).
+      className={`relative z-10 shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)} ${myTurn ? 'turn-glow' : ''}`}
     >
       <div className="flex items-center gap-2.5">
         <button

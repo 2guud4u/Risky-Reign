@@ -79,7 +79,7 @@ const TABS = [
 ] as const;
 
 /**
- * ⓘ button on the map (under the 🤝 trade button). Opens a tabbed info modal:
+ * ⓘ button on the map (under the 🔄 trade button). Opens a tabbed info modal:
  * every build recipe and its cost, and every way to earn victory points.
  */
 const RecipesButton: React.FC = () => {

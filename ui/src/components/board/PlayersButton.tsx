@@ -3,7 +3,7 @@ import { useGameRoom } from '../../contexts/GameContext';
 import PlayersList from '../../containers/game/PlayersList';
 
 /**
- * 👤 button on the map (under the 🤝 trade and ℹ️ recipes buttons). Clicking
+ * 👤 button on the map (under the 🔄 trade and ℹ️ recipes buttons). Clicking
  * it toggles a column of see-through player cards down the left side of the
  * map; clicking it again hides them.
  */

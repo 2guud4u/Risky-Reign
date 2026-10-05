@@ -15,11 +15,11 @@ const PHASE_TIPS: Record<string, { title: string; body: string }> = {
   },
   Build: {
     title: 'Build phase',
-    body: 'Click a corner or an edge on the map to see what you can build there. 🤝 trades with players or the bank. ℹ️ lists every cost. Press End Turn (top) when you are done.',
+    body: 'Click a vertex or an edge on the map to see what you can build there. 🔄 trades with players or the bank. ℹ️ lists every cost. Press End Turn (top) when you are done.',
   },
   Action: {
     title: 'Action phase',
-    body: 'Click a corner with your soldiers to move, heal, attack or capture with them. Recruit new soldiers on your settlements. Press End Turn (top) when you are done.',
+    body: 'Click a vertex with your soldiers to move, heal, attack or capture with them. Recruit new soldiers on your settlements. Press End Turn (top) when you are done.',
   },
 };
 

@@ -1,5 +1,5 @@
 import { Player } from './Player';
-import { BattleState, TradeOffer, TurnState, RollResult, ResourceCount } from './Logic';
+import { BattleState, TradeOffer, TurnState, RollResult, ResourceCount, TurnMode } from './Logic';
 import { Board } from './Board';
 import { DevelopmentCardType } from './DevelopmentCard';
 
@@ -95,6 +95,8 @@ export interface GameRoom {
   gameStatus: 'waiting' | 'playing' | 'finished';
   /** Victory threshold in VP (the "points to win" setting). */
   pointsToWin: number;
+  /** Build/Action phase scope per dice round; see `TurnMode` in Logic.ts. */
+  turnMode: TurnMode;
   winner: string | null;
   roll: RollResult;
   /** Pending robber placement (a 7 roll or a played knight card). */

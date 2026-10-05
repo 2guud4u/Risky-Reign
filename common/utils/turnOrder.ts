@@ -1,7 +1,13 @@
-import { TurnState } from '../types/Logic';
+import type { TurnMode, TurnState } from '../types/Logic';
 
 /** Where the turn machine stands: whose turn, which phase, and the round counters. */
 export type TurnPosition = Pick<TurnState, 'phase' | 'player' | 'playerOrder' | 'offset' | 'dicePlayerIndex'>;
+
+/** The two presets surfaced in Game Settings; any single/around mix is legal. */
+export const TURN_MODE_PRESETS: Record<'expanded' | 'catan', TurnMode> = {
+  expanded: { build: 'around', action: 'around' },
+  catan: { build: 'single', action: 'single' },
+};
 
 /**
  * The turn position after the current one ends. Single source of truth for
@@ -16,7 +22,7 @@ export type TurnPosition = Pick<TurnState, 'phase' | 'player' | 'playerOrder' | 
  * Knocked-out players (`out`) get no turns: their Build/Action steps are
  * skipped and they never own a dice round.
  */
-export function nextTurnPosition(pos: TurnPosition, out: readonly string[] = []): TurnPosition {
+export function nextTurnPosition(pos: TurnPosition, out: readonly string[] = [], mode: TurnMode = TURN_MODE_PRESETS.expanded): TurnPosition {
   const { playerOrder: order } = pos;
   const n = order.length;
   const next = (cur: TurnPosition, phase: TurnPosition['phase'], playerIndex: number, nextOffset: number, dice = cur.dicePlayerIndex ?? 0): TurnPosition => ({
@@ -39,16 +45,20 @@ export function nextTurnPosition(pos: TurnPosition, out: readonly string[] = [])
       case 'Dice':
         return next(cur, 'Build', order.indexOf(cur.player), 0);
       case 'Build':
-        if (offset === n - 1) return next(cur, 'Action', d, 0);
+        // 'around' ends after the last player; 'single' ends as soon as the
+        // dice player passes.
+        if (mode.build === 'single' || offset === n - 1) return next(cur, 'Action', d, 0);
         return next(cur, 'Build', (order.indexOf(cur.player) + 1) % n, offset + 1);
-      case 'Action':
-        if (offset === n - 1) {
+      case 'Action': {
+        const roundOver = mode.action === 'single' || offset === n - 1;
+        if (roundOver) {
           // The next dice round goes to the next player still in the game.
           let nd = (d + 1) % n;
           for (let i = 0; i < n && out.includes(order[nd]); i++) nd = (nd + 1) % n;
           return next(cur, 'Dice', nd, 0, nd);
         }
         return next(cur, 'Action', (order.indexOf(cur.player) + 1) % n, offset + 1);
+      }
     }
   };
   // Skip knocked-out players' steps; bounded so an all-out order can't spin.
@@ -58,12 +68,12 @@ export function nextTurnPosition(pos: TurnPosition, out: readonly string[] = [])
 }
 
 /** The next `count` turn positions after `pos` (stops early if the order is empty). */
-export function upcomingTurns(pos: TurnPosition, count: number, out: readonly string[] = []): TurnPosition[] {
+export function upcomingTurns(pos: TurnPosition, count: number, out: readonly string[] = [], mode: TurnMode = TURN_MODE_PRESETS.expanded): TurnPosition[] {
   const turns: TurnPosition[] = [];
   if (pos.playerOrder.length === 0) return turns;
   let cur = pos;
   for (let i = 0; i < count; i++) {
-    cur = nextTurnPosition(cur, out);
+    cur = nextTurnPosition(cur, out, mode);
     turns.push(cur);
   }
   return turns;

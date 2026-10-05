@@ -10,7 +10,7 @@
  */
 import { PublicGameRoom } from './Room';
 import { HexLayout } from './BoardGenerator';
-import { Price, ResourceKey } from './Logic';
+import { Price, ResourceKey, TurnMode } from './Logic';
 
 /** Result of a 1v1 robber fight, broadcast to the whole room. */
 export interface RobberFightResult {
@@ -59,6 +59,7 @@ export interface ClientToServerEvents {
   resetGame: (data: { roomId: string }) => void;
   refreshMap: (data: { roomId: string }) => void;
   updatePointsToWin: (data: { roomId: string; pointsToWin: number }) => void;
+  setTurnMode: (data: { roomId: string; turnMode: TurnMode }) => void;
   editBoard: (data: { roomId: string; layouts: HexLayout[] }) => void;
   endTurn: (data: { roomId: string }) => void;
   undoBuild: (data: { roomId: string }) => void;

@@ -79,7 +79,7 @@ export function useSetupCoach(board: Board | null): CoachStep | null {
         caption: 'Click here',
         title: firstRound ? 'Place your first settlement' : 'Place your second settlement',
         body:
-          'Click the blue ring to pick that corner — or click any other corner you like. Settlements earn resources from the hexes they touch, so corners next to common numbers (6, 8, 5, 9) pay out the most.',
+          'Click the blue ring to pick that vertex — or click any other vertex you like. Settlements earn resources from the hexes they touch, so vertices next to common numbers (6, 8, 5, 9) pay out the most.',
         bubbleOpen,
       }
     : {
@@ -88,7 +88,7 @@ export function useSetupCoach(board: Board | null): CoachStep | null {
         at: step.at,
         caption: 'Click here',
         title: 'Now place a road',
-        body: 'Roads must touch your new settlement. Click the blue ring — or any other edge next to it — then confirm. Roads let you expand to new corners later.',
+        body: 'Roads must touch your new settlement. Click the blue ring — or any other edge next to it — then confirm. Roads let you expand to new vertices later.',
         bubbleOpen,
       };
 }

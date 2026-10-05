@@ -99,17 +99,12 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
               <span className="mr-2.5" title="Battles won">
                 🏆 {battlesWon}
               </span>
-              {player.id === currentPlayerId ? (
-                Object.entries(player.resources).map(([resource, value]) => (
-                  <span key={resource} className="mr-2.5">
-                    {resource}: {value}
-                  </span>
-                ))
-              ) : (
-                <span className="mr-2.5" title="Total resource cards">
-                  🃏 {totalResources}
-                </span>
-              )}
+              {/* Opponents' hands are masked server-side, so the public total
+                  is all we can show. My own breakdown already sits in the
+                  resource panel — don't repeat it here. */}
+              <span className="mr-2.5" title="Total resource cards">
+                🃏 {player.id === currentPlayerId ? Object.values(player.resources).reduce((a, b) => a + b, 0) : totalResources}
+              </span>
               <span className="mr-2.5" title="Development cards">
                 🎴 {player.devCardCount}
               </span>
