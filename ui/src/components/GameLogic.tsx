@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { PublicGameRoom, PublicPlayer } from 'common';
+import { PublicGameRoom, PublicPlayer, RejoinSeat } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
 import GamePage from '../pages/Game';
 import LobbyPage from '../pages/Lobby';
+import RejoinPicker from '../pages/RejoinPicker';
 import BoardEditorPage from '../editor/BoardEditor';
 import { clearSavedSession, readSavedSession, saveSession, joinCodeFromUrl } from '../utils/session';
 import { TOAST_DURATION_MS } from '../constants';
@@ -41,9 +42,11 @@ const GameLogic: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const [view, setView] = useState<'lobby' | 'game' | 'boardEditor'>('lobby');
-  const { socket, isConnected, joinRoom: onJoinRoom } = useSocket();
+  const { socket, isConnected, joinRoom: onJoinRoom, spectateRoom } = useSocket();
   const { setGameRoom, setCurrentPlayer, gameRoom } = useGameRoom();
   const autoJoinedRef = useRef(false);
+  // A started game this browser holds no seat for: the rejoin picker's options.
+  const [rejoin, setRejoin] = useState<{ roomId: string; seats: RejoinSeat[] } | null>(null);
   // Capture a shareable join link (riskyreign.com/join?id=CODE) once on mount,
   // before the auto-rejoin effect below reads the saved session: persist the
   // code so it auto-joins, then clean the URL.
@@ -54,13 +57,15 @@ const GameLogic: React.FC = () => {
     window.history.replaceState({}, '', '/');
   }, []);
 
-  // Auto-rejoin the saved room once the socket is connected.
+  // Auto-rejoin the saved room once the socket is connected (as a spectator
+  // if that's how this browser was watching).
   useEffect(() => {
     if (!socket || !isConnected || autoJoinedRef.current) return;
     const saved = readSavedSession();
     if (saved) {
       autoJoinedRef.current = true;
-      onJoinRoom(saved.playerName, saved.roomId, saved.color);
+      if (saved.spectating) spectateRoom(saved.roomId);
+      else onJoinRoom(saved.playerName, saved.roomId, saved.color);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, isConnected]);
@@ -70,8 +75,9 @@ const GameLogic: React.FC = () => {
 
     socket.on('roomUpdate', (room) => {
       setGameRoom(room);
-      if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer)) {
-        // No longer in this room — clear the saved session.
+      setRejoin(null);
+      // Not in the room and not watching it: the saved session is stale.
+      if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer) && !readSavedSession()?.spectating) {
         clearSavedSession();
       }
       setError(null);
@@ -81,6 +87,13 @@ const GameLogic: React.FC = () => {
       setGameRoom(room);
       syncCurrentPlayer(room, socket.id, setCurrentPlayer);
       setError(null);
+    });
+
+    // A game that already started: pick your old seat or watch.
+    socket.on('rejoinOptions', (data) => {
+      setGameRoom(null);
+      setCurrentPlayer(null);
+      setRejoin(data);
     });
 
     socket.on('error', (errorData) => {
@@ -102,6 +115,7 @@ const GameLogic: React.FC = () => {
     return () => {
       socket.off('roomUpdate');
       socket.off('gameUpdate');
+      socket.off('rejoinOptions');
       socket.off('error');
       socket.off('robberFightResult');
     };
@@ -164,6 +178,8 @@ const GameLogic: React.FC = () => {
         />
       ) : gameRoom ? (
         <GamePage error={error} onCustomizeBoard={() => setView('boardEditor')} />
+      ) : rejoin ? (
+        <RejoinPicker roomId={rejoin.roomId} seats={rejoin.seats} onBack={() => setRejoin(null)} />
       ) : (
         <LobbyPage error={error} />
       )}

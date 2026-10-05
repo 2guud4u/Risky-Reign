@@ -67,6 +67,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     updatePointsToWin: onUpdatePointsToWin,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
+    joinRoom: onJoinRoom,
   } = useSocket();
 
   const [nameInput, setNameInput] = useState('');
@@ -86,7 +87,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     });
   };
   const leaveLobby = () => {
-    if (gameRoom && currentPlayer) emitLeaveGame(gameRoom.id);
+    if (gameRoom) emitLeaveGame(gameRoom.id);
     clearSavedSession();
     setGameRoom(null);
     setCurrentPlayer(null);
@@ -105,8 +106,34 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     window.setTimeout(() => setLinkCopied(false), 1600);
   };
 
-  if (!gameRoom || !currentPlayer) {
+  if (!gameRoom) {
     return <p className="text-center text-gray-500">Loading game...</p>;
+  }
+
+  // Spectating (no seat): a started game renders read-only; if the room was
+  // reset back to the lobby, offer to join it as a new player.
+  if (!currentPlayer) {
+    if (gameRoom.gameStatus !== 'waiting') return gameRoom.gameStatus === 'finished' ? <><Game /><VictoryOverlay /></> : <Game />;
+    return (
+      <div className="flex items-center justify-center min-h-screen w-full p-4">
+        <div className="bg-white rounded-lg shadow p-6 w-full max-w-[420px] text-center flex flex-col gap-3">
+          <h1 className="text-xl font-bold m-0">The game went back to the lobby</h1>
+          <button
+            type="button"
+            onClick={() => {
+              saveSession({ roomId: gameRoom.id, playerName: '' });
+              onJoinRoom('', gameRoom.id);
+            }}
+            className="py-2.5 rounded-md text-[15px] font-semibold text-white bg-blue-600 cursor-pointer hover:bg-blue-700"
+          >
+            Join as a player
+          </button>
+          <button type="button" onClick={leaveLobby} className="text-[13px] text-gray-500 hover:text-gray-800 cursor-pointer">
+            ← Back to lobby
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Waiting room: players gather, pick their color, then the host starts the game.

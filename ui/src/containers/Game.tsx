@@ -44,14 +44,17 @@ const Game: React.FC = () => {
   }, [gameRoom, currentPlayer]);
 
   const leaveGame = () => {
-    if (gameRoom && currentPlayer) emitLeaveGame(gameRoom.id);
+    if (gameRoom) emitLeaveGame(gameRoom.id);
     clearSavedSession();
     setGameRoom(null);
     setCurrentPlayer(null);
   };
-  if (!gameRoom || !currentPlayer) {
+  // Spectators (no seat) see the same board read-only: every seat-only panel
+  // (resources, trade, prompts, bubbles) renders nothing without a player.
+  if (!gameRoom) {
     return <p className="text-center text-gray-500">Loading game...</p>;
   }
+  const spectating = !currentPlayer;
   const selectedVertex =
     selectedObject?.type === 'vertex' ? gameRoom.board?.vertices[selectedObject.id] ?? null : null;
   const selectedEdge =
@@ -79,7 +82,7 @@ const Game: React.FC = () => {
               }}
               className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-red-600 text-white cursor-pointer hover:bg-red-700"
             >
-              Leave game
+              {spectating ? 'Stop watching' : 'Leave game'}
             </button>
           </div>
         )}
@@ -97,6 +100,11 @@ const Game: React.FC = () => {
 
       <div className="fixed inset-0 flex">
         <div className="relative flex-1 min-w-0 bg-white">
+          {spectating && (
+            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900/80 text-white text-[13px] font-semibold shadow-lg">
+              👀 Spectating
+            </div>
+          )}
           <BoardView hexSize={GAME_HEX_SIZE} />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
             <ResourceDisplay />
@@ -108,10 +116,10 @@ const Game: React.FC = () => {
           {/* Player info column, toggled by the 👤 button under ℹ️. */}
           <PlayersButton />
           {/* Build actions for the selected vertex/edge, as bubbles on the map. */}
-          {selectedVertex && gameRoom.board && (
+          {!spectating && selectedVertex && gameRoom.board && (
             <VertexActionBubbles board={gameRoom.board} vertex={selectedVertex} />
           )}
-          {selectedEdge && gameRoom.board && (
+          {!spectating && selectedEdge && gameRoom.board && (
             <EdgeActionBubbles board={gameRoom.board} edge={selectedEdge} />
           )}
           {/* Setup walkthrough + idle "Need help?" card (left edge of the map). */}

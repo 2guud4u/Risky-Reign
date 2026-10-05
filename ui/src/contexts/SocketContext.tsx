@@ -77,6 +77,8 @@ interface SocketContextType {
   takeTrade: (roomId: string, tradeId: string) => void;
   bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => void;
   leaveGame: (roomId: string) => void;
+  claimSeat: (roomId: string, name: string) => void;
+  spectateRoom: (roomId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -124,6 +126,8 @@ const SocketContext = createContext<SocketContextType>({
   takeTrade: () => {},
   bankTrade: () => {},
   leaveGame: () => {},
+  claimSeat: () => {},
+  spectateRoom: () => {},
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -208,6 +212,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const editBoard = (roomId: string, layouts: HexLayout[]) =>
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
+  const claimSeat = (roomId: string, name: string) => emitAction(socket, 'claimSeat', { roomId, name });
+  const spectateRoom = (roomId: string) => emitAction(socket, 'spectateRoom', { roomId });
   const createTradeOffer = (roomId: string, to: string | null, give: Price, want: Price) =>
     emitAction(socket, 'createTradeOffer', { roomId, to, give, want });
   const acceptTrade = (roomId: string, tradeId: string) =>
@@ -277,6 +283,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         updatePointsToWin,
         editBoard,
         leaveGame,
+        claimSeat,
+        spectateRoom,
         endTurn,
         undoBuild,
         drawDevelopmentCard,

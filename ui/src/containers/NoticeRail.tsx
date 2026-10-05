@@ -65,7 +65,16 @@ const NoticeRail: React.FC = () => {
   }, [isMyTurn]);
 
   // Game over: no turn bar or turn notices — the victory overlay takes over.
-  if (!gameRoom || !currentPlayer || gameRoom.gameStatus === 'finished') return null;
+  if (!gameRoom || gameRoom.gameStatus === 'finished') return null;
+  // Spectators get just the turn bar (whose turn it is); the notices below
+  // are all addressed to a seat.
+  if (!currentPlayer) {
+    return (
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
+        <TurnOverlay />
+      </div>
+    );
+  }
 
   // Build the list of action/waiting notices, highest-priority first.
   const notices: { key: string; mine: boolean; text: React.ReactNode }[] = [];

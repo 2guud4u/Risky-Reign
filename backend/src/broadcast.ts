@@ -32,11 +32,12 @@ export function sanitizeRoomFor(room: GameRoom, viewerSocketId: string): PublicG
     };
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { devCardDeck: _deck, players: _players, ...rest } = room;
+  const { devCardDeck: _deck, players: _players, spectators, ...rest } = room;
   return {
     ...rest,
     players,
     devCardDeckCount: room.devCardDeck.length,
+    spectatorCount: spectators.length,
   };
 }
 
@@ -48,9 +49,11 @@ function totalResources(resources: ResourceCount): number {
 }
 
 /**
- * Broadcast a room update to each connected player, masking secrets
- * per-recipient. Marks the room active so the idle sweep keeps it alive.
- * `event` is 'gameUpdate' by default; room.ts uses 'roomUpdate' for lobby sync.
+ * Broadcast a room update to each connected player and spectator, masking
+ * secrets per-recipient (a spectator's socket id matches no seat, so every
+ * hand is masked for them). Marks the room active so the idle sweep keeps it
+ * alive. `event` is 'gameUpdate' by default; room.ts uses 'roomUpdate' for
+ * lobby sync.
  */
 export function broadcastRoom(
   io: Server,
@@ -59,7 +62,10 @@ export function broadcastRoom(
 ): void {
   room.lastActivityAt = Date.now();
   for (const p of room.players) {
-    if (!p.id) continue;
+    if (!p.id || !p.connected) continue;
     io.to(p.id).emit(event, sanitizeRoomFor(room, p.id));
+  }
+  for (const id of room.spectators) {
+    io.to(id).emit(event, sanitizeRoomFor(room, id));
   }
 }

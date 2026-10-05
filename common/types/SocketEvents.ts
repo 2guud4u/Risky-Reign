@@ -21,6 +21,12 @@ export interface RobberFightResult {
   won: boolean;
 }
 
+/** A seat whose player dropped out, offered in the rejoin picker. */
+export interface RejoinSeat {
+  name: string;
+  color: string;
+}
+
 /** Client → server events: name → payload the client emits. */
 export interface ClientToServerEvents {
   buildSettlement: (data: { roomId: string; vertexId: string }) => void;
@@ -65,6 +71,10 @@ export interface ClientToServerEvents {
   takeTrade: (data: { roomId: string; tradeId: string }) => void;
   bankTrade: (data: { roomId: string; giveResource: string; wantResource: string; giveCount: number }) => void;
   leaveGame: (data: { roomId: string }) => void;
+  /** Take over a disconnected seat offered by `rejoinOptions`. */
+  claimSeat: (data: { roomId: string; name: string }) => void;
+  /** Watch a started game without a seat. */
+  spectateRoom: (data: { roomId: string }) => void;
 }
 
 /** Server → client events: name → payload the server emits. */
@@ -79,4 +89,10 @@ export interface ServerToClientEvents {
   joined: (data: { token: string }) => void;
   /** One-shot robber-fight dice result, broadcast to the room. */
   robberFightResult: (result: RobberFightResult) => void;
+  /**
+   * Sent instead of a room when someone without a seat token joins a game
+   * that already started: the disconnected seats they may reclaim (empty =
+   * nobody left, so spectating is the only option).
+   */
+  rejoinOptions: (data: { roomId: string; seats: RejoinSeat[] }) => void;
 }

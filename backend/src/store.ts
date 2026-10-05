@@ -98,6 +98,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     bonuses: emptyBonuses(),
     battlesWon: {},
     lastActivityAt: Date.now(),
+    spectators: [],
   };
   gameRooms.set(roomId, room);
   return room;

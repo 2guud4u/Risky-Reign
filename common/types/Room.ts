@@ -133,6 +133,11 @@ export interface GameRoom {
   battlesWon: Record<string, number>;
   /** Last activity timestamp (ms). Used to sweep idle rooms and free memory. */
   lastActivityAt: number;
+  /**
+   * Socket ids watching the game without a seat (joined a started game when
+   * no seat was free to reclaim). Server-only: never broadcast.
+   */
+  spectators: string[];
 }
 /**
  * A player as broadcast to clients: the secret `token` is stripped, and other
@@ -151,8 +156,10 @@ export type PublicPlayer = Omit<Player, 'token' | 'resources' | 'developmentCard
  * The room as broadcast to a given client: the shared `devCardDeck` draw order
  * is hidden (only its size is public) and every player is a `PublicPlayer`.
  */
-export type PublicGameRoom = Omit<GameRoom, 'players' | 'devCardDeck'> & {
+export type PublicGameRoom = Omit<GameRoom, 'players' | 'devCardDeck' | 'spectators'> & {
   players: PublicPlayer[];
   /** Face-down cards remaining in the shared deck (order hidden). */
   devCardDeckCount: number;
+  /** How many people are spectating (identities stay private). */
+  spectatorCount: number;
 };

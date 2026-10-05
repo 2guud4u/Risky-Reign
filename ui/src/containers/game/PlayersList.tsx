@@ -46,6 +46,14 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
               />
               <strong className={player.eliminated ? 'line-through' : undefined}>{player.name}</strong>
               {player.id === currentPlayerId && <span>(you)</span>}
+              {!player.connected && (
+                <span
+                  className="text-[11px] font-semibold text-white bg-gray-500 rounded px-1.5"
+                  title="Disconnected — anyone with the room link can take this seat"
+                >
+                  offline
+                </span>
+              )}
               {player.eliminated && (
                 <span
                   className="text-[12px] text-gray-600 font-semibold"

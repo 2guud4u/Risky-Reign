@@ -37,7 +37,6 @@ music
 
  server should plan out on device database 
 
-handle rejoin and stuff gracefully
 
 make trade look better
 
@@ -56,5 +55,7 @@ figure out attack mix of soldiers
 
 
 click robber also starts fight
+
+prepare for data base saving game state, allow them options to start up lobby again, as them to set a password to the lobby
 
 

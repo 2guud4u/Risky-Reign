@@ -15,6 +15,8 @@ import {
   ROOM_CODE_CHARS,
   ROOM_CODE_LENGTH,
   PLAYER_NAME_MAX,
+  GameRoom,
+  RejoinSeat,
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
@@ -28,6 +30,15 @@ import { HandlerContext } from './context';
 const PLAYER_NAME_RE = /^[A-Za-z0-9 _-]+$/;
 
 /**
+ * Seats in a started game whose player dropped out (no live socket): the
+ * picks offered by the rejoin picker. Knocked-out seats are included — the
+ * player may still want to come back and watch from their own seat.
+ */
+function disconnectedSeats(room: GameRoom): RejoinSeat[] {
+  return room.players.filter((p) => !p.connected).map((p) => ({ name: p.name, color: p.color }));
+}
+
+/**
  * Room-lifecycle handlers: joining (with seat tokens, color assignment and the
  * nested color/name-update handlers), regenerating the map, starting the game,
  * resetting, leaving, and disconnect cleanup.
@@ -35,8 +46,8 @@ const PLAYER_NAME_RE = /^[A-Za-z0-9 _-]+$/;
 export function registerRoomHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
-  // Every room this socket joined. On disconnect a room whose last socket is
-  // gone is reaped; players stay while ANY socket remains so reconnect works.
+  // Every room this socket joined (as a seat or a spectator): on disconnect
+  // the seat is marked offline and the socket dropped from spectators.
   const joinedRoomIds = new Set<string>();
 
   // Handle room joining.
@@ -94,6 +105,8 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     const seat = token ? room.players.find((p) => p.token === token) : undefined;
     if (seat) {
       seat.id = socket.id;
+      seat.connected = true;
+      room.spectators = room.spectators.filter((id) => id !== socket.id);
       socket.join(roomId);
       joinedRoomIds.add(roomId);
       if (seat.token) socket.emit('joined', { token: seat.token });
@@ -101,13 +114,16 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       broadcastRoom(io, room, 'roomUpdate');
       return;
     }
-    if (playerName && room.players.some((p) => p.name.toLowerCase() === playerName.toLowerCase())) {
-      socket.emit('error', { message: 'Seat taken' });
+    // A started game takes no new players. Someone arriving without a seat
+    // token (a fresh link click, a new device, cleared storage) gets the
+    // rejoin picker: the seats whose player dropped out, or — if nobody left
+    // — just the option to spectate.
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('rejoinOptions', { roomId, seats: disconnectedSeats(room) });
       return;
     }
-    // New players only join a waiting lobby, and only if there's room.
-    if (room.gameStatus !== 'waiting') {
-      socket.emit('error', { message: 'The game has already started' });
+    if (playerName && room.players.some((p) => p.name.toLowerCase() === playerName.toLowerCase())) {
+      socket.emit('error', { message: 'Seat taken' });
       return;
     }
     if (room.players.length >= MAX_PLAYERS) {
@@ -132,6 +148,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       resources: freshResourceCount(STARTING_RESOURCES),
       victoryPoints: 0,
       eliminated: false,
+      connected: true,
       developmentCards: [],
       freeRoadsLeft: 0,
       devCardsBoughtThisTurn: 0,
@@ -145,6 +162,50 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
 
     // Send updated room state to all players.
     applyBonuses(room);
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Reclaim a disconnected seat from the rejoin picker. Only a seat with no
+  // live socket can be claimed (a connected player's seat is never offered),
+  // so a stranger can take over only a player who has actually left. The
+  // claimer gets a fresh seat token: the old one stops working, so a stale tab
+  // of the dropped player can't snatch the seat back mid-turn.
+  socket.on('claimSeat', (data: { roomId: string; name: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    const seat = room.players.find((p) => p.name === data.name);
+    if (!seat || seat.connected) {
+      socket.emit('error', { message: 'That player is back — pick another seat' });
+      socket.emit('rejoinOptions', { roomId: room.id, seats: disconnectedSeats(room) });
+      return;
+    }
+    seat.id = socket.id;
+    seat.connected = true;
+    seat.token = randomBytes(16).toString('hex');
+    room.spectators = room.spectators.filter((id) => id !== socket.id);
+    socket.join(room.id);
+    joinedRoomIds.add(room.id);
+    socket.emit('joined', { token: seat.token });
+    applyBonuses(room);
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Watch a started game without a seat: room updates with every hand masked,
+  // no actions (every action handler resolves the caller by seat socket id,
+  // which a spectator never has).
+  socket.on('spectateRoom', (data: { roomId: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.players.some((p) => p.id === socket.id && p.connected)) return;
+    if (!room.spectators.includes(socket.id)) room.spectators.push(socket.id);
+    socket.join(room.id);
+    joinedRoomIds.add(room.id);
     broadcastRoom(io, room, 'roomUpdate');
   });
   // Change your color while still in the lobby. Registered at the top level
@@ -345,6 +406,13 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
+      // A spectator stops watching.
+      if (room.spectators.includes(socket.id)) {
+        room.spectators = room.spectators.filter((id) => id !== socket.id);
+        socket.leave(roomId);
+        broadcastRoom(io, room);
+        return;
+      }
       socket.emit('error', { message: 'Player not found in room' });
       return;
     }
@@ -394,15 +462,26 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     broadcastRoom(io, room);
   });
 
-  // Handle disconnect.
+  // Handle disconnect. The seat stays (with all its pieces) so its owner can
+  // re-attach by token after a reload, or anyone with the room link can
+  // reclaim it from the rejoin picker; a lobby seat is dropped since nothing
+  // is lost. Abandoned rooms are reaped by the idle sweep (ROOM_IDLE_MS), not
+  // here — deleting a room the moment its last socket closed made a game
+  // unrejoinable after everyone's connection blipped at once.
   socket.on('disconnect', () => {
-    // Keep the players in the room so a reload / reconnect can re-attach while
-    // ANY socket remains. Once the room's last socket is gone it can never be
-    // rejoined (socket.io rooms die with their last member), so delete it here
-    // instead of letting abandoned rooms pile up until the idle sweep.
     for (const roomId of joinedRoomIds) {
-      const members = io.sockets.adapter.rooms.get(roomId);
-      if (!members || members.size === 0) gameRooms.delete(roomId);
+      const room = gameRooms.get(roomId);
+      if (!room) continue;
+      room.spectators = room.spectators.filter((id) => id !== socket.id);
+      const seat = room.players.find((p) => p.id === socket.id);
+      if (seat) seat.connected = false;
+      const anyoneConnected = room.players.some((p) => p.connected) || room.spectators.length > 0;
+      if (room.gameStatus === 'waiting' && !anyoneConnected) {
+        // An empty lobby has nothing to rejoin.
+        gameRooms.delete(roomId);
+        continue;
+      }
+      broadcastRoom(io, room, 'roomUpdate');
     }
   });
 }

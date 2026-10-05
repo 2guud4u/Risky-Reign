@@ -29,13 +29,14 @@ const TurnOverlay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { undoBuild } = useSocket();
   const [timelineOpen, setTimelineOpen] = useState(false);
-  if (!gameRoom || !currentPlayer) return null;
+  if (!gameRoom) return null;
 
   // Undo is available only while it is this player's turn, in the Build or
   // Action phase, and there is at least one action this phase to undo.
   // (A robber fight is never logged, so it can't be undone — it happens
   // after the roll.)
   const canUndo =
+    !!currentPlayer &&
     gameRoom.turnState.player === currentPlayer.name &&
     (gameRoom.turnState.phase === 'Build' || gameRoom.turnState.phase === 'Action') &&
     (gameRoom.turnState.undoLog?.length ?? 0) > 0;
@@ -66,7 +67,12 @@ const TurnOverlay: React.FC = () => {
               {'↶'} Undo
             </button>
           )}
-          <EndTurnButton variant="snackbar" />
+          {currentPlayer ? (
+            <EndTurnButton variant="snackbar" />
+          ) : (
+            // Spectators: whose turn it is, no controls.
+            <span className="text-[13px] font-semibold">{gameRoom.turnState.player}'s turn</span>
+          )}
         </div>
       </div>
       {timelineOpen && <TurnTimeline onClose={() => setTimelineOpen(false)} />}

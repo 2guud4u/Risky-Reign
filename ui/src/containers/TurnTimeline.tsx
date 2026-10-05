@@ -16,7 +16,7 @@ const TIMELINE_LOOKAHEAD = 5;
  */
 const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { gameRoom, currentPlayer } = useGameRoom();
-  if (!gameRoom || !currentPlayer) return null;
+  if (!gameRoom) return null;
   const colors = playerColorMap(gameRoom);
   const knockedOut = gameRoom.players.filter((p) => p.eliminated).map((p) => p.name);
   const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD, knockedOut)];
@@ -36,7 +36,7 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <ol className="relative flex m-0 p-0 list-none overflow-x-auto">
         {steps.map((pos, i) => {
           const now = i === 0;
-          const name = pos.player === currentPlayer.name ? 'You' : pos.player;
+          const name = pos.player === currentPlayer?.name ? 'You' : pos.player;
           return (
             <li key={i} className="relative flex flex-col items-center w-20 shrink-0">
               {/* The line: joins this node to the next one. */}

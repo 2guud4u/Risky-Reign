@@ -15,6 +15,12 @@ export interface Player {
    * eliminated player gets no more turns but stays in the room to spectate.
    */
   eliminated: boolean;
+  /**
+   * Whether this seat has a live socket. False after its browser disconnects
+   * (closed tab, lost link): the seat is kept and anyone opening the room
+   * link can reclaim it from the rejoin picker.
+   */
+  connected: boolean;
   /** Free roads remaining (from a played Road Building card). */
   freeRoadsLeft: number;
   /** Dev cards bought this turn (cannot be played until next turn). */

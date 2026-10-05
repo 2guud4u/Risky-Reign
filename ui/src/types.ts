@@ -19,4 +19,6 @@ export interface SavedSession {
   color?: string;
   /** Server-issued seat token: proves ownership when re-attaching after a reload. */
   token?: string;
+  /** Watching without a seat: a reload re-enters as a spectator. */
+  spectating?: boolean;
 }
