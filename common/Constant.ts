@@ -146,5 +146,9 @@ export const ROOM_CODE_LENGTH = 6;
 export const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 /** Player names are this many characters at most. */
 export const PLAYER_NAME_MAX = 20;
+/** One chat message is at most this many characters (server trims). */
+export const CHAT_MESSAGE_MAX = 200;
+/** The room keeps at most this many chat messages (oldest dropped). */
+export const CHAT_LOG_MAX = 100;
 /** A custom board may carry at most this many hexes (caps memory per room). */
 export const MAX_BOARD_HEXES = 200;

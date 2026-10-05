@@ -16,6 +16,7 @@ import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
 import TradeButton from '../components/board/TradeButton';
 import RecipesButton from '../components/board/RecipesButton';
 import PlayersButton from '../components/board/PlayersButton';
+import ChatButton from '../components/board/ChatButton';
 import TutorialCoach from './TutorialCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { GAME_HEX_SIZE } from 'common';
@@ -165,7 +166,9 @@ const Game: React.FC = () => {
           <TradeButton />
           {/* Build-recipe reference, opened from the ℹ️ button under 🔄. */}
           <RecipesButton />
-          {/* Player info column, toggled by the 👤 button under ℹ️. */}
+          {/* Room chat, toggled by the 💬 button under ℹ️ (above 👤). */}
+          <ChatButton />
+          {/* Player info column, toggled by the 👤 button under 💬. */}
           <PlayersButton />
           {/* Build actions for the selected vertex/edge, as bubbles on the map. */}
           {!spectating && selectedVertex && gameRoom.board && (

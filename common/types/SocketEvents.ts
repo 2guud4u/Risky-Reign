@@ -12,6 +12,15 @@ import { PublicGameRoom } from './Room';
 import { HexLayout } from './BoardGenerator';
 import { Price, ResourceKey, TurnMode } from './Logic';
 
+/** One line in the room chat log (part of the broadcast room state). */
+export interface ChatMessage {
+  /** Display name at send time ('Spectator' when the sender has no seat). */
+  from: string;
+  text: string;
+  /** Server clock ms — ordering + rendering only. */
+  at: number;
+}
+
 /** Result of a 1v1 robber fight, broadcast to the whole room. */
 export interface RobberFightResult {
   playerName: string;
@@ -72,6 +81,7 @@ export interface ClientToServerEvents {
   takeTrade: (data: { roomId: string; tradeId: string }) => void;
   bankTrade: (data: { roomId: string; giveResource: string; wantResource: string; giveCount: number }) => void;
   leaveGame: (data: { roomId: string }) => void;
+  sendChat: (data: { roomId: string; text: string }) => void;
   /** Take over a disconnected seat offered by `rejoinOptions`. */
   claimSeat: (data: { roomId: string; name: string }) => void;
   /** Watch a started game without a seat. */

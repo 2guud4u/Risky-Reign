@@ -2,6 +2,7 @@ import { Player } from './Player';
 import { BattleState, TradeOffer, TurnState, RollResult, ResourceCount, TurnMode } from './Logic';
 import { Board } from './Board';
 import { DevelopmentCardType } from './DevelopmentCard';
+import type { ChatMessage } from './SocketEvents';
 
 /**
  * Wire protocol: the backend now emits the clean domain `Board` directly
@@ -140,6 +141,8 @@ export interface GameRoom {
    * no seat was free to reclaim). Server-only: never broadcast.
    */
   spectators: string[];
+  /** Room chat, oldest first; capped at CHAT_LOG_MAX (server trims). */
+  chatLog: ChatMessage[];
 }
 /**
  * A player as broadcast to clients: the secret `token` is stripped, and other

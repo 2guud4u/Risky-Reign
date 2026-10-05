@@ -18,6 +18,8 @@ import {
   GameRoom,
   RejoinSeat,
   TurnMode,
+  CHAT_MESSAGE_MAX,
+  CHAT_LOG_MAX,
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
@@ -339,6 +341,23 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     room.turnMode = { build: turnMode.build, action: turnMode.action };
     broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // In-room chat. Seated players send as their name; spectators as
+  // 'Spectator'. The log rides the broadcast room state, so late joiners and
+  // reloads get history for free.
+  socket.on('sendChat', (data: { roomId: string; text: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room) return;
+    const seated = room.players.find((p) => p.id === socket.id);
+    const watching = room.spectators.includes(socket.id);
+    if (!seated && !watching) return;
+    const text = typeof data?.text === 'string' ? data.text.trim() : '';
+    if (!text) return;
+    const from = seated?.name.trim() || (seated ? 'Unnamed' : 'Spectator');
+    room.chatLog.push({ from, text: text.slice(0, CHAT_MESSAGE_MAX), at: Date.now() });
+    if (room.chatLog.length > CHAT_LOG_MAX) room.chatLog.splice(0, room.chatLog.length - CHAT_LOG_MAX);
+    broadcastRoom(io, room, room.gameStatus === 'waiting' ? 'roomUpdate' : 'gameUpdate');
   });
 
   socket.on('editBoard', (data: { roomId: string; layouts: HexLayout[] }) => {

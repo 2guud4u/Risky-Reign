@@ -85,6 +85,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     gameStatus: 'waiting',
     pointsToWin: DEFAULT_POINTS_TO_WIN,
     turnMode: TURN_MODE_PRESETS.expanded,
+    chatLog: [],
     winner: null,
     tradeOffers: [],
     battleState: null,
