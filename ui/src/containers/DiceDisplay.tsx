@@ -84,14 +84,18 @@ const DiceDisplay: React.FC = () => {
     );
   }
 
-  // Compact: the current roll just above the hamburger menu (bottom-left).
-  // bottom = menu's bottom inset + menu height + gap; left matches the menu's.
+  // Compact: the roll stacked on the hamburger menu's column — centered on
+  // the button's axis and tracking its safe-area offsets, so the pair lines
+  // up over the ☰ on notched screens too.
+  const menuLeft = `max(${MAP_CORNER_INSET_PX}px, env(safe-area-inset-left))`;
+  const menuBottom = `max(${MAP_CORNER_INSET_PX}px, env(safe-area-inset-bottom))`;
   return (
     <div
       className="fixed z-40 flex items-center gap-2 flex-col"
       style={{
-        bottom: MAP_CORNER_INSET_PX + HAMBURGER_MENU_SIZE_PX + HAMBURGER_MENU_GAP_PX,
-        left: MAP_CORNER_INSET_PX,
+        bottom: `calc(${menuBottom} + ${HAMBURGER_MENU_SIZE_PX}px + ${HAMBURGER_MENU_GAP_PX}px)`,
+        left: `calc(${menuLeft} + ${HAMBURGER_MENU_SIZE_PX / 2}px)`,
+        transform: 'translateX(-50%)',
       }}
     >
       <Dice value={roll.die1} size={COMPACT_DICE_SIZE} />

@@ -20,7 +20,7 @@ import {
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
-import { passKnockedOutTurn } from '../turn';
+// passKnockedOutTurn removed: leaveGame now keeps the seat like disconnect.
 import { DEV_PRESET, applyDevPreset } from '../devPreset';
 import { broadcastRoom } from '../broadcast';
 import { MAX_ROOMS } from '../constants';
@@ -394,9 +394,10 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     broadcastRoom(io, room);
   });
 
-  // A player leaves the game: remove them from the room and the turn order.
-  // If they were the current player, pass the turn to the next player (or to
-  // the sentinel 'X' if the room is now empty).
+  // "Leave game" from the menu. A seated player is treated like a
+  // disconnect: the seat stays (marked disconnected) so the same player can
+  // re-attach by token, or another client can claim it from the rejoin
+  // picker. Nothing about the turn or their pending actions changes.
   socket.on('leaveGame', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);
@@ -416,50 +417,9 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Player not found in room' });
       return;
     }
-    const leavingName = player.name;
-    const orderIndex = room.turnState.playerOrder.indexOf(leavingName);
-    const seatIndex = room.players.indexOf(player);
-    room.players = room.players.filter((p) => p.id !== socket.id);
-    // Remove the leaver's seat by index, not by name — nameless seats share
-    // "" so a name filter would drop more than one order entry.
-    room.turnState.playerOrder.splice(seatIndex, 1);
-    if (room.turnState.player === leavingName) {
-      room.turnState.player =
-        room.turnState.playerOrder.length > 0
-          ? room.turnState.playerOrder[orderIndex % room.turnState.playerOrder.length]
-          : 'X';
-    }
-    // The round's dice owner is an index into playerOrder; removing the leaver
-    // shifts everyone after them left, so re-point it at the same owner. If the
-    // leaver WAS the owner, the next player in order inherits the index.
-    if (orderIndex >= 0 && orderIndex < room.turnState.dicePlayerIndex) {
-      room.turnState.dicePlayerIndex -= 1;
-    }
-    if (room.turnState.playerOrder.length > 0) {
-      room.turnState.dicePlayerIndex %= room.turnState.playerOrder.length;
-    } else {
-      room.turnState.dicePlayerIndex = 0;
-    }
-    // Clear any state owned by the leaver so it can't wedge the game (a pending
-    // 7-discard or robber move would otherwise block the Dice phase forever).
-    delete room.discards[leavingName];
-    if (room.robberMove?.player === leavingName) room.robberMove = null;
-    if (room.steal?.thief === leavingName) room.steal = null;
-    if (room.devCardChoice?.player === leavingName) room.devCardChoice = null;
-    if (room.robberDefeatedBy?.playerName === leavingName) room.robberDefeatedBy = null;
-    room.tradeOffers = room.tradeOffers.filter(
-      (o) => o.from !== leavingName && o.to !== leavingName
-    );
-    // If the leaver was in an in-progress battle, drop it (it can never resolve
-    // once a participant is gone).
-    if (room.battleState && (room.battleState.attacker === leavingName || room.battleState.defender === leavingName)) {
-      room.battleState = null;
-    }
+    player.connected = false;
     socket.leave(roomId);
-    applyBonuses(room);
-    // The turn may have landed on a knocked-out player.
-    passKnockedOutTurn(room);
-    broadcastRoom(io, room);
+    broadcastRoom(io, room, 'roomUpdate');
   });
 
   // Handle disconnect. The seat stays (with all its pieces) so its owner can

@@ -19,7 +19,7 @@ import PlayersButton from '../components/board/PlayersButton';
 import TutorialCoach from './TutorialCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { GAME_HEX_SIZE } from 'common';
-import { clearSavedSession } from '../utils/session';
+
 
 /**
  * The game screen: the board fills the whole window. Map controls (trade,
@@ -43,6 +43,14 @@ const Game: React.FC = () => {
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
+  const leaveGame = () => {
+    // The server keeps the seat (marked disconnected) like a dropped
+    // connection, so keep the saved session/token: rejoining this room
+    // re-attaches to the same seat instead of joining as a new player.
+    if (gameRoom) emitLeaveGame(gameRoom.id);
+    setGameRoom(null);
+    setCurrentPlayer(null);
+  };
 
   const toggleFullscreen = async () => {
     setFsHint(false);
@@ -77,12 +85,7 @@ const Game: React.FC = () => {
     };
   }, [gameRoom, currentPlayer]);
 
-  const leaveGame = () => {
-    if (gameRoom) emitLeaveGame(gameRoom.id);
-    clearSavedSession();
-    setGameRoom(null);
-    setCurrentPlayer(null);
-  };
+
   // Spectators (no seat) see the same board read-only: every seat-only panel
   // (resources, trade, prompts, bubbles) renders nothing without a player.
   if (!gameRoom) {
