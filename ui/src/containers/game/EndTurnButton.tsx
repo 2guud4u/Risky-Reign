@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 
@@ -11,6 +11,18 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
   const { gameRoom, currentPlayer } = useGameRoom();
   const { endTurn: onEndTurn } = useSocket();
   const snack = variant === 'snackbar';
+
+  // Phase countdown: ticks once a second off the server-broadcast deadline.
+  // The server clears `phaseTimerEndsAt` while a battle is open, so the chip
+  // disappears during fights and resumes with the remaining time after.
+  const endsAt = gameRoom?.phaseTimerEndsAt ?? null;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!endsAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [endsAt]);
+  const secsLeft = endsAt ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : null;
 
   // Label for the manual-advance phases (derived at render time).
   const phaseText = (phase: string): string => {
@@ -114,7 +126,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
             </>
           ) : (
             <>
-              Roll both dice to continue
+              {gameRoom.turnState.offset === 1 ? 'Second roll: roll both dice' : 'Roll both dice to continue'}
               {!snack && (
                 <span className="block text-xs text-blue-600 mt-0.5">
                   The phase ends automatically once both dice are rolled.
@@ -125,7 +137,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
         ) : (
           <>
             Waiting on {gameRoom.turnState.player} to{' '}
-            {sevenPending ? 'move the robber' : 'roll the dice'}
+            {sevenPending ? 'move the robber' : gameRoom.turnState.offset === 1 ? 'roll again' : 'roll the dice'}
           </>
         )}
       </div>
@@ -173,6 +185,17 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
           }
         >
           ⚠ {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} can still act
+        </div>
+      )}
+      {secsLeft !== null && (
+        <div
+          className={
+            snack
+              ? 'text-[11px] font-semibold'
+              : 'px-2 py-1 text-xs text-center rounded border border-gray-200 bg-gray-50 text-gray-600'
+          }
+        >
+          ⏱ {Math.floor(secsLeft / 60)}:{String(secsLeft % 60).padStart(2, '0')} left this phase
         </div>
       )}
     </div>

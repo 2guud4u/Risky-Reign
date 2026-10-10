@@ -45,6 +45,14 @@ export function toSnapshot(room: GameRoom): GameSnapshot {
 export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
   return {
     ...snap,
+    // Settings saved before they existed: none (an undefined cap would let
+    // every setup placement be a city). The turn timer likewise defaults
+    // off; a stale deadline must never carry over a resume.
+    setupCities: snap.setupCities ?? 0,
+    turnTimerMs: snap.turnTimerMs ?? 0,
+    phaseTimerEndsAt: null,
+    phaseTimerRemainingMs: null,
+    turnMode: { ...snap.turnMode, secondRoll: snap.turnMode.secondRoll ?? false },
     id,
     players: snap.players.map((p) => ({
       ...p,

@@ -1,4 +1,5 @@
 import { GameRoom, nextTurnPosition } from 'common';
+import { setPhaseDeadline } from './phaseTimer';
 
 /**
  * Advance the room's turn/phase state machine based on the current phase.
@@ -29,8 +30,13 @@ export function advanceTurn(room: GameRoom): void {
     room.turnState.soldiersCreatedThisTurn = [];
     room.turnState.soldiersHealedThisTurn = [];
     room.roll = { die1: null, die2: null };
-  } else if (from === 'Build' && next.phase === 'Action') {
-    // A new Action phase begins: reset the per-soldier action count.
+  } else if (next.phase === 'Dice' && from === 'Build') {
+    // Second roll of the round (same dice player): fresh dice only — the
+    // round's soldier restrictions carry on into its Action phase.
+    room.roll = { die1: null, die2: null };
+  } else if (next.phase === 'Action' && from !== 'Action') {
+    // A new Action phase begins (from Build, or from the second roll):
+    // reset the per-soldier action count.
     room.turnState.soldiersActedThisTurn = [];
     room.turnState.robberFoughtThisPhase = [];
   } else if (from === 'Action') {
@@ -45,6 +51,10 @@ export function advanceTurn(room: GameRoom): void {
       for (const p of room.players) p.devCardsBoughtThisTurn = 0;
     }
   }
+  // Turn timer: a fresh countdown starts each time a Build or Action phase
+  // begins (any other phase clears it). Battle suspension/resume is handled
+  // by syncPhaseTimer off the broadcast.
+  setPhaseDeadline(room);
 }
 
 /**

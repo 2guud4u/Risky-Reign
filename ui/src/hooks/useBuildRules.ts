@@ -3,6 +3,7 @@ import {
   BuildCheck,
   ResourceKey,
   canBuildSettlementAt as checkSettlement,
+  canPlaceSetupCityAt as checkSetupCity,
   canBuildRoadOn as checkRoad,
   canUpgradeSettlementToCity as checkCity,
   canRecruitSoldierAt as checkSoldier,
@@ -27,6 +28,12 @@ export function useBuildRules(board: Board) {
 
   const settlementCheck = (vertexId: string) =>
     turn ? checkSettlement(board, turn, name, vertexId, resources) : { allowed: false, reason: 'No active turn' };
+
+  // Setup only: place a city directly (room's setupCities setting).
+  const setupCityCheck = (vertexId: string) =>
+    turn && gameRoom
+      ? checkSetupCity(board, turn, name, vertexId, gameRoom.setupCities)
+      : { allowed: false, reason: 'No active turn' };
 
   // A free road from a played Road Building card skips the resource cost.
   const hasFreeRoad = (currentPlayer?.freeRoadsLeft ?? 0) > 0;
@@ -71,6 +78,7 @@ export function useBuildRules(board: Board) {
 
   return {
     settlementCheck,
+    setupCityCheck,
     roadCheck,
     cityCheck,
     soldierCheck,

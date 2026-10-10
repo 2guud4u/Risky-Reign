@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChatMessage } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { priceLabel } from '../utils/price';
 import TurnOverlay from './TurnOverlay';
 
 /** Tailwind gradient classes for the your-turn toast, keyed to the current phase. */
@@ -23,6 +25,8 @@ const phaseGradient = (phase: string): string => {
 const TOAST_DURATION_MS = 5000;
 /** How long (ms) the fade-out takes. */
 const FADE_OUT_MS = 300;
+/** How long (ms) a completed-trade pop-up stays up (the chat log keeps it). */
+const TRADE_TOAST_MS = 6000;
 
 /** Neutral (waiting-on-someone-else) vs amber (you must act) notice chrome. */
 const noticeClass = (mine: boolean): string =>
@@ -34,8 +38,9 @@ const noticeClass = (mine: boolean): string =>
 
 /**
  * The single top-center column. The turn status bar (phase, undo, end turn)
- * sits first, then the your-turn toast, then each "waiting on X / do Y"
- * notice — all stacked here so they can never overlap.
+ * sits first, then the your-turn toast, then a pop-up for each completed
+ * trade, then each "waiting on X / do Y" notice — all stacked here so they
+ * can never overlap.
  */
 const NoticeRail: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -43,6 +48,27 @@ const NoticeRail: React.FC = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastClosing, setToastClosing] = useState(false);
 
+  // Trade pop-ups: one per trade announcement that arrives while mounted.
+  // The first broadcast only records the log length, so a reload or late
+  // join doesn't replay old trades (they stay in the chat log).
+  const [tradeToasts, setTradeToasts] = useState<ChatMessage[]>([]);
+  const seenLogLen = useRef<number | null>(null);
+  const chatLog = gameRoom?.chatLog;
+  useEffect(() => {
+    if (!chatLog) return;
+    const prev = seenLogLen.current;
+    seenLogLen.current = chatLog.length;
+    // The log is capped server-side; when it trims, the length can shrink.
+    if (prev === null || chatLog.length <= prev) return;
+    const fresh = chatLog.slice(prev).filter((m) => m.trade);
+    if (fresh.length === 0) return;
+    setTradeToasts((t) => [...t, ...fresh]);
+    const timer = setTimeout(
+      () => setTradeToasts((t) => t.filter((m) => !fresh.includes(m))),
+      TRADE_TOAST_MS
+    );
+    return () => clearTimeout(timer);
+  }, [chatLog]);
   const isMyTurn =
     gameRoom?.gameStatus === 'playing' &&
     gameRoom?.turnState.player === currentPlayer?.name;
@@ -179,6 +205,19 @@ const NoticeRail: React.FC = () => {
             </span>
           </div>
         </div>
+      )}
+      {tradeToasts.map((m, i) =>
+        m.trade ? (
+          <div
+            key={`${m.at}-${i}`}
+            role="status"
+            className="px-4 py-2 text-sm rounded-md border border-green-300 bg-green-50 text-green-900 shadow-lg"
+            style={{ animation: 'slide-down 0.35s ease-out' }}
+          >
+            🔄 <strong>{m.trade.from}</strong> gave <strong>{priceLabel(m.trade.gave)}</strong> to{' '}
+            <strong>{m.trade.to ?? '🏦 the bank'}</strong> for <strong>{priceLabel(m.trade.got)}</strong>
+          </div>
+        ) : null
       )}
       {notices.map((n) => (
         <div key={n.key} className={noticeClass(n.mine)}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CHAT_MESSAGE_MAX } from 'common';
+import { priceLabel } from '../../utils/price';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 
@@ -8,6 +9,7 @@ import { useSocket } from '../../contexts/SocketContext';
  * chat: a scrollable log plus an input. Unread messages since the panel was
  * last open show as a red badge. The log is part of the broadcast room state,
  * so everyone sees the same history — including late joiners and reloads.
+ * Completed trades (player and bank) appear in the log as 🔄 announcements.
  */
 const ChatButton: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -15,6 +17,8 @@ const ChatButton: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(0);
   const [draft, setDraft] = useState('');
+  // '' = everyone; a player name = whisper (only they see it).
+  const [whisperTo, setWhisperTo] = useState('');
   const logRef = useRef<HTMLDivElement | null>(null);
   const log = gameRoom?.chatLog ?? [];
   const myName = currentPlayer?.name.trim() || 'Spectator';
@@ -50,9 +54,15 @@ const ChatButton: React.FC = () => {
     e.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    sendChat(gameRoom.id, text);
+    sendChat(gameRoom.id, text, whisperTo || undefined);
     setDraft('');
   };
+
+  // Whisper targets: every other seat (skip self — a whisper to yourself is
+  // pointless; the server accepts only real names anyway).
+  const whisperTargets = gameRoom.players
+    .map((p) => p.name.trim())
+    .filter((n) => n && n !== myName);
 
   return (
     <>
@@ -96,18 +106,57 @@ const ChatButton: React.FC = () => {
                 No messages yet. Say hi!
               </p>
             ) : (
-              log.map((m, i) => (
-                <div key={`${m.at}-${i}`} className="text-[13px] leading-snug break-words">
-                  <span
-                    className={`font-semibold ${m.from === myName ? 'text-blue-700' : 'text-gray-800'}`}
+              log.map((m, i) =>
+                m.trade ? (
+                  // Server-posted trade announcement: who gave what to whom.
+                  <div
+                    key={`${m.at}-${i}`}
+                    className="text-[12px] leading-snug break-words rounded-md bg-green-50 border border-green-200 px-2 py-1 text-green-900"
                   >
-                    {m.from}:
-                  </span>{' '}
-                  <span className="text-gray-700">{m.text}</span>
-                </div>
-              ))
+                    <span aria-hidden="true">🔄 </span>
+                    <strong>{m.trade.from}</strong> gave <strong>{priceLabel(m.trade.gave)}</strong> to{' '}
+                    <strong>{m.trade.to ?? '🏦 the bank'}</strong> for <strong>{priceLabel(m.trade.got)}</strong>
+                  </div>
+                ) : (
+                  <div key={`${m.at}-${i}`} className="text-[13px] leading-snug break-words">
+                    {m.to && (
+                      <span
+                        className="mr-1 text-purple-600 font-semibold"
+                        title={m.from === myName ? `Whisper to ${m.to}` : `Whisper to you`}
+                      >
+                        🤫{m.from === myName ? `→${m.to}` : ''}
+                      </span>
+                    )}
+                    <span
+                      className={`font-semibold ${m.from === myName ? 'text-blue-700' : 'text-gray-800'}`}
+                    >
+                      {m.from}:
+                    </span>{' '}
+                    <span className="text-gray-700">{m.text}</span>
+                  </div>
+                )
+              )
             )}
           </div>
+          {/* Recipient picker: everyone or a private whisper to one seat. */}
+          {whisperTargets.length > 0 && (
+            <div className="flex items-center gap-1.5 px-2 pt-2 text-[12px] text-gray-500">
+              <label htmlFor="chat-to" className="shrink-0">To:</label>
+              <select
+                id="chat-to"
+                value={whisperTo}
+                onChange={(e) => setWhisperTo(e.target.value)}
+                className="flex-1 min-w-0 px-1.5 py-1 border border-gray-300 rounded-md text-[12px] bg-white"
+              >
+                <option value="">🌐 Everyone</option>
+                {whisperTargets.map((n) => (
+                  <option key={n} value={n}>
+                    🤫 {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <form onSubmit={submit} className="flex gap-1.5 border-t border-gray-200 p-2">
             <input
               type="text"

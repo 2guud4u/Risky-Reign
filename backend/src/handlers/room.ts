@@ -19,6 +19,9 @@ import {
   RejoinSeat,
   TurnMode,
   CHAT_MESSAGE_MAX,
+  MAX_SETUP_CITIES,
+  MIN_TURN_TIMER_S,
+  MAX_TURN_TIMER_S,
   CHAT_LOG_MAX,
   PASSWORD_MAX,
 } from 'common';
@@ -406,8 +409,9 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     broadcastRoom(io, room, 'roomUpdate');
   });
 
-  // Set the turn structure (Build/Action scope per round). Host only, while
-  // waiting — like every other room setting.
+  // Set the turn structure (Build/Action scope per round, plus the optional
+  // second roll after an 'around' Build). Host only, while waiting — like
+  // every other room setting.
   socket.on('setTurnMode', (data: { roomId: string; turnMode: TurnMode }) => {
     const { roomId, turnMode } = data;
     const room = gameRooms.get(roomId);
@@ -425,19 +429,80 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     const ok =
       (turnMode?.build === 'single' || turnMode?.build === 'around') &&
-      (turnMode?.action === 'single' || turnMode?.action === 'around');
+      (turnMode?.action === 'single' || turnMode?.action === 'around') &&
+      typeof turnMode.secondRoll === 'boolean';
     if (!ok) {
       socket.emit('error', { message: 'Invalid turn mode' });
       return;
     }
-    room.turnMode = { build: turnMode.build, action: turnMode.action };
+    // A second roll only exists after an 'around' Build phase.
+    room.turnMode = {
+      build: turnMode.build,
+      action: turnMode.action,
+      secondRoll: turnMode.build === 'around' && turnMode.secondRoll,
+    };
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // How many setup placements may be cities (0..MAX_SETUP_CITIES). Host only,
+  // while waiting — like every other room setting.
+  socket.on('setSetupCities', (data: { roomId: string; setupCities: number }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'Can only change settings while waiting' });
+      return;
+    }
+    if (room.players[0]?.id !== socket.id) {
+      socket.emit('error', { message: 'Only the host can change settings' });
+      return;
+    }
+    const value = data.setupCities;
+    if (!Number.isInteger(value) || value < 0 || value > MAX_SETUP_CITIES) {
+      socket.emit('error', { message: `Setup cities must be 0 to ${MAX_SETUP_CITIES}` });
+      return;
+    }
+    room.setupCities = value;
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Per-phase turn timer (0 = off). Host only, while waiting — like every
+  // other room setting. Value arrives in ms; whole seconds only.
+  socket.on('setTurnTimer', (data: { roomId: string; turnTimerMs: number }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'Can only change settings while waiting' });
+      return;
+    }
+    if (room.players[0]?.id !== socket.id) {
+      socket.emit('error', { message: 'Only the host can change settings' });
+      return;
+    }
+    const ms = data.turnTimerMs;
+    const valid =
+      Number.isInteger(ms) &&
+      (ms === 0 || (ms >= MIN_TURN_TIMER_S * 1000 && ms <= MAX_TURN_TIMER_S * 1000));
+    if (!valid) {
+      socket.emit('error', {
+        message: `Turn timer must be off or ${MIN_TURN_TIMER_S}-${MAX_TURN_TIMER_S} seconds`,
+      });
+      return;
+    }
+    room.turnTimerMs = ms;
     broadcastRoom(io, room, 'roomUpdate');
   });
 
   // In-room chat. Seated players send as their name; spectators as
   // 'Spectator'. The log rides the broadcast room state, so late joiners and
   // reloads get history for free.
-  socket.on('sendChat', (data: { roomId: string; text: string }) => {
+  socket.on('sendChat', (data: { roomId: string; text: string; to?: string }) => {
     const room = gameRooms.get(data?.roomId);
     if (!room) return;
     const seated = room.players.find((p) => p.id === socket.id);
@@ -446,7 +511,19 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     const text = typeof data?.text === 'string' ? data.text.trim() : '';
     if (!text) return;
     const from = seated?.name.trim() || (seated ? 'Unnamed' : 'Spectator');
-    room.chatLog.push({ from, text: text.slice(0, CHAT_MESSAGE_MAX), at: Date.now() });
+    // Whisper: `to` must name a real seat (only seated players can be
+    // addressed, and only seated players may whisper — a spectator has no
+    // name the log could keep private). Anything else falls back to world.
+    let to: string | undefined;
+    if (seated && typeof data.to === 'string' && data.to) {
+      const target = room.players.find((p) => p.name === data.to);
+      if (!target) {
+        socket.emit('error', { message: 'No player with that name' });
+        return;
+      }
+      to = target.name;
+    }
+    room.chatLog.push({ from, text: text.slice(0, CHAT_MESSAGE_MAX), at: Date.now(), ...(to ? { to } : {}) });
     if (room.chatLog.length > CHAT_LOG_MAX) room.chatLog.splice(0, room.chatLog.length - CHAT_LOG_MAX);
     broadcastRoom(io, room, room.gameStatus === 'waiting' ? 'roomUpdate' : 'gameUpdate');
   });

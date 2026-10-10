@@ -1,5 +1,6 @@
 import {
   canBuildSettlementAt,
+  canPlaceSetupCityAt,
   canBuildRoadOn,
   canUpgradeSettlementToCity,
   canRecruitSoldierAt,
@@ -25,8 +26,11 @@ import { HandlerContext, blockIfCannotAct } from './context';
 export function registerBuildHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
-  socket.on('buildSettlement', (data: { roomId: string; vertexId: string }) => {
+  // `asCity` (setup only): place a city directly, if the room's
+  // `setupCities` setting still allows this player one.
+  socket.on('buildSettlement', (data: { roomId: string; vertexId: string; asCity?: boolean }) => {
     const { roomId, vertexId } = data;
+    const asCity = data.asCity === true;
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
@@ -46,7 +50,9 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
     }
 
     // Authoritative rules live in common (shared with the UI).
-    const check = canBuildSettlementAt(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);
+    const check = asCity
+      ? canPlaceSetupCityAt(board, turnState, currentPlayer.name, vertexId, room.setupCities)
+      : canBuildSettlementAt(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);
     if (!check.allowed) {
       socket.emit('error', { message: check.reason ?? 'Cannot build settlement here' });
       return;
@@ -69,35 +75,42 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       id: newSettlementId,
       vertexId,
       ownerId: currentPlayer.name,
-      level: 'settlement',
+      level: asCity ? 'city' : 'settlement',
       builtAt: Date.now(),
     };
     vertex.settlementId = newSettlementId;
 
-    // Spawn a default soldier garrisoned on the new settlement.
-    const newSoldierId = `soldier_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    board.soldiers[newSoldierId] = {
-      id: newSoldierId,
-      owner: currentPlayer.name,
-      injured: false,
-      vertexId,
-      type: 'infantry',
-      stationed: true,
-    };
-    // Track so it cannot move/attack this turn (Rule 24).
-    turnState.soldiersCreatedThisTurn.push(newSoldierId);
-    turnState.soldiersActedThisTurn.push(newSoldierId);
+    // Garrison it like a normal build: a settlement brings one soldier, and a
+    // city one more (the same two a settlement + upgrade would give).
+    const garrison = asCity ? 2 : 1;
+    const soldierIds: string[] = [];
+    for (let i = 0; i < garrison; i++) {
+      const id = `soldier_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      board.soldiers[id] = {
+        id,
+        owner: currentPlayer.name,
+        injured: false,
+        vertexId,
+        type: 'infantry',
+        stationed: true,
+      };
+      // Track so it cannot move/attack this turn (Rule 24).
+      turnState.soldiersCreatedThisTurn.push(id);
+      turnState.soldiersActedThisTurn.push(id);
+      soldierIds.push(id);
+    }
 
     // Update the game state.
     turnState.placedSettlement = true;
 
     // Record the build so it can be undone (refunds the cost, deletes the
     // settlement and its garrisoned soldier). Free setup placements are
-    // cleared by the auto-advance below, so only paid Build builds persist.
+    // cleared by the auto-advance below and can't be undone, so only paid
+    // Build settlements (always one soldier) persist here.
     turnState.undoLog.push({
       kind: 'buildSettlement',
       settlementId: newSettlementId,
-      soldierId: newSoldierId,
+      soldierId: soldierIds[0],
       vertexId,
       paid: turnState.phase === 'Build',
     });

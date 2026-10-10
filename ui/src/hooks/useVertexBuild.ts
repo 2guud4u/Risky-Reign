@@ -9,7 +9,7 @@ import type { BubbleAction } from '../components/board/ActionBubbles';
 
 /** One build action available on a vertex. */
 export interface VertexBuildAction {
-  key: 'settlement' | 'city' | 'soldier' | 'knight';
+  key: 'settlement' | 'setupCity' | 'city' | 'soldier' | 'knight';
   label: string;
   price: Price;
   /** The backend's own rule check: allowed, or the reason it isn't. */
@@ -48,9 +48,9 @@ export function useVertexSoldierSelectAll(board: Board, vertex: VertexNode): Bub
 export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAction[] {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { buildSettlement, upgradeSettlementToCity, recruitSoldier, knightSpawnSoldier } = useSocket();
-  const { settlementCheck, cityCheck, soldierCheck } = useBuildRules(board);
+  const { settlementCheck, setupCityCheck, cityCheck, soldierCheck } = useBuildRules(board);
 
-  const send = (emit: (vertexId: string, roomId: string) => void, type: Exclude<VertexBuildAction['key'], 'knight'>) => () => {
+  const send = (emit: (vertexId: string, roomId: string) => void, type: Exclude<VertexBuildAction['key'], 'knight' | 'setupCity'>) => () => {
     if (!gameRoom || !currentPlayer) return;
     emit(vertex.id, gameRoom.id);
     triggerBuildAnimation({ type, locationId: vertex.id });
@@ -72,10 +72,11 @@ export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAct
   }
 
   // Only offer what can apply to this corner at all: Build Settlement on an
-  // empty corner, Upgrade to City on my own settlement (Build phase only),
-  // Recruit Soldier on my own settlement or city (Action phase only). A bubble
-  // that is shown can still be greyed — not enough cards, distance rule, piece
-  // limit — and expanding it shows why.
+  // empty corner (plus Place City during setup when the room allows setup
+  // cities), Upgrade to City on my own settlement (Build phase only), Recruit
+  // Soldier on my own settlement or city (Action phase only). A bubble that is
+  // shown can still be greyed — not enough cards, distance rule, piece limit,
+  // setup cities used up — and expanding it shows why.
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   const mine = !!settlement && settlement.ownerId === currentPlayer?.name;
   if ((phase === 'SetUp' || phase === 'Build') && !settlement) {
@@ -85,6 +86,15 @@ export function useVertexBuild(board: Board, vertex: VertexNode): VertexBuildAct
       price: SettlementPrice,
       check: settlementCheck(vertex.id),
       run: send(buildSettlement, 'settlement'),
+    });
+  }
+  if (phase === 'SetUp' && !settlement && (gameRoom?.setupCities ?? 0) > 0) {
+    actions.push({
+      key: 'setupCity',
+      label: 'Place City',
+      price: CityPrice,
+      check: setupCityCheck(vertex.id),
+      run: send((vertexId, roomId) => buildSettlement(vertexId, roomId, true), 'city'),
     });
   }
   if (phase === 'Build' && mine && settlement.level === 'settlement') {

@@ -5,8 +5,8 @@ export type TurnPosition = Pick<TurnState, 'phase' | 'player' | 'playerOrder' | 
 
 /** The two presets surfaced in Game Settings; any single/around mix is legal. */
 export const TURN_MODE_PRESETS: Record<'expanded' | 'catan', TurnMode> = {
-  expanded: { build: 'around', action: 'around' },
-  catan: { build: 'single', action: 'single' },
+  expanded: { build: 'around', action: 'around', secondRoll: false },
+  catan: { build: 'single', action: 'single', secondRoll: false },
 };
 
 /**
@@ -19,6 +19,8 @@ export const TURN_MODE_PRESETS: Record<'expanded' | 'catan', TurnMode> = {
  * - Build / Action: every player in turn, starting from the dice player;
  *   after the last, Build → Action (dice player first), Action → the next
  *   dice player's Dice phase.
+ * - Second roll (`mode.secondRoll`, 'around' Build only): Build → the dice
+ *   player's Dice phase again (marked `offset: 1`), then → Action.
  * Knocked-out players (`out`) get no turns: their Build/Action steps are
  * skipped and they never own a dice round.
  */
@@ -43,11 +45,14 @@ export function nextTurnPosition(pos: TurnPosition, out: readonly string[] = [],
         return next(cur, 'SetUp', o < n ? o : n - 1 - (o - n), o);
       }
       case 'Dice':
+        // offset 1 = the second roll: it leads into the Action phase.
+        if (offset === 1) return next(cur, 'Action', d, 0);
         return next(cur, 'Build', order.indexOf(cur.player), 0);
       case 'Build':
         // 'around' ends after the last player; 'single' ends as soon as the
         // dice player passes.
-        if (mode.build === 'single' || offset === n - 1) return next(cur, 'Action', d, 0);
+        if (mode.build === 'single') return next(cur, 'Action', d, 0);
+        if (offset === n - 1) return mode.secondRoll ? next(cur, 'Dice', d, 1) : next(cur, 'Action', d, 0);
         return next(cur, 'Build', (order.indexOf(cur.player) + 1) % n, offset + 1);
       case 'Action': {
         const roundOver = mode.action === 'single' || offset === n - 1;

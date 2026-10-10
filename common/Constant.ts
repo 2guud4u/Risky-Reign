@@ -24,6 +24,16 @@ export const MIN_PLAYERS = 2;
 /** Default victory threshold (standard Catan: first to 10 VP wins). */
 export const DEFAULT_POINTS_TO_WIN = 10;
 
+/** Most setup placements a room may allow as cities instead of settlements. */
+export const MAX_SETUP_CITIES = 2;
+
+/**
+ * Turn-timer bounds in seconds. The room stores ms (`turnTimerMs`); the
+ * lobby UI picks whole seconds inside this range (0 = off).
+ */
+export const MIN_TURN_TIMER_S = 10;
+export const MAX_TURN_TIMER_S = 3600;
+
 /** Settlement build cost. */
 export const SettlementPrice: Price = { Wood: 1, Brick: 1, Sheep: 1, Wheat: 1, Ore: 0 };
 /** Road build cost. */

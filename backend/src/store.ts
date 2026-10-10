@@ -1,7 +1,10 @@
 import {
   Board,
   GameRoom,
+  Price,
   ResourceCount,
+  RESOURCES,
+  CHAT_LOG_MAX,
   GAME_HEX_SIZE,
   BANK_SUPPLY_PER_RESOURCE,
   DEFAULT_POINTS_TO_WIN,
@@ -9,6 +12,22 @@ import {
   generateDevelopmentCardDeck,
   TURN_MODE_PRESETS,
 } from 'common';
+
+/**
+ * Post a completed trade to the room chat log so every player sees who gave
+ * what to whom (`to` null = the bank). Callers broadcast afterwards.
+ */
+export function announceTrade(room: GameRoom, from: string, to: string | null, gave: Price, got: Price): void {
+  const cards = (p: Price) =>
+    RESOURCES.filter((r) => p[r] > 0).map((r) => `${p[r]} ${r}`).join(', ') || 'nothing';
+  room.chatLog.push({
+    from: '',
+    text: `${from} gave ${cards(gave)} to ${to ?? 'the bank'} for ${cards(got)}`,
+    at: Date.now(),
+    trade: { from, to, gave: { ...gave }, got: { ...got } },
+  });
+  if (room.chatLog.length > CHAT_LOG_MAX) room.chatLog.splice(0, room.chatLog.length - CHAT_LOG_MAX);
+}
 
 /** Empty bonuses map for a fresh room (recomputed on every broadcast). */
 export function emptyBonuses() {
@@ -86,6 +105,10 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     pausedAt: null,
     pointsToWin: DEFAULT_POINTS_TO_WIN,
     turnMode: TURN_MODE_PRESETS.expanded,
+    setupCities: 0,
+    turnTimerMs: 0,
+    phaseTimerEndsAt: null,
+    phaseTimerRemainingMs: null,
     chatLog: [],
     winner: null,
     tradeOffers: [],
@@ -145,6 +168,8 @@ export function resetRoom(room: GameRoom): void {
   room.bankSupply = freshBankSupply();
   room.bonuses = emptyBonuses();
   room.battlesWon = {};
+  room.phaseTimerEndsAt = null;
+  room.phaseTimerRemainingMs = null;
   room.lastActivityAt = Date.now();
   for (const p of room.players) {
     p.resources = freshResourceCount(STARTING_RESOURCES);

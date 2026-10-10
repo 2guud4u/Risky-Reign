@@ -11,6 +11,7 @@ import ActionBubbles, { BubbleAction } from './ActionBubbles';
  *  ("reinforce") so it never reads as the ⚔️ attack bubble. */
 const ICONS: Record<VertexBuildAction['key'], string> = {
   settlement: '🏠',
+  setupCity: '🏰',
   city: '🏰',
   soldier: '🫵',
   knight: '🛡️',
@@ -48,7 +49,7 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
       coach: coach?.key === 'settlement' && a.key === 'settlement' && a.check.allowed,
       // Settling, upgrading or spawning changes the corner (or ends the card);
       // recruiting keeps the corner selected so you can recruit again or act.
-      closeOnRun: a.key === 'settlement' || a.key === 'city' || a.key === 'knight',
+      closeOnRun: a.key === 'settlement' || a.key === 'setupCity' || a.key === 'city' || a.key === 'knight',
     })),
     ...(selectAll ? [selectAll] : []),
     ...soldier.map((a) => ({

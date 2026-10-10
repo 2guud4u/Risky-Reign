@@ -10,6 +10,7 @@ import {
 import { freshResourceCount } from './store';
 import { getMeta } from './persistence/gameRepository';
 import { autosaveRoom } from './lifecycle';
+import { syncPhaseTimer } from './phaseTimer';
 /**
  * Sanitize the room for a single recipient identified by their socket id: the
  * shared dev-card deck order is hidden (only the count is public), every
@@ -40,10 +41,17 @@ export function sanitizeRoomFor(
     };
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { devCardDeck: _deck, players: _players, spectators, ...rest } = room;
+  const { devCardDeck: _deck, players: _players, spectators, chatLog, ...rest } = room;
+  // Whispers (m.to set) are visible only to their sender and recipient —
+  // they never reach another client's sanitized payload.
+  const viewerName = room.players.find((p) => p.id === viewerSocketId)?.name;
+  const visibleChat = chatLog.filter(
+    (m) => !m.to || m.to === viewerName || m.from === viewerName
+  );
   return {
     ...rest,
     players,
+    chatLog: visibleChat,
     devCardDeckCount: room.devCardDeck.length,
     spectatorCount: spectators.length,
     // Persisted games carry a sweep deadline; memory-only rooms get none.
@@ -86,6 +94,10 @@ export function broadcastRoom(
   } catch (err) {
     console.error(`Autosave failed for ${room.id}:`, err);
   }
+  // Phase timer syncs BEFORE emitting so the payload carries the corrected
+  // state — a battle-open broadcast must already show the frozen deadline,
+  // and a battle-close one the resumed deadline.
+  syncPhaseTimer(io, room);
   const expiresAt = expiryFor(room.id);
   for (const p of room.players) {
     if (!p.id || !p.connected) continue;

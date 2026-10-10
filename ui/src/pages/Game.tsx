@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { LOBBY_HEX_SIZE, MIN_PLAYERS, DEFAULT_POINTS_TO_WIN, TURN_MODE_PRESETS, TurnMode } from 'common';
+import {
+  LOBBY_HEX_SIZE,
+  MIN_PLAYERS,
+  DEFAULT_POINTS_TO_WIN,
+  MAX_SETUP_CITIES,
+  MIN_TURN_TIMER_S,
+  MAX_TURN_TIMER_S,
+  TURN_MODE_PRESETS,
+  TurnMode,
+} from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
@@ -66,6 +75,8 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     updatePlayerColor: onUpdatePlayerColor,
     updatePointsToWin: onUpdatePointsToWin,
     setTurnMode: onSetTurnMode,
+    setSetupCities: onSetSetupCities,
+    setTurnTimer: onSetTurnTimer,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
     joinRoom: onJoinRoom,
@@ -319,14 +330,108 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                   {presetBtn(
                     'Expanded',
                     TURN_MODE_PRESETS.expanded,
-                    mode.build === 'around' && mode.action === 'around',
+                    mode.build === 'around' && mode.action === 'around' && !mode.secondRoll,
                   )}
                 </div>
                 {scopeSelect('build', 'Build phase', 'around = every player builds; single = only the dice roller')}
+                {/* The second roll only exists after an around-the-table Build. */}
+                {mode.build === 'around' && (
+                  <label className="flex items-start gap-2 text-[13px] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={mode.secondRoll}
+                      disabled={!isHost}
+                      onChange={(e) => onSetTurnMode(gameRoom.id, { ...mode, secondRoll: e.target.checked })}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="font-semibold">Second roll</span>
+                      <span className="block text-[11px] text-gray-500">
+                        After everyone builds, the same player rolls again before the Action phase.
+                      </span>
+                    </span>
+                  </label>
+                )}
                 {scopeSelect('action', 'Action phase', 'around = every player acts; single = only the dice roller')}
               </div>
             );
           })()}
+
+          {/* Setup cities: how many of each player's two setup placements may
+              be a city (the player chooses which). Host-only, like the rest. */}
+          <div className="mt-5 border-t border-gray-200 pt-3">
+            <label className="block text-[13px] font-semibold mb-1.5">Setup Cities</label>
+            <div className="flex gap-1.5">
+              {Array.from({ length: MAX_SETUP_CITIES + 1 }, (_, n) => (
+                <button
+                  key={n}
+                  onClick={() => onSetSetupCities(gameRoom.id, n)}
+                  disabled={gameRoom.players[0]?.id !== currentPlayer.id}
+                  className={`flex-1 py-1.5 px-1 rounded-md text-[13px] font-semibold border cursor-pointer disabled:opacity-60 ${
+                    gameRoom.setupCities === n
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 bg-white text-gray-600'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-gray-500">
+              How many setup placements each player may make a city instead of a settlement.
+            </p>
+          </div>
+
+          {/* Turn timer: a per-phase clock for Build and Action (seconds;
+              0/off = no limit). Fights pause it. Host-only. */}
+          <div className="mt-5 border-t border-gray-200 pt-3">
+            {(() => {
+              const isHost = gameRoom.players[0]?.id === currentPlayer.id;
+              const on = gameRoom.turnTimerMs > 0;
+              return (
+                <>
+                  <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      disabled={!isHost}
+                      onChange={(e) =>
+                        onSetTurnTimer(gameRoom.id, e.target.checked ? MIN_TURN_TIMER_S * 1000 : 0)
+                      }
+                    />
+                    <span className="font-semibold">Turn Timer</span>
+                  </label>
+                  {on && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={MIN_TURN_TIMER_S}
+                        max={MAX_TURN_TIMER_S}
+                        step={5}
+                        value={Math.round(gameRoom.turnTimerMs / 1000)}
+                        disabled={!isHost}
+                        onChange={(e) => {
+                          const s = parseInt(e.target.value, 10);
+                          if (
+                            !Number.isNaN(s) &&
+                            s >= MIN_TURN_TIMER_S &&
+                            s <= MAX_TURN_TIMER_S
+                          ) {
+                            onSetTurnTimer(gameRoom.id, s * 1000);
+                          }
+                        }}
+                        className="w-24 px-2 py-1.5 border border-gray-300 rounded-md text-[13px] disabled:opacity-60"
+                      />
+                      <span className="text-[13px] text-gray-600">seconds per phase</span>
+                    </div>
+                  )}
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    Build and Action phases auto-end when the clock runs out. Pauses during fights.
+                  </p>
+                </>
+              );
+            })()}
+          </div>
         </div>
         </div>
         <LobbyMenu

@@ -36,7 +36,8 @@ const emitAction = <E extends keyof ClientToServerEvents>(
 interface SocketContextType {
   socket: GameSocket | null;
   isConnected: boolean;
-  buildSettlement: (vertexId: string, roomId: string) => void;
+  /** `asCity`: during setup, place a city directly (room's setup-cities setting). */
+  buildSettlement: (vertexId: string, roomId: string, asCity?: boolean) => void;
   buildRoad: (edgeId: string, roomId: string) => void;
   upgradeSettlementToCity: (vertexId: string, roomId: string) => void;
   recruitSoldier: (vertexId: string, roomId: string) => void;
@@ -72,6 +73,8 @@ interface SocketContextType {
   drawDevelopmentCard: (roomId: string) => void;
   playDevelopmentCard: (roomId: string, cardIndex: number) => void;
   setTurnMode: (roomId: string, turnMode: TurnMode) => void;
+  setSetupCities: (roomId: string, setupCities: number) => void;
+  setTurnTimer: (roomId: string, turnTimerMs: number) => void;
   createTradeOffer: (roomId: string, to: string | null, give: Price, want: Price) => void;
   acceptTrade: (roomId: string, tradeId: string) => void;
   declineTrade: (roomId: string, tradeId: string) => void;
@@ -79,7 +82,7 @@ interface SocketContextType {
   takeTrade: (roomId: string, tradeId: string) => void;
   bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => void;
   leaveGame: (roomId: string) => void;
-  sendChat: (roomId: string, text: string) => void;
+  sendChat: (roomId: string, text: string, to?: string) => void;
   claimSeat: (roomId: string, name: string, lobbyPassword?: string) => void;
   spectateRoom: (roomId: string) => void;
   pauseGame: (roomId: string, hostPassword: string, lobbyPassword: string) => void;
@@ -140,6 +143,8 @@ const SocketContext = createContext<SocketContextType>({
   closeResumeLobby: () => {},
   unlockResumeLobby: () => {},
   setTurnMode: () => {},
+  setSetupCities: () => {},
+  setTurnTimer: () => {},
   sendChat: () => {},
 });
 
@@ -147,8 +152,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const [socket, setSocket] = useState<GameSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  const buildSettlement = (vertexId: string, roomId: string) =>
-    emitAction(socket, 'buildSettlement', { roomId, vertexId });
+  const buildSettlement = (vertexId: string, roomId: string, asCity?: boolean) =>
+    emitAction(socket, 'buildSettlement', { roomId, vertexId, ...(asCity ? { asCity } : {}) });
   const buildRoad = (edgeId: string, roomId: string) =>
     emitAction(socket, 'buildRoad', { roomId, edgeId });
   const upgradeSettlementToCity = (vertexId: string, roomId: string) =>
@@ -224,6 +229,10 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     emitAction(socket, 'updatePointsToWin', { roomId, pointsToWin });
   const setTurnMode = (roomId: string, turnMode: TurnMode) =>
     emitAction(socket, 'setTurnMode', { roomId, turnMode });
+  const setSetupCities = (roomId: string, setupCities: number) =>
+    emitAction(socket, 'setSetupCities', { roomId, setupCities });
+  const setTurnTimer = (roomId: string, turnTimerMs: number) =>
+    emitAction(socket, 'setTurnTimer', { roomId, turnTimerMs });
   const editBoard = (roomId: string, layouts: HexLayout[]) =>
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
@@ -238,8 +247,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     emitAction(socket, 'closeResumeLobby', { roomId });
   const unlockResumeLobby = (roomId: string, lobbyPassword: string) =>
     emitAction(socket, 'unlockResumeLobby', { roomId, lobbyPassword });
-  const sendChat = (roomId: string, text: string) =>
-    emitAction(socket, 'sendChat', { roomId, text });
+  const sendChat = (roomId: string, text: string, to?: string) =>
+    emitAction(socket, 'sendChat', { roomId, text, to });
   const createTradeOffer = (roomId: string, to: string | null, give: Price, want: Price) =>
     emitAction(socket, 'createTradeOffer', { roomId, to, give, want });
   const acceptTrade = (roomId: string, tradeId: string) =>
@@ -308,6 +317,8 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         refreshMap,
         updatePointsToWin,
         setTurnMode,
+        setSetupCities,
+        setTurnTimer,
         editBoard,
         leaveGame,
         claimSeat,

@@ -19,6 +19,12 @@ export type PhaseScope = 'single' | 'around';
 export interface TurnMode {
   build: PhaseScope;
   action: PhaseScope;
+  /**
+   * After an 'around' Build phase, the round's dice player rolls again
+   * (a second Dice phase with its own payouts) before the Action phase.
+   * Ignored when `build` is 'single'.
+   */
+  secondRoll: boolean;
 }
 
 export interface TurnState {

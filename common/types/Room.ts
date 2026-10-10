@@ -113,6 +113,21 @@ export interface GameRoom {
   pointsToWin: number;
   /** Build/Action phase scope per dice round; see `TurnMode` in Logic.ts. */
   turnMode: TurnMode;
+  /**
+   * How many of each player's setup placements may be a city instead of a
+   * settlement (0 to MAX_SETUP_CITIES). The player picks which ones.
+   */
+  setupCities: number;
+  /**
+   * Optional per-phase timer (ms; 0 = off). When set, Build and Action
+   * phases auto-advance when `phaseTimerEndsAt` passes; an active battle
+   * suspends it via `phaseTimerRemainingMs`.
+   */
+  turnTimerMs: number;
+  /** Wall-clock deadline for the current Build/Action phase (null = disarmed). */
+  phaseTimerEndsAt: number | null;
+  /** Time left when a battle suspends the phase timer (null = not paused). */
+  phaseTimerRemainingMs: number | null;
   winner: string | null;
   roll: RollResult;
   /** Pending robber placement (a 7 roll or a played knight card). */

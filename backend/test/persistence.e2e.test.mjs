@@ -135,6 +135,42 @@ test('full pause/resume/restart lifecycle over real sockets', async (t) => {
   alice.emit('startGame', { roomId: ROOM });
   await waitFor(alice, 'gameUpdate', (r) => r.gameStatus === 'playing');
 
+  // ── chat: whisper reaches sender + recipient only ─────────────────────
+  alice.emit('sendChat', { roomId: ROOM, text: 'world msg' });
+  await waitFor(bob, 'gameUpdate', (r) => r.chatLog.some((m) => m.text === 'world msg'));
+  alice.emit('sendChat', { roomId: ROOM, text: 'psst', to: 'bob' });
+  const alUpd = await waitFor(alice, 'gameUpdate', (r) =>
+    r.chatLog.some((m) => m.text === 'psst' && m.to === 'bob'), 3000);
+  const bobUpd = await waitFor(bob, 'gameUpdate', (r) =>
+    r.chatLog.some((m) => m.text === 'psst' && m.to === 'bob'), 3000);
+  assert.ok(alUpd.chatLog.find((m) => m.text === 'psst'));
+  assert.ok(bobUpd.chatLog.find((m) => m.text === 'psst'));
+  // Carol is in neither seat — but she's also not spectating. Add dave as a
+  // spectator to prove whispers never leave the server for third parties.
+  const dave = client('dave');
+  await connected(dave);
+  dave.emit('spectateRoom', { roomId: ROOM });
+  // spectateRoom's immediate broadcast uses 'roomUpdate'; later in-game
+  // emissions (chat etc.) arrive as 'gameUpdate' — accept either.
+  const daveUpd = await waitFor(dave, 'roomUpdate', (r) => Array.isArray(r.chatLog)).catch(() =>
+    waitFor(dave, 'gameUpdate', (r) => Array.isArray(r.chatLog), 3000));
+  assert.ok(
+    daveUpd.chatLog.some((m) => m.text === 'world msg'),
+    'spectator should see world messages'
+  );
+  assert.ok(
+    !daveUpd.chatLog.some((m) => m.text === 'psst'),
+    'spectator must not receive the whisper'
+  );
+  // A whisper sent while dave watches is also excluded from his broadcast.
+  // Anchor on a world message sent right after — same broadcast order.
+  bob.emit('sendChat', { roomId: ROOM, text: 'shhh2', to: 'alice' });
+  alice.emit('sendChat', { roomId: ROOM, text: 'world2' });
+  const daveLatest = await waitFor(dave, 'gameUpdate', (r) =>
+    r.chatLog.some((m) => m.text === 'world2'));
+  assert.ok(!daveLatest.chatLog.some((m) => m.text === 'shhh2'), 'live whisper must not leak');
+  dave.close();
+
   // Tokens rotate on claimSeat — capture the CURRENT seat tokens now.
   const aliceToken = tokenOf(alice);
   assert.ok(aliceToken);

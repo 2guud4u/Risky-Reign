@@ -10,7 +10,7 @@ import {
   ResourceKey,
   RESOURCES,
 } from 'common';
-import { gameRooms } from '../store';
+import { gameRooms, announceTrade, freshResourceCount } from '../store';
 import { broadcastRoom } from '../broadcast';
 import { HandlerContext, blockIfCannotAct } from './context';
 
@@ -84,6 +84,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     }
     applyTrade(room, offer);
     offer.status = 'accepted';
+    // Directed offer: `to`; open offer: whoever took it.
+    announceTrade(room, offer.from, offer.to ?? offer.claimer ?? null, offer.give, offer.want);
     applyBonuses(room);
     broadcastRoom(io, room);
   });
@@ -218,13 +220,20 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: check.reason ?? 'Bank trade not allowed' });
       return;
     }
-    applyBankTrade(
+    const got = applyBankTrade(
       room,
       player.name,
       giveResource as ResourceKey,
       wantResource as ResourceKey,
       giveCount,
       room.bankSupply
+    );
+    announceTrade(
+      room,
+      player.name,
+      null,
+      { ...freshResourceCount(0), [giveResource]: giveCount },
+      { ...freshResourceCount(0), [wantResource]: got }
     );
     applyBonuses(room);
     broadcastRoom(io, room);

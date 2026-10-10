@@ -63,6 +63,36 @@ export function canBuildSettlementAt(
 }
 
 /**
+ * Authoritative check for placing a city directly during setup (the room's
+ * "setup cities" setting): every settlement placement rule applies, plus the
+ * player must still have a setup city left (`setupCities` minus the cities
+ * they already own — during setup every city is a setup city).
+ */
+export function canPlaceSetupCityAt(
+  board: Board,
+  turn: TurnState,
+  playerName: string,
+  vertexId: VertexId,
+  setupCities: number
+): BuildCheck {
+  if (turn.phase !== 'SetUp') return { allowed: false, reason: 'Cities can only be placed directly during setup' };
+  const placement = canBuildSettlementAt(board, turn, playerName, vertexId);
+  if (!placement.allowed) return placement;
+  const cities = Object.values(board.settlements).filter(
+    (s) => s.ownerId === playerName && s.level === 'city'
+  ).length;
+  if (cities >= setupCities)
+    return {
+      allowed: false,
+      reason:
+        setupCities === 0
+          ? 'This game does not allow cities during setup'
+          : `You already placed your ${setupCities} setup ${setupCities === 1 ? 'city' : 'cities'}`,
+    };
+  return { allowed: true, reason: null };
+}
+
+/**
  * Authoritative road build check, shared by the UI and the backend:
  * turn, phase, once-per-turn placement, existing road, ownership rule, and resources.
  */
