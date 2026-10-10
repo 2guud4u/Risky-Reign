@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { RESUME_LOBBY_IDLE_MS } from 'common';
+import { PERSISTED_GAME_TTL_MS, RESUME_LOBBY_IDLE_MS } from 'common';
 import { gameRooms } from './store';
 import { ROOM_IDLE_MS, ROOM_SWEEP_INTERVAL_MS, EXPIRY_SWEEP_INTERVAL_MS } from './constants';
 import { closeResumingRoom, clearResumeLobbyHash } from './lifecycle';
@@ -39,7 +39,10 @@ export function startRoomSweep(io: Server): void {
   idle.unref();
 
   const expiry = setInterval(() => {
-    const removed = deleteExpired(Date.now());
+    // Rows with no activity for the TTL are dead. Cutoff is now - TTL; the
+    // row's last_activity_at is what matters (a live in-memory room's row is
+    // refreshed by autosave on every broadcast).
+    const removed = deleteExpired(Date.now() - PERSISTED_GAME_TTL_MS);
     for (const id of removed) {
       const room = gameRooms.get(id);
       if (room) {

@@ -52,6 +52,12 @@ export function getDb(): DatabaseSync {
   conn.exec('PRAGMA journal_mode = WAL');
   conn.exec('PRAGMA synchronous = FULL');
   conn.exec('PRAGMA foreign_keys = ON');
+  // Bound write waits if anything else ever touches the file (manual sqlite
+  // probe, backup job) instead of erroring mid-action.
+  conn.exec('PRAGMA busy_timeout = 5000');
+  // Checkpoint more often than the 1000-page default: bounds WAL growth and
+  // keeps crash recovery fast on the container's disk.
+  conn.exec('PRAGMA wal_autocheckpoint = 200');
   runMigrations(conn);
   db = conn;
   return conn;

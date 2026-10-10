@@ -6,7 +6,7 @@ import cors from 'cors';
 import path from 'path';
 import { setupSocketHandlers } from './sockets';
 import { startRoomSweep } from './roomSweep';
-
+import { checkPersistence } from './persistence/bootCheck';
 const app = express();
 const server = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -29,6 +29,9 @@ app.get('*', (req, res, next) => {
 
 // Wire up all socket event handlers (see sockets.ts).
 setupSocketHandlers(io);
+// Verify the persisted-games store at boot: a broken DB must be loud in the
+// logs, never silent — the game keeps serving in memory either way.
+checkPersistence();
 startRoomSweep(io);
 // Last-resort guards: a handler throwing through the socket wrapper (or any
 // stray async rejection) must not take the process down. Log and keep serving.

@@ -79,7 +79,8 @@ async function waitFor(s, ev, pred = () => true, timeout = 8000) {
     if (hit) return hit.d;
     await new Promise((r) => setTimeout(r, 15));
   }
-  throw new Error(`${s.name}: timed out waiting for ${ev} — got ${JSON.stringify(s.inbox.map((m) => m.ev))}`);
+  const last = s.inbox.filter((m) => m.ev === ev).at(-1);
+  throw new Error(`${s.name}: timed out waiting for ${ev} — got ${JSON.stringify(s.inbox.map((m) => m.ev))} last=${JSON.stringify(last?.d?.gameStatus ?? last?.d)}`);
 }
 // claimSeat rotates the token — the CURRENT seat token is the latest joined.
 const tokenOf = (s) => [...s.inbox].reverse().find((m) => m.ev === 'joined')?.d.token;
