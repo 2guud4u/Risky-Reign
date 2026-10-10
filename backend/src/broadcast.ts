@@ -5,9 +5,11 @@ import {
   PublicPlayer,
   ResourceCount,
   RESOURCES,
+  PERSISTED_GAME_TTL_MS,
 } from 'common';
 import { freshResourceCount } from './store';
-
+import { getMeta } from './persistence/gameRepository';
+import { autosaveRoom } from './lifecycle';
 /**
  * Sanitize the room for a single recipient identified by their socket id: the
  * shared dev-card deck order is hidden (only the count is public), every
@@ -15,8 +17,14 @@ import { freshResourceCount } from './store';
  * only the seat owner sees their cards. Matching by socket id (not name) keeps
  * empty-named lobby seats from seeing a sibling's hand.
  * `resourceCount`/`devCardCount` carry the public totals opponents see.
+ * `expiresAt` is computed once per broadcast and passed in (the DB row is
+ * room-level, not per viewer).
  */
-export function sanitizeRoomFor(room: GameRoom, viewerSocketId: string): PublicGameRoom {
+export function sanitizeRoomFor(
+  room: GameRoom,
+  viewerSocketId: string,
+  expiresAt: number | null = expiryFor(room.id)
+): PublicGameRoom {
   const players: PublicPlayer[] = room.players.map((p) => {
     const isViewer = p.id === viewerSocketId;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -38,7 +46,15 @@ export function sanitizeRoomFor(room: GameRoom, viewerSocketId: string): PublicG
     players,
     devCardDeckCount: room.devCardDeck.length,
     spectatorCount: spectators.length,
+    // Persisted games carry a sweep deadline; memory-only rooms get none.
+    expiresAt,
   };
+}
+
+/** The sweep deadline for this room's DB row, or null when not persisted. */
+function expiryFor(roomId: string): number | null {
+  const meta = getMeta(roomId);
+  return meta ? meta.last_activity_at + PERSISTED_GAME_TTL_MS : null;
 }
 
 /** Total resource cards in a hand. */
@@ -61,11 +77,21 @@ export function broadcastRoom(
   event: 'gameUpdate' | 'roomUpdate' = 'gameUpdate'
 ): void {
   room.lastActivityAt = Date.now();
+  // Every state emission autosaves persisted rooms, so a restart loses at
+  // most the in-flight action (autosaveRoom no-ops for 'waiting' lobbies).
+  // A failed save must never break a broadcast — the game keeps running
+  // in memory; the next broadcast retries.
+  try {
+    autosaveRoom(room);
+  } catch (err) {
+    console.error(`Autosave failed for ${room.id}:`, err);
+  }
+  const expiresAt = expiryFor(room.id);
   for (const p of room.players) {
     if (!p.id || !p.connected) continue;
-    io.to(p.id).emit(event, sanitizeRoomFor(room, p.id));
+    io.to(p.id).emit(event, sanitizeRoomFor(room, p.id, expiresAt));
   }
   for (const id of room.spectators) {
-    io.to(id).emit(event, sanitizeRoomFor(room, id));
+    io.to(id).emit(event, sanitizeRoomFor(room, id, expiresAt));
   }
 }

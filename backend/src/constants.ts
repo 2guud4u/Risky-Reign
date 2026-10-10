@@ -14,3 +14,6 @@ export const ROOM_SWEEP_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
 /** A disconnected seat is held this long before the player is dropped. */
 export const SEAT_GRACE_MS = 2 * 60 * 1000; // 2 minutes
+
+/** How often the expiry sweep removes persisted rows past the 7-day TTL. */
+export const EXPIRY_SWEEP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour

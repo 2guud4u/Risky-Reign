@@ -29,7 +29,7 @@ app.get('*', (req, res, next) => {
 
 // Wire up all socket event handlers (see sockets.ts).
 setupSocketHandlers(io);
-startRoomSweep();
+startRoomSweep(io);
 // Last-resort guards: a handler throwing through the socket wrapper (or any
 // stray async rejection) must not take the process down. Log and keep serving.
 process.on('uncaughtException', (err) => {

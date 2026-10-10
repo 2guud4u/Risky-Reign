@@ -41,3 +41,23 @@ function subscribe(onChange: () => void): () => void {
 export function useTutorialHints(): boolean {
   return useSyncExternalStore(subscribe, readHintsOn, () => true);
 }
+
+const DEV_HINT_KEY = 'devCardTabHintSeen';
+
+/** One-shot "click here for your dev cards" pointer — once per tab session. */
+export function devCardTabHintSeen(): boolean {
+  try {
+    return sessionStorage.getItem(DEV_HINT_KEY) === 'yes';
+  } catch {
+    return true;
+  }
+}
+
+/** Mark the dev-card hint as shown for the rest of this tab session. */
+export function markDevCardTabHintSeen(): void {
+  try {
+    sessionStorage.setItem(DEV_HINT_KEY, 'yes');
+  } catch {
+    // sessionStorage unavailable — the hint may reshow; harmless.
+  }
+}

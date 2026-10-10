@@ -84,6 +84,14 @@ export interface DevCardChoice {
  * moved.
  */
 export type DiscardState = Record<string, number>;
+/**
+ * Room lifecycle. 'waiting' lobbies are memory-only; 'playing', 'paused',
+ * 'resuming' and 'finished' rooms have a DB row once autosaved or paused.
+ * 'resuming' = a reopened lobby collecting the original seats before the
+ * game continues. Paused rows are swept after the expiry window.
+ */
+export type GameStatus = 'waiting' | 'playing' | 'paused' | 'resuming' | 'finished';
+
 export interface GameRoom {
   id: string;
   players: Player[];
@@ -93,7 +101,14 @@ export interface GameRoom {
   battleState: BattleState | null;
   /** Shared face-down development card deck (drawn from in order). */
   devCardDeck: DevelopmentCardType[];
-  gameStatus: 'waiting' | 'playing' | 'finished';
+  /** Lifecycle: waiting → playing → (paused ⇄ resuming) → finished. */
+  gameStatus: GameStatus;
+  /**
+   * Set when a running game is paused for later resume (null otherwise).
+   * The DB row it is written to carries the authoritative copy; in memory
+   * this is only observed on hydrated 'resuming' lobbies.
+   */
+  pausedAt: number | null;
   /** Victory threshold in VP (the "points to win" setting). */
   pointsToWin: number;
   /** Build/Action phase scope per dice round; see `TurnMode` in Logic.ts. */
@@ -167,4 +182,6 @@ export type PublicGameRoom = Omit<GameRoom, 'players' | 'devCardDeck' | 'spectat
   devCardDeckCount: number;
   /** How many people are spectating (identities stay private). */
   spectatorCount: number;
+  /** ms timestamp when this game's DB row is swept (null = not persisted). */
+  expiresAt: number | null;
 };

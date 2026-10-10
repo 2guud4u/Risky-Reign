@@ -152,3 +152,12 @@ export const CHAT_MESSAGE_MAX = 200;
 export const CHAT_LOG_MAX = 100;
 /** A custom board may carry at most this many hexes (caps memory per room). */
 export const MAX_BOARD_HEXES = 200;
+
+/** A paused/finished game's DB row is kept this long, then swept. */
+export const PERSISTED_GAME_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/** A resume lobby stays open this long collecting seats before it auto-closes. */
+export const RESUME_LOBBY_IDLE_MS = 60 * 60 * 1000; // 1 hour
+
+/** Host/lobby passwords for persisted games are at most this many chars. */
+export const PASSWORD_MAX = 64;

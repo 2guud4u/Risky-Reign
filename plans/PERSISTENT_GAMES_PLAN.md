@@ -1,6 +1,6 @@
 # Persistent Games: Pause, Restart, Resume Lobby, 7-Day Expiry
 
-Status: **plan — decisions recorded (§13); D3 (autosave) awaiting a yes/no.**
+Status: **implemented — D3 resolved as Option A (autosave + restart-survival).**
 
 Goal: the host can pause a game, the server can restart, and days later the
 host reopens the game as a password-protected lobby that every original
@@ -310,7 +310,7 @@ Expiry is shown on the paused screen and the resume lobby as "Last activity <dat
 |---|---|---|
 | D1 | **SQLite via Node's built-in `node:sqlite`** (no new dependency). Needs Node ≥ 22.13 in the container. Fallback: `better-sqlite3` if the image's Node is older. Remove unused `mongoose`. | Default (no objection) — confirm the container Node version at deploy |
 | D2 | **Host proves identity with the same link + a host password set when pausing.** No browser-stored tokens; works from any device. A forgotten host password means the game expires. | ✅ Decided |
-| D3 | **Autosave during play** (see below) | ⏳ Your call |
+| D3 | **Autosave during play** — extended: every broadcast of a non-waiting room autosaves it, so a live game survives a server restart with seat tokens intact (rejoin = normal token re-attach, no passwords). Never-paused rows carry a NULL host password and can't be pause-opened — they hydrate directly on join. | ✅ Decided (extended) |
 | D4 | **Everyone must come back before Start** (all seats not knocked out). | ✅ Decided |
 | D5 | **Tests with Node's built-in `node:test`**, under `backend/test/`. | Default (no objection) |
 
@@ -326,11 +326,17 @@ No. I measured it on this repo's own state with a 4-player dev-preset game (more
 
 That's well under a millisecond of work every few seconds or minutes. Even on a much slower home-server disk the cost is negligible next to one socket broadcast, which already serializes the same room once per player on every action.
 
-What autosave buys: today, a server restart or crash mid-game loses the game, or rolls it back to the last pause. With autosave, the game would come back paused at the last turn boundary.
+What autosave buys: a server restart or crash mid-game no longer loses the
+game — clients reconnect and their saved seat token re-attaches to the
+hydrated room. Deploys become a seconds-long blip instead of a game wipe.
 
-It only applies to games that have been paused at least once, since that's when a host password exists to reopen them. On boot, any `playing` or `resuming` row becomes `paused`.
-
-**Options:** (a) autosave every turn as described; (b) save only on pause, exactly as the original spec says.
+**Implemented (Option A, extended):** autosave hooks `broadcastRoom` — every
+state emission of a non-waiting room writes the row (one INSERT…ON CONFLICT
+per broadcast; measured cost ~0.13ms). That covers turn boundaries *and*
+every mid-turn action, so a restart loses at most the in-flight action.
+`host_password_hash` is NULL for never-paused games; `joinRoom`/`spectateRoom`
+hydrate 'playing'/'resuming'/'finished' rows on demand. 'paused' rows stay
+cold until the host reopens them (link → pausedGameInfo, same as spec).
 
 ## 14. Implementation phases
 

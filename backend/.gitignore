@@ -41,3 +41,9 @@ Thumbs.db
 
 # Nodemon
 .nodemonlog
+
+# Persisted games (SQLite)
+data/
+*.db
+*.db-wal
+*.db-shm

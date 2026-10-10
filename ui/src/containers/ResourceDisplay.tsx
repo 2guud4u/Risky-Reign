@@ -6,6 +6,7 @@ import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { priceLabel } from '../utils/price';
 import { ActionBubble } from '../components/board/ActionBubbles';
 import { RESOURCE_PANEL_TAB_SIZE_PX, RESOURCE_PANEL_LIP_HEIGHT_PX } from '../constants';
+import { devCardTabHintSeen, markDevCardTabHintSeen, useTutorialHints } from '../utils/tutorial';
 
 type PanelView = 'resources' | 'devCards';
 
@@ -88,6 +89,9 @@ const ResourceDisplay: React.FC = () => {
   const { drawDevelopmentCard, playDevelopmentCard } = useSocket();
   const [view, setView] = useState<PanelView>('resources');
   const [collapsed, setCollapsed] = useState(false);
+  const hintsOn = useTutorialHints();
+  // Show the "dev cards live behind the ▼" pointer at most once per session.
+  const [devHintSeen, setDevHintSeen] = useState(devCardTabHintSeen);
 
 const me: Player | null = currentPlayer;
 const isMyTurn = !!me && !!gameRoom && gameRoom.turnState.player === me.name;
@@ -105,9 +109,43 @@ if (!gameRoom || !me) return null;
 
 const handleDrawDevCard = () => drawDevelopmentCard(gameRoom.id);
 const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(gameRoom.id, cardIndex);
+// One-shot pointer at the ▼ dev-card tab: show once (while actually playing,
+// not during SetUp) until the player either opens the tab or dismisses it.
+const showDevHint =
+  hintsOn && !devHintSeen && !collapsed && view === 'resources' &&
+  gameRoom.gameStatus === 'playing' && gameRoom.turnState.phase !== 'SetUp';
+const dismissDevHint = () => {
+  setDevHintSeen(true);
+  markDevCardTabHintSeen();
+};
+const openDevCards = () => {
+  setView('devCards');
+  dismissDevHint();
+};
 
    return (
-     <div className="relative">
+    <div className="relative">
+      {showDevHint && (
+        <div
+          role="note"
+          aria-label="Development cards hint"
+          onMouseDown={(e) => e.stopPropagation()}
+          // Sits left of the panel, vertically near the ▼ chevron it points at.
+          className="absolute right-full bottom-6 mr-2 z-30 w-40 rounded-lg border-2 border-blue-300 bg-white/95 shadow-xl p-2.5 text-[12px] text-gray-700"
+        >
+          <div className="font-bold text-gray-900">Your dev cards live here 👉</div>
+          <p className="m-0 mt-0.5">Press <strong>▼</strong> under Resources to see (and play) development cards.</p>
+          <button
+            type="button"
+            onClick={dismissDevHint}
+            className="mt-1.5 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[11px] font-semibold cursor-pointer hover:bg-blue-700"
+          >
+            Got it
+          </button>
+          {/* Little arrow nub pointing right at the chevron. */}
+          <span aria-hidden="true" className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2.5 h-2.5 rotate-45 bg-white border-t-2 border-r-2 border-blue-300" />
+        </div>
+      )}
       <div
         data-resource-section="true"
         className={`flex items-stretch ${collapsed ? 'justify-center' : ''} bg-white/85 backdrop-blur-sm rounded-lg shadow pl-0 pr-2 pt-2 pb-2`}
@@ -209,7 +247,7 @@ const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(gameRoom.id
             )}
 
             {view === 'resources' && (
-              <ChevronButton direction="down" label="Show development cards" onClick={() => setView('devCards')} />
+              <ChevronButton direction="down" label="Show development cards" onClick={openDevCards} />
             )}
           </div>
       )}

@@ -30,6 +30,18 @@ export interface RobberFightResult {
   won: boolean;
 }
 
+/** What a persisted room code resolves to for a joiner without a seat. */
+export interface PausedGameInfo {
+  roomId: string;
+  status: 'paused' | 'resuming';
+  players: { name: string; color: string; connected: boolean }[];
+  pausedAt: number | null;
+  /** ms timestamp when the saved row is swept. */
+  expiresAt: number;
+  /** 'resuming' games that were paused with a lobby password. */
+  requiresLobbyPassword: boolean;
+}
+
 /** A seat whose player dropped out, offered in the rejoin picker. */
 export interface RejoinSeat {
   name: string;
@@ -82,10 +94,19 @@ export interface ClientToServerEvents {
   bankTrade: (data: { roomId: string; giveResource: string; wantResource: string; giveCount: number }) => void;
   leaveGame: (data: { roomId: string }) => void;
   sendChat: (data: { roomId: string; text: string }) => void;
-  /** Take over a disconnected seat offered by `rejoinOptions`. */
-  claimSeat: (data: { roomId: string; name: string }) => void;
+  /** Take over a disconnected seat offered by `rejoinOptions`. The lobby
+      password is required when the seat lives in a paused 'resuming' game. */
+  claimSeat: (data: { roomId: string; name: string; lobbyPassword?: string }) => void;
   /** Watch a started game without a seat. */
   spectateRoom: (data: { roomId: string }) => void;
+  /** Host only: persist the running game and close the room for later resume. */
+  pauseGame: (data: { roomId: string; hostPassword: string; lobbyPassword: string }) => void;
+  /** Reopen a paused game into a 'resuming' lobby (host password). */
+  openResumeLobby: (data: { roomId: string; hostPassword: string }) => void;
+  /** Host seat only: cancel a 'resuming' lobby back to 'paused'. */
+  closeResumeLobby: (data: { roomId: string }) => void;
+  /** Probe the lobby password of a 'resuming' game before claiming a seat. */
+  unlockResumeLobby: (data: { roomId: string; lobbyPassword: string }) => void;
 }
 
 /** Server → client events: name → payload the server emits. */
@@ -106,4 +127,14 @@ export interface ServerToClientEvents {
    * nobody left, so spectating is the only option).
    */
   rejoinOptions: (data: { roomId: string; seats: RejoinSeat[] }) => void;
+  /**
+   * Sent instead of a room when the room code resolves to a persisted game:
+   * 'paused' = waiting for the host to reopen it; 'resuming' = the lobby is
+   * open and original seats can claim back in (lobby password required).
+   */
+  pausedGameInfo: (data: PausedGameInfo) => void;
+  /** The persisted game this socket was watching was swept for expiry. */
+  gameExpired: (data: { roomId: string }) => void;
+  /** The submitted lobby password matched — the picker may claim seats. */
+  resumeLobbyUnlocked: (data: { roomId: string }) => void;
 }

@@ -80,8 +80,12 @@ interface SocketContextType {
   bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => void;
   leaveGame: (roomId: string) => void;
   sendChat: (roomId: string, text: string) => void;
-  claimSeat: (roomId: string, name: string) => void;
+  claimSeat: (roomId: string, name: string, lobbyPassword?: string) => void;
   spectateRoom: (roomId: string) => void;
+  pauseGame: (roomId: string, hostPassword: string, lobbyPassword: string) => void;
+  openResumeLobby: (roomId: string, hostPassword: string) => void;
+  closeResumeLobby: (roomId: string) => void;
+  unlockResumeLobby: (roomId: string, lobbyPassword: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -131,6 +135,10 @@ const SocketContext = createContext<SocketContextType>({
   leaveGame: () => {},
   claimSeat: () => {},
   spectateRoom: () => {},
+  pauseGame: () => {},
+  openResumeLobby: () => {},
+  closeResumeLobby: () => {},
+  unlockResumeLobby: () => {},
   setTurnMode: () => {},
   sendChat: () => {},
 });
@@ -219,8 +227,17 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const editBoard = (roomId: string, layouts: HexLayout[]) =>
     emitAction(socket, 'editBoard', { roomId, layouts });
   const leaveGame = (roomId: string) => emitAction(socket, 'leaveGame', { roomId });
-  const claimSeat = (roomId: string, name: string) => emitAction(socket, 'claimSeat', { roomId, name });
+  const claimSeat = (roomId: string, name: string, lobbyPassword?: string) =>
+    emitAction(socket, 'claimSeat', { roomId, name, lobbyPassword });
   const spectateRoom = (roomId: string) => emitAction(socket, 'spectateRoom', { roomId });
+  const pauseGame = (roomId: string, hostPassword: string, lobbyPassword: string) =>
+    emitAction(socket, 'pauseGame', { roomId, hostPassword, lobbyPassword });
+  const openResumeLobby = (roomId: string, hostPassword: string) =>
+    emitAction(socket, 'openResumeLobby', { roomId, hostPassword });
+  const closeResumeLobby = (roomId: string) =>
+    emitAction(socket, 'closeResumeLobby', { roomId });
+  const unlockResumeLobby = (roomId: string, lobbyPassword: string) =>
+    emitAction(socket, 'unlockResumeLobby', { roomId, lobbyPassword });
   const sendChat = (roomId: string, text: string) =>
     emitAction(socket, 'sendChat', { roomId, text });
   const createTradeOffer = (roomId: string, to: string | null, give: Price, want: Price) =>
@@ -295,6 +312,10 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         leaveGame,
         claimSeat,
         spectateRoom,
+        pauseGame,
+        openResumeLobby,
+        closeResumeLobby,
+        unlockResumeLobby,
         sendChat,
         endTurn,
         undoBuild,

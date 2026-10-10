@@ -29,13 +29,17 @@ import { GAME_HEX_SIZE } from 'common';
  */
 const Game: React.FC = () => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
-  const { leaveGame: emitLeaveGame } = useSocket();
+  const { leaveGame: emitLeaveGame, pauseGame: emitPauseGame } = useSocket();
   const [menuOpen, setMenuOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   // True after the user asked for full screen but the browser can't grant it
   // (iPhone Safari has no element-level fullscreen — Add to Home Screen is the
   // only way to lose its chrome there).
   const [fsHint, setFsHint] = useState(false);
+  // Host's pause-for-later dialog (two passwords: reopen + seat claims).
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [hostPassword, setHostPassword] = useState('');
+  const [lobbyPassword, setLobbyPassword] = useState('');
   const hintsOn = useTutorialHints();
   // Track the real fullscreen state so the label stays right when the user
   // leaves it with a gesture or Esc.
@@ -93,6 +97,15 @@ const Game: React.FC = () => {
     return <p className="text-center text-gray-500">Loading game...</p>;
   }
   const spectating = !currentPlayer;
+  const isHost = !!currentPlayer && gameRoom.players[0]?.name === currentPlayer.name;
+  const canPause = isHost && gameRoom.gameStatus === 'playing';
+  const submitPause = () => {
+    emitPauseGame(gameRoom.id, hostPassword, lobbyPassword);
+    setMenuOpen(false);
+    setPauseOpen(false);
+    setHostPassword('');
+    setLobbyPassword('');
+  };
   const selectedVertex =
     selectedObject?.type === 'vertex' ? gameRoom.board?.vertices[selectedObject.id] ?? null : null;
   const selectedEdge =
@@ -127,6 +140,18 @@ const Game: React.FC = () => {
                 <b>Add to Home Screen</b> for a bar-free game.
               </p>
             )}
+            {canPause && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setPauseOpen(true);
+                }}
+                className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+              >
+                ⏸️ Pause game…
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -151,6 +176,51 @@ const Game: React.FC = () => {
         </button>
       </div>
 
+      {/* Pause dialog: the host picks the reopen password (host) and the
+          seat-claim password (lobby). The game keeps running for nobody —
+          the room closes and the link shows the paused screen. */}
+      {pauseOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-5 w-full max-w-[380px] flex flex-col gap-3">
+            <h2 className="text-lg font-bold m-0">Pause this game</h2>
+            <p className="m-0 text-[13px] text-gray-600">
+              The board is saved and the room closes. Reopen it later with the host password;
+              players rejoin their seats with the lobby password.
+            </p>
+            <input
+              type="password"
+              value={hostPassword}
+              onChange={(e) => setHostPassword(e.target.value)}
+              placeholder="Host password (reopens the game)"
+              className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+            />
+            <input
+              type="password"
+              value={lobbyPassword}
+              onChange={(e) => setLobbyPassword(e.target.value)}
+              placeholder="Lobby password (players rejoin)"
+              className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPauseOpen(false)}
+                className="flex-1 py-2 rounded-md bg-gray-100 text-gray-700 text-[14px] font-semibold cursor-pointer hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitPause}
+                disabled={!hostPassword || !lobbyPassword}
+                className="flex-1 py-2 rounded-md bg-blue-600 text-white text-[14px] font-semibold cursor-pointer hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Pause game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="fixed inset-0 flex safe-inset">
         <div className="relative flex-1 min-w-0 bg-white">
           {spectating && (

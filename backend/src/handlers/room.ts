@@ -20,6 +20,7 @@ import {
   TurnMode,
   CHAT_MESSAGE_MAX,
   CHAT_LOG_MAX,
+  PASSWORD_MAX,
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
@@ -27,10 +28,31 @@ import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, 
 import { DEV_PRESET, applyDevPreset } from '../devPreset';
 import { broadcastRoom } from '../broadcast';
 import { MAX_ROOMS } from '../constants';
-import { HandlerContext } from './context';
+import { GameServer, HandlerContext } from './context';
+import {
+  clearResumeLobbyHash,
+  hydrateRoom,
+  pausedInfo,
+  persistedMeta,
+  resumeLobbyHash,
+  setResumeLobbyHash,
+  transition,
+} from '../lifecycle';
+import { remove as removePersisted } from '../persistence/gameRepository';
+import { createAttemptLimiter, hashPassword, verifyPassword } from '../persistence/passwords';
 
 /** A lobby name is letters, digits, space, _ or - (length checked by callers). */
 const PLAYER_NAME_RE = /^[A-Za-z0-9 _-]+$/;
+
+/** Host/lobby password probes per socket (brute-force guard). */
+const passwordAttempts = createAttemptLimiter(8, 60_000);
+
+/** Push the current paused/resuming info to every socket on the room channel. */
+function broadcastPausedInfo(io: GameServer, roomId: string): void {
+  const meta = persistedMeta(roomId);
+  if (!meta || (meta.status !== 'paused' && meta.status !== 'resuming')) return;
+  io.to(roomId).emit('pausedGameInfo', pausedInfo(roomId, meta, gameRooms.get(roomId)));
+}
 
 /**
  * Seats in a started game whose player dropped out (no live socket): the
@@ -80,6 +102,23 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     let room = gameRooms.get(roomId);
     if (!room) {
+      const meta = persistedMeta(roomId);
+      if (meta?.status === 'paused') {
+        // Cold row: nobody is playing it right now. Tell the joiner it is
+        // paused; the room materializes only when the host reopens it.
+        socket.join(roomId);
+        joinedRoomIds.add(roomId);
+        socket.emit('pausedGameInfo', pausedInfo(roomId, meta));
+        return;
+      }
+      if (meta) {
+        // Persisted game (autosaved live, resuming lobby, or finished):
+        // hydrate the snapshot and continue through the normal join flow —
+        // seat tokens saved before a restart re-attach below.
+        room = hydrateRoom(roomId) ?? undefined;
+      }
+    }
+    if (!room) {
       // A join that would CREATE a room is refused once the server is full.
       if (gameRooms.size >= MAX_ROOMS) {
         socket.emit('error', { message: 'Server is full' });
@@ -115,6 +154,17 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       if (seat.token) socket.emit('joined', { token: seat.token });
       applyBonuses(room);
       broadcastRoom(io, room, 'roomUpdate');
+      broadcastPausedInfo(io, roomId);
+      return;
+    }
+    // A reopened lobby collects seats through the resume screen instead of
+    // adding new players: show its seat list (claims go through claimSeat
+    // with the lobby password).
+    if (room.gameStatus === 'resuming') {
+      socket.join(roomId);
+      joinedRoomIds.add(roomId);
+      const meta = persistedMeta(roomId);
+      if (meta) socket.emit('pausedGameInfo', pausedInfo(roomId, meta, room));
       return;
     }
     // A started game takes no new players. Someone arriving without a seat
@@ -173,16 +223,33 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
   // so a stranger can take over only a player who has actually left. The
   // claimer gets a fresh seat token: the old one stops working, so a stale tab
   // of the dropped player can't snatch the seat back mid-turn.
-  socket.on('claimSeat', (data: { roomId: string; name: string }) => {
+  socket.on('claimSeat', (data: { roomId: string; name: string; lobbyPassword?: string }) => {
     const room = gameRooms.get(data?.roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
+    // A reopened lobby gates seat claims behind its lobby password (set at
+    // pause time). Live games keep the passwordless claim: the seat-picker is
+    // already gated to seats whose owner dropped out.
+    const lobbyHash = resumeLobbyHash(room.id);
+    if (room.gameStatus === 'resuming' && lobbyHash) {
+      if (!passwordAttempts.check(socket.id)) {
+        socket.emit('error', { message: 'Too many attempts — try again shortly' });
+        return;
+      }
+      if (typeof data.lobbyPassword !== 'string' || !verifyPassword(data.lobbyPassword, lobbyHash)) {
+        socket.emit('error', { message: 'Wrong lobby password' });
+        return;
+      }
+      passwordAttempts.reset(socket.id);
+    }
     const seat = room.players.find((p) => p.name === data.name);
     if (!seat || seat.connected) {
       socket.emit('error', { message: 'That player is back — pick another seat' });
-      socket.emit('rejoinOptions', { roomId: room.id, seats: disconnectedSeats(room) });
+      if (room.gameStatus !== 'resuming') {
+        socket.emit('rejoinOptions', { roomId: room.id, seats: disconnectedSeats(room) });
+      }
       return;
     }
     seat.id = socket.id;
@@ -194,15 +261,36 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     socket.emit('joined', { token: seat.token });
     applyBonuses(room);
     broadcastRoom(io, room, 'roomUpdate');
+    broadcastPausedInfo(io, room.id);
   });
 
   // Watch a started game without a seat: room updates with every hand masked,
   // no actions (every action handler resolves the caller by seat socket id,
   // which a spectator never has).
   socket.on('spectateRoom', (data: { roomId: string }) => {
-    const room = gameRooms.get(data?.roomId);
+    let room = gameRooms.get(data?.roomId);
+    if (!room) {
+      // Same resolution as joinRoom: a paused row just reports its info;
+      // persisted live/finished games hydrate and can be watched again.
+      const meta = persistedMeta(data?.roomId);
+      if (meta?.status === 'paused') {
+        socket.join(data.roomId);
+        joinedRoomIds.add(data.roomId);
+        socket.emit('pausedGameInfo', pausedInfo(data.roomId, meta));
+        return;
+      }
+      if (meta) room = hydrateRoom(data.roomId) ?? undefined;
+    }
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.gameStatus === 'resuming') {
+      // The resume lobby has nothing to spectate until the game continues.
+      socket.join(room.id);
+      joinedRoomIds.add(room.id);
+      const meta = persistedMeta(room.id);
+      if (meta) socket.emit('pausedGameInfo', pausedInfo(room.id, meta, room));
       return;
     }
     if (room.players.some((p) => p.id === socket.id && p.connected)) return;
@@ -216,7 +304,7 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
   // via token after a reload — those return early from joinRoom.
   socket.on('updatePlayerColor', (data: { roomId: string; color: string }) => {
     const room = gameRooms.get(data?.roomId);
-    if (!room || room.gameStatus !== 'waiting') return;
+    if (!room || (room.gameStatus !== 'waiting' && room.gameStatus !== 'resuming')) return;
     const p = room.players.find((pl) => pl.id === socket.id);
     if (!p) return;
     const requested = typeof data.color === 'string' ? data.color : '';
@@ -228,12 +316,15 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
     }
     p.color = normalizeColor(requested);
     broadcastRoom(io, room, 'roomUpdate');
+    if (room.gameStatus === 'resuming') broadcastPausedInfo(io, room.id);
   });
 
   // Set your name while still in the lobby (join is name-optional; the name
   // is chosen after joining). Top-level for the same reason as above.
   socket.on('updatePlayerName', (data: { roomId: string; name: string }) => {
     const room = gameRooms.get(data?.roomId);
+    // Names are the foreign key for soldiers, settlements and turn order —
+    // mid-game (a resuming lobby counts) renaming stays forbidden.
     if (!room || room.gameStatus !== 'waiting') return;
     const p = room.players.find((pl) => pl.id === socket.id);
     if (!p) return;
@@ -401,8 +492,9 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
-    // Re-start is forbidden: only the host may start, and only from waiting.
-    if (room.gameStatus !== 'waiting') {
+    // Restart is forbidden: only the host may start, from 'waiting' (fresh
+    // game) or 'resuming' (a reopened paused game whose seats are all back).
+    if (room.gameStatus !== 'waiting' && room.gameStatus !== 'resuming') {
       socket.emit('error', { message: 'The game has already started' });
       return;
     }
@@ -411,11 +503,23 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Only the host can start the game' });
       return;
     }
+    if (room.gameStatus === 'resuming') {
+      // Every original seat must be claimed before the game continues —
+      // nobody starts playing on behalf of a player who isn't back yet.
+      if (!room.players.every((p) => p.connected)) {
+        socket.emit('error', { message: 'Waiting for everyone to rejoin' });
+        return;
+      }
+      transition(room, 'playing');
+      applyBonuses(room);
+      broadcastRoom(io, room, 'gameUpdate');
+      return;
+    }
     if (room.players.length < MIN_PLAYERS) {
       socket.emit('error', { message: `Need at least ${MIN_PLAYERS} players to start` });
       return;
     }
-    room.gameStatus = 'playing';
+    transition(room, 'playing');
     // Dev mode: skip setup with a preset board (see devPreset.ts).
     if (DEV_PRESET) applyDevPreset(room);
     applyBonuses(room);
@@ -435,9 +539,14 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Only the host can reset the game' });
       return;
     }
+    // "Play Again" returns the room to the lobby (waiting room). The
+    // persisted row is finished business — delete it so the code's expiry
+    // doesn't sweep a lobby that was never persisted anyway.
+    removePersisted(roomId);
+    clearResumeLobbyHash(roomId);
     resetRoom(room);
-    // "Play Again" returns the room to the lobby (waiting room).
     room.gameStatus = 'waiting';
+    room.pausedAt = null;
     applyBonuses(room);
     broadcastRoom(io, room);
   });
@@ -489,7 +598,122 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
         gameRooms.delete(roomId);
         continue;
       }
+      if (room.gameStatus === 'resuming' && !anyoneConnected) {
+        // An abandoned resume lobby closes back to paused rather than
+        // sitting open with its lobby password.
+        transition(room, 'paused');
+        gameRooms.delete(roomId);
+        clearResumeLobbyHash(roomId);
+        continue;
+      }
       broadcastRoom(io, room, 'roomUpdate');
+      if (room.gameStatus === 'resuming') broadcastPausedInfo(io, roomId);
     }
+  });
+
+  // ── Persisted-game lifecycle ──────────────────────────────────────────
+
+  // Host pauses the running game: snapshot it to the DB with the passwords,
+  // tell the room channel, and drop it from memory. The link now shows the
+  // paused screen to anyone who opens it.
+  socket.on('pauseGame', (data: { roomId: string; hostPassword: string; lobbyPassword: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room || room.gameStatus !== 'playing') {
+      socket.emit('error', { message: 'No running game to pause' });
+      return;
+    }
+    const isHost = room.players[0]?.id === socket.id;
+    if (!isHost) {
+      socket.emit('error', { message: 'Only the host can pause the game' });
+      return;
+    }
+    const hostPassword = typeof data.hostPassword === 'string' ? data.hostPassword : '';
+    const lobbyPassword = typeof data.lobbyPassword === 'string' ? data.lobbyPassword : '';
+    if (!hostPassword || hostPassword.length > PASSWORD_MAX ||
+        !lobbyPassword || lobbyPassword.length > PASSWORD_MAX) {
+      socket.emit('error', { message: 'Pick a host password and a lobby password (1–64 chars)' });
+      return;
+    }
+    const err = transition(room, 'paused', {
+      hostPasswordHash: hashPassword(hostPassword),
+      lobbyPasswordHash: hashPassword(lobbyPassword),
+    });
+    if (err) {
+      socket.emit('error', { message: err });
+      return;
+    }
+    io.to(room.id).emit('pausedGameInfo', pausedInfo(room.id, persistedMeta(room.id)!));
+    gameRooms.delete(room.id);
+  });
+
+  // Host (by host password) reopens a paused game: the snapshot hydrates as
+  // a 'resuming' lobby and original seats claim back in with the lobby
+  // password. Password verification is rate-limited per socket.
+  socket.on('openResumeLobby', (data: { roomId: string; hostPassword: string }) => {
+    if (gameRooms.get(data?.roomId)) {
+      socket.emit('error', { message: 'This game is already open' });
+      return;
+    }
+    const meta = persistedMeta(data?.roomId);
+    if (!meta || meta.status !== 'paused') {
+      socket.emit('error', { message: 'No paused game with that code' });
+      return;
+    }
+    if (!passwordAttempts.check(socket.id)) {
+      socket.emit('error', { message: 'Too many attempts — try again shortly' });
+      return;
+    }
+    if (typeof data.hostPassword !== 'string' || !verifyPassword(data.hostPassword, meta.host_password_hash)) {
+      socket.emit('error', { message: 'Wrong host password' });
+      return;
+    }
+    passwordAttempts.reset(socket.id);
+    const room = hydrateRoom(data.roomId, { allowPaused: true });
+    if (!room) {
+      socket.emit('error', { message: 'Saved game is unreadable' });
+      return;
+    }
+    if (meta.lobby_password_hash) setResumeLobbyHash(room.id, meta.lobby_password_hash);
+    transition(room, 'resuming');
+    socket.join(room.id);
+    joinedRoomIds.add(room.id);
+    broadcastPausedInfo(io, room.id);
+  });
+
+  // The host's seat closes a resume lobby (back to paused). Reached from the
+  // resume lobby's "Close" button.
+  socket.on('closeResumeLobby', (data: { roomId: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    if (!room || room.gameStatus !== 'resuming') return;
+    const isHost = room.players[0]?.id === socket.id;
+    if (!isHost) {
+      socket.emit('error', { message: 'Only the host can close the lobby' });
+      return;
+    }
+    transition(room, 'paused');
+    io.to(room.id).emit('pausedGameInfo', pausedInfo(room.id, persistedMeta(room.id)!));
+    gameRooms.delete(room.id);
+    clearResumeLobbyHash(room.id);
+  });
+
+  // Cheap pre-check so the UI can validate a lobby password before a seat
+  // pick. Verifies against the same hash claimSeat enforces.
+  socket.on('unlockResumeLobby', (data: { roomId: string; lobbyPassword: string }) => {
+    const room = gameRooms.get(data?.roomId);
+    const meta = persistedMeta(data?.roomId);
+    if (!room || room.gameStatus !== 'resuming' || !meta) {
+      socket.emit('error', { message: 'No resume lobby with that code' });
+      return;
+    }
+    if (!passwordAttempts.check(socket.id)) {
+      socket.emit('error', { message: 'Too many attempts — try again shortly' });
+      return;
+    }
+    if (typeof data.lobbyPassword !== 'string' || !verifyPassword(data.lobbyPassword, meta.lobby_password_hash)) {
+      socket.emit('error', { message: 'Wrong lobby password' });
+      return;
+    }
+    passwordAttempts.reset(socket.id);
+    socket.emit('resumeLobbyUnlocked', { roomId: room.id });
   });
 }

@@ -83,6 +83,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
       undoLog: [],
     },
     gameStatus: 'waiting',
+    pausedAt: null,
     pointsToWin: DEFAULT_POINTS_TO_WIN,
     turnMode: TURN_MODE_PRESETS.expanded,
     chatLog: [],
