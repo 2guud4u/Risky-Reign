@@ -91,7 +91,9 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
 
   // The attacker may end the battle after any resolved round (betweenRounds),
   // at their choosing — even while both sides still have troops. Casualties
-  // are committed to the board and the battle moves to repositioning.
+  // are committed to the board and the battle moves to repositioning. Ending
+  // while the outcome is still undecided is a forfeit: the attacker is
+  // marked as having fled and the defender is credited the win.
   socket.on('endBattle', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = gameRooms.get(roomId);
@@ -120,7 +122,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
 
     const battle = room.battleState;
     const injuredSettled = applyRoundCasualties(board, battle);
-    recordBattleWin(room, battle);
+    recordBattleWin(room, battle, true);
     room.battleState = { ...battle, phase: 'repositioning', injuredSettled, repositionTurn: nextRepositionTurn(board, battle, null) };
 
     applyBonuses(room);
@@ -200,13 +202,15 @@ export function applyRoundCasualties(board: Board, battleState: BattleState): Re
 }
 
 /**
- * Count a won player-vs-player battle toward the Warmonger bonus. A normal
+ * Count a won player-vs-player battle toward the Conqueror bonus. A normal
  * battle is won by the side that still has living, uninjured troops when the
  * other side has none. An injured fight is won by the attacker only if every
  * injured defender died (any escapee means the defender won). Robber fights
- * and battles ended with both sides standing count for nobody.
+ * count for nobody. With `earlyEnd` (the attacker chose to stop mid-fight)
+ * an undecided battle is a forfeit: `forfeitedBy` is set on the battle and
+ * the defender takes the win — the attacker can't flee and keep a result.
  */
-function recordBattleWin(room: GameRoom, battle: BattleState): void {
+function recordBattleWin(room: GameRoom, battle: BattleState, earlyEnd = false): void {
   if (battle.robberFight) return;
   const soldiersOf = (side: string) => battle.states[side]?.soldiers ?? [];
   let winner: string | null;
@@ -217,6 +221,13 @@ function recordBattleWin(room: GameRoom, battle: BattleState): void {
     const atk = standing(battle.attacker);
     const def = standing(battle.defender);
     winner = atk && !def ? battle.attacker : def && !atk ? battle.defender : null;
+    // Forfeit applies only while the fight is genuinely undecided — both
+    // sides still standing. A wiped-out attacker already lost, and a
+    // "See result" click on a decided battle must not flip its outcome.
+    if (!winner && earlyEnd && atk && def) {
+      battle.forfeitedBy = battle.attacker;
+      winner = battle.defender;
+    }
   }
   if (!winner || !room.players.some((p) => p.name === winner)) return;
   room.battlesWon[winner] = (room.battlesWon[winner] ?? 0) + 1;

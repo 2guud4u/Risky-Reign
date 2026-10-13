@@ -24,6 +24,7 @@ import {
   MAX_TURN_TIMER_S,
   CHAT_LOG_MAX,
   PASSWORD_MAX,
+  shuffle,
 } from 'common';
 
 import { createGameRoom, createBoard, gameRooms, resetRoom, freshResourceCount, STARTING_RESOURCES } from '../store';
@@ -597,6 +598,9 @@ export function registerRoomHandlers(ctx: HandlerContext): void {
       return;
     }
     transition(room, 'playing');
+    // A random seat takes the first turn — not the host/first joiner.
+    room.turnState.playerOrder = shuffle(room.turnState.playerOrder);
+    room.turnState.player = room.turnState.playerOrder[0] ?? room.players[0]?.name ?? '';
     // Dev mode: skip setup with a preset board (see devPreset.ts).
     if (DEV_PRESET) applyDevPreset(room);
     applyBonuses(room);

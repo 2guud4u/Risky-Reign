@@ -53,6 +53,14 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
     phaseTimerEndsAt: null,
     phaseTimerRemainingMs: null,
     turnMode: { ...snap.turnMode, secondRoll: snap.turnMode.secondRoll ?? false },
+    bonuses: {
+      ...snap.bonuses,
+      // Snapshots written before the rename still carry hasWarmonger.
+      hasConqueror:
+        snap.bonuses?.hasConqueror ??
+        (snap.bonuses as { hasWarmonger?: Record<string, boolean> } | undefined)?.hasWarmonger ??
+        {},
+    },
     id,
     players: snap.players.map((p) => ({
       ...p,

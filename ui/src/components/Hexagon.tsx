@@ -19,6 +19,8 @@ interface HexagonProps {
   highlight?: boolean;
   /** Drag handler for the robber (called on mousedown on the robber circle). */
   onRobberMouseDown?: (e: React.MouseEvent) => void;
+  /** Click handler for the robber (opens its action bubbles). */
+  onRobberClick?: () => void;
   /** Whether the robber is draggable (changes cursor). */
   robberDraggable?: boolean;
   /** Whether this hex's number matches the current roll (light it up). */
@@ -32,7 +34,7 @@ interface HexagonProps {
  * adapter (BoardHex.position), so this component only projects the six
  * corners around that center — no cube-coord math here.
  */
-const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, robberDraggable, litUp, onRobberHover }) => {
+const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, onRobberClick, robberDraggable, litUp, onRobberHover }) => {
   const { x, y } = hex.position;
 
   const hexPoints = hexPointsAt(x, y, size);
@@ -75,9 +77,13 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           height={size * ROBBER_H_FRACTION}
           preserveAspectRatio="xMidYMax meet"
           onMouseDown={onRobberMouseDown}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRobberClick?.();
+          }}
           onMouseEnter={() => onRobberHover?.(hex.id, true)}
           onMouseLeave={() => onRobberHover?.(hex.id, false)}
-          style={robberDraggable ? { cursor: 'grab' } : undefined}
+          style={{ cursor: robberDraggable ? 'grab' : onRobberClick ? 'pointer' : undefined }}
         />
       )}
 

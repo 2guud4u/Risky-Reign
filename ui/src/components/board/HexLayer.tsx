@@ -16,6 +16,8 @@ export const HexLayer = React.memo(function HexLayer({
   rollTotal,
   onRobberMouseDown,
   onWinRobberMouseDown,
+  onRobberClick,
+  onHexClick,
   onRobberHover,
 }: {
   hexes: BoardHex[];
@@ -29,6 +31,10 @@ export const HexLayer = React.memo(function HexLayer({
   rollTotal: number | null;
   onRobberMouseDown: (e: React.MouseEvent) => void;
   onWinRobberMouseDown: (e: React.MouseEvent) => void;
+  /** Clicking the robber opens its action bubbles (attack / move). */
+  onRobberClick: () => void;
+  /** Clicking a highlighted hex while a robber move is pending places it. */
+  onHexClick: (hexId: string) => void;
   onRobberHover: (hexId: string, hovering: boolean) => void;
 }) {
   const robberDraggable = robberPending || winPending;
@@ -49,9 +55,11 @@ export const HexLayer = React.memo(function HexLayer({
             hex={hex}
             size={PROJ_SIZE}
             highlight={isRobberTarget}
+            onClick={isRobberTarget ? onHexClick : undefined}
             onRobberMouseDown={
               robberPending ? onRobberMouseDown : winPending ? onWinRobberMouseDown : undefined
             }
+            onRobberClick={onRobberClick}
             robberDraggable={robberDraggable}
             litUp={litUp}
             onRobberHover={onRobberHover}

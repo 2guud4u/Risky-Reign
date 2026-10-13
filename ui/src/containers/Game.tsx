@@ -12,6 +12,7 @@ import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
 import VertexActionBubbles from '../components/board/VertexActionBubbles';
+import RobberActionBubbles from '../components/board/RobberActionBubbles';
 import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
 import TradeButton from '../components/board/TradeButton';
 import RecipesButton from '../components/board/RecipesButton';
@@ -110,6 +111,10 @@ const Game: React.FC = () => {
     selectedObject?.type === 'vertex' ? gameRoom.board?.vertices[selectedObject.id] ?? null : null;
   const selectedEdge =
     selectedObject?.type === 'edge' ? gameRoom.board?.edges[selectedObject.id] ?? null : null;
+  const selectedRobber =
+    selectedObject?.type === 'robber'
+      ? Object.values(gameRoom.board?.hexes ?? {}).find((h) => h.robber)?.id ?? null
+      : null;
   return (
     <div>
       {/* Menu button: safe-inset keeps it above the home-indicator / off a
@@ -246,6 +251,10 @@ const Game: React.FC = () => {
           )}
           {!spectating && selectedEdge && gameRoom.board && (
             <EdgeActionBubbles board={gameRoom.board} edge={selectedEdge} />
+          )}
+          {/* Attack / Move actions for the robber when it is selected. */}
+          {!spectating && selectedRobber && gameRoom.board && (
+            <RobberActionBubbles board={gameRoom.board} hexId={selectedRobber} />
           )}
           {/* Setup walkthrough + idle "Need help?" card (left edge of the map). */}
           <TutorialCoach />

@@ -17,8 +17,8 @@ import type { ChatMessage } from './SocketEvents';
  *                          earns 2 VP.
  *  - `largestArmy`      : the player with the most soldiers (≥ 3) earns 2 VP.
  *  - `battlesWon`       : the player with the most battles won (≥ 3) holds
- *                          Warmonger and earns 2 VP.
- *  - `hasLongestRoad` / `hasLargestArmy` / `hasWarmonger` : whether this
+ *                          Conqueror and earns 2 VP.
+ *  - `hasLongestRoad` / `hasLargestArmy` / `hasConqueror` : whether this
  *                          player currently holds that bonus (at most one
  *                          holder each; a tie keeps it with the current
  *                          holder — you must strictly beat them).
@@ -34,8 +34,8 @@ export interface RoomBonuses {
   hasLargestArmy: Record<string, boolean>;
   /** Player-vs-player battles won per player (mirrors `GameRoom.battlesWon`). */
   battlesWon: Record<string, number>;
-  /** Players currently holding the Warmonger bonus (2 VP). */
-  hasWarmonger: Record<string, boolean>;
+  /** Players currently holding the Conqueror bonus (2 VP). */
+  hasConqueror: Record<string, boolean>;
   /** Victory points from settlements (1 VP) and cities (2 VP), per player. */
   settlementVp: Record<string, number>;
 }
@@ -156,12 +156,12 @@ export interface GameRoom {
    * official 95-card bank). Bank trades and Year of Plenty deplete it.
    */
   bankSupply: ResourceCount;
-  /** Recomputed scoring bonuses (longest road / largest army / warmonger). */
+  /** Recomputed scoring bonuses (longest road / largest army / conqueror). */
   bonuses: RoomBonuses;
   /**
    * Player-vs-player battles won, per player name. Incremented when a battle
-   * ends with only one side standing (robber fights don't count). Drives the
-   * Warmonger bonus.
+   * ends with only one side standing or the attacker flees an undecided
+   * battle (robber fights don't count). Drives the Conqueror bonus.
    */
   battlesWon: Record<string, number>;
   /** Last activity timestamp (ms). Used to sweep idle rooms and free memory. */

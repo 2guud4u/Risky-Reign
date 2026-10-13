@@ -44,17 +44,24 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
           ⚔️ Fight round {battle.round + 1}
         </button>
       )}
-      <button
-        type="button"
-        onClick={onEnd}
-        className={`w-full rounded-lg py-2 text-[13px] font-semibold cursor-pointer ${
-          bothStanding
-            ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-            : 'bg-red-600 text-white shadow hover:bg-red-700'
-        }`}
-      >
-        {bothStanding ? 'Stop the battle here' : 'See result →'}
-      </button>
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={onEnd}
+          className={`w-full rounded-lg py-2 text-[13px] font-semibold cursor-pointer ${
+            bothStanding
+              ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+              : 'bg-red-600 text-white shadow hover:bg-red-700'
+          }`}
+        >
+          {bothStanding ? 'Stop the battle here' : 'See result →'}
+        </button>
+        {bothStanding && (
+          <div className="text-[11px] text-amber-700 text-center">
+            ⚠️ Ending now counts as a loss
+          </div>
+        )}
+      </div>
     </div>
   );
 };

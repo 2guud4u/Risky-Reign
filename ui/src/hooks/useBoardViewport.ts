@@ -198,6 +198,13 @@ export function useBoardViewport(
     markDirty(saved.dirty);
   }, [animateTo, markDirty]);
 
+  /** Glide to the full-board view (zoom 1, centered) — e.g. picking a hex
+      while moving the robber needs every target on screen at once. */
+  const fitView = useCallback(() => {
+    animateTo({ x: 0, y: 0 }, 1);
+    markDirty(false);
+  }, [animateTo, markDirty]);
+
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.shiftKey) reset();
@@ -396,6 +403,7 @@ export function useBoardViewport(
     onDoubleClick,
     focusOn,
     restoreView,
+    fitView,
     onMouseDown,
   };
 }

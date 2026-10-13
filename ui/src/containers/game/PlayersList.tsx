@@ -10,7 +10,7 @@ interface PlayersListProps {
     hasLongestRoad: Record<string, boolean>;
     hasLargestArmy: Record<string, boolean>;
     battlesWon: Record<string, number>;
-    hasWarmonger: Record<string, boolean>;
+    hasConqueror: Record<string, boolean>;
   };
   currentPlayerId?: string;
 }
@@ -27,7 +27,7 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         const hasRoad = bonuses?.hasLongestRoad?.[player.name] ?? false;
         const hasArmy = bonuses?.hasLargestArmy?.[player.name] ?? false;
         const roadLen = bonuses?.longestRoad?.[player.name] ?? 0;
-        const hasWar = bonuses?.hasWarmonger?.[player.name] ?? false;
+        const hasWar = bonuses?.hasConqueror?.[player.name] ?? false;
         const battlesWon = bonuses?.battlesWon?.[player.name] ?? 0;
         // Opponents' hands are masked server-side; the public total is all we show.
         const totalResources = player.resourceCount;
@@ -86,9 +86,9 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
               {hasWar && (
                 <span
                   className="text-[12px] text-orange-700 font-semibold"
-                  title={`Warmonger: ${battlesWon} battles won (+2 VP)`}
+                  title={`Conqueror: ${battlesWon} battles won (+2 VP)`}
                 >
-                  🔥 Warmonger ({battlesWon})
+                  👑 Conqueror ({battlesWon})
                 </span>
               )}
             </div>

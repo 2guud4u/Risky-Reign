@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
+import { useBuildRules } from '../../hooks/useBuildRules';
+import { useTutorialHints } from '../../utils/tutorial';
 
 /**
  * Turn controls. SetUp and Dice phases advance automatically (setup once the
@@ -11,6 +13,8 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
   const { gameRoom, currentPlayer } = useGameRoom();
   const { endTurn: onEndTurn } = useSocket();
   const snack = variant === 'snackbar';
+  const hintsOn = useTutorialHints();
+  const { nothingToBuild } = useBuildRules(gameRoom?.board ?? null);
 
   // Phase countdown: ticks once a second off the server-broadcast deadline.
   // The server clears `phaseTimerEndsAt` while a battle is open, so the chip
@@ -151,6 +155,22 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
 
   return (
     <div className="flex flex-col gap-1">
+      {isMyTurn && gameRoom.turnState.phase === 'Build' && nothingToBuild && hintsOn && (
+        // No legal build anywhere: point at the button so the player isn't
+        // stuck hunting the board for a spot that doesn't exist.
+        <div
+          className={
+            snack
+              ? 'flex items-center justify-center gap-1.5 text-[13px] font-bold text-amber-200'
+              : 'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[13px] font-bold rounded-md border border-amber-300 bg-amber-50 text-amber-800'
+          }
+        >
+          <span className="pointer-finger inline-block text-base leading-none" aria-hidden="true">
+            👇
+          </span>
+          Nothing left to build — end your turn
+        </div>
+      )}
       {isMyTurn && gameRoom.turnState.phase === 'Action' && gameRoom.robberDefeatedBy?.playerName === currentPlayer.name ? (
         <div
           className={

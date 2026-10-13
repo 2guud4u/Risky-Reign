@@ -173,6 +173,13 @@ export interface BattleState {
    * are done (or had nothing to reposition).
    */
   repositionTurn?: 'attacker' | 'defender' | null;
+  /**
+   * Set when the attacker ended the battle early while both sides still had
+   * fighting troops: the attacker forfeits and the defender is credited the
+   * win (the outcome panel shows the attacker fled). Absent for battles that
+   * ran their course.
+   */
+  forfeitedBy?: string;
 }
 
 export interface ResourceCount {

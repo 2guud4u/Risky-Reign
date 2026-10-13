@@ -11,6 +11,7 @@ import {
   generateStandardBoard,
   generateDevelopmentCardDeck,
   TURN_MODE_PRESETS,
+  shuffle,
 } from 'common';
 
 /**
@@ -37,7 +38,7 @@ export function emptyBonuses() {
     hasLongestRoad: {},
     hasLargestArmy: {},
     battlesWon: {},
-    hasWarmonger: {},
+    hasConqueror: {},
     settlementVp: {},
   };
 }
@@ -140,10 +141,12 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
  */
 export function resetRoom(room: GameRoom): void {
   room.board = createBoard();
+  // A fresh draw for turn order each game — never join order.
+  const playerOrder = shuffle(room.players.map((p) => p.name));
   room.turnState = {
     phase: 'SetUp',
-    player: room.players[0]?.name ?? 'X',
-    playerOrder: room.players.map((p) => p.name),
+    player: playerOrder[0] ?? 'X',
+    playerOrder,
     offset: 0,
     dicePlayerIndex: 0,
     placedSettlement: false,

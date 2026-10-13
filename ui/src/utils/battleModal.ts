@@ -225,7 +225,10 @@ export function computeBattleOutcome(
   const defInj = defenderSoldiers.filter((s) => s.injured && !s.dead).length;
   const defenderName = battle.defender || 'defender';
   let winner: string | null;
-  if (battle.robberFight) {
+  if (battle.forfeitedBy) {
+    // Early end on an undecided battle: the attacker fled, defender wins.
+    winner = defenderName;
+  } else if (battle.robberFight) {
     // Nobody is marked dead in a robber fight: the attacker wins only on a
     // strictly higher roll (the robber wins ties).
     const soldierRoll = attackerSoldiers[0]?.rollNum ?? 0;

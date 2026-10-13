@@ -128,8 +128,8 @@ export const terrainColors: Record<string, string> = {
 export const LONGEST_ROAD_MIN = 5;
 /** Minimum soldier count for the Largest Army bonus. */
 export const LARGEST_ARMY_MIN = 3;
-/** Minimum battles won for the Warmonger bonus. */
-export const WARMONGER_MIN = 3;
+/** Minimum battles won for the Conqueror bonus. */
+export const CONQUEROR_MIN = 3;
 /** Victory points awarded by each bonus. */
 export const BONUS_VP = 2;
 /** Victory points needed to win the game (standard Catan: first to 10 VP on your turn). */

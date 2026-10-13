@@ -13,6 +13,7 @@ When mix fight with cannon in turf, cannon is lowest roll
 Reroll if tie on ambiguous turf
 Attacker
 After a battle, the attacker gets to move their injured soldiers away first (before the defender repositions theirs)
+If the attacker ends a battle early while both sides still have troops, the attacker flees and the battle counts as a defender win (it feeds the Conqueror bonus).
 
 
 Robber

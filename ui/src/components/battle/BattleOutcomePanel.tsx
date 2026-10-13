@@ -90,6 +90,12 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
         {headline}
       </div>
 
+      {battle.forfeitedBy && (
+        <div className="text-[12px] text-center text-gray-500">
+          🏳️ {battle.forfeitedBy === me ? 'You' : battle.forfeitedBy} fled — the battle counts as a loss
+        </div>
+      )}
+
       {battle.robberFight ? (
         <div className="text-[13px] text-center">
           🎲 {soldierRoll} vs robber {robberRoll} — {wonRoll ? 'robber bag taken!' : 'your soldier was killed'}

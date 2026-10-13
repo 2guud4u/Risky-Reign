@@ -1,14 +1,14 @@
 import { Board } from '../types/Board';
 import { GameRoom } from '../types/Room';
-import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, WARMONGER_MIN, BONUS_VP } from '../Constant';
+import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, CONQUEROR_MIN, BONUS_VP } from '../Constant';
 
 /**
  * Room scoring bonuses: Longest Road, Largest Army (standard Catan rules) and
- * Warmonger.
+ * Conqueror.
  *  - Longest Road: a single continuous chain of at least 5 roads earns 2 VP.
  *  - Largest Army: having at least 3 soldiers earns 2 VP (soldier count is
  *    simply how many soldiers a player has on the board).
- *  - Warmonger: winning at least 3 player-vs-player battles earns 2 VP.
+ *  - Conqueror: winning at least 3 player-vs-player battles earns 2 VP.
  *
  * diffs the freshly computed state against `room.bonuses` and adjusts each
  * player's `victoryPoints` by the delta only. It then runs the win check
@@ -126,15 +126,15 @@ export function applyBonuses(room: GameRoom): void {
   const prev = room.bonuses;
   const roadHolder = pickBonusHolder(road, names, LONGEST_ROAD_MIN, prev?.hasLongestRoad);
   const armyHolder = pickBonusHolder(army, names, LARGEST_ARMY_MIN, prev?.hasLargestArmy);
-  const warHolder = pickBonusHolder(battles, names, WARMONGER_MIN, prev?.hasWarmonger);
+  const warHolder = pickBonusHolder(battles, names, CONQUEROR_MIN, prev?.hasConqueror);
 
   const hasLongestRoad: Record<string, boolean> = {};
   const hasLargestArmy: Record<string, boolean> = {};
-  const hasWarmonger: Record<string, boolean> = {};
+  const hasConqueror: Record<string, boolean> = {};
   for (const name of names) {
     hasLongestRoad[name] = name === roadHolder;
     hasLargestArmy[name] = name === armyHolder;
-    hasWarmonger[name] = name === warHolder;
+    hasConqueror[name] = name === warHolder;
   }
 
   for (const p of room.players) {
@@ -142,8 +142,8 @@ export function applyBonuses(room: GameRoom): void {
     const wasArmy = prev?.hasLargestArmy?.[p.name] ?? false;
     const isRoad = hasLongestRoad[p.name] ?? false;
     const isArmy = hasLargestArmy[p.name] ?? false;
-    const wasWar = prev?.hasWarmonger?.[p.name] ?? false;
-    const isWar = hasWarmonger[p.name] ?? false;
+    const wasWar = prev?.hasConqueror?.[p.name] ?? false;
+    const isWar = hasConqueror[p.name] ?? false;
     const wasSettlement = prev?.settlementVp?.[p.name] ?? 0;
     const isSettlement = settlementVp[p.name] ?? 0;
     p.victoryPoints +=
@@ -162,7 +162,7 @@ export function applyBonuses(room: GameRoom): void {
     hasLongestRoad,
     hasLargestArmy,
     battlesWon: battles,
-    hasWarmonger,
+    hasConqueror,
     settlementVp,
   };
   // Knock out every player left with no settlements/cities and no soldiers

@@ -14,7 +14,7 @@ export const DEV_PRESET =
 /** Playable cards handed to every player (Victory Point is counted on draw, never held). */
 const PRESET_HAND: DevelopmentCardType[] = ['knight', 'road_building', 'year_of_plenty', 'monopoly'];
 
-/** Battle wins pre-credited to player A: one more win earns Warmonger. */
+/** Battle wins pre-credited to player A: one more win earns Conqueror. */
 const PRESET_A_BATTLES_WON = 2;
 
 let devId = 0;
@@ -104,7 +104,7 @@ function dealDevCards(room: GameRoom): void {
  *  - Robber: 1 A soldier on a corner of the robber's hex.
  *  - Heal: 2 injured A soldiers on A's city.
  *  - Counter-attack for B's turn: 3 B vs 2 A on B's city road end.
- *  - Warmonger: A starts with 2 battle wins; one more win claims it.
+ *  - Conqueror: A starts with 2 battle wins; one more win claims it.
  *
  * The turn starts at the first player's Dice phase (setup is skipped).
  */
@@ -156,7 +156,7 @@ export function applyDevPreset(room: GameRoom): void {
       );
       if (robberVertex) addSoldiers(board, a, robberVertex.id, 1); // robber fight
     }
-    room.battlesWon[a] = PRESET_A_BATTLES_WON; // warmonger
+    room.battlesWon[a] = PRESET_A_BATTLES_WON; // conqueror
   }
   if (a && b) {
     const contested = roadEnds[a];

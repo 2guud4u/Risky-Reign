@@ -12,7 +12,7 @@ import {
   RoadPrice,
   SettlementPrice,
   SoldierPrice,
-  WARMONGER_MIN,
+  CONQUEROR_MIN,
   WIN_VP,
 } from 'common';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
@@ -54,7 +54,7 @@ const ACHIEVEMENTS: { icon: string; name: string; vp: number; note: string }[] =
   { icon: '⭐', name: 'Victory Point card', vp: 1, note: 'Counted as soon as you draw it.' },
   { icon: '🛤️', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
   { icon: '🛡️', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
-  { icon: '🏆', name: 'Warmonger', vp: BONUS_VP, note: `Most battles won against players, at least ${WARMONGER_MIN}.` },
+  { icon: '👑', name: 'Conqueror', vp: BONUS_VP, note: `Most battles won against players, at least ${CONQUEROR_MIN}.` },
 ];
 
 /** The cost as one icon chip per card (e.g. 🌾 🌾 🪨 🪨 🪨). */

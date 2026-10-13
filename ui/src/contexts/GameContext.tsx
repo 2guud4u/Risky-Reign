@@ -11,6 +11,12 @@ interface GameRoomContextValue {
   /** Soldiers picked (by tapping them on the map) for a group action on the selected vertex. */
   selectedSoldierIds: string[];
   setSelectedSoldierIds: React.Dispatch<React.SetStateAction<string[]>>;
+  /**
+   * Bumped each time an action asks the board to zoom back to the full view
+   * (e.g. the robber's Move bubble, so the highlighted target hexes fit).
+   */
+  boardFitVersion: number;
+  requestBoardFit: () => void;
 }
 
 const GameRoomContext = createContext<GameRoomContextValue | undefined>(undefined);
@@ -20,6 +26,8 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentPlayer, setCurrentPlayer] = useState<PublicPlayer | null>(null);
   const [selectedObject, setSelectedObject] = useState<SelectableObject | null>(null);
   const [selectedSoldierIds, setSelectedSoldierIds] = useState<string[]>([]);
+  const [boardFitVersion, setBoardFitVersion] = useState(0);
+  const requestBoardFit = () => setBoardFitVersion((v) => v + 1);
   return (
     <GameRoomContext.Provider
       value={{
@@ -31,6 +39,8 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSelectedObject,
         selectedSoldierIds,
         setSelectedSoldierIds,
+        boardFitVersion,
+        requestBoardFit,
       }}
     >
       {children}

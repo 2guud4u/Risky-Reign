@@ -47,7 +47,7 @@ import {
  * Escape clears the selection and cancels any in-progress drag.
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
-  const { gameRoom, currentPlayer, selectedObject, setSelectedObject, selectedSoldierIds, setSelectedSoldierIds } =
+  const { gameRoom, currentPlayer, selectedObject, setSelectedObject, selectedSoldierIds, setSelectedSoldierIds, boardFitVersion } =
     useGameRoom();
   const { moveSoldier, moveRobber, moveRobberAfterWin } = useSocket();
 
@@ -135,12 +135,21 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     moveRobberAfterWin,
   });
 
-  const { focusOn, restoreView } = viewport;
+  const { focusOn, restoreView, fitView } = viewport;
   // Clearing the selection (the ✕ bubble or Escape) glides back to the view
   // from before the click-to-focus.
   useEffect(() => {
     if (!selectedObject) restoreView();
   }, [selectedObject, restoreView]);
+  // An action asking for the whole board (the robber's Move bubble) glides
+  // out to the fit view so every highlighted target hex is on screen.
+  const seenFitVersion = useRef(boardFitVersion);
+  useEffect(() => {
+    if (boardFitVersion !== seenFitVersion.current) {
+      seenFitVersion.current = boardFitVersion;
+      fitView();
+    }
+  }, [boardFitVersion, fitView]);
   // Clicking a vertex or edge selects it and glides the board in, centered on
   // it (an edge centers on its midpoint). The waiting-room preview board stays
   // static (the game hasn't started).
@@ -214,6 +223,21 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const onRobberHover = useCallback(
     (hexId: string, hovering: boolean) => setHoveredRobberHexId(hovering ? hexId : null),
     []
+  );
+  // Clicking the robber selects it: its Attack / Move bubbles open.
+  const onRobberClick = useCallback(() => {
+    const robberHex = board && Object.values(board.hexes).find((h) => h.robber);
+    if (robberHex) setSelectedObject({ type: 'robber', id: robberHex.id });
+  }, [board, setSelectedObject]);
+  // Clicking a highlighted hex while a robber move is pending places it there.
+  const onHexClick = useCallback(
+    (hexId: string) => {
+      if (!gameRoom) return;
+      if (winPending) moveRobberAfterWin(hexId, gameRoom.id);
+      else if (robberPending) moveRobber(hexId, gameRoom.id);
+      setSelectedObject(null);
+    },
+    [gameRoom, winPending, robberPending, moveRobber, moveRobberAfterWin, setSelectedObject]
   );
   // The hexes the post-win robber may be moved to (adjacent to its current
   // hex, non-desert) — highlighted while the winner must make the move.
@@ -308,7 +332,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           onMouseDown={viewport.onMouseDown}
           onDoubleClick={viewport.onDoubleClick}
         >
-          {/* Hex tiles layer (clickable while a robber move is pending) */}
+          {/* Hex tiles layer (robber clickable; targets clickable while a
+              robber move is pending) */}
           <HexLayer
             hexes={hexes}
             robberPending={robberPending}
@@ -317,6 +342,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             rollTotal={rollTotal}
             onRobberMouseDown={startRobberDrag}
             onWinRobberMouseDown={startWinDrag}
+            onRobberClick={onRobberClick}
+            onHexClick={onHexClick}
             onRobberHover={onRobberHover}
           />
 
