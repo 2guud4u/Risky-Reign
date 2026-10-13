@@ -1,6 +1,5 @@
 import { Board, VertexId } from '../types/Board';
 import { TurnState, ResourceCount, BuildCheck, ResourceKey } from '../types/Logic';
-import { playerSettlementVertexIds } from './placement';
 import { canAfford } from './logic';
 import { SoldierPrice, HealSoldierResources } from '../Constant';
 
@@ -154,51 +153,42 @@ export function canCaptureSettlementAt(
 
 /**
  * Authoritative capture road transfer (Rules.md "capture settlement/city"):
- * when a player captures a settlement/city, every road "sandwiched" between
- * the captured vertex and one of the capturer's OTHER settlements/cities
- * becomes the capturer's — i.e. each road on a continuous road chain running
- * from the captured vertex to a vertex with the capturer's building. A chain
- * may run through empty vertices only: any other building on the way ends it
- * (it is not sandwiched). Roads the capturer already owns are kept as-is.
- * Returns the roads to transfer with their current owners (so a capture undo
- * can restore them).
+ * when a player captures a settlement/city, every road reachable from the
+ * captured vertex through empty vertices becomes the capturer's — the whole
+ * road region the captured building anchors, including dead-end spurs (a
+ * sandwiched chain may itself be a dead end). One exception: a road whose
+ * far end is an enemy building stays the enemy's — capture never steals a
+ * road up to their walls. Any building (mine or enemy) ends a chain. Roads
+ * the capturer already owns are kept as-is. Returns the roads to transfer
+ * with their current owners (so a capture undo can restore them).
  */
 export function captureRoadTransfers(
   board: Board,
   capturingPlayer: string,
   capturedVertexId: string
 ): { roadId: string; originalOwnerId: string }[] {
-  const myVertices = new Set(
-    playerSettlementVertexIds(board, capturingPlayer).filter((v) => v !== capturedVertexId)
-  );
-  if (myVertices.size === 0) return [];
-
-  // DFS over simple road paths from the captured vertex. When a path reaches
-  // one of my buildings, every road on it is sandwiched.
-  const sandwiched = new Set<string>();
-  const pathRoads: string[] = [];
+  // BFS over the road graph: walk any road, but never through a vertex that
+  // holds a building — that building anchors its own region.
+  const reached = new Set<string>();
   const visited = new Set<string>([capturedVertexId]);
-  const walk = (vertexId: string): void => {
+  const queue: string[] = [capturedVertexId];
+  while (queue.length > 0) {
+    const vertexId = queue.shift()!;
     for (const edgeId of board.vertices[vertexId]?.roadIds ?? []) {
       const edge = board.edges[edgeId];
       if (!edge || edge.roadId === null || !board.roads[edge.roadId]) continue;
       const next = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
-      if (visited.has(next)) continue;
-      pathRoads.push(edge.roadId);
-      if (myVertices.has(next)) {
-        for (const r of pathRoads) sandwiched.add(r);
-      } else if (!board.vertices[next]?.settlementId) {
-        visited.add(next);
-        walk(next);
-        visited.delete(next);
-      }
-      pathRoads.pop();
+      const nextSettlement = board.vertices[next]?.settlementId;
+      const enemyBuilt = !!nextSettlement && board.settlements[nextSettlement]?.ownerId !== capturingPlayer;
+      if (!enemyBuilt) reached.add(edge.roadId);
+      if (visited.has(next) || nextSettlement) continue;
+      visited.add(next);
+      queue.push(next);
     }
-  };
-  walk(capturedVertexId);
+  }
 
   const out: { roadId: string; originalOwnerId: string }[] = [];
-  for (const roadId of sandwiched) {
+  for (const roadId of reached) {
     const road = board.roads[roadId];
     if (road && road.ownerId !== capturingPlayer) out.push({ roadId, originalOwnerId: road.ownerId });
   }

@@ -38,13 +38,12 @@ const GameLogic: React.FC = () => {
   // Server-sent errors surface as a transient banner (below) so they are
   // visible in-game too, and also passed to the pages that can show them inline.
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const [view, setView] = useState<'lobby' | 'game' | 'boardEditor'>('lobby');
   const { socket, isConnected, joinRoom: onJoinRoom, spectateRoom } = useSocket();
-  const { setGameRoom, setCurrentPlayer, gameRoom } = useGameRoom();
+  const { setGameRoom, setCurrentPlayer, gameRoom, toast, showToast } = useGameRoom();
   const autoJoinedRef = useRef(false);
   // A started game this browser holds no seat for: the rejoin picker's options.
   const [rejoin, setRejoin] = useState<{ roomId: string; seats: RejoinSeat[] } | null>(null);
@@ -64,15 +63,16 @@ const GameLogic: React.FC = () => {
   // reload; on every LATER reconnect it re-joins only while the app is still
   // showing that room (game, rejoin picker, paused screen). A player who left
   // for the lobby opted out — a network blip must not drag them back in.
+  const roomViewRef = useRef<{ roomId?: string; rejoin?: string; paused?: string }>({});
+  roomViewRef.current = { roomId: gameRoom?.id, rejoin: rejoin?.roomId, paused: paused?.roomId };
   useEffect(() => {
     if (!socket || !isConnected) return;
     const saved = readSavedSession();
     if (!saved) return;
     if (autoJoinedRef.current) {
+      const v = roomViewRef.current;
       const viewingRoom =
-        gameRoom?.id === saved.roomId ||
-        rejoin?.roomId === saved.roomId ||
-        paused?.roomId === saved.roomId;
+        v.roomId === saved.roomId || v.rejoin === saved.roomId || v.paused === saved.roomId;
       if (!viewingRoom) return;
     } else {
       autoJoinedRef.current = true;
@@ -80,14 +80,13 @@ const GameLogic: React.FC = () => {
     if (saved.spectating) spectateRoom(saved.roomId);
     else onJoinRoom(saved.playerName, saved.roomId, saved.color);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, isConnected, gameRoom, rejoin, paused]);
+  }, [socket, isConnected]);
 
   useEffect(() => {
     if (!socket) return;
 
     socket.on('roomUpdate', (room) => {
       setGameRoom(room);
-      setRejoin(null);
       if (room.gameStatus !== 'resuming') setPaused(null);
       // Not in the room and not watching it: the saved session is stale.
       if (!syncCurrentPlayer(room, socket.id, setCurrentPlayer) && !readSavedSession()?.spectating) {
@@ -142,7 +141,7 @@ const GameLogic: React.FC = () => {
 
     socket.on('error', (errorData) => {
       setError(errorData.message);
-      setToast(errorData.message);
+      showToast(errorData.message);
     });
 
     socket.on(
@@ -165,17 +164,18 @@ const GameLogic: React.FC = () => {
       socket.off('error');
       socket.off('robberFightResult');
     };
-  }, [socket, setGameRoom, setCurrentPlayer]);
+  }, [socket, setGameRoom, setCurrentPlayer, showToast]);
+
 
   // Auto-dismiss the error banner after a few seconds.
   useEffect(() => {
     if (!toast) return;
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    toastTimerRef.current = window.setTimeout(() => showToast(null), TOAST_DURATION_MS);
     return () => {
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
     };
-  }, [toast]);
+  }, [toast, showToast]);
 
   // Auto-dismiss the fight-result notice after a few seconds.
   useEffect(() => {

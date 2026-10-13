@@ -3,6 +3,7 @@ import { Board, BoardUIState, PublicGameRoom, PixelCoord, Player, adjacentHexIds
 import { DROP_THRESHOLD_FRACTION, PROJ_SIZE } from '../constants';
 import { SelectableObject } from '../types';
 import { SoldierDragState } from '../types/board';
+import { useGameRoom } from '../contexts/GameContext';
 import {
   isSoldierDraggable,
   mouseToSvgPoint,
@@ -45,6 +46,8 @@ export function useBoardDrag(opts: {
     moveRobber,
     moveRobberAfterWin,
   } = opts;
+
+  const { showToast } = useGameRoom();
 
   // Soldier drag-and-drop state.
   const [drag, setDrag] = useState<SoldierDragState | null>(null);
@@ -213,9 +216,15 @@ export function useBoardDrag(opts: {
     );
     if (target) {
       moveSoldier(d.soldierId, target, gameRoom.id);
+    } else if (
+      // Dropped near a vertex that isn't road-connected: explain the miss.
+      // Drops on open water / empty space stay a silent cancel.
+      nearestWithin(Object.keys(board.vertices), mp, threshold, (tid) => board.vertices[tid]?.position ?? null)
+    ) {
+      showToast('Soldiers can only move along a road');
     }
     cancelDrag();
-  }, [board, base, gameRoom, currentPlayer, moveRobber, moveRobberAfterWin, moveSoldier, cancelDrag]);
+  }, [board, base, gameRoom, currentPlayer, moveRobber, moveRobberAfterWin, moveSoldier, cancelDrag, showToast]);
 
   return {
     drag,

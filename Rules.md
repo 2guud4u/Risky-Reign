@@ -1,7 +1,7 @@
 Rules in place
 Actions:
 Spawn, move, heal, attack, capture settlement/city, upgrade/downgrade soldier, unstation/destation cannon, sneak
-Capturing a settlement/city also transfers to you every road sandwiched between the captured one and your settlements/cities — a road chain (through empty vertices only) linking them becomes your color
+Capturing a settlement/city also transfers to you every road reachable from the captured vertex through empty vertices — the whole road region it anchors becomes your color, dead-end spurs included, except a road whose far end is an enemy settlement/city (that one stays theirs)
 Clockwise to persons turn
 Knocked out: a player with no settlements, no cities, and no alive soldiers (injured soldiers count as alive) is knocked out — they get no more turns and can't act, but can still spectate. The last player standing wins.
 Wheat can be played for an extra movement

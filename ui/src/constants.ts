@@ -230,12 +230,6 @@ export const PORT_PLANK_W = 0.16;
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 
-/** Gap between the bottom control row / dice and the window edges. */
-export const MAP_CORNER_INSET_PX = 12;
-/** Side (px) of the hamburger menu button (Game.tsx: `px-3 py-2`, 20px glyph, 1px border). */
-export const HAMBURGER_MENU_SIZE_PX = 38;
-/** Gap between the compact dice and the top of the hamburger menu. */
-export const HAMBURGER_MENU_GAP_PX = 8;
 /** Width (px) of the resource panel collapse strip / collapsed sliver. */
 export const RESOURCE_PANEL_TAB_SIZE_PX = 10;
 /** Height (px) of the collapsed sliver (a tiny vertical strip at the screen edge). */

@@ -17,6 +17,9 @@ interface GameRoomContextValue {
    */
   boardFitVersion: number;
   requestBoardFit: () => void;
+  /** Transient red error toast (bottom-center), same one server errors use. */
+  toast: string | null;
+  showToast: (message: string | null) => void;
 }
 
 const GameRoomContext = createContext<GameRoomContextValue | undefined>(undefined);
@@ -25,6 +28,7 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [gameRoom, setGameRoom] = useState<PublicGameRoom | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<PublicPlayer | null>(null);
   const [selectedObject, setSelectedObject] = useState<SelectableObject | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [selectedSoldierIds, setSelectedSoldierIds] = useState<string[]>([]);
   const [boardFitVersion, setBoardFitVersion] = useState(0);
   const requestBoardFit = () => setBoardFitVersion((v) => v + 1);
@@ -41,6 +45,8 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSelectedSoldierIds,
         boardFitVersion,
         requestBoardFit,
+        toast,
+        showToast: setToast,
       }}
     >
       {children}

@@ -33,7 +33,9 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           ✕
         </button>
       </div>
-      <ol className="relative flex m-0 p-0 list-none overflow-x-auto">
+      {/* pt-2: overflow-x-auto clips vertically too — without headroom the
+          current node's ring is cut off at the top. */}
+      <ol className="relative flex m-0 p-0 pt-2 -mt-2 list-none overflow-x-auto">
         {steps.map((pos, i) => {
           const now = i === 0;
           const name = pos.player === currentPlayer?.name ? 'You' : pos.player;

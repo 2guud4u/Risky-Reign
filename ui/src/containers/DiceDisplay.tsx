@@ -2,25 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Dice from '../components/Dice';
-import {
-  DICE_RESULT_LINGER_MS,
-  HAMBURGER_MENU_GAP_PX,
-  HAMBURGER_MENU_SIZE_PX,
-  MAP_CORNER_INSET_PX,
-} from '../constants';
+import { DICE_RESULT_LINGER_MS } from '../constants';
 
 /** The side length (px) of the giant dice. */
 const GIANT_DICE_SIZE = 120;
-/** The side length (px) of the compact dice resting above the hamburger menu. */
-const COMPACT_DICE_SIZE = 40;
+
 
 /**
  * The one dice surface. During the Dice phase, before both dice are rolled,
  * it shows large centered dice the turn player clicks to roll (one click per
  * die); everyone else watches. Once the second die lands the giant dice
- * linger for DICE_RESULT_LINGER_MS so everyone sees the result, then — or in
- * any other phase — collapse to a compact pair just above the hamburger menu
- * (bottom-left).
+ * linger for DICE_RESULT_LINGER_MS so everyone sees the result, then it
+ * renders nothing — the last roll stays visible in the corner pill.
  */
 const DiceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
@@ -84,24 +77,9 @@ const DiceDisplay: React.FC = () => {
     );
   }
 
-  // Compact: the roll stacked on the hamburger menu's column — centered on
-  // the button's axis and tracking its safe-area offsets, so the pair lines
-  // up over the ☰ on notched screens too.
-  const menuLeft = `max(${MAP_CORNER_INSET_PX}px, env(safe-area-inset-left))`;
-  const menuBottom = `max(${MAP_CORNER_INSET_PX}px, env(safe-area-inset-bottom))`;
-  return (
-    <div
-      className="fixed z-40 flex items-center gap-2 flex-col"
-      style={{
-        bottom: `calc(${menuBottom} + ${HAMBURGER_MENU_SIZE_PX}px + ${HAMBURGER_MENU_GAP_PX}px)`,
-        left: `calc(${menuLeft} + ${HAMBURGER_MENU_SIZE_PX / 2}px)`,
-        transform: 'translateX(-50%)',
-      }}
-    >
-      <Dice value={roll.die1} size={COMPACT_DICE_SIZE} />
-      <Dice value={roll.die2} size={COMPACT_DICE_SIZE} />
-    </div>
-  );
+  // Past the roll there's nothing here to show — the last roll lives in the
+  // corner pill in Game.tsx.
+  return null;
 };
 
 export default DiceDisplay;

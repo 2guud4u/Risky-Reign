@@ -17,7 +17,7 @@ import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
 import { readSavedSession, saveSession, clearSavedSession } from '../utils/session';
 
-/** Bottom-left menu (hamburger) shared by the waiting room: leave the lobby. */
+/** Bottom-left menu (gear) shared by the waiting room: leave the lobby. */
 const LobbyMenu: React.FC<{
   open: boolean;
   onToggle: () => void;
@@ -45,7 +45,7 @@ const LobbyMenu: React.FC<{
       aria-label="Menu"
       aria-expanded={open}
     >
-      {'☰'}
+      {'⚙️'}
     </button>
   </div>
 );

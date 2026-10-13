@@ -11,6 +11,7 @@ import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
+import Dice from '../components/Dice';
 import VertexActionBubbles from '../components/board/VertexActionBubbles';
 import RobberActionBubbles from '../components/board/RobberActionBubbles';
 import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
@@ -115,11 +116,21 @@ const Game: React.FC = () => {
     selectedObject?.type === 'robber'
       ? Object.values(gameRoom.board?.hexes ?? {}).find((h) => h.robber)?.id ?? null
       : null;
+  const roll = gameRoom.roll;
   return (
     <div>
-      {/* Menu button: safe-inset keeps it above the home-indicator / off a
-          landscape notch; the menu pops up from it. */}
-      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50">
+      {/* Corner pill: the last roll beside the ⚙️ menu button, one bordered
+          unit so the pair can never drift apart; safe-inset keeps it above
+          the home-indicator / off a landscape notch. */}
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex items-center gap-2 rounded-md border border-gray-300 bg-white shadow px-2 py-1">
+        {roll && roll.die1 !== null && roll.die2 !== null && (
+          // Last roll, always visible beside the gear — replaces the old
+          // compact dice that floated above the menu.
+          <div className="flex items-center gap-1">
+            <Dice value={roll.die1} size={28} />
+            <Dice value={roll.die2} size={28} />
+          </div>
+        )}
         {menuOpen && (
           <div className="absolute bottom-full left-0 mb-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg p-2 text-gray-800">
             <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
@@ -172,12 +183,12 @@ const Game: React.FC = () => {
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="px-3 py-2 text-[20px] leading-none font-semibold rounded-md border border-gray-300 bg-white shadow cursor-pointer hover:bg-gray-100"
+          className="w-8 h-8 flex items-center justify-center text-[20px] leading-none rounded-md cursor-pointer hover:bg-gray-100"
           title="Menu"
           aria-label="Menu"
           aria-expanded={menuOpen}
         >
-          {'☰'}
+          {'⚙️'}
         </button>
       </div>
 
@@ -279,7 +290,7 @@ const Game: React.FC = () => {
       <BattleModal />
       {/* Top-center rail: turn status bar, your-turn toast, waiting/action notices. */}
       <NoticeRail />
-      {/* The dice: giant while rolling, compact in the bottom-right corner after. */}
+      {/* The dice: giant while rolling. The last roll lives in the corner pill. */}
       <DiceDisplay />
     </div>
   );

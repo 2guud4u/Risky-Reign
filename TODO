@@ -13,13 +13,15 @@ allow simple art view
 rule customization
 - unlimited resource cards
 
+- 
+
 allow attack multigroup at the same time
 ports customization
 
 music
 cannons
 walls
-boats
+ships
 
 figure out attack mix of soldiers
 
