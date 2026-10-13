@@ -269,6 +269,14 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     newSocket.on('connect', () => setIsConnected(true));
     newSocket.on('disconnect', () => setIsConnected(false));
 
+    // Mobile browsers suspend/suspend-kill backgrounded tabs, quietly dropping
+    // the socket. When the tab becomes visible again, reconnect immediately
+    // instead of waiting out the backoff timer (MOBILE_PLAN.md).
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !newSocket.connected) newSocket.connect();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
     // The server hands each joined socket a secret seat token; persist it so
     // a reload can re-attach to the same seat instead of joining as new.
     newSocket.on('joined', (data) => {
@@ -277,6 +285,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     });
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisible);
       newSocket.close();
     };
   }, []);

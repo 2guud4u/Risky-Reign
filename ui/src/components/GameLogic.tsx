@@ -60,18 +60,27 @@ const GameLogic: React.FC = () => {
     window.history.replaceState({}, '', '/');
   }, []);
 
-  // Auto-rejoin the saved room once the socket is connected (as a spectator
-  // if that's how this browser was watching).
+  // Join the saved room: on first connect this restores the session after a
+  // reload; on every LATER reconnect it re-joins only while the app is still
+  // showing that room (game, rejoin picker, paused screen). A player who left
+  // for the lobby opted out — a network blip must not drag them back in.
   useEffect(() => {
-    if (!socket || !isConnected || autoJoinedRef.current) return;
+    if (!socket || !isConnected) return;
     const saved = readSavedSession();
-    if (saved) {
+    if (!saved) return;
+    if (autoJoinedRef.current) {
+      const viewingRoom =
+        gameRoom?.id === saved.roomId ||
+        rejoin?.roomId === saved.roomId ||
+        paused?.roomId === saved.roomId;
+      if (!viewingRoom) return;
+    } else {
       autoJoinedRef.current = true;
-      if (saved.spectating) spectateRoom(saved.roomId);
-      else onJoinRoom(saved.playerName, saved.roomId, saved.color);
     }
+    if (saved.spectating) spectateRoom(saved.roomId);
+    else onJoinRoom(saved.playerName, saved.roomId, saved.color);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, isConnected]);
+  }, [socket, isConnected, gameRoom, rejoin, paused]);
 
   useEffect(() => {
     if (!socket) return;
@@ -196,7 +205,7 @@ const GameLogic: React.FC = () => {
           : undefined
       }
     >
-      <ConnectionBanner hidden={isConnected} />
+      <ConnectionBanner hidden={isConnected} onRetry={() => socket?.connect()} />
       {toast && (
         <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
           {toast}

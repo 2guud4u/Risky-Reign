@@ -12,43 +12,22 @@ allow simple art view
 # Far future requests:
 rule customization
 - unlimited resource cards
-- turn timer
 
 allow attack multigroup at the same time
-maybe lock the colors to only 10 colors-use nvidia gpu
 ports customization
 
-can not build on water tiles vertex that is not next to land hex
 music
 cannons
 walls
 boats
 
-
-when trying to move without road say have to move through road only
-
 figure out attack mix of soldiers
 
-settings icon instead of hamburger menu?
-and new trade icon
-better format for players
-
-the bar at the top could do well with some shadow and/or small border to stand out over the rest of the board
-turn order icon is cut off at the top
-fix bottom right corner menu format
 
 
 
 westeros map
 
-
-sandwich rode could also sandwich from dead end 
-
-
-a leaving win couuld still count
-
-
-if self disconnected, it should tell you
 
 
 sound effects 
