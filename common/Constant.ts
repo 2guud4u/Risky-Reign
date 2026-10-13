@@ -43,7 +43,7 @@ export const SoldierPrice: Price = { Wood: 0, Brick: 0, Sheep: 1, Wheat: 1, Ore:
 /** City upgrade cost. */
 export const CityPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 2, Ore: 3 };
 /** Cost to buy a development card (standard Catan price). */
-export const DevelopmentCardPrice: Price = { Wood: 0, Brick: 1, Sheep: 0, Wheat: 1, Ore: 1 };
+export const DevelopmentCardPrice: Price = { Wood: 0, Brick: 0, Sheep: 1, Wheat: 1, Ore: 1 };
 
 /**
  * Healing cost (Rules.md "Soldier"): the player pays one card of either Wheat

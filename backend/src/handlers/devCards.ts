@@ -21,7 +21,7 @@ import { HandlerContext, blockIfCannotAct } from './context';
 export function registerDevCardHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
-  // Draw a development card from the shared deck. Costs 1 wheat, 1 brick and
+  // Draw a development card from the shared deck. Costs 1 wheat, 1 sheep and
   // 1 ore (DevelopmentCardPrice) — the standard Catan price.
   socket.on('drawDevelopmentCard', (data: { roomId: string }) => {
     const { roomId } = data;
@@ -51,7 +51,7 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
     }
     if (!canAfford(player.resources, DevelopmentCardPrice)) {
       socket.emit('error', {
-        message: 'Need 1 wheat, 1 brick and 1 ore to buy a development card',
+        message: 'Need 1 wheat, 1 sheep and 1 ore to buy a development card',
       });
       return;
     }

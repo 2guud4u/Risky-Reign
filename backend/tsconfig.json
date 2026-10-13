@@ -1,4 +1,8 @@
 {
+  // ts-node only type-checks files reachable from the entrypoint, so ambient
+  // stubs (src/types/node-sqlite.d.ts) never load without `files` — without
+  // it `node:sqlite` fails to resolve under nodemon. tsc -b is unaffected.
+  "ts-node": { "files": true },
   "compilerOptions": {
     "experimentalDecorators": true,
     "declaration": true,
