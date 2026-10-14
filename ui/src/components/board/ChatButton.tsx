@@ -4,6 +4,9 @@ import { priceLabel } from '../../utils/price';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { MessageCircle } from 'lucide-react';
+import MapIconButton from '../ui/MapIconButton';
+import Button from '../ui/Button';
 
 /**
  * 💬 button in the top-left corner stack (between ℹ️ and 👤). Toggles the room
@@ -68,18 +71,16 @@ const ChatButton: React.FC = () => {
 
   return (
     <>
-      <button
-        type="button"
+      <MapIconButton
+        icon={<MessageCircle size={22} />}
+        active={open}
         onClick={toggle}
         onMouseDown={(e) => e.stopPropagation()}
         title={open ? 'Hide chat' : 'Chat'}
         aria-label={open ? 'Hide chat' : 'Show chat'}
         aria-expanded={open}
-        className={`absolute top-[120px] left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform ${
-          open ? 'bg-blue-100 border-blue-600 ring-2 ring-blue-300' : 'bg-white border-gray-300 hover:border-blue-500'
-        }`}
+        className="top-[120px] left-2"
       >
-        <span aria-hidden="true">💬</span>
         {unread > 0 && (
           <span
             aria-label={`${unread} unread messages`}
@@ -88,7 +89,7 @@ const ChatButton: React.FC = () => {
             {unread > 9 ? '9+' : unread}
           </span>
         )}
-      </button>
+      </MapIconButton>
 
       <AnimatePresence>
       {open && (
@@ -174,13 +175,14 @@ const ChatButton: React.FC = () => {
               maxLength={CHAT_MESSAGE_MAX}
               className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-md text-[13px]"
             />
-            <button
+            <Button
               type="submit"
+              size="sm"
               disabled={!draft.trim()}
-              className="px-3 py-1.5 rounded-md text-[13px] font-semibold text-white bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              className="!bg-blue-500 !text-white hover:!bg-blue-600"
             >
               Send
-            </button>
+            </Button>
           </form>
         </motion.div>
       )}

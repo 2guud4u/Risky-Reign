@@ -22,6 +22,8 @@ import ChatButton from '../components/board/ChatButton';
 import TutorialCoach from './TutorialCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { GAME_HEX_SIZE } from 'common';
+import Button from '../components/ui/Button';
+import { Settings, Lightbulb, Maximize, Minimize, Pause, LogOut } from 'lucide-react';
 
 
 /**
@@ -136,20 +138,24 @@ const Game: React.FC = () => {
             <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
               Room {gameRoom.id}
             </div>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Lightbulb size={15} />}
               onClick={() => setTutorialHints(!hintsOn)}
-              className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+              className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
             >
-              {hintsOn ? '💡 Turn tips off' : '💡 Turn tips on'}
-            </button>
-            <button
-              type="button"
+              {hintsOn ? 'Turn tips off' : 'Turn tips on'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={fullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
               onClick={toggleFullscreen}
-              className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+              className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
             >
-              {fullscreen ? '⤶ Leave full screen' : '⛶ Full screen'}
-            </button>
+              {fullscreen ? 'Leave full screen' : 'Full screen'}
+            </Button>
             {fsHint && (
               <p className="m-0 mb-1 px-2 py-1 text-[11px] leading-snug text-amber-700 bg-amber-50 rounded-md">
                 This browser can't hide its bars. On iPhone, open the Share menu and choose{' '}
@@ -157,38 +163,42 @@ const Game: React.FC = () => {
               </p>
             )}
             {canPause && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Pause size={15} />}
                 onClick={() => {
                   setMenuOpen(false);
                   setPauseOpen(true);
                 }}
-                className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+                className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
               >
-                ⏸️ Pause game…
-              </button>
+                Pause game…
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<LogOut size={15} />}
               onClick={() => {
                 setMenuOpen(false);
                 leaveGame();
               }}
-              className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-red-600 text-white cursor-pointer hover:bg-red-700"
+              className="w-full !justify-start !bg-red-600 !text-white !text-[13px] !font-semibold hover:!bg-red-700"
             >
               {spectating ? 'Stop watching' : 'Leave game'}
-            </button>
+            </Button>
           </div>
         )}
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="w-8 h-8 flex items-center justify-center text-[20px] leading-none rounded-md cursor-pointer hover:bg-gray-100"
+          className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 cursor-pointer hover:bg-gray-100"
           title="Menu"
           aria-label="Menu"
           aria-expanded={menuOpen}
         >
-          {'⚙️'}
+          <Settings size={20} />
         </button>
       </div>
 
@@ -218,21 +228,20 @@ const Game: React.FC = () => {
               className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
             />
             <div className="flex gap-2">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
                 onClick={() => setPauseOpen(false)}
-                className="flex-1 py-2 rounded-md bg-gray-100 text-gray-700 text-[14px] font-semibold cursor-pointer hover:bg-gray-200"
+                className="flex-1 !bg-gray-100 !text-gray-700 hover:!bg-gray-200"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={submitPause}
                 disabled={!hostPassword || !lobbyPassword}
-                className="flex-1 py-2 rounded-md bg-blue-600 text-white text-[14px] font-semibold cursor-pointer hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 !bg-blue-600 !text-white !font-semibold hover:!bg-blue-700"
               >
                 Pause game
-              </button>
+              </Button>
             </div>
           </div>
         </div>

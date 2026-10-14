@@ -3,6 +3,7 @@ import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import EndTurnButton from './game/EndTurnButton';
 import TurnTimeline from './TurnTimeline';
+import { Undo2 } from 'lucide-react';
 
 /** Tailwind classes for the turn overlay, keyed to the current phase. */
 export const phaseColor = (phase: string): string => {
@@ -61,11 +62,11 @@ const TurnOverlay: React.FC = () => {
             <button
               type="button"
               onClick={() => undoBuild(gameRoom.id)}
-              className="px-2.5 py-1.5 text-[13px] font-semibold rounded-md bg-white/25 cursor-pointer hover:bg-white/40"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-[13px] font-semibold rounded-md bg-white/25 cursor-pointer hover:bg-white/40"
               title="Undo last action"
               aria-label="Undo last action"
             >
-              {'↶'} Undo
+              <Undo2 size={14} /> Undo
             </button>
           )}
           {currentPlayer ? (

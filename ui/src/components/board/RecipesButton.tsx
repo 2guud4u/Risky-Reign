@@ -17,6 +17,8 @@ import {
 } from 'common';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import ModalChrome from '../ModalChrome';
+import MapIconButton from '../ui/MapIconButton';
+import { Info, X } from 'lucide-react';
 
 /** One build recipe: what it is, what it costs, and what it gets you. */
 interface Recipe {
@@ -101,16 +103,14 @@ const RecipesButton: React.FC = () => {
 
   return (
     <>
-      <button
-        type="button"
+      <MapIconButton
+        icon={<Info size={22} />}
         onClick={() => setOpen(true)}
         onMouseDown={(e) => e.stopPropagation()}
         title="Info"
         aria-label="Show recipes and achievements"
-        className="absolute top-16 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full bg-white border-2 border-gray-300 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-blue-500 transition-transform"
-      >
-        <span aria-hidden="true">ℹ️</span>
-      </button>
+        className="top-16 left-2"
+      />
 
       <ModalChrome
         open={open}
@@ -119,14 +119,14 @@ const RecipesButton: React.FC = () => {
         className="max-w-[440px] max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="m-0 text-lg font-bold text-gray-800">ℹ️ Info</h2>
+          <h2 className="m-0 text-lg font-bold text-gray-800">Info</h2>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close info"
-            className="w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
         <div role="tablist" className="flex gap-1 mb-3 border-b border-gray-200">

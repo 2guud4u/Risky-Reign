@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useGameRoom } from '../../contexts/GameContext';
 import PlayersList from '../../containers/game/PlayersList';
+import MapIconButton from '../ui/MapIconButton';
+import { User } from 'lucide-react';
 
 /**
  * 👤 button on the map (under 💬 chat, under the 🔄 trade and ℹ️ recipes
@@ -16,19 +18,16 @@ const PlayersButton: React.FC = () => {
 
   return (
     <>
-      <button
-        type="button"
+      <MapIconButton
+        icon={<User size={22} />}
+        active={open}
         onClick={() => setOpen((o) => !o)}
         onMouseDown={(e) => e.stopPropagation()}
         title={open ? 'Hide players' : 'Players'}
         aria-label={open ? 'Hide players' : 'Show players'}
         aria-expanded={open}
-        className={`absolute top-[176px] left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform ${
-          open ? 'bg-blue-100 border-blue-600 ring-2 ring-blue-300' : 'bg-white border-gray-300 hover:border-blue-500'
-        }`}
-      >
-        <span aria-hidden="true">👤</span>
-      </button>
+        className="top-[176px] left-2"
+      />
 
       <AnimatePresence>
       {open && (
