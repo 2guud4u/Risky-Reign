@@ -12,14 +12,17 @@ interface BoardSoldiersProps {
   onSelect: (obj: { type: 'vertex'; id: string }) => void;
   /** The selected vertex: its soldiers are tapped to pick them instead. */
   selectedVertexId: string | null;
-  /** Soldiers on the selected vertex the player may pick (marked with a bolt). */
+  /** Soldiers on the selected vertex the player may pick (tappable). */
   pickableSoldierIds: ReadonlySet<string>;
+  /** Soldier ids with an unspent action — bolt drawn on every one, selected
+   *  vertex or not. */
+  boltedSoldierIds: ReadonlySet<string>;
   /** Soldiers currently picked for a group action (outlined). */
   pickedSoldierIds: ReadonlySet<string>;
   /** Toggle a pickable soldier in/out of the group. */
   onSoldierClick: (soldierId: string) => void;
   /** Start dragging one soldier sprite (the Action-phase move). */
-  onSoldierDragStart?: (e: React.MouseEvent, ownerName: string, vertexId: string, soldierId: string) => void;
+  onSoldierDragStart?: (e: React.PointerEvent, ownerName: string, vertexId: string, soldierId: string) => void;
 }
 
 /**
@@ -27,9 +30,10 @@ interface BoardSoldiersProps {
  * ranks (healthy soldiers in front, injured behind, count pill for the whole
  * army), standing below the vertex, scaled by BOARD_SOLDIER_SCALE about the
  * vertex so it fits the board's vertex spacing. Replaces the count badges
- * when the board is zoomed in. On the selected vertex, tapping one of your
- * soldiers that can still act picks or unpicks it for the soldier action
- * bubbles.
+ * when the board is zoomed in. Soldiers that can still act carry an energy
+ * bolt whether or not their vertex is selected. On the selected vertex,
+ * tapping one of your soldiers that can still act picks or unpicks it for
+ * the soldier action bubbles.
  */
 export const BoardSoldiers = React.memo(function BoardSoldiers({
   board,
@@ -37,6 +41,7 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
   onSelect,
   selectedVertexId,
   pickableSoldierIds,
+  boltedSoldierIds,
   pickedSoldierIds,
   onSoldierClick,
   onSoldierDragStart,
@@ -67,7 +72,7 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
                 onSoldierClick={selected ? onSoldierClick : undefined}
                 selectableSoldierIds={selected ? pickableSoldierIds : undefined}
                 selectedSoldierIds={selected ? pickedSoldierIds : undefined}
-                canActSoldierIds={selected ? pickableSoldierIds : undefined}
+                canActSoldierIds={boltedSoldierIds}
                 onSoldierDragStart={onSoldierDragStart ? (e, ownerName, soldierId) => onSoldierDragStart(e, ownerName, vertexId, soldierId) : undefined}
               />
             ))}

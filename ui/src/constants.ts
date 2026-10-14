@@ -249,7 +249,7 @@ export const PAN_THRESHOLD = 4;
 /** Smallest distance (px) between two touch points before a pinch zooms. */
 export const PINCH_MIN_DIST = 12;
 /** Transparent hit-line width (board units) for selecting/pressing a road; the visible road stays thin. */
-export const ROAD_HIT_WIDTH = 22;
+export const ROAD_HIT_WIDTH = 26;
 /**
  * Minimum zoom for individual soldier SVGs instead of count badges.
  */

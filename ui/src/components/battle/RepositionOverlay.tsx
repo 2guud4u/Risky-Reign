@@ -25,7 +25,7 @@ interface RepositionOverlayProps {
   colors: Record<string, string>;
   /** The in-flight drag: ghost position and the target it's over. */
   drag: { at: PixelCoord; overTarget: string | null } | null;
-  onTroopPress: (troop: RepositionTroop, e: React.MouseEvent) => void;
+  onTroopPress: (troop: RepositionTroop, e: React.PointerEvent) => void;
   onAssign: (vertexId: string) => void;
 }
 
@@ -44,12 +44,17 @@ const InjuredSprite: React.FC<{
   scale?: number;
   selected?: boolean;
   dim?: boolean;
-  onPress?: (e: React.MouseEvent) => void;
+  onPress?: (e: React.PointerEvent) => void;
 }> = ({ at, color, scale = 1, selected, dim, onPress }) => {
   const w = REPOSITION_SOLDIER_W * scale;
   const h = REPOSITION_SOLDIER_H * scale;
   return (
-    <g opacity={dim ? 0.45 : 1} style={{ cursor: onPress ? 'grab' : undefined }} onMouseDown={onPress}>
+    <g
+      opacity={dim ? 0.45 : 1}
+      style={{ cursor: onPress ? 'grab' : undefined }}
+      onPointerDown={onPress}
+      data-drag-handle={onPress ? true : undefined}
+    >
       {selected && (
         <circle cx={at.x} cy={at.y} r={w * 0.62} fill="#fef3c7" stroke="#f59e0b" strokeWidth={3} className="blink-circle" />
       )}

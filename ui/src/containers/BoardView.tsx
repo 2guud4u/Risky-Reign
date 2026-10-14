@@ -5,7 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
 import { playerColorMap } from '../utils/soldierPlacement';
-import { actableSoldierIds } from '../utils/soldierActions';
+import { actableSoldierIds, soldierCanAct } from '../utils/soldierActions';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { PortLayer } from '../components/board/PortLayer';
@@ -97,6 +97,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // Soldiers grouped by vertex, then by owner (for count badges).
   const soldierGroups = useMemo(() => countSoldiersByVertexAndOwner(board), [board]);
 
+  // Shared drag flag: the viewport touch layer suppresses pan/pinch while a
+  // piece drag is live (must be declared before useBoardViewport).
+  const dragActiveRef = useRef(false);
+
   // Pan/zoom over the board's coordinate space (viewBox-based).
   const span = (BOARD_RADIUS * 2 + 1) * Math.sqrt(3);
   // The margin leaves room past the hex ring so the trade ports (which sit in
@@ -105,7 +109,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // In-game the map fills its container (no letterboxing); the waiting-room
   // preview stays a fixed square.
   const isPlaying = gameRoom?.gameStatus === 'playing';
-  const viewport = useBoardViewport(svgRef, baseSize, isPlaying ? containerSize : null);
+  const viewport = useBoardViewport(svgRef, baseSize, isPlaying ? containerSize : null, dragActiveRef);
 
   // Drag state machine: soldier drags between adjacent vertices, the pending
   // robber move, Escape cancellation and drop resolution.
@@ -122,8 +126,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     startDragSoldier,
     startRobberDrag,
     startWinDrag,
-    handleMouseMove,
-    handleMouseUp,
+    handlePointerMove,
+    handlePointerUp,
     cancelDrag,
   } = useBoardDrag({
     board,
@@ -135,6 +139,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     moveSoldier,
     moveRobber,
     moveRobberAfterWin,
+    dragActiveRef,
   });
 
   const { focusOn, restoreView, fitView } = viewport;
@@ -191,6 +196,20 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     () => new Set(actableSoldierIds(gameRoom, currentPlayer?.name, selectedVertexId)),
     [gameRoom, currentPlayer?.name, selectedVertexId]
   );
+  // Energy bolts on every soldier sprite that still has its action (my Action
+  // phase only) — no vertex selection needed. Board-wide variant of
+  // `actableSoldierIds`, so the selected vertex's pickable soldiers are
+  // automatically included.
+  const boltedSoldierIds = useMemo(() => {
+    const out = new Set<string>();
+    const turn = gameRoom?.turnState;
+    if (!gameRoom?.board || !currentPlayer?.name || !turn) return out;
+    if (turn.phase !== 'Action' || turn.player !== currentPlayer.name || gameRoom.battleState) return out;
+    for (const s of Object.values(gameRoom.board.soldiers ?? {})) {
+      if (s.owner === currentPlayer.name && soldierCanAct(s, turn)) out.add(s.id);
+    }
+    return out;
+  }, [gameRoom, currentPlayer?.name]);
   const pickedSoldierIds = useMemo(() => new Set(selectedSoldierIds), [selectedSoldierIds]);
   const togglePickedSoldier = useCallback(
     (soldierId: string) =>
@@ -328,9 +347,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           viewBox={viewport.viewBox}
           style={{ touchAction: 'none' }}
           onDragStart={(e) => e.preventDefault()}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={cancelDrag}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={cancelDrag}
+          onPointerLeave={cancelDrag}
           onMouseDown={viewport.onMouseDown}
           onDoubleClick={viewport.onDoubleClick}
         >
@@ -342,8 +362,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             winPending={winPending}
             winTargetIds={winTargetIds}
             rollTotal={rollTotal}
-            onRobberMouseDown={startRobberDrag}
-            onWinRobberMouseDown={startWinDrag}
+            onRobberPointerDown={startRobberDrag}
+            onWinRobberPointerDown={startWinDrag}
             onRobberClick={onRobberClick}
             onHexClick={onHexClick}
             onRobberHover={onRobberHover}
@@ -369,6 +389,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               onSelect={handleSoldierSelect}
               selectedVertexId={selectedVertexId}
               pickableSoldierIds={pickableSoldierIds}
+              boltedSoldierIds={boltedSoldierIds}
               pickedSoldierIds={pickedSoldierIds}
               onSoldierClick={togglePickedSoldier}
               onSoldierDragStart={startDragSoldier}

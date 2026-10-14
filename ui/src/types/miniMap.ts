@@ -1,4 +1,4 @@
-import { RefObject, ReactNode, MouseEvent } from 'react';
+import { RefObject, ReactNode } from 'react';
 import { Board, EdgeNode, HexNode, PixelCoord, VertexNode } from 'common';
 import { GarrisonArmy } from '../utils/garrisonFormation';
 
@@ -37,10 +37,12 @@ export interface MiniViewProps {
    * coordinates into world space for drag-and-drop).
    */
   svgRef?: RefObject<SVGSVGElement>;
-  /** SVG-level mouse handlers (for drag-and-drop overlays). */
-  onMouseMove?: (e: MouseEvent<SVGSVGElement>) => void;
-  onMouseUp?: (e: MouseEvent<SVGSVGElement>) => void;
-  onMouseLeave?: (e: MouseEvent<SVGSVGElement>) => void;
+  /** SVG-level pointer handlers (for drag-and-drop overlays). Pointer events
+   *  cover mouse and touch uniformly. */
+  onPointerMove?: (e: React.PointerEvent<SVGSVGElement>) => void;
+  onPointerUp?: (e: React.PointerEvent<SVGSVGElement>) => void;
+  onPointerCancel?: (e: React.PointerEvent<SVGSVGElement>) => void;
+  onPointerLeave?: (e: React.PointerEvent<SVGSVGElement>) => void;
   /**
    * Minimum world-space size for the viewBox (squared). When set, the view is
    * at least this large even if the board neighborhood is smaller — used by

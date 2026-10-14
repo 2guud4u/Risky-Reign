@@ -62,6 +62,9 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
       onMouseLeave={handleMouseLeave}
       style={{ cursor: isSelectable ? 'pointer' : 'default' }}
     >
+      {/* Fattened invisible hit ring: fingertip-sized taps land on the
+          vertex even at board-fit zoom. */}
+      <circle cx={position.x} cy={position.y} r={size * 1.75} fill="transparent" />
       {/* Vertex dot */}
       <circle
         cx={position.x}

@@ -31,6 +31,9 @@ export function useBoardDrag(opts: {
   currentPlayer: Player | null;
   svgRef: React.RefObject<SVGSVGElement>;
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
+  /** Shared flag the viewport touch layer reads to suppress pinch/pan
+   *  while a piece drag is live. Owned by BoardView. */
+  dragActiveRef: React.MutableRefObject<boolean>;
   moveSoldier: (soldierId: string, targetVertexId: string, roomId: string) => void;
   moveRobber: (hexId: string, roomId: string) => void;
   moveRobberAfterWin: (hexId: string, roomId: string) => void;
@@ -49,7 +52,11 @@ export function useBoardDrag(opts: {
 
   const { showToast } = useGameRoom();
 
+  // Shared with the viewport: true while any piece drag is live so the
+  // touch layer knows a second finger is not a pinch.
+
   // Soldier drag-and-drop state.
+  const dragActiveRef = opts.dragActiveRef;
   const [drag, setDrag] = useState<SoldierDragState | null>(null);
   const [mousePos, setMousePos] = useState<PixelCoord | null>(null);
   // Robber drag state: true while the user is dragging the robber.
@@ -63,6 +70,7 @@ export function useBoardDrag(opts: {
   // without those values being in their dependency lists.
   const stateRef = useRef({ drag, mousePos, robberDrag, winDrag });
   stateRef.current = { drag, mousePos, robberDrag, winDrag };
+  if (dragActiveRef) dragActiveRef.current = !!(drag || robberDrag || winDrag);
 
   const cancelDrag = useCallback(() => {
     setDrag(null);
@@ -90,7 +98,7 @@ export function useBoardDrag(opts: {
   // places it there.
   const robberPending = !!gameRoom?.robberMove && gameRoom.robberMove.player === currentPlayer?.name;
   const startRobberDrag = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.PointerEvent) => {
       if (!robberPending) return;
       e.preventDefault(); // stop native drag + text selection highlight
       e.stopPropagation();
@@ -104,7 +112,7 @@ export function useBoardDrag(opts: {
   const winPending =
     !!gameRoom?.robberDefeatedBy && gameRoom.robberDefeatedBy.playerName === currentPlayer?.name;
   const startWinDrag = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.PointerEvent) => {
       if (!winPending) return;
       e.preventDefault(); // stop native drag + text selection highlight
       e.stopPropagation();
@@ -122,7 +130,7 @@ export function useBoardDrag(opts: {
 
   /** Start dragging the first movable soldier this owner has at the vertex. */
   const startDrag = useCallback(
-    (e: React.MouseEvent, ownerName: string, vertexId: string) => {
+    (e: React.PointerEvent, ownerName: string, vertexId: string) => {
       if (!board || !gameRoom) return;
       const soldier = movableSoldierAt(board, gameRoom, vertexId, ownerName);
       if (!soldier) return;
@@ -139,7 +147,7 @@ export function useBoardDrag(opts: {
   );
   /** Start dragging a specific soldier (the zoomed-in sprite layer). */
   const startDragSoldier = useCallback(
-    (e: React.MouseEvent, ownerName: string, vertexId: string, soldierId: string) => {
+    (e: React.PointerEvent, ownerName: string, vertexId: string, soldierId: string) => {
       if (!board || !gameRoom) return;
       // Same gate as the badge layer: own Action phase, own troops, still
       // movable this turn (one action per soldier per phase).
@@ -158,8 +166,8 @@ export function useBoardDrag(opts: {
     [board, gameRoom, currentPlayer?.name]
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
       const { drag: d, robberDrag: r, winDrag: w } = stateRef.current;
       if (!d && !r && !w) return;
       setMousePos(mouseToSvgPoint(e, svgRef.current));
@@ -167,7 +175,7 @@ export function useBoardDrag(opts: {
     [svgRef]
   );
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback(() => {
     const { drag: d, mousePos: mp, robberDrag: rd, winDrag: wd } = stateRef.current;
     // Handle the post-win robber move: drop on a valid adjacent hex.
     if (wd) {
@@ -260,8 +268,8 @@ export function useBoardDrag(opts: {
     startDragSoldier,
     startRobberDrag,
     startWinDrag,
-    handleMouseMove,
-    handleMouseUp,
+    handlePointerMove,
+    handlePointerUp,
     cancelDrag,
   };
 }

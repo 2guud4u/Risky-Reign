@@ -32,7 +32,7 @@ interface SoldierGroupProps {
   /** Soldier ids with an unspent action (marked with an energy bolt). */
   canActSoldierIds?: ReadonlySet<string>;
   /** Start dragging this soldier (the Action-phase move). */
-  onSoldierDragStart?: (e: React.MouseEvent, ownerName: string, soldierId: string) => void;
+  onSoldierDragStart?: (e: React.PointerEvent, ownerName: string, soldierId: string) => void;
 }
 
 /**
@@ -88,7 +88,8 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
         onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
         // Drag any own soldier to move it (the hook re-validates the rules;
         // stopPropagation keeps the board from treating the press as a pan).
-        onMouseDown={onSoldierDragStart ? (e) => onSoldierDragStart(e, army.ownerName, s.id) : undefined}
+        onPointerDown={onSoldierDragStart ? (e) => onSoldierDragStart(e, army.ownerName, s.id) : undefined}
+        data-drag-handle={onSoldierDragStart ? true : undefined}
       >
         <svg
           x={x - aw / 2}
