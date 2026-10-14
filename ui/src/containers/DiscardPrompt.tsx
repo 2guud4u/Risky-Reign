@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
-import ModalChrome from '../components/ModalChrome';
+import Modal from '../components/ui/Modal';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCES, ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
@@ -33,7 +33,7 @@ const DiscardPrompt: React.FC = () => {
     if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   }, [active]);
 
-  // Outer stays mounted: ModalChrome wraps AnimatePresence, which must exist
+  // Outer stays mounted: Modal wraps AnimatePresence, which must exist
   // for the exit spring to play. Values below fall back when nothing is owed.
   const discards = gameRoom?.discards;
   const required = currentPlayer && discards ? discards[currentPlayer.name] : undefined;
@@ -62,8 +62,7 @@ const DiscardPrompt: React.FC = () => {
   };
 
   return (
-    <ModalChrome open={open} aria-label="Discard cards" className="max-w-[560px]">
-      <h2 className="text-lg font-bold text-gray-800 mb-1">A 7 was rolled</h2>
+    <Modal open={open} aria-label="Discard cards" title="A 7 was rolled" width="max-w-[560px]">
       <p className="text-sm text-gray-500 mb-3">
         You hold {handTotal} cards — discard {need} of them.
       </p>
@@ -131,7 +130,7 @@ const DiscardPrompt: React.FC = () => {
       >
         Discard {total}/{need} cards
       </button>
-    </ModalChrome>
+    </Modal>
   );
 };
 

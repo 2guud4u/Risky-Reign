@@ -23,6 +23,7 @@ import TutorialCoach from './TutorialCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { GAME_HEX_SIZE } from 'common';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import { Settings, Lightbulb, Maximize, Minimize, Pause, LogOut } from 'lucide-react';
 
 
@@ -205,47 +206,49 @@ const Game: React.FC = () => {
       {/* Pause dialog: the host picks the reopen password (host) and the
           seat-claim password (lobby). The game keeps running for nobody —
           the room closes and the link shows the paused screen. */}
-      {pauseOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-5 w-full max-w-[380px] flex flex-col gap-3">
-            <h2 className="text-lg font-bold m-0">Pause this game</h2>
-            <p className="m-0 text-[13px] text-gray-600">
-              The board is saved and the room closes. Reopen it later with the host password;
-              players rejoin their seats with the lobby password.
-            </p>
-            <input
-              type="password"
-              value={hostPassword}
-              onChange={(e) => setHostPassword(e.target.value)}
-              placeholder="Host password (reopens the game)"
-              className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
-            />
-            <input
-              type="password"
-              value={lobbyPassword}
-              onChange={(e) => setLobbyPassword(e.target.value)}
-              placeholder="Lobby password (players rejoin)"
-              className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => setPauseOpen(false)}
-                className="flex-1 !bg-gray-100 !text-gray-700 hover:!bg-gray-200"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={submitPause}
-                disabled={!hostPassword || !lobbyPassword}
-                className="flex-1 !bg-blue-600 !text-white !font-semibold hover:!bg-blue-700"
-              >
-                Pause game
-              </Button>
-            </div>
+      <Modal
+        open={pauseOpen}
+        onClose={() => setPauseOpen(false)}
+        title="Pause this game"
+        width="max-w-[380px]"
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setPauseOpen(false)}
+              className="flex-1 !bg-gray-100 !text-gray-700 hover:!bg-gray-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitPause}
+              disabled={!hostPassword || !lobbyPassword}
+              className="flex-1 !bg-blue-600 !text-white !font-semibold hover:!bg-blue-700"
+            >
+              Pause game
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="m-0 text-[13px] text-gray-600">
+          The board is saved and the room closes. Reopen it later with the host password;
+          players rejoin their seats with the lobby password.
+        </p>
+        <input
+          type="password"
+          value={hostPassword}
+          onChange={(e) => setHostPassword(e.target.value)}
+          placeholder="Host password (reopens the game)"
+          className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+        />
+        <input
+          type="password"
+          value={lobbyPassword}
+          onChange={(e) => setLobbyPassword(e.target.value)}
+          placeholder="Lobby password (players rejoin)"
+          className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+        />
+      </Modal>
       <div className="fixed inset-0 flex safe-inset">
         <div className="relative flex-1 min-w-0 bg-white">
           {spectating && (

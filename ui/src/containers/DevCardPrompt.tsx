@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import ModalChrome from '../components/ModalChrome';
+import Modal from '../components/ui/Modal';
 import { RESOURCES, ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 
@@ -35,7 +35,7 @@ const DevCardPrompt: React.FC = () => {
     if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   }, [active]);
 
-  // Outer stays mounted: ModalChrome wraps AnimatePresence, which must exist
+  // Outer stays mounted: Modal wraps AnimatePresence, which must exist
   // for the exit spring to play. The knight "spawn" path intentionally stays
   // closed — placement happens on the map (NoticeRail hint).
   const choice = gameRoom?.devCardChoice;
@@ -50,8 +50,7 @@ const DevCardPrompt: React.FC = () => {
       { effect: 'spawn', icon: '🛡️', title: 'Spawn soldier', sub: 'where you have one' },
     ] as const;
     return (
-      <ModalChrome open={knightOpen} aria-label="Knight card" className="max-w-[420px]">
-        <h2 className="text-lg font-bold text-gray-800 mb-3">⚔️ Knight</h2>
+      <Modal open={knightOpen} aria-label="Knight card" title="⚔️ Knight" width="max-w-[420px]">
         <div className="flex gap-3">
           {options.map((o) => (
             <button
@@ -73,7 +72,7 @@ const DevCardPrompt: React.FC = () => {
         >
           Keep the card for later
         </button>
-      </ModalChrome>
+      </Modal>
     );
   }
 
@@ -102,10 +101,7 @@ const DevCardPrompt: React.FC = () => {
   };
 
   return (
-    <ModalChrome open={resourceOpen} aria-label="Development card choice" className="max-w-[560px]">
-      <h2 className="text-lg font-bold text-gray-800 mb-1">
-        {isYearOfPlenty ? '🎁 Year of Plenty' : '💰 Monopoly'}
-      </h2>
+    <Modal open={resourceOpen} aria-label="Development card choice" title={isYearOfPlenty ? '🎁 Year of Plenty' : '💰 Monopoly'} width="max-w-[560px]">
       <p className="text-sm text-gray-500 mb-3">
         {isYearOfPlenty
           ? 'Take any 2 cards from the bank (2 of the same is fine).'
@@ -185,7 +181,7 @@ const DevCardPrompt: React.FC = () => {
           Take {total}/2 cards
         </button>
       )}
-    </ModalChrome>
+    </Modal>
   );
 };
 

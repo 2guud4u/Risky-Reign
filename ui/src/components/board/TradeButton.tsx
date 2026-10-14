@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { diceOwner, PortType } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import TradeTab from '../../containers/game/TradeTab';
-import ModalChrome from '../ModalChrome';
+import Modal from '../ui/Modal';
 import { OPEN_TRADE_EVENT } from '../../constants';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import MapIconButton from '../ui/MapIconButton';
 import { OpenTradeDetail } from '../../types/openTrade';
 
@@ -118,21 +118,10 @@ const TradeButton: React.FC = () => {
         )}
       </MapIconButton>
 
-      <ModalChrome open={open} onClose={() => setOpen(false)} aria-label="Trade" className="max-w-[480px] max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="m-0 text-lg font-bold text-gray-800">🔄 Trade</h2>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close trade"
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
-          >
-            <X size={18} />
-          </button>
-        </div>
+      <Modal open={open} onClose={() => setOpen(false)} title="🔄 Trade" aria-label="Trade" width="max-w-[480px]">
         {/* Keyed by the port so a new port click re-presets the form. */}
         <TradeTab key={port ?? 'none'} port={port} />
-      </ModalChrome>
+      </Modal>
     </>
   );
 };

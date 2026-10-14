@@ -16,9 +16,9 @@ import {
   WIN_VP,
 } from 'common';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
-import ModalChrome from '../ModalChrome';
+import Modal from '../ui/Modal';
 import MapIconButton from '../ui/MapIconButton';
-import { Info, X } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 /** One build recipe: what it is, what it costs, and what it gets you. */
 interface Recipe {
@@ -112,23 +112,13 @@ const RecipesButton: React.FC = () => {
         className="top-16 left-2"
       />
 
-      <ModalChrome
+      <Modal
         open={open}
         onClose={() => setOpen(false)}
+        title="Info"
         aria-label="Recipes and achievements"
-        className="max-w-[440px] max-h-[90vh] overflow-y-auto"
+        width="max-w-[440px]"
       >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="m-0 text-lg font-bold text-gray-800">Info</h2>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label="Close info"
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
-          >
-            <X size={18} />
-          </button>
-        </div>
         <div role="tablist" className="flex gap-1 mb-3 border-b border-gray-200">
           {TABS.map((t) => (
             <button
@@ -187,7 +177,7 @@ const RecipesButton: React.FC = () => {
             </ul>
           </div>
         )}
-      </ModalChrome>
+      </Modal>
     </>
   );
 };

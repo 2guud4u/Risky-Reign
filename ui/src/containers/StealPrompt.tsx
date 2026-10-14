@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import ModalChrome from '../components/ModalChrome';
+import Modal from '../components/ui/Modal';
 
 /**
  * Steal prompt. Shown after the robber is placed and there is at least one
@@ -25,7 +25,7 @@ const StealPrompt: React.FC = () => {
     if (!active) setSelectedVictim(null);
   }, [active]);
 
-  // Outer stays mounted: ModalChrome wraps AnimatePresence, which must exist
+  // Outer stays mounted: Modal wraps AnimatePresence, which must exist
   // for the exit spring to play. The body only renders while the steal is live.
   const open =
     !!gameRoom && !!currentPlayer && !!gameRoom.steal && gameRoom.steal.thief === currentPlayer.name;
@@ -34,8 +34,7 @@ const StealPrompt: React.FC = () => {
   const cardCount = selectedPlayer?.resourceCount ?? 0;
 
   return (
-    <ModalChrome open={open} aria-label="Choose a card to steal" className="max-w-[480px]">
-      <h2 className="text-lg font-bold text-gray-800 mb-1">Choose a card to steal</h2>
+    <Modal open={open} aria-label="Choose a card to steal" title="Choose a card to steal" width="max-w-[480px]">
       <p className="text-sm text-gray-500 mb-3">
         You rolled a 7. Pick a face-down card from one of these players.
       </p>
@@ -88,7 +87,7 @@ const StealPrompt: React.FC = () => {
       ) : (
         <p className="text-sm text-gray-400">Select a player to see their cards.</p>
       )}
-    </ModalChrome>
+    </Modal>
   );
 };
 
