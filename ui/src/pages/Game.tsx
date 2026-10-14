@@ -134,7 +134,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
   if (!currentPlayer) {
     if (gameRoom.gameStatus !== 'waiting') return gameRoom.gameStatus === 'finished' ? <><Game /><VictoryOverlay /></> : <Game />;
     return (
-      <div className="flex items-center justify-center min-h-screen w-full p-4 bg-canvas">
+      <div className="flex items-center justify-center min-h-dvh w-full p-4 bg-canvas">
         <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px] text-center flex flex-col gap-3">
           <h1 className="text-xl font-bold m-0 text-ink">The game went back to the lobby</h1>
           <Button
@@ -159,7 +159,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     // Name-first: join is name-optional, so ask for the name before the color.
     if (!currentPlayer.name.trim()) {
       return (
-        <div className="flex items-start lg:items-center justify-center min-h-screen w-full p-4 bg-canvas">
+        <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4 bg-canvas">
           <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px]">
             <h1 className="text-2xl font-bold text-center mb-2 text-ink">Risky Reign</h1>
             <p className="text-center text-ink-soft mb-4">Room {gameRoom.id}</p>
@@ -198,7 +198,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     const canStart =
       gameRoom.players[0]?.id === currentPlayer.id && gameRoom.players.length >= MIN_PLAYERS;
     return (
-      <div className="flex items-start lg:items-center justify-center min-h-screen w-full p-4 bg-canvas">
+      <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4 bg-canvas">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
           <div className="hidden lg:block" />
           <div className="bg-canvas-raised rounded-xl shadow-card p-4 w-full max-w-[520px] justify-self-center">
@@ -210,7 +210,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               onClick={copyJoinLink}
               title="Copy join link"
               aria-label="Copy join link"
-              className="ml-1.5 align-middle inline-flex items-center text-[13px] text-ink-soft hover:text-ink cursor-pointer"
+              className="ml-0.5 -my-2 align-middle inline-flex items-center justify-center min-w-[40px] min-h-[44px] text-[13px] text-ink-soft hover:text-ink cursor-pointer"
             >
               {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
             </button>

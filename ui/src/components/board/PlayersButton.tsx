@@ -26,7 +26,7 @@ const PlayersButton: React.FC = () => {
         title={open ? 'Hide players' : 'Players'}
         aria-label={open ? 'Hide players' : 'Show players'}
         aria-expanded={open}
-        className="top-[176px] left-2"
+        className="top-[176px] left-[max(0.5rem,env(safe-area-inset-left))]"
       />
 
       <AnimatePresence>
@@ -36,7 +36,7 @@ const PlayersButton: React.FC = () => {
           aria-label="Players"
           // Below the four corner buttons; keep clicks inside from panning the map.
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute top-[236px] left-2 z-20 w-[280px] max-h-[calc(100%-250px)] overflow-y-auto origin-top-left"
+          className="absolute top-[236px] left-[max(0.5rem,env(safe-area-inset-left))] z-20 w-[280px] max-h-[calc(100%-250px)] overflow-y-auto origin-top-left"
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: -10, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.97 }}

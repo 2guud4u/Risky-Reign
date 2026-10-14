@@ -38,7 +38,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
   const canJoin = isConnected && !!roomId.trim();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-canvas">
+    <div className="min-h-dvh flex items-center justify-center p-4 bg-canvas">
       <div className="bg-canvas-raised rounded-xl shadow-card p-5 w-full max-w-[420px]">
         <h1 className="text-[28px] font-bold text-center mb-6 text-ink">Risky Reign Lobby</h1>
 

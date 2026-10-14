@@ -139,10 +139,10 @@ const BattleModalInner: React.FC<{
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 md:p-4">
       {/* Fixed to the viewport height: the map shrinks to fit, never scrolls. */}
       <motion.div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-4 flex flex-col gap-3 overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-2 md:p-4 flex flex-col gap-3 overflow-hidden"
         initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 18 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
@@ -162,10 +162,10 @@ const BattleModalInner: React.FC<{
           </h2>
           {!battle.robberFight && <BattleStepper phase={phase} retreatPending={!!moverName} round={battle.round} />}
         </div>
-        <div className="flex-1 min-h-0 flex gap-4">
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-4 overflow-y-auto md:overflow-visible">
           {/* The arena: the vertex mini-map with both armies on it, or (when
               repositioning) the injured troops and where they can retreat. */}
-          <div className="flex-1 min-w-0 min-h-0">
+          <div className="min-w-0 min-h-[240px] md:flex-1 md:min-h-0">
             {vertex && (
               <MiniView
                 board={board}
@@ -210,7 +210,7 @@ const BattleModalInner: React.FC<{
           </div>
 
           {/* Side panel: what to do right now. */}
-          <div className="w-72 shrink-0 flex flex-col gap-3 min-h-0 overflow-y-auto">
+          <div className="w-full md:w-72 shrink-0 flex flex-col gap-3 min-h-0 md:overflow-y-auto">
             {phase === 'rolling' && (
               <RollingPrompt waitingLines={waitingLines} rolling={rollingSoldierId !== null} myRollPending={myRollPending} />
             )}

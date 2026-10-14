@@ -109,7 +109,7 @@ const RecipesButton: React.FC = () => {
         onMouseDown={(e) => e.stopPropagation()}
         title="Info"
         aria-label="Show recipes and achievements"
-        className="top-16 left-2"
+        className="top-16 left-[max(0.5rem,env(safe-area-inset-left))]"
       />
 
       <Modal

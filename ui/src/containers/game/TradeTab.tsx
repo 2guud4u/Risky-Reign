@@ -9,7 +9,7 @@ import { emptyPrice } from '../../constants';
 
 /** Small round +/- button used by every amount control. */
 const stepperBtn =
-  'w-5 h-5 flex items-center justify-center rounded-full border border-gray-300 bg-white text-[12px] font-bold text-gray-600 cursor-pointer hover:border-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed';
+  'w-11 h-11 md:w-5 md:h-5 flex items-center justify-center rounded-full border border-gray-300 bg-white text-[16px] md:text-[12px] font-bold text-gray-600 cursor-pointer hover:border-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed';
 
 /** A player-color dot. */
 const Dot: React.FC<{ color?: string; size?: number }> = ({ color, size = 10 }) => (

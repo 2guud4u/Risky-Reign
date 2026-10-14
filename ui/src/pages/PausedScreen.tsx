@@ -71,7 +71,7 @@ const PausedScreen: React.FC<PausedScreenProps> = ({ info, onBack }) => {
   const expiryText = `Expires ${new Date(expired).toLocaleDateString()}`;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-canvas">
+    <div className="min-h-dvh flex items-center justify-center p-4 bg-canvas">
       <div className="bg-canvas-raised rounded-xl shadow-card p-5 w-full max-w-[420px] flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-bold text-center m-0 text-ink">

@@ -95,7 +95,7 @@ const TradeButton: React.FC = () => {
         onMouseDown={(e) => e.stopPropagation()}
         title={tradeHint}
         aria-label={waiting > 0 ? `${tradeHint} (${waiting} offer${waiting === 1 ? '' : 's'} waiting)` : tradeHint}
-        className={`top-2 left-2 ${canTrade ? '' : 'opacity-80'}`}
+        className={`top-2 left-[max(0.5rem,env(safe-area-inset-left))] ${canTrade ? '' : 'opacity-80'}`}
       >
         {canTrade && !tradeSeen && (
           // Soft pulsing halo: "you can trade now" (until first opened).

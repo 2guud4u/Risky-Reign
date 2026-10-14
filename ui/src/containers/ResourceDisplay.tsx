@@ -5,7 +5,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { priceLabel } from '../utils/price';
 import { ActionBubble } from '../components/board/ActionBubbles';
-import { RESOURCE_PANEL_TAB_SIZE_PX, RESOURCE_PANEL_LIP_HEIGHT_PX } from '../constants';
+import { RESOURCE_PANEL_LIP_HEIGHT_PX } from '../constants';
 import { devCardTabHintSeen, markDevCardTabHintSeen, useTutorialHints } from '../utils/tutorial';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -85,7 +85,11 @@ const ResourceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { drawDevelopmentCard, playDevelopmentCard } = useSocket();
   const [view, setView] = useState<PanelView>('resources');
-  const [collapsed, setCollapsed] = useState(false);
+  // Phones start collapsed — the board needs the width; the edge strip
+  // reopens the panel on demand. Desktop keeps the expanded default.
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
   const hintsOn = useTutorialHints();
   // Show the "dev cards live behind the ▼" pointer at most once per session.
   const [devHintSeen, setDevHintSeen] = useState(devCardTabHintSeen);
@@ -155,8 +159,8 @@ const openDevCards = () => {
            onClick={() => setCollapsed(!collapsed)}
            aria-label={collapsed ? 'Show resources panel' : 'Hide resources panel'}
            title={collapsed ? 'Show resources panel' : 'Hide resources panel'}
-           className="flex shrink-0 items-center justify-center rounded-l-lg cursor-pointer hover:bg-gray-100"
-           style={{ width: RESOURCE_PANEL_TAB_SIZE_PX, minHeight: RESOURCE_PANEL_LIP_HEIGHT_PX }}
+           className="w-11 md:w-[10px] flex shrink-0 items-center justify-center rounded-l-lg cursor-pointer hover:bg-gray-100"
+           style={{ minHeight: RESOURCE_PANEL_LIP_HEIGHT_PX }}
          >
            <span className="text-gray-500">
              {collapsed ? <ChevronRight size={10} strokeWidth={2.5} aria-hidden="true" /> : <ChevronLeft size={10} strokeWidth={2.5} aria-hidden="true" />}

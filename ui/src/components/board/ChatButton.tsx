@@ -79,7 +79,7 @@ const ChatButton: React.FC = () => {
         title={open ? 'Hide chat' : 'Chat'}
         aria-label={open ? 'Hide chat' : 'Show chat'}
         aria-expanded={open}
-        className="top-[120px] left-2"
+        className="top-[120px] left-[max(0.5rem,env(safe-area-inset-left))]"
       >
         {unread > 0 && (
           <span

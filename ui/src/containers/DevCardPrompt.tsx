@@ -110,7 +110,7 @@ const DevCardPrompt: React.FC = () => {
 
       {/* One tile per resource: +/- counters (Year of Plenty), or the whole
           tile is the pick (Monopoly). */}
-      <div className="grid grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-3 min-[480px]:grid-cols-5 gap-2 mb-4">
         {RESOURCES.map((r) => {
           const count = counts[r] ?? 0;
           const face = (
@@ -146,7 +146,7 @@ const DevCardPrompt: React.FC = () => {
                   onClick={() => decrement(r)}
                   disabled={count <= 0}
                   aria-label={`Take one less ${r}`}
-                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
+                  className="w-11 h-11 md:w-6 md:h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                 >
                   −
                 </button>
@@ -156,7 +156,7 @@ const DevCardPrompt: React.FC = () => {
                   onClick={() => increment(r)}
                   disabled={total >= 2 || count >= (gameRoom?.bankSupply?.[r] ?? Infinity)}
                   aria-label={`Take one more ${r}`}
-                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
+                  className="w-11 h-11 md:w-6 md:h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                 >
                   +
                 </button>

@@ -28,7 +28,7 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto flex items-center justify-center w-6 h-6 rounded text-gray-400 hover:text-gray-700 cursor-pointer"
+          className="ml-auto flex items-center justify-center w-8 h-8 md:w-6 md:h-6 rounded text-gray-400 hover:text-gray-700 cursor-pointer"
           aria-label="Close turn timeline"
         >
           <X size={14} />

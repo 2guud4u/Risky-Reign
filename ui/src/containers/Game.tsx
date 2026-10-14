@@ -194,7 +194,7 @@ const Game: React.FC = () => {
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 cursor-pointer hover:bg-gray-100"
+          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center rounded-md text-gray-600 cursor-pointer hover:bg-gray-100"
           title="Menu"
           aria-label="Menu"
           aria-expanded={menuOpen}

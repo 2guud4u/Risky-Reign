@@ -68,7 +68,7 @@ const DiscardPrompt: React.FC = () => {
       </p>
 
       {/* One tile per resource: − / count / + and "Max" (capped by the hand). */}
-      <div className="grid grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-3 min-[480px]:grid-cols-5 gap-2 mb-4">
         {RESOURCES.map((r) => {
           const count = counts[r] ?? 0;
           const held = currentPlayer?.resources[r] ?? 0;
@@ -90,7 +90,7 @@ const DiscardPrompt: React.FC = () => {
                   onClick={() => decrement(r)}
                   disabled={count <= 0}
                   aria-label={`Discard one less ${r}`}
-                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
+                  className="w-11 h-11 md:w-6 md:h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                 >
                   −
                 </button>
@@ -100,7 +100,7 @@ const DiscardPrompt: React.FC = () => {
                   onClick={() => increment(r)}
                   disabled={!canAdd}
                   aria-label={`Discard one more ${r}`}
-                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
+                  className="w-11 h-11 md:w-6 md:h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                 >
                   +
                 </button>

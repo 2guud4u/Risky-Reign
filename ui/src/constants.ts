@@ -230,8 +230,6 @@ export const PORT_PLANK_W = 0.16;
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 
-/** Width (px) of the resource panel collapse strip / collapsed sliver. */
-export const RESOURCE_PANEL_TAB_SIZE_PX = 10;
 /** Height (px) of the collapsed sliver (a tiny vertical strip at the screen edge). */
 export const RESOURCE_PANEL_LIP_HEIGHT_PX = 64;
 /** Gap between the resource panel (and its collapsed lip) and the right window edge (Game.tsx wrapper: `right-2`). */
