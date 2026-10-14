@@ -85,6 +85,11 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
                   👑
                 </span>
               )}
+              {battlesWon > 0 && (
+                <span className="text-amber-700 font-semibold" title={`Battles won: ${battlesWon}`}>
+                  🏆{battlesWon}
+                </span>
+              )}
               {(player.victoryPoints ?? 0) > 0 && (
                 <span className="text-yellow-700" title="Victory points">
                   ⭐{player.victoryPoints}
