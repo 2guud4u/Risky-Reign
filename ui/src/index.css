@@ -99,20 +99,6 @@ body {
     }
 }
 
-
-/* Slide-down entrance for the your-turn toast. */
-@keyframes slide-down {
-    from {
-        opacity: 0;
-        transform: translateY(-16px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 /* Pop-in for the attack target chips stacked above their bubble. */
 .bubble-pop {
     animation: bubble-pop 160ms ease-out backwards;

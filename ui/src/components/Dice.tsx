@@ -56,7 +56,7 @@ const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll }) => (
     onClick={canRoll ? onRoll : undefined}
     className={`rounded-lg border-2 flex items-center justify-center font-bold text-gray-800 ${
       canRoll
-        ? 'border-amber-500 bg-amber-50 cursor-pointer hover:bg-amber-100'
+        ? 'border-amber-500 bg-amber-50 cursor-pointer hover:bg-amber-100 active:scale-90 transition-transform motion-reduce:active:scale-100'
         : 'border-gray-300 bg-white'
     }`}
     style={{ width: size, height: size }}

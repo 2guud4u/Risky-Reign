@@ -62,6 +62,7 @@ export function useBoardDrag(opts: {
   // Latest-values ref so the memoized callbacks read current drag state
   // without those values being in their dependency lists.
   const stateRef = useRef({ drag, mousePos, robberDrag, winDrag });
+  stateRef.current = { drag, mousePos, robberDrag, winDrag };
 
   const cancelDrag = useCallback(() => {
     setDrag(null);

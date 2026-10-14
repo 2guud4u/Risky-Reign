@@ -45,7 +45,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
           onClick={handleCreateRoom}
           disabled={!isConnected}
           className={`w-full py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white mb-4 ${
-            isConnected ? 'bg-green-600 cursor-pointer hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+            isConnected ? 'bg-green-600 cursor-pointer hover:bg-green-700 active:scale-[0.98] transition-all motion-reduce:active:scale-100' : 'bg-gray-400 cursor-not-allowed'
           }`}
         >
           {isConnected ? 'Create Game' : 'Connecting...'}

@@ -78,7 +78,7 @@ const VictoryOverlay: React.FC = () => {
           <button
             type="button"
             onClick={() => resetGame(gameRoom.id)}
-            className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer"
+            className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer transition-all active:scale-95 motion-reduce:active:scale-100"
           >
             Play Again
           </button>

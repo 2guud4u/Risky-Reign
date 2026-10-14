@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { SoldierBattleState } from 'common';
+import React, { useEffect, useRef, useState } from 'react';
+import { PublicGameRoom, PublicPlayer, SoldierBattleState } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import MiniView from '../components/MiniView';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { useBattleReposition } from '../hooks/useBattleReposition';
@@ -50,14 +50,16 @@ const SideName: React.FC<{ name: string; color?: string; you: boolean; align?: '
  * picked for you, arrows point to where it can go, and moving your last one
  * finishes your turn.
  */
-const BattleModal: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+const BattleModalInner: React.FC<{
+  gameRoom: PublicGameRoom;
+  currentPlayer: PublicPlayer | null;
+}> = ({ gameRoom, currentPlayer }) => {
   const reduce = useReducedMotion();
   const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier, finishRepositioning, moveRobberAfterWin } =
     useSocket();
 
-  const battle = gameRoom?.battleState ?? null;
-  const board = gameRoom?.board ?? null;
+  const battle = gameRoom.battleState ?? null;
+  const board = gameRoom.board ?? null;
   // The troop whose roll is in flight (clicked, awaiting the result) —
   // gives instant feedback so the click doesn't feel dead.
   const [rollingSoldierId, setRollingSoldierId] = useState<string | null>(null);
@@ -83,7 +85,7 @@ const BattleModal: React.FC = () => {
       .find((x) => x.soldier.id === rollingSoldierId);
     if (!s || s.rollNum !== null) setRollingSoldierId(null);
   }, [battle, rollingSoldierId]);
-  if (!gameRoom || !battle || !board) return null;
+  if (!battle || !board) return null;
 
   const vertex = board.vertices[battle.vertexId];
   const center = vertex ? vertex.position : { x: 0, y: 0 };
@@ -143,6 +145,7 @@ const BattleModal: React.FC = () => {
         className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-4 flex flex-col gap-3 overflow-hidden"
         initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 18 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
         transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 380, damping: 30 }}
       >
         {/* Header: attacker vs defender, plus where the battle stands. */}
@@ -241,6 +244,27 @@ const BattleModal: React.FC = () => {
         </div>
       </motion.div>
     </div>
+  );
+};
+
+/**
+ * Presence wrapper: keeps the last live battle so the exiting modal still has
+ * data to render — AnimatePresence replays the removed child for the exit
+ * spring, and the inner component reads state from props (never context) so
+ * it can paint that final frame.
+ */
+const BattleModal: React.FC = () => {
+  const { gameRoom, currentPlayer } = useGameRoom();
+  const last = useRef<{ gameRoom: PublicGameRoom; currentPlayer: PublicPlayer | null } | null>(null);
+  if (gameRoom?.battleState && gameRoom.board) {
+    last.current = { gameRoom, currentPlayer };
+  }
+  const open = !!(gameRoom?.battleState && gameRoom.board);
+  const shown = last.current;
+  return (
+    <AnimatePresence>
+      {open && shown && <BattleModalInner gameRoom={shown.gameRoom} currentPlayer={shown.currentPlayer} />}
+    </AnimatePresence>
   );
 };
 

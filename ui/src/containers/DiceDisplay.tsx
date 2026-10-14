@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Dice from '../components/Dice';
@@ -41,52 +41,59 @@ const DiceDisplay: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [bothRolled]);
 
-  if (!gameRoom || !currentPlayer || !roll) return null;
+  // Keep the last live roll so the card can spring OUT when the phase
+  // advances — AnimatePresence renders the exiting child with these props.
+  const lastRoll = useRef<{ roll: { die1: number | null; die2: number | null }; player: string } | null>(null);
+  const show =
+    !!gameRoom &&
+    !!currentPlayer &&
+    !!roll &&
+    gameRoom.gameStatus !== 'finished' &&
+    ((gameRoom.turnState.phase === 'Dice' && !bothRolled) || linger);
+  if (show && roll && gameRoom) lastRoll.current = { roll, player: gameRoom.turnState.player };
 
-  const turn = gameRoom.turnState;
-
-  // Giant roller: while waiting for the roll, plus the linger after it. A 7
-  // holds the Dice phase (robber move + steal still pending), so otherwise
-  // hide as soon as both dice are in. Never once the game is over — nothing
-  // is left to roll, and it would cover the results / final map.
-  if (gameRoom.gameStatus !== 'finished' && ((turn.phase === 'Dice' && !bothRolled) || linger)) {
-    const isDicePlayer = turn.player === currentPlayer.name;
-    const status = bothRolled
-      ? `${turn.player} rolled ${(roll.die1 ?? 0) + (roll.die2 ?? 0)}`
+  const shown = lastRoll.current;
+  const isDicePlayer = shown ? shown.player === currentPlayer?.name : false;
+  const r = shown?.roll;
+  const status = r
+    ? r.die1 !== null && r.die2 !== null
+      ? `${shown!.player} rolled ${r.die1 + r.die2}`
       : isDicePlayer
         ? 'Click each die to roll it'
-        : `Waiting for ${turn.player} to roll`;
-    return (
-      <div className="fixed inset-0 z-[80] flex items-center justify-center pointer-events-none">
-        <motion.div
-          className="flex flex-col items-center gap-4 bg-black/75 rounded-2xl px-10 py-8 shadow-2xl pointer-events-auto"
-          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85, y: 16 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 460, damping: 28 }}
-        >
-          <div className="text-white text-lg font-bold">{status}</div>
-          <div className="flex items-center gap-6">
-            <Dice
-              value={roll.die1}
-              size={GIANT_DICE_SIZE}
-              canRoll={isDicePlayer && roll.die1 === null}
-              onRoll={() => rollDice(gameRoom.id)}
-            />
-            <Dice
-              value={roll.die2}
-              size={GIANT_DICE_SIZE}
-              canRoll={isDicePlayer && roll.die1 !== null && roll.die2 === null}
-              onRoll={() => rollDice(gameRoom.id)}
-            />
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
+        : `Waiting for ${shown!.player} to roll`
+    : '';
 
-  // Past the roll there's nothing here to show — the last roll lives in the
-  // corner pill in Game.tsx.
-  return null;
+  return (
+    <AnimatePresence>
+      {show && r && gameRoom && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center pointer-events-none">
+          <motion.div
+            className="flex flex-col items-center gap-4 bg-black/75 rounded-2xl px-10 py-8 shadow-2xl pointer-events-auto"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 10 }}
+            transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 460, damping: 28 }}
+          >
+            <div className="text-white text-lg font-bold">{status}</div>
+            <div className="flex items-center gap-6">
+              <Dice
+                value={r.die1}
+                size={GIANT_DICE_SIZE}
+                canRoll={isDicePlayer && r.die1 === null}
+                onRoll={() => rollDice(gameRoom.id)}
+              />
+              <Dice
+                value={r.die2}
+                size={GIANT_DICE_SIZE}
+                canRoll={isDicePlayer && r.die1 !== null && r.die2 === null}
+                onRoll={() => rollDice(gameRoom.id)}
+              />
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
 };
 
 export default DiceDisplay;
