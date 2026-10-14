@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardVertex as BoardVertexType } from 'common';
 import { darkenColor } from '../utils/color';
+import { VERTEX_HIT_SCALE } from '../constants';
 
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
@@ -64,7 +65,7 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
     >
       {/* Fattened invisible hit ring: fingertip-sized taps land on the
           vertex even at board-fit zoom. */}
-      <circle cx={position.x} cy={position.y} r={size * 1.75} fill="transparent" />
+      <circle cx={position.x} cy={position.y} r={size * VERTEX_HIT_SCALE} fill="transparent" />
       {/* Vertex dot */}
       <circle
         cx={position.x}

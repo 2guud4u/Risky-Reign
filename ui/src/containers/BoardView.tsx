@@ -6,6 +6,7 @@ import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { actableSoldierIds, soldierCanAct } from '../utils/soldierActions';
+import { soldierMovableThisTurn } from '../utils/boardInteraction';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { PortLayer } from '../components/board/PortLayer';
@@ -210,6 +211,19 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     }
     return out;
   }, [gameRoom, currentPlayer?.name]);
+  // Sprites the touch layer may treat as drag handles — the same gate
+  // `isSoldierDraggable` applies (own Action phase, movable this turn).
+  // Anything else (opponents, already-acted, other phases) pans on touch.
+  const draggableSoldierIds = useMemo(() => {
+    const out = new Set<string>();
+    const turn = gameRoom?.turnState;
+    if (!gameRoom?.board || !currentPlayer?.name || !turn) return out;
+    if (turn.phase !== 'Action' || turn.player !== currentPlayer.name) return out;
+    for (const s of Object.values(gameRoom.board.soldiers ?? {})) {
+      if (s.owner === currentPlayer.name && soldierMovableThisTurn(s, gameRoom)) out.add(s.id);
+    }
+    return out;
+  }, [gameRoom, currentPlayer?.name]);
   const pickedSoldierIds = useMemo(() => new Set(selectedSoldierIds), [selectedSoldierIds]);
   const togglePickedSoldier = useCallback(
     (soldierId: string) =>
@@ -390,6 +404,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               selectedVertexId={selectedVertexId}
               pickableSoldierIds={pickableSoldierIds}
               boltedSoldierIds={boltedSoldierIds}
+              draggableSoldierIds={draggableSoldierIds}
               pickedSoldierIds={pickedSoldierIds}
               onSoldierClick={togglePickedSoldier}
               onSoldierDragStart={startDragSoldier}

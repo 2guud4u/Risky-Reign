@@ -17,6 +17,9 @@ interface BoardSoldiersProps {
   /** Soldier ids with an unspent action — bolt drawn on every one, selected
    *  vertex or not. */
   boltedSoldierIds: ReadonlySet<string>;
+  /** Soldier ids currently draggable (own Action phase, unspent move): only
+   *  these carry data-drag-handle so touching another soldier still pans. */
+  draggableSoldierIds: ReadonlySet<string>;
   /** Soldiers currently picked for a group action (outlined). */
   pickedSoldierIds: ReadonlySet<string>;
   /** Toggle a pickable soldier in/out of the group. */
@@ -42,6 +45,7 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
   selectedVertexId,
   pickableSoldierIds,
   boltedSoldierIds,
+  draggableSoldierIds,
   pickedSoldierIds,
   onSoldierClick,
   onSoldierDragStart,
@@ -73,6 +77,7 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
                 selectableSoldierIds={selected ? pickableSoldierIds : undefined}
                 selectedSoldierIds={selected ? pickedSoldierIds : undefined}
                 canActSoldierIds={boltedSoldierIds}
+                draggableSoldierIds={draggableSoldierIds}
                 onSoldierDragStart={onSoldierDragStart ? (e, ownerName, soldierId) => onSoldierDragStart(e, ownerName, vertexId, soldierId) : undefined}
               />
             ))}

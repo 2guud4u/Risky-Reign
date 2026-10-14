@@ -52,9 +52,6 @@ export function useBoardDrag(opts: {
 
   const { showToast } = useGameRoom();
 
-  // Shared with the viewport: true while any piece drag is live so the
-  // touch layer knows a second finger is not a pinch.
-
   // Soldier drag-and-drop state.
   const dragActiveRef = opts.dragActiveRef;
   const [drag, setDrag] = useState<SoldierDragState | null>(null);
@@ -70,7 +67,7 @@ export function useBoardDrag(opts: {
   // without those values being in their dependency lists.
   const stateRef = useRef({ drag, mousePos, robberDrag, winDrag });
   stateRef.current = { drag, mousePos, robberDrag, winDrag };
-  if (dragActiveRef) dragActiveRef.current = !!(drag || robberDrag || winDrag);
+  dragActiveRef.current = !!(drag || robberDrag || winDrag);
 
   const cancelDrag = useCallback(() => {
     setDrag(null);
@@ -100,8 +97,7 @@ export function useBoardDrag(opts: {
   const startRobberDrag = useCallback(
     (e: React.PointerEvent) => {
       if (!robberPending) return;
-      e.preventDefault(); // stop native drag + text selection highlight
-      e.stopPropagation();
+      e.stopPropagation(); // see startDrag: keep the click, stop the pan
       setRobberDrag(true);
     },
     [robberPending]
@@ -114,8 +110,7 @@ export function useBoardDrag(opts: {
   const startWinDrag = useCallback(
     (e: React.PointerEvent) => {
       if (!winPending) return;
-      e.preventDefault(); // stop native drag + text selection highlight
-      e.stopPropagation();
+      e.stopPropagation(); // see startDrag: keep the click, stop the pan
       setWinDrag(true);
     },
     [winPending]
@@ -134,7 +129,9 @@ export function useBoardDrag(opts: {
       if (!board || !gameRoom) return;
       const soldier = movableSoldierAt(board, gameRoom, vertexId, ownerName);
       if (!soldier) return;
-      e.preventDefault(); // stop native drag + text selection highlight
+      // No preventDefault: it would suppress the compatibility click on
+      // touch (tap-to-select would die). The svg's onDragStart guard already
+      // stops the native image drag.
       e.stopPropagation();
       setDrag({
         soldierId: soldier.id,
@@ -154,7 +151,7 @@ export function useBoardDrag(opts: {
       if (!isSoldierDraggable(gameRoom, currentPlayer?.name, ownerName, vertexId)) return;
       const soldier = board.soldiers[soldierId];
       if (!soldier || soldier.owner !== ownerName || !soldierMovableThisTurn(soldier, gameRoom)) return;
-      e.preventDefault(); // stop native drag + text selection highlight
+      // See startDrag: keep the click, stop the pan.
       e.stopPropagation();
       setDrag({
         soldierId: soldier.id,
@@ -168,6 +165,7 @@ export function useBoardDrag(opts: {
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
+      if (e.isPrimary === false) return; // a second finger: not the drag pointer
       const { drag: d, robberDrag: r, winDrag: w } = stateRef.current;
       if (!d && !r && !w) return;
       setMousePos(mouseToSvgPoint(e, svgRef.current));
@@ -175,7 +173,9 @@ export function useBoardDrag(opts: {
     [svgRef]
   );
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback((e?: React.PointerEvent) => {
+    // A second finger's release must not resolve (or cancel) the drag.
+    if (e && e.isPrimary === false) return;
     const { drag: d, mousePos: mp, robberDrag: rd, winDrag: wd } = stateRef.current;
     // Handle the post-win robber move: drop on a valid adjacent hex.
     if (wd) {

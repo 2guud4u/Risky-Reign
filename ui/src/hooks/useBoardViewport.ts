@@ -26,8 +26,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * reconciler never overwrites the imperatively-set attribute.
  *
  * Panning is a left-button drag on empty board space. Vertices, edges, and
- * soldier badges all stopPropagation on mousedown, so they keep their own
- * click/drag behavior and do not start a pan. Double-click zooms in;
+ * soldier badges keep their own click behavior; draggable pieces
+ * (`data-drag-handle`: soldiers, the robber) are detected by attribute so a
+ * piece drag never arms a pan on mouse or touch. Double-click zooms in;
  * Shift+double-click (or the reset button) restores the fit view. `focusOn`
  * animates the view to a board point (used when a vertex is clicked).
  */
@@ -41,10 +42,9 @@ export function useBoardViewport(
   /** Shared flag with the drag hook: true while a soldier/robber drag is
    *  live. Read by the touch handlers so a second finger can't pinch while
    *  a piece is in hand. */
-  dragActiveRef?: React.MutableRefObject<boolean>
+  dragActiveRef: React.MutableRefObject<boolean>
 ) {
-  const internalDragRef = useRef(false);
-  const dragRef = dragActiveRef ?? internalDragRef;
+  const dragRef = dragActiveRef;
   // Source of truth lives in refs so pan/zoom never triggers a React render.
   const zoomRef = useRef(1);
   const centerRef = useRef({ x: 0, y: 0 });
@@ -213,14 +213,10 @@ export function useBoardViewport(
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    panRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      originX: centerRef.current.x,
-      originY: centerRef.current.y,
-      active: false,
-      scale: 1,
-    };
+    // Pressing a draggable piece (soldier, robber) starts a piece drag via
+    // pointerdown — the real mousedown still fires and must not arm a pan.
+    if (touchesDragHandle(e.target)) return;
+    panRef.current = beginPan(e, centerRef.current.x, centerRef.current.y);
   }, []);
 
   useEffect(() => {
@@ -340,6 +336,7 @@ export function useBoardViewport(
          pinchRef.current = null;
          dragRef.current = false;
        } else if (e.touches.length === 1) {
+         if (dragRef.current) return; // a finger lifted mid piece-drag: no pan
          // Finger lifted mid-pinch: keep panning with the last finger
          // (re-base so the board doesn't jump).
          pinchRef.current = null;

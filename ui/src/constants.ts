@@ -250,6 +250,11 @@ export const PAN_THRESHOLD = 4;
 export const PINCH_MIN_DIST = 12;
 /** Transparent hit-line width (board units) for selecting/pressing a road; the visible road stays thin. */
 export const ROAD_HIT_WIDTH = 26;
+/** Invisible hit ring radius on a board vertex, in multiples of the vertex
+ *  size — fingertip-sized taps land at board-fit zoom. */
+export const VERTEX_HIT_SCALE = 1.75;
+/** Extra invisible hit radius (board units) around a soldier count badge. */
+export const BADGE_HIT_PAD = 8;
 /**
  * Minimum zoom for individual soldier SVGs instead of count badges.
  */

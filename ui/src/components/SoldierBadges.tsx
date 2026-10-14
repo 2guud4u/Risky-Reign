@@ -3,6 +3,7 @@ import { VertexNode } from 'common';
 import {
   PROJ_SIZE,
   SOLDIER_BADGE_GAP,
+  BADGE_HIT_PAD,
   SOLDIER_BADGE_R,
   SOLDIER_BADGE_ROW_OFFSET_FRACTION,
 } from '../constants';
@@ -60,7 +61,7 @@ export const SoldierBadges = React.memo(function SoldierBadges({
               style={{ cursor: draggable ? 'grab' : 'pointer' }}
             >
               {/* Fattened invisible hit ring so a fingertip lands it. */}
-              <circle cx={cx} cy={cy} r={SOLDIER_BADGE_R + 8} fill="transparent" />
+              <circle cx={cx} cy={cy} r={SOLDIER_BADGE_R + BADGE_HIT_PAD} fill="transparent" />
               <circle
                 cx={cx}
                 cy={cy}

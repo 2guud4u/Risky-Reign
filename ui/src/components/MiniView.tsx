@@ -42,6 +42,7 @@ const MiniView: React.FC<MiniViewProps> = ({
       width="100%"
       height="auto"
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.size} ${viewBox.size}`}
+      style={{ touchAction: 'none' }}
       className={`mx-auto rounded-md bg-gray-50 ${className ?? ''}`}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
