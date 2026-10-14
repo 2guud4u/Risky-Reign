@@ -250,7 +250,6 @@ export function useBoardDrag(opts: {
   return {
     drag,
     robberDrag,
-    winDrag,
     mousePos,
     settle,
     clearSettle: () => setSettle(null),
