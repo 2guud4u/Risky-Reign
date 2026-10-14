@@ -119,14 +119,14 @@ const Game: React.FC = () => {
   const roll = gameRoom.roll;
   return (
     <div>
-      {/* Corner pill: the last roll beside the ⚙️ menu button, one bordered
-          unit so the pair can never drift apart; safe-inset keeps it above
-          the home-indicator / off a landscape notch. */}
-      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex items-center gap-2 rounded-md border border-gray-300 bg-white shadow px-2 py-1">
+      {/* Corner stack: the last roll beside the ⚙️ menu button. The dice
+          stack vertically over the gear — no backing, matching the floating
+          giant dice. */}
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex flex-col items-center gap-2">
         {roll && roll.die1 !== null && roll.die2 !== null && (
           // Last roll, always visible beside the gear — replaces the old
           // compact dice that floated above the menu.
-          <div className="flex items-center gap-1">
+          <div className="flex flex-col items-center gap-1">
             <Dice value={roll.die1} size={28} />
             <Dice value={roll.die2} size={28} />
           </div>
@@ -240,7 +240,7 @@ const Game: React.FC = () => {
       <div className="fixed inset-0 flex safe-inset">
         <div className="relative flex-1 min-w-0 bg-white">
           {spectating && (
-            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900/80 text-white text-[13px] font-semibold shadow-lg">
+            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-[13px] font-semibold shadow-lg">
               👀 Spectating
             </div>
           )}

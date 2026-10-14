@@ -95,7 +95,7 @@ const ChatButton: React.FC = () => {
           // Beside the button so it can overlap the player column without
           // closing it; keep clicks inside from panning the map.
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white/95 backdrop-blur-sm shadow-xl"
+          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white shadow-xl"
         >
           <div
             ref={logRef}

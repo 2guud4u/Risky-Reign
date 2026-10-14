@@ -10,20 +10,20 @@ interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const toneClass = {
-  default: 'bg-canvas-raised/80 border-ink-faint/30',
-  accent: 'bg-gold-pale border-gold/50',
-  muted: 'bg-canvas-sunken/60 border-ink-faint/20 opacity-60',
+  default: 'bg-white border-gray-300',
+  accent: 'bg-blue-50 border-blue-400',
+  muted: 'bg-gray-100 border-gray-200 opacity-60',
 };
 
 /** Compact info row — used by the players panel, turn chips, any dense list.
  * A pill: icon, label (truncates), right-side trailing content. */
 const Chip: React.FC<ChipProps> = ({ icon, trailing, tone = 'default', className = '', children, ...rest }) => (
   <div
-    className={`flex items-center gap-1.5 border rounded-full pl-1.5 pr-2.5 py-1 backdrop-blur-sm shadow-card ${toneClass[tone]} ${className}`}
+    className={`flex items-center gap-1.5 border rounded-full pl-1.5 pr-2.5 py-1 shadow ${toneClass[tone]} ${className}`}
     {...rest}
   >
     {icon && <span className="shrink-0 inline-flex">{icon}</span>}
-    <span className="text-[13px] font-semibold text-ink truncate min-w-0">{children}</span>
+    <span className="text-[13px] font-semibold text-gray-800 truncate min-w-0">{children}</span>
     {trailing && <span className="ml-auto flex items-center gap-1.5 shrink-0 text-[12px]">{trailing}</span>}
   </div>
 );

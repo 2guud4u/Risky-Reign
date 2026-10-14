@@ -37,8 +37,8 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         return (
           <div
             key={player.id}
-            className={`flex items-center gap-1.5 border border-white/50 rounded-full pl-1.5 pr-2.5 py-1 backdrop-blur-sm shadow ${
-              player.id === currentPlayerId ? 'bg-blue-50/70' : 'bg-white/70'
+            className={`flex items-center gap-1.5 border border-gray-300 rounded-full pl-1.5 pr-2.5 py-1 shadow ${
+              player.id === currentPlayerId ? 'bg-blue-50' : 'bg-white'
             } ${player.eliminated ? 'opacity-60' : ''}`}
           >
             <span

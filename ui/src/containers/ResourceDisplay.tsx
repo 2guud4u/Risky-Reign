@@ -131,7 +131,7 @@ const openDevCards = () => {
           aria-label="Development cards hint"
           onMouseDown={(e) => e.stopPropagation()}
           // Sits left of the panel, vertically near the ▼ chevron it points at.
-          className="absolute right-full bottom-6 mr-2 z-30 w-40 rounded-lg border-2 border-blue-300 bg-white/95 shadow-xl p-2.5 text-[12px] text-gray-700"
+          className="absolute right-full bottom-6 mr-2 z-30 w-40 rounded-lg border-2 border-blue-300 bg-white shadow-xl p-2.5 text-[12px] text-gray-700"
         >
           <div className="font-bold text-gray-900">Your dev cards live here 👉</div>
           <p className="m-0 mt-0.5">Press <strong>▼</strong> under Resources to see (and play) development cards.</p>
@@ -148,7 +148,7 @@ const openDevCards = () => {
       )}
       <div
         data-resource-section="true"
-        className={`flex items-stretch ${collapsed ? 'justify-center' : ''} bg-white/85 backdrop-blur-sm rounded-lg shadow pl-0 pr-2 pt-2 pb-2`}
+        className={`flex items-stretch ${collapsed ? 'justify-center' : ''} bg-white rounded-lg shadow pl-0 pr-2 pt-2 pb-2`}
       >
          {/* Collapse strip: replaces the panel's left padding; a slim bar on
           * the panel's left edge; click to hide (when collapsed the same bar

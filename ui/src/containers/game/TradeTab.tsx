@@ -436,7 +436,7 @@ const TradeTab: React.FC<{
       )}
 
       {isTurnOwner && isBank && (
-        <section className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 flex flex-col gap-3">
+        <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-3">
           <div>
             <SectionTitle>You give</SectionTitle>
             <div className="grid grid-cols-5 gap-1.5">
@@ -508,7 +508,7 @@ const TradeTab: React.FC<{
       )}
 
       {isTurnOwner && counterparty !== '' && !isBank && (
-        <section className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 flex flex-col gap-3">
+        <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-3">
           <div className="grid grid-cols-[auto_repeat(5,minmax(0,1fr))] items-center gap-x-1.5 gap-y-1.5">
             <span />
             {RESOURCES.map((k) => (
