@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { motion, useReducedMotion } from 'motion/react';
 
 /**
  * Victory overlay: shown on top of the board when the game ends. Displays the
@@ -12,6 +13,7 @@ const VictoryOverlay: React.FC = () => {
   const { gameRoom } = useGameRoom();
   const { resetGame } = useSocket();
   const [viewingMap, setViewingMap] = useState(false);
+  const reduce = useReducedMotion();
   if (!gameRoom) return null;
 
   if (viewingMap) {
@@ -40,7 +42,12 @@ const VictoryOverlay: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-[520px] w-full text-center">
+      <motion.div
+        className="bg-white rounded-xl shadow-2xl p-8 max-w-[520px] w-full text-center"
+        initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 360, damping: 26 }}
+      >
         <h1 className="text-3xl font-bold mb-2">🏆 {gameRoom.winner} wins!</h1>
         <p className="text-gray-600 mb-6">
           First to {gameRoom.pointsToWin} victory points — or the last player standing — wins the game.
@@ -76,7 +83,7 @@ const VictoryOverlay: React.FC = () => {
             Play Again
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

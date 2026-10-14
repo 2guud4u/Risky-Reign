@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Dice from '../components/Dice';
@@ -18,6 +19,7 @@ const GIANT_DICE_SIZE = 120;
 const DiceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { rollDice } = useSocket();
+  const reduce = useReducedMotion();
 
   const roll = gameRoom?.roll;
   const bothRolled = !!roll && roll.die1 !== null && roll.die2 !== null;
@@ -56,7 +58,12 @@ const DiceDisplay: React.FC = () => {
         : `Waiting for ${turn.player} to roll`;
     return (
       <div className="fixed inset-0 z-[80] flex items-center justify-center pointer-events-none">
-        <div className="flex flex-col items-center gap-4 bg-black/75 rounded-2xl px-10 py-8 shadow-2xl pointer-events-auto">
+        <motion.div
+          className="flex flex-col items-center gap-4 bg-black/75 rounded-2xl px-10 py-8 shadow-2xl pointer-events-auto"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 460, damping: 28 }}
+        >
           <div className="text-white text-lg font-bold">{status}</div>
           <div className="flex items-center gap-6">
             <Dice
@@ -72,7 +79,7 @@ const DiceDisplay: React.FC = () => {
               onRoll={() => rollDice(gameRoom.id)}
             />
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }

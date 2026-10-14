@@ -3,6 +3,7 @@ import { CHAT_MESSAGE_MAX } from 'common';
 import { priceLabel } from '../../utils/price';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 /**
  * 💬 button in the top-left corner stack (between ℹ️ and 👤). Toggles the room
@@ -15,6 +16,7 @@ const ChatButton: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { sendChat } = useSocket();
   const [open, setOpen] = useState(false);
+  const reduce = useReducedMotion();
   const [seen, setSeen] = useState(0);
   const [draft, setDraft] = useState('');
   // '' = everyone; a player name = whisper (only they see it).
@@ -73,7 +75,7 @@ const ChatButton: React.FC = () => {
         title={open ? 'Hide chat' : 'Chat'}
         aria-label={open ? 'Hide chat' : 'Show chat'}
         aria-expanded={open}
-        className={`absolute top-[120px] left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 transition-transform ${
+        className={`absolute top-[120px] left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform ${
           open ? 'bg-blue-100 border-blue-600 ring-2 ring-blue-300' : 'bg-white border-gray-300 hover:border-blue-500'
         }`}
       >
@@ -88,14 +90,19 @@ const ChatButton: React.FC = () => {
         )}
       </button>
 
+      <AnimatePresence>
       {open && (
-        <div
+        <motion.div
           role="region"
           aria-label="Room chat"
           // Beside the button so it can overlap the player column without
           // closing it; keep clicks inside from panning the map.
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white shadow-xl"
+          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white shadow-xl origin-left"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, x: -12, scale: 0.96 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, x: -8, scale: 0.97 }}
+          transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 480, damping: 34 }}
         >
           <div
             ref={logRef}
@@ -175,8 +182,9 @@ const ChatButton: React.FC = () => {
               Send
             </button>
           </form>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </>
   );
 };

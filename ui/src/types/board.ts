@@ -38,6 +38,22 @@ export interface SoldierDragState {
 }
 
 /**
+ * Post-drop ghost animation: a drag that just ended keeps its ghost alive
+ * briefly, springing to the drop point (a landed target) or snapping back to
+ * the origin (an invalid drop). Rendered by DragOverlays; cleared when the
+ * spring finishes (or instantly under reduced motion).
+ */
+export interface DragSettle {
+  kind: 'soldier' | 'robber';
+  /** Starting position (cursor at mouse-up), in SVG world coords. */
+  from: PixelCoord;
+  /** Landing position: the target for a hit, the origin for a miss. */
+  to: PixelCoord;
+  /** Ghost tint (soldier only). */
+  color?: string;
+}
+
+/**
  * Presentation board layered with interaction state, ready for the SVG
  * layer components (vertices/edges carry hover/select flags and owner colors;
  * hexes render as-is).

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SoldierBattleState } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { motion, useReducedMotion } from 'motion/react';
 import MiniView from '../components/MiniView';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { useBattleReposition } from '../hooks/useBattleReposition';
@@ -51,6 +52,7 @@ const SideName: React.FC<{ name: string; color?: string; you: boolean; align?: '
  */
 const BattleModal: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
+  const reduce = useReducedMotion();
   const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier, finishRepositioning, moveRobberAfterWin } =
     useSocket();
 
@@ -137,7 +139,12 @@ const BattleModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       {/* Fixed to the viewport height: the map shrinks to fit, never scrolls. */}
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-4 flex flex-col gap-3 overflow-hidden">
+      <motion.div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-4 flex flex-col gap-3 overflow-hidden"
+        initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 380, damping: 30 }}
+      >
         {/* Header: attacker vs defender, plus where the battle stands. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 shrink-0">
           <h2 className="m-0 flex items-center gap-2 text-lg font-bold min-w-0">
@@ -232,7 +239,7 @@ const BattleModal: React.FC = () => {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

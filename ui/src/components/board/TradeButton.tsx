@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { diceOwner, PortType } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import TradeTab from '../../containers/game/TradeTab';
-import { backdropClass, modalCardClass } from '../../styles';
+import ModalChrome from '../ModalChrome';
 import { OPEN_TRADE_EVENT } from '../../constants';
 import { OpenTradeDetail } from '../../types/openTrade';
 
@@ -92,7 +92,7 @@ const TradeButton: React.FC = () => {
         onMouseDown={(e) => e.stopPropagation()}
         title={tradeHint}
         aria-label={waiting > 0 ? `${tradeHint} (${waiting} offer${waiting === 1 ? '' : 's'} waiting)` : tradeHint}
-        className={`absolute top-2 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 transition-transform ${
+        className={`absolute top-2 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform ${
           canTrade
             ? 'bg-green-500 border-green-700 hover:bg-green-400'
             : 'bg-white border-gray-300 opacity-80 hover:border-blue-500'
@@ -120,36 +120,21 @@ const TradeButton: React.FC = () => {
         )}
       </button>
 
-      {open && (
-        <div
-          className={backdropClass}
-          onMouseDown={(e) => {
-            // Click outside the card closes it.
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Trade"
-            className={`${modalCardClass} max-w-[480px] max-h-[90vh] overflow-y-auto`}
+      <ModalChrome open={open} onClose={() => setOpen(false)} aria-label="Trade" className="max-w-[480px] max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="m-0 text-lg font-bold text-gray-800">🔄 Trade</h2>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close trade"
+            className="w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
           >
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="m-0 text-lg font-bold text-gray-800">🔄 Trade</h2>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close trade"
-                className="w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            {/* Keyed by the port so a new port click re-presets the form. */}
-            <TradeTab key={port ?? 'none'} port={port} />
-          </div>
+            ✕
+          </button>
         </div>
-      )}
+        {/* Keyed by the port so a new port click re-presets the form. */}
+        <TradeTab key={port ?? 'none'} port={port} />
+      </ModalChrome>
     </>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
+import ModalChrome from '../components/ModalChrome';
 import { useSocket } from '../contexts/SocketContext';
-import { backdropClass, modalCardClass } from '../styles';
 import { RESOURCES, ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 
@@ -33,20 +33,20 @@ const DiscardPrompt: React.FC = () => {
     if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   }, [active]);
 
-  if (!gameRoom || !currentPlayer || !gameRoom.discards) return null;
-  const pendingNames = Object.keys(gameRoom.discards);
-  if (pendingNames.length === 0) return null;
-  const required: number | undefined = gameRoom.discards[currentPlayer.name];
+  // Outer stays mounted: ModalChrome wraps AnimatePresence, which must exist
+  // for the exit spring to play. Values below fall back when nothing is owed.
+  const discards = gameRoom?.discards;
+  const required = currentPlayer && discards ? discards[currentPlayer.name] : undefined;
+  const open = required !== undefined;
 
-  // Other players see the "must discard" notice in the shared NoticeRail.
-  if (required === undefined) return null;
-
-  const handTotal = RESOURCES.reduce((sum, r) => sum + currentPlayer.resources[r], 0);
+  const handTotal = RESOURCES.reduce((sum, r) => sum + (currentPlayer?.resources[r] ?? 0), 0);
   const total = RESOURCES.reduce((sum, r) => sum + (counts[r] ?? 0), 0);
+  const need = required ?? 0;
 
   const increment = (r: ResourceKey, by = 1) => {
+    if (!currentPlayer) return;
     // Capped by what's still owed and by how many of `r` the player holds.
-    const room = Math.min(required - total, currentPlayer.resources[r] - (counts[r] ?? 0), by);
+    const room = Math.min(need - total, currentPlayer.resources[r] - (counts[r] ?? 0), by);
     if (room <= 0) return;
     setCounts((prev) => ({ ...prev, [r]: (prev[r] ?? 0) + room }));
   };
@@ -56,84 +56,82 @@ const DiscardPrompt: React.FC = () => {
   };
 
   const confirm = () => {
-    if (total !== required) return;
+    if (total !== need || !gameRoom) return;
     resolveDiscard(counts, gameRoom.id);
     setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   };
 
   return (
-    <div className={backdropClass}>
-      <div className={`${modalCardClass} max-w-[560px]`}>
-        <h2 className="text-lg font-bold text-gray-800 mb-1">A 7 was rolled</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          You hold {handTotal} cards — discard {required} of them.
-        </p>
+    <ModalChrome open={open} aria-label="Discard cards" className="max-w-[560px]">
+      <h2 className="text-lg font-bold text-gray-800 mb-1">A 7 was rolled</h2>
+      <p className="text-sm text-gray-500 mb-3">
+        You hold {handTotal} cards — discard {need} of them.
+      </p>
 
-        {/* One tile per resource: − / count / + and "Max" (capped by the hand). */}
-        <div className="grid grid-cols-5 gap-2 mb-4">
-          {RESOURCES.map((r) => {
-            const count = counts[r] ?? 0;
-            const held = currentPlayer.resources[r];
-            const canAdd = total < required && count < held;
-            return (
-              <div
-                key={r}
-                className={`py-2 rounded-md border-2 flex flex-col items-center gap-1 ${
-                  count > 0 ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
-                }`}
-              >
-                <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
-                <span className="text-[12px] font-semibold text-gray-700">
-                  {r} ({held})
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => decrement(r)}
-                    disabled={count <= 0}
-                    aria-label={`Discard one less ${r}`}
-                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
-                  >
-                    −
-                  </button>
-                  <span className="w-5 text-center text-sm font-bold text-gray-800">{count}</span>
-                  <button
-                    type="button"
-                    onClick={() => increment(r)}
-                    disabled={!canAdd}
-                    aria-label={`Discard one more ${r}`}
-                    className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
+      {/* One tile per resource: − / count / + and "Max" (capped by the hand). */}
+      <div className="grid grid-cols-5 gap-2 mb-4">
+        {RESOURCES.map((r) => {
+          const count = counts[r] ?? 0;
+          const held = currentPlayer?.resources[r] ?? 0;
+          const canAdd = total < need && count < held;
+          return (
+            <div
+              key={r}
+              className={`py-2 rounded-md border-2 flex flex-col items-center gap-1 ${
+                count > 0 ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
+              }`}
+            >
+              <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
+              <span className="text-[12px] font-semibold text-gray-700">
+                {r} ({held})
+              </span>
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => increment(r, held)}
-                  disabled={!canAdd}
-                  className="text-[11px] font-semibold text-red-600 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                  onClick={() => decrement(r)}
+                  disabled={count <= 0}
+                  aria-label={`Discard one less ${r}`}
+                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
                 >
-                  Max
+                  −
+                </button>
+                <span className="w-5 text-center text-sm font-bold text-gray-800">{count}</span>
+                <button
+                  type="button"
+                  onClick={() => increment(r)}
+                  disabled={!canAdd}
+                  aria-label={`Discard one more ${r}`}
+                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
+                >
+                  +
                 </button>
               </div>
-            );
-          })}
-        </div>
-
-        <button
-          type="button"
-          onClick={confirm}
-          disabled={total !== required}
-          className={`w-full py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-            total === required
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          Discard {total}/{required} cards
-        </button>
+              <button
+                type="button"
+                onClick={() => increment(r, held)}
+                disabled={!canAdd}
+                className="text-[11px] font-semibold text-red-600 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Max
+              </button>
+            </div>
+          );
+        })}
       </div>
-    </div>
+
+      <button
+        type="button"
+        onClick={confirm}
+        disabled={total !== need}
+        className={`w-full py-2 rounded-md font-semibold transition-all active:scale-[0.98] motion-reduce:active:scale-100 cursor-pointer ${
+          total === need
+            ? 'bg-red-600 text-white hover:bg-red-700'
+            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+        }`}
+      >
+        Discard {total}/{need} cards
+      </button>
+    </ModalChrome>
   );
 };
 

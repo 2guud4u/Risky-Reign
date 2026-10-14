@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from 'common';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { priceLabel } from '../utils/price';
@@ -23,8 +24,6 @@ const phaseGradient = (phase: string): string => {
 
 /** How long (ms) the your-turn toast stays visible before auto-hiding. */
 const TOAST_DURATION_MS = 5000;
-/** How long (ms) the fade-out takes. */
-const FADE_OUT_MS = 300;
 /** How long (ms) a completed-trade pop-up stays up (the chat log keeps it). */
 const TRADE_TOAST_MS = 6000;
 
@@ -46,7 +45,7 @@ const NoticeRail: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { chooseKnightEffect } = useSocket();
   const [toastVisible, setToastVisible] = useState(false);
-  const [toastClosing, setToastClosing] = useState(false);
+  const reduce = useReducedMotion();
 
   // Trade pop-ups: one per trade announcement that arrives while mounted.
   // The first broadcast only records the log length, so a reload or late
@@ -78,15 +77,11 @@ const NoticeRail: React.FC = () => {
   useEffect(() => {
     if (!isMyTurn) {
       setToastVisible(false);
-      setToastClosing(false);
       return;
     }
     setToastVisible(true);
-    setToastClosing(false);
-    const hideTimer = setTimeout(() => {
-      setToastClosing(true);
-      setTimeout(() => setToastVisible(false), FADE_OUT_MS);
-    }, TOAST_DURATION_MS);
+    // AnimatePresence plays the exit when toastVisible flips off.
+    const hideTimer = setTimeout(() => setToastVisible(false), TOAST_DURATION_MS);
     return () => clearTimeout(hideTimer);
   }, [isMyTurn]);
 
@@ -188,42 +183,59 @@ const NoticeRail: React.FC = () => {
     // battle, steal, discard…) so the turn bar never covers a modal.
     <div className="fixed top-[max(1rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
       <TurnOverlay />
-      {showToast && (
-        <div
-          className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl shadow-2xl bg-gradient-to-r ${phaseGradient(
-            phase
-          )} text-white transition-opacity duration-300 ${
-            toastClosing ? 'opacity-0' : 'opacity-100'
-          }`}
-          style={toastClosing ? undefined : { animation: 'slide-down 0.35s ease-out' }}
-        >
-          <span className="text-2xl drop-shadow">🎯</span>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[15px] font-bold drop-shadow">It's your turn</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
-              {phase} phase
-            </span>
-          </div>
-        </div>
-      )}
-      {tradeToasts.map((m, i) =>
-        m.trade ? (
-          <div
-            key={`${m.at}-${i}`}
-            role="status"
-            className="px-4 py-2 text-sm rounded-md border border-green-300 bg-green-50 text-green-900 shadow-lg"
-            style={{ animation: 'slide-down 0.35s ease-out' }}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl shadow-2xl bg-gradient-to-r ${phaseGradient(
+              phase
+            )} text-white`}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.95 }}
+            transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 500, damping: 30 }}
           >
-            🔄 <strong>{m.trade.from}</strong> gave <strong>{priceLabel(m.trade.gave)}</strong> to{' '}
-            <strong>{m.trade.to ?? '🏦 the bank'}</strong> for <strong>{priceLabel(m.trade.got)}</strong>
-          </div>
-        ) : null
-      )}
-      {notices.map((n) => (
-        <div key={n.key} className={noticeClass(n.mine)}>
-          {n.text}
-        </div>
-      ))}
+            <span className="text-2xl drop-shadow">🎯</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[15px] font-bold drop-shadow">It's your turn</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
+                {phase} phase
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {tradeToasts.map((m, i) =>
+          m.trade ? (
+            <motion.div
+              key={`${m.at}-${i}`}
+              role="status"
+              className="px-4 py-2 text-sm rounded-md border border-green-300 bg-green-50 text-green-900 shadow-lg"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: -16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+              transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 500, damping: 32 }}
+            >
+              🔄 <strong>{m.trade.from}</strong> gave <strong>{priceLabel(m.trade.gave)}</strong> to{' '}
+              <strong>{m.trade.to ?? '🏦 the bank'}</strong> for <strong>{priceLabel(m.trade.got)}</strong>
+            </motion.div>
+          ) : null
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {notices.map((n) => (
+          <motion.div
+            key={n.key}
+            className={noticeClass(n.mine)}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 520, damping: 34 }}
+          >
+            {n.text}
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 };

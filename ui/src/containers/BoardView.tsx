@@ -113,6 +113,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     drag,
     robberDrag,
     mousePos,
+    settle,
+    clearSettle,
     robberPending,
     winPending,
     canDragSoldier,
@@ -387,6 +389,8 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             drag={drag}
             robberDrag={robberDrag}
             mousePos={mousePos}
+            settle={settle}
+            onSettleDone={clearSettle}
             vertices={board.vertices}
             colorOf={colorOf}
           />
