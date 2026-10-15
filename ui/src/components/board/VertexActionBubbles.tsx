@@ -4,26 +4,27 @@ import { useGameRoom } from '../../contexts/GameContext';
 import { useVertexBuild, VertexBuildAction, useVertexSoldierSelectAll } from '../../hooks/useVertexBuild';
 import { useSoldierActions, SoldierAction } from '../../hooks/useSoldierActions';
 import { useSetupCoach } from '../../hooks/useSetupCoach';
-import { priceLabel } from '../../utils/price';
+import { IconName } from '../ui/GameIcon';
+import { PriceText } from '../../utils/price';
 import ActionBubbles, { BubbleAction } from './ActionBubbles';
 
-/** Emoji shown in each collapsed build bubble. Knight spawn uses a shield
- *  ("reinforce") so it never reads as the ⚔️ attack bubble. */
-const ICONS: Record<VertexBuildAction['key'], string> = {
-  settlement: '🏠',
-  setupCity: '🏰',
-  city: '🏰',
-  soldier: '🫵',
-  knight: '🛡️',
+/** GameIcon name shown in each collapsed build bubble. Knight spawn uses a
+ * shield ("reinforce") so it never reads as the attack bubble. */
+const ICONS: Record<VertexBuildAction['key'], IconName> = {
+  settlement: 'settlement',
+  setupCity: 'city',
+  city: 'city',
+  soldier: 'recruit',
+  knight: 'knight',
 };
 
-/** Emoji shown in each collapsed soldier-action bubble. */
-const SOLDIER_ICONS: Record<SoldierAction['kind'], string> = {
-  move: '🏃‍➡️',
-  heal: '❤️‍🩹',
-  attack: '⚔️',
-  capture: '🏴',
-  robber: '🥷',
+/** GameIcon name shown in each collapsed soldier-action bubble. */
+const SOLDIER_ICONS: Record<SoldierAction['kind'], IconName> = {
+  move: 'move',
+  heal: 'heal',
+  attack: 'attack',
+  capture: 'capture',
+  robber: 'robber',
 };
 
 /**
@@ -43,7 +44,7 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
       key: a.key,
       icon: ICONS[a.key],
       label: a.label,
-      costText: a.key === 'knight' ? 'Knight card' : setup ? 'Free' : priceLabel(a.price),
+      costText: a.key === 'knight' ? 'Knight card' : setup ? 'Free' : <PriceText price={a.price} />,
       check: a.check,
       run: a.run,
       coach: coach?.key === 'settlement' && a.key === 'settlement' && a.check.allowed,

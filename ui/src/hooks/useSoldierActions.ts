@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   Board,
   BuildCheck,
@@ -12,15 +12,16 @@ import { useSocket } from '../contexts/SocketContext';
 import { useBuildRules } from './useBuildRules';
 import { actableSoldierIds } from '../utils/soldierActions';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import { IconName } from '../components/ui/GameIcon';
 import { moveDirectionsFrom } from '../utils/direction';
 
 /** A sub-option of a group action (e.g. which resource to heal with). */
 export interface SoldierActionChoice {
   key: string;
-  /** Emoji shown on the choice button (direction arrows are SVG, not emoji). */
-  icon: string;
+  /** GameIcon name on the choice button (direction arrows are SVG instead). */
+  icon: IconName;
   label: string;
-  costText: string;
+  costText: React.ReactNode;
   /** The backend's own rule check for this choice: allowed, or why not. */
   check: BuildCheck;
   run: () => void;
@@ -38,7 +39,7 @@ export interface SoldierAction {
   key: string;
   kind: 'move' | 'heal' | 'attack' | 'capture' | 'robber';
   label: string;
-  costText: string;
+  costText: React.ReactNode;
   /** The shared rule check for the whole picked group: allowed, or why not. */
   check: BuildCheck;
   run: () => void;
@@ -101,13 +102,13 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       const eligible = have >= needed && ruleCheck.allowed;
       const check =
         have < needed
-          ? { allowed: false, reason: `Need ${needed} ${RESOURCE_ICONS[payWith]} to heal ${injured.length}` }
+          ? { allowed: false, reason: `Need ${needed} ${payWith} to heal ${injured.length}` }
           : ruleCheck;
       return {
         key: `heal-${payWith}`,
-        icon: '', // the cost text below already shows the resource icon
+        icon: RESOURCE_ICONS[payWith],
         label: `Heal ${injured.length} with ${payWith}`,
-        costText: `${needed} ${RESOURCE_ICONS[payWith]}`,
+        costText: `${needed} ${payWith}`,
         check,
         run: () => {
           for (const id of injured) healSoldier(id, gameRoom.id, payWith);
@@ -138,7 +139,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
   const movable = group.filter((id) => board.soldiers[id]?.owner === currentPlayer.name);
   if (movable.length > 0) {
     const directions = moveDirectionsFrom(board, vertex);
-    const choices = directions
+    const choices: SoldierActionChoice[] = directions
       .flatMap((d) => {
         const target = d.targets[0];
         if (!target) return [];
@@ -146,7 +147,7 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
         return [
           {
             key: `move-${d.direction.toLowerCase()}`,
-            icon: '', // direction arrows are SVG, not emoji
+            icon: 'move', // direction arrows are SVG, not emoji
             label: `Move ${movers.length} to ${d.direction}`,
             costText: d.direction,
             check:
@@ -186,11 +187,11 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
     )
   );
   if (enemyOwners.length > 0) {
-    const choices = enemyOwners.map((defender) => {
+    const choices: SoldierActionChoice[] = enemyOwners.map((defender) => {
       const check = attackCheck(group, vertex.id, defender);
       return {
         key: `attack-${defender}`,
-        icon: '⚔️',
+        icon: 'attack',
         label: defender,
         costText: 'free',
         check,

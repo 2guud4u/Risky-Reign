@@ -6,6 +6,7 @@ import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import { emptyPrice } from '../../constants';
+import GameIcon, { IconName } from '../../components/ui/GameIcon';
 
 /** Small round +/- button used by every amount control. */
 const stepperBtn =
@@ -34,7 +35,7 @@ const PriceChips: React.FC<{ price: Price; tone: 'give' | 'get' }> = ({ price, t
             tone === 'give' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'
           }`}
         >
-          {price[k]} {RESOURCE_ICONS[k]}
+          {price[k]} <GameIcon name={RESOURCE_ICONS[k]} size={14} className="inline -mt-0.5" />
         </span>
       ))}
     </span>
@@ -135,7 +136,7 @@ const OfferCard: React.FC<{
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-2.5 mb-2 shadow-sm">
       <div className="flex items-center gap-1.5 mb-2">
-        {who === 'Anyone' ? <span aria-hidden="true">📢</span> : <Dot color={colorOf(who)} />}
+        {who === 'Anyone' ? <GameIcon name="megaphone" size={14} /> : <Dot color={colorOf(who)} />}
         <strong className="text-[13px] text-gray-800">{who}</strong>
         <span className="text-[12px] text-gray-500 truncate">{status}</span>
       </div>
@@ -206,7 +207,7 @@ const OfferCard: React.FC<{
       )}
 
       {offer.status === 'pending' && blockedReason && (
-        <p className="text-[12px] text-amber-700 mt-1.5 m-0">🔒 {blockedReason}</p>
+        <p className="text-[12px] text-amber-700 mt-1.5 m-0"><GameIcon name="lock" size={11} className="inline -mt-0.5" /> {blockedReason}</p>
       )}
 
       {offer.status !== 'pending' && (
@@ -336,10 +337,10 @@ const TradeTab: React.FC<{
     setWant({ ...emptyPrice });
   };
 
-  const targets: { value: string; label: string; icon?: string; color?: string; sub?: string }[] = [
-    { value: 'Bank', label: 'Bank', icon: '🏦' },
-    { value: 'Anyone', label: 'Anyone', icon: '📢' },
-    ...others.map((p) => ({ value: p.name, label: p.name, color: p.color, sub: `${p.resourceCount} 🃏` })),
+  const targets: { value: string; label: string; icon?: IconName; color?: string; sub?: React.ReactNode }[] = [
+    { value: 'Bank', label: 'Bank', icon: 'bank' },
+    { value: 'Anyone', label: 'Anyone', icon: 'megaphone' },
+    ...others.map((p) => ({ value: p.name, label: p.name, color: p.color, sub: <>{p.resourceCount} <GameIcon name="cards" size={11} className="inline" /></> })),
   ];
 
   const tile = (selected: boolean) =>
@@ -390,7 +391,7 @@ const TradeTab: React.FC<{
           else can only respond to the turn owner's offers. */}
       {isTurnOwner ? (
         <div className="flex items-center gap-2 text-[13px] rounded-lg px-3 py-2 bg-green-600 text-white shadow-sm">
-          <span aria-hidden="true">🔄</span>
+          <GameIcon name="trade" size={14} />
           <span>
             <strong>Your turn</strong> — trade with the bank or any player.
           </span>
@@ -425,7 +426,7 @@ const TradeTab: React.FC<{
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
                   }`}
                 >
-                  {t.icon ? <span aria-hidden="true">{t.icon}</span> : <Dot color={t.color} size={12} />}
+                  {t.icon ? <GameIcon name={t.icon} size={14} /> : <Dot color={t.color} size={12} />}
                   {t.label}
                   {t.sub && <span className={`text-[11px] font-normal ${selected ? 'text-blue-100' : 'text-gray-400'}`}>{t.sub}</span>}
                 </button>
@@ -442,7 +443,7 @@ const TradeTab: React.FC<{
             <div className="grid grid-cols-5 gap-1.5">
               {RESOURCES.map((k) => (
                 <button key={k} type="button" onClick={() => pickBankGive(k)} className={tile(bankGive === k)} title={k}>
-                  <span className="text-2xl leading-none">{RESOURCE_ICONS[k]}</span>
+                  <GameIcon name={RESOURCE_ICONS[k]} size={24} />
                   <span className="text-[11px] text-gray-500">have {currentPlayer.resources[k]}</span>
                   <span
                     className={`text-[10px] font-bold px-1.5 rounded-full ${
@@ -460,7 +461,7 @@ const TradeTab: React.FC<{
             <div className="grid grid-cols-5 gap-1.5">
               {RESOURCES.map((k) => (
                 <button key={k} type="button" onClick={() => pickBankWant(k)} className={tile(bankWant === k)} title={k}>
-                  <span className="text-2xl leading-none">{RESOURCE_ICONS[k]}</span>
+                  <GameIcon name={RESOURCE_ICONS[k]} size={24} />
                   <span className="text-[11px] text-gray-500">bank {gameRoom.bankSupply[k]}</span>
                 </button>
               ))}
@@ -479,11 +480,11 @@ const TradeTab: React.FC<{
             </button>
             <span className="flex items-center gap-2 text-[16px] font-bold">
               <span className="text-red-700">
-                {bankCount} {RESOURCE_ICONS[bankGive]}
+                {bankCount} <GameIcon name={RESOURCE_ICONS[bankGive]} size={16} className="inline -mt-0.5" />
               </span>
-              <span className="text-gray-400">→</span>
+              <GameIcon name="arrowRight" size={14} className="text-gray-400" />
               <span className="text-green-700">
-                {bankGet} {RESOURCE_ICONS[bankWant]}
+                {bankGet} <GameIcon name={RESOURCE_ICONS[bankWant]} size={16} className="inline -mt-0.5" />
               </span>
             </span>
             <button
@@ -513,7 +514,7 @@ const TradeTab: React.FC<{
             <span />
             {RESOURCES.map((k) => (
               <span key={k} className="text-center text-xl leading-none" title={k}>
-                {RESOURCE_ICONS[k]}
+                <GameIcon name={RESOURCE_ICONS[k]} size={22} />
               </span>
             ))}
             <span className="text-[12px] font-bold text-red-700 pr-1">You give</span>
@@ -532,7 +533,7 @@ const TradeTab: React.FC<{
             ))}
           </div>
           <TradeButton
-            label={isOpenTarget ? '📢 Post to everyone' : `Send offer to ${counterparty}`}
+            label={isOpenTarget ? 'Post to everyone' : `Send offer to ${counterparty}`}
             check={offerCheck}
             color="bg-blue-600 border-blue-700 hover:bg-blue-700"
             onDo={submitOffer}

@@ -3,6 +3,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { readSavedSession, saveSession } from '../utils/session';
 import { generateRoomCode } from 'common';
 import Button from '../components/ui/Button';
+import GameIcon from '../components/ui/GameIcon';
 
 const inputClass =
   'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-sm bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none';
@@ -106,7 +107,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
           disabled={!isConnected}
           className="w-full mt-3"
         >
-          ⚡ Quick Play
+          <GameIcon name="bolt" size={14} className="inline -mt-0.5" /> Quick Play
         </Button>
 
         {error && (
@@ -121,7 +122,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
               isConnected ? 'bg-moss-pale text-moss' : 'bg-clay-pale text-clay'
             }`}
           >
-            {isConnected ? '✓ Connected to server!' : 'Disconnected'}
+            {isConnected ? <><GameIcon name="check" size={13} className="inline -mt-0.5" /> Connected to server!</> : 'Disconnected'}
           </span>
         </div>
 

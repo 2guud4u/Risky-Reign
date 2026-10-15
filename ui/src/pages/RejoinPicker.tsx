@@ -4,6 +4,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { saveSession, clearSavedSession } from '../utils/session';
 import Button from '../components/ui/Button';
 import { Eye } from 'lucide-react';
+import GameIcon from '../components/ui/GameIcon';
 
 interface RejoinPickerProps {
   roomId: string;
@@ -77,7 +78,7 @@ const RejoinPicker: React.FC<RejoinPickerProps> = ({ roomId, seats, onBack }) =>
             onBack();
           }}
         >
-          ← Back to lobby
+          <GameIcon name="arrowLeft" size={13} className="inline -mt-0.5" /> Back to lobby
         </Button>
       </div>
     </div>

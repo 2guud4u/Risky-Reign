@@ -105,7 +105,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
           className={`pointer-finger-side select-none ${fromLeft ? '' : 'pointer-finger-side-left'}`}
           style={{ filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.45))' }}
         >
-          {fromLeft ? '👉' : '👈'}
+          {fromLeft ? '▶' : '◀'}
         </text>
       )}
     </>

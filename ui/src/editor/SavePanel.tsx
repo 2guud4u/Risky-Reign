@@ -4,6 +4,7 @@ import { EditorHistorySnapshot, SavePanelProps } from './types';
 import { inputClass } from './constants';
 import { cloneMap, toHexLayouts } from './utils';
 import { generateRoomCode } from 'common';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * Save & Start panel: for a new room it collects a player name and room id and
@@ -67,7 +68,7 @@ const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, validation, missingN
                 title="Generate random room ID"
                 className="px-3 border border-gray-300 rounded-md bg-gray-100 cursor-pointer"
               >
-                🎲
+                <GameIcon name="dice" size={18} />
               </button>
             </div>
           </>

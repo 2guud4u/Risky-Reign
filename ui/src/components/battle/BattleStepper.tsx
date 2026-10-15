@@ -1,5 +1,6 @@
 import React from 'react';
 import { BattlePhase } from 'common';
+import GameIcon from '../ui/GameIcon';
 
 /** The battle's stages, in order, as the player sees them. */
 const STEPS = [
@@ -51,7 +52,7 @@ export const BattleStepper: React.FC<{ phase: BattlePhase; retreatPending: boole
               }`}
               aria-current={state === 'now' ? 'step' : undefined}
             >
-              {state === 'done' ? '✓' : i + 1}
+              {state === 'done' ? <GameIcon name="check" size={12} /> : i + 1}
               <span>{s.key === 'roll' && round > 1 ? `Roll · round ${round}` : s.label}</span>
             </li>
           </React.Fragment>

@@ -4,6 +4,7 @@ import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
 import { RESOURCES, ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * Development-card choice prompt. Shown when the current player plays a
@@ -46,11 +47,11 @@ const DevCardPrompt: React.FC = () => {
   const isYearOfPlenty = card === 'year_of_plenty';
   if (card === 'knight') {
     const options = [
-      { effect: 'robber', icon: '🥷', title: 'Move robber', sub: 'and steal a card' },
-      { effect: 'spawn', icon: '🛡️', title: 'Spawn soldier', sub: 'where you have one' },
+      { effect: 'robber', icon: 'robber', title: 'Move robber', sub: 'and steal a card' },
+      { effect: 'spawn', icon: 'knight', title: 'Spawn soldier', sub: 'where you have one' },
     ] as const;
     return (
-      <Modal open={knightOpen} aria-label="Knight card" title="⚔️ Knight" width="max-w-[420px]">
+      <Modal open={knightOpen} aria-label="Knight card" title="Knight" width="max-w-[420px]">
         <div className="flex gap-3">
           {options.map((o) => (
             <button
@@ -59,7 +60,7 @@ const DevCardPrompt: React.FC = () => {
               onClick={() => gameRoom && chooseKnightEffect(gameRoom.id, o.effect)}
               className="flex-1 py-4 rounded-md border-2 border-gray-300 bg-white hover:border-blue-500 hover:bg-blue-50 active:scale-95 motion-reduce:active:scale-100 transition-all flex flex-col items-center gap-1 cursor-pointer"
             >
-              <span className="text-3xl">{o.icon}</span>
+              <GameIcon name={o.icon} size={32} />
               <span className="text-sm font-semibold text-gray-800">{o.title}</span>
               <span className="text-[11px] text-gray-500">{o.sub}</span>
             </button>
@@ -101,7 +102,7 @@ const DevCardPrompt: React.FC = () => {
   };
 
   return (
-    <Modal open={resourceOpen} aria-label="Development card choice" title={isYearOfPlenty ? '🎁 Year of Plenty' : '💰 Monopoly'} width="max-w-[560px]">
+    <Modal open={resourceOpen} aria-label="Development card choice" title={isYearOfPlenty ? 'Year of Plenty' : 'Monopoly'} width="max-w-[560px]">
       <p className="text-sm text-gray-500 mb-3">
         {isYearOfPlenty
           ? 'Take any 2 cards from the bank (2 of the same is fine).'
@@ -115,7 +116,7 @@ const DevCardPrompt: React.FC = () => {
           const count = counts[r] ?? 0;
           const face = (
             <>
-              <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
+              <GameIcon name={RESOURCE_ICONS[r]} size={30} />
               <span className="text-[12px] font-semibold text-gray-700">{r}</span>
               <span className="text-[11px] text-gray-400">you have {currentPlayer?.resources[r] ?? 0}</span>
             </>

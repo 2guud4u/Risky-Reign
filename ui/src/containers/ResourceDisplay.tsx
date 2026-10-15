@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { BuildCheck, Player, canAfford, DevelopmentCardPrice, DEVELOPMENT_CARD_META, RESOURCES } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import { RESOURCE_ICONS } from '../utils/resourceIcons';
-import { priceLabel } from '../utils/price';
+import { DEV_CARD_ICONS, RESOURCE_ICONS } from '../utils/resourceIcons';
+import GameIcon from '../components/ui/GameIcon';
+import { PriceText, priceLabel } from '../utils/price';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
@@ -89,8 +90,8 @@ const ResourceDisplay: React.FC = () => {
                 style={{ transform: `rotate(${tilt})`, transformOrigin: 'bottom center' }}
                 title={`${resource}: ${count}`}
               >
-                <span className="text-[22px] leading-none">
-                  {RESOURCE_ICONS[resource] ?? '❓'}
+                <span className="text-ink leading-none">
+                  <GameIcon name={RESOURCE_ICONS[resource]} size={24} />
                 </span>
                 <span className="mt-1 px-1.5 py-px rounded-md bg-ink text-white text-[11px] font-extrabold leading-tight">
                   {count}
@@ -141,7 +142,7 @@ const ResourceDisplay: React.FC = () => {
                     Play
                   </span>
                 )}
-                <span className="text-[20px] leading-none">{meta.icon}</span>
+                <GameIcon name={DEV_CARD_ICONS[card]} size={22} />
                 <span className="mt-0.5 text-[8px] font-bold text-purple-700">{meta.label}</span>
               </button>
             );
@@ -172,7 +173,7 @@ const ResourceDisplay: React.FC = () => {
             {buyOpen ? (
               buyCheck.allowed ? (
                 <>
-                  <span>{priceLabel(DevelopmentCardPrice)} → 🃏</span>
+                  <span><PriceText price={DevelopmentCardPrice} size={12} /></span>
                   <span className="text-[9px] opacity-90">tap to buy</span>
                 </>
               ) : (
@@ -182,8 +183,8 @@ const ResourceDisplay: React.FC = () => {
               )
             ) : (
               <>
-                <span className="text-[13px] leading-none">⛏️🐑🌾</span>
-                <span>Buy 🃏</span>
+                <span className="leading-none"><GameIcon name="cards" size={18} /></span>
+                <span>Buy card</span>
               </>
             )}
           </button>
@@ -195,7 +196,7 @@ const ResourceDisplay: React.FC = () => {
             className="absolute bottom-full right-3 mb-1.5 px-2 py-0.5 rounded-md bg-canvas-raised text-[11px] font-extrabold text-moss shadow-card"
             title="Free roads from Road Building card"
           >
-            🛤️ {me.freeRoadsLeft} free road{me.freeRoadsLeft > 1 ? 's' : ''}
+            <GameIcon name="road" size={12} className="inline -mt-0.5" /> {me.freeRoadsLeft} free road{me.freeRoadsLeft > 1 ? 's' : ''}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { terrainColors } from 'common';
 import { TERRAIN_OPTIONS } from './constants';
 import { TerrainPaletteProps } from './types';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * Terrain palette: click a terrain to apply it to the selected hex (or select
@@ -30,7 +31,7 @@ const TerrainPalette: React.FC<TerrainPaletteProps> = ({
         className={`p-1 rounded-md border text-sm cursor-pointer ${paintMode ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-gray-100'
           }`}
       >
-        🖌️
+        <GameIcon name="palette" size={14} />
       </button>
     </div>
 

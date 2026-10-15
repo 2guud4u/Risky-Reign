@@ -1,9 +1,8 @@
-import { adjacentHexIds, Board, BuildCheck, canMoveRobberAdjacent, ResourceKey } from 'common';
+import { adjacentHexIds, Board, BuildCheck, canMoveRobberAdjacent } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useBuildRules } from './useBuildRules';
 import { actableSoldierIds } from '../utils/soldierActions';
-import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { hexDirectionOf } from '../utils/direction';
 import { SoldierAction, SoldierActionChoice } from './useSoldierActions';
 
@@ -16,7 +15,7 @@ const vertexLabel = (board: Board, vertexId: string, robberHexId: string): strin
       .filter((id) => id !== robberHexId)
       .map((id) => board.hexes[id])
       .map((h) =>
-        h && h.rollNumber != null ? `${h.rollNumber}${RESOURCE_ICONS[h.terrain as ResourceKey] ?? ''}` : null
+        h && h.rollNumber != null ? `${h.rollNumber} ${h.terrain}` : null
       )
       .filter(Boolean) ?? [];
   return tokens.length > 0 ? tokens.join(' ') : 'this vertex';
@@ -62,7 +61,7 @@ export function useRobberActions(board: Board, robberHexId: string): SoldierActi
     .filter((v) => v.fighter)
     .map((v) => ({
       key: `attack-${v.vertexId}`,
-      icon: '⚔️',
+      icon: 'attack',
       label: vertexLabel(board, v.vertexId, robberHexId),
       costText: '1 soldier',
       check: ALLOWED,
@@ -111,7 +110,7 @@ export function useRobberActions(board: Board, robberHexId: string): SoldierActi
         const where = `${hex.terrain}${hex.rollNumber !== null ? ` ${hex.rollNumber}` : ''}`;
         return {
           key: `robber-move-${hexId}`,
-          icon: '', // direction arrows are SVG, not emoji
+          icon: 'robber', // direction arrows are SVG, not emoji
           label: `Move robber ${direction} to ${where}`,
           costText: `${direction} · ${where}`,
           check: ALLOWED,
@@ -160,7 +159,7 @@ export function useRobberActions(board: Board, robberHexId: string): SoldierActi
       key: 'move',
       kind: 'move',
       label: 'Move',
-      costText: knightIndex !== -1 ? '🛡️ Knight card' : 'Knight card',
+      costText: 'Knight card',
       check: moveCheck,
       run: () => {
         if (knightIndex === -1) return;

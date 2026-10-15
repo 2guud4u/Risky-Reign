@@ -1,5 +1,6 @@
 import React from 'react';
 import { BattleState } from 'common';
+import GameIcon from '../ui/GameIcon';
 
 interface BetweenRoundsControlsProps {
   battle: BattleState;
@@ -41,7 +42,7 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
           onClick={onContinue}
           className="w-full bg-red-600 text-white rounded-lg py-2.5 text-[14px] font-bold shadow hover:bg-red-700 cursor-pointer"
         >
-          ⚔️ Fight round {battle.round + 1}
+          <GameIcon name="attack" size={14} className="inline -mt-0.5" /> Fight round {battle.round + 1}
         </button>
       )}
       <div className="flex flex-col gap-1">
@@ -54,11 +55,11 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
               : 'bg-red-600 text-white shadow hover:bg-red-700'
           }`}
         >
-          {bothStanding ? 'Stop the battle here' : 'See result →'}
+          {bothStanding ? 'Stop the battle here' : <>See result <GameIcon name="arrowRight" size={12} className="inline -mt-0.5" /></>}
         </button>
         {bothStanding && (
           <div className="text-[11px] text-amber-700 text-center">
-            ⚠️ Ending now counts as a loss
+            <GameIcon name="warning" size={11} className="inline -mt-0.5" /> Ending now counts as a loss
           </div>
         )}
       </div>

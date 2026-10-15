@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrashCanProps } from './types';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * Trash-can overlay: drop a dragged hex here to delete it, or a dragged number
@@ -17,7 +18,7 @@ const TrashCan: React.FC<TrashCanProps> = ({ ref, draggingDeletable, overTrash }
     }`}
     title="Drag a hex or a number here to delete it"
   >
-    <span>🗑️</span>
+    <span><GameIcon name="trash" size={20} /></span>
   </div>
 );
 

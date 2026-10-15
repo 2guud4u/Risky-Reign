@@ -12,6 +12,7 @@ import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
 import Dice from '../components/Dice';
+import GameIcon from '../components/ui/GameIcon';
 import VertexActionBubbles from '../components/board/VertexActionBubbles';
 import RobberActionBubbles from '../components/board/RobberActionBubbles';
 import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
@@ -89,7 +90,7 @@ const Game: React.FC = () => {
   useEffect(() => {
     const isMyTurn =
       !!gameRoom && !!currentPlayer && gameRoom.turnState.player === currentPlayer.name;
-    document.title = isMyTurn ? `🎲 Your turn — ${APP_TITLE}` : APP_TITLE;
+    document.title = isMyTurn ? `Your turn — ${APP_TITLE}` : APP_TITLE;
     return () => {
       document.title = APP_TITLE;
     };
@@ -253,7 +254,7 @@ const Game: React.FC = () => {
         <div className="relative flex-1 min-w-0 bg-white">
           {spectating && (
             <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-[13px] font-semibold shadow-lg">
-              👀 Spectating
+              <GameIcon name="eye" size={13} className="inline -mt-0.5" /> Spectating
             </div>
           )}
           <BoardView hexSize={GAME_HEX_SIZE} />

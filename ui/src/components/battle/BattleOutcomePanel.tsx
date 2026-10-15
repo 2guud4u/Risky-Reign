@@ -1,5 +1,6 @@
 import React from 'react';
 import { adjacentHexIds, BattleOutcome, BattleState, Board, Player } from 'common';
+import GameIcon from '../ui/GameIcon';
 
 interface BattleOutcomePanelProps {
   battle: BattleState;
@@ -28,7 +29,7 @@ const Tally: React.FC<{ name: string; alive: number; inj: number; dead: number; 
 }) => (
   <div className={`rounded-lg border px-2.5 py-1.5 ${won ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white'}`}>
     <div className="flex items-center gap-1 text-[13px] font-semibold truncate">
-      {won && <span aria-hidden="true">🏆</span>}
+      {won && <GameIcon name="trophy" size={13} />}
       {name}
     </div>
     <div className="flex gap-1.5 mt-1 text-[11px] font-semibold">
@@ -85,19 +86,19 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
           iWon ? 'bg-amber-400 text-amber-950' : iLost ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-800'
         }`}
       >
-        {iWon ? '🏆 ' : ''}
+        {iWon && <GameIcon name="trophy" size={15} className="inline -mt-0.5" />}{' '}
         {headline}
       </div>
 
       {battle.forfeitedBy && (
         <div className="text-[12px] text-center text-gray-500">
-          🏳️ {battle.forfeitedBy === me ? 'You' : battle.forfeitedBy} fled — the battle counts as a loss
+          <GameIcon name="capture" size={12} className="inline -mt-0.5" /> {battle.forfeitedBy === me ? 'You' : battle.forfeitedBy} fled — the battle counts as a loss
         </div>
       )}
 
       {battle.robberFight ? (
         <div className="text-[13px] text-center">
-          🎲 {soldierRoll} vs robber {robberRoll} — {wonRoll ? 'robber bag taken!' : 'your soldier was killed'}
+          <GameIcon name="dice" size={13} className="inline -mt-0.5" /> {soldierRoll} vs robber {robberRoll} — {wonRoll ? 'robber bag taken!' : 'your soldier was killed'}
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -121,7 +122,7 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
       {/* Retreat: injured troops must leave the battle site, attacker first. */}
       {myRetreat && (
         <div className="rounded-lg border-2 border-green-500 bg-green-50 px-3 py-2 text-green-900">
-          <div className="text-[14px] font-bold">🩹 Retreat your injured</div>
+          <div className="text-[14px] font-bold"><GameIcon name="heal" size={14} className="inline -mt-0.5" /> Retreat your injured</div>
           <div className="text-[12px] mt-0.5">
             <strong>Drag</strong> a glowing troop onto a <strong>green circle</strong> (or just click the circle).
             {myStagedCount > 1 && ' Grab any of your troops to move it first.'}

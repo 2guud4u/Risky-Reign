@@ -4,6 +4,7 @@ import Modal from '../components/ui/Modal';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCES, ResourceKey } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * 7-discard prompt. Shown when a 7 is rolled and a player holds 8 or more
@@ -80,7 +81,7 @@ const DiscardPrompt: React.FC = () => {
                 count > 0 ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
               }`}
             >
-              <span className="text-3xl">{RESOURCE_ICONS[r]}</span>
+              <GameIcon name={RESOURCE_ICONS[r]} size={30} />
               <span className="text-[12px] font-semibold text-gray-700">
                 {r} ({held})
               </span>

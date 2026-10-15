@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PLAYER_COLORS, normalizeColor, playerColorError } from 'common';
 import { darkenColor } from '../utils/color';
+import GameIcon from './ui/GameIcon';
 
 interface OtherPlayer {
   name: string;
@@ -112,12 +113,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
             >
               {selected && (
                 <span className="absolute inset-0 flex items-center justify-center text-white text-lg font-bold drop-shadow">
-                  ✓
+                  <GameIcon name="check" size={18} strokeWidth={3} />
                 </span>
               )}
               {blocker && (
                 <span className="absolute inset-0 flex items-center justify-center rounded-md bg-white/70 text-gray-700 text-lg font-bold">
-                  ✕
+                  <GameIcon name="x" size={18} strokeWidth={3} />
                 </span>
               )}
             </button>
@@ -149,7 +150,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
           <span className="absolute inset-0 flex items-center justify-center text-white text-lg font-bold drop-shadow pointer-events-none">
-            {draftError ? '!' : customActive ? '✓' : '+'}
+            {draftError ? '!' : customActive ? <GameIcon name="check" size={18} strokeWidth={3} /> : '+'}
           </span>
         </label>
       </div>

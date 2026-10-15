@@ -3,13 +3,14 @@ import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { triggerBuildAnimation } from '../components/ResourceSpendLayer';
 import { useBuildRules } from './useBuildRules';
-import { priceLabel } from '../utils/price';
+import { PriceText } from '../utils/price';
+import type { ReactNode } from 'react';
 
 /** The Build Road action for an edge. */
 export interface EdgeBuildAction {
   label: string;
-  /** Cost text: the road price, or "FREE 🛤️" with a Road Building card. */
-  costText: string;
+  /** Cost shown under the bubble: the road price, or "Free". */
+  costText: ReactNode;
   /** The backend's own rule check: allowed, or the reason it isn't. */
   check: BuildCheck;
   run: () => void;
@@ -28,7 +29,7 @@ export function useEdgeBuild(board: Board, edge: EdgeNode): EdgeBuildAction {
 
   return {
     label: 'Build Road',
-    costText: setup ? 'Free' : hasFreeRoad ? 'FREE 🛤️' : priceLabel(RoadPrice),
+    costText: setup ? 'Free' : hasFreeRoad ? 'Free (Road Building)' : <PriceText price={RoadPrice} />,
     check: roadCheck(edge.id),
     run: () => {
       if (!gameRoom || !currentPlayer) return;

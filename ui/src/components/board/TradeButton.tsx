@@ -6,6 +6,7 @@ import Modal from '../ui/Modal';
 import { OPEN_TRADE_EVENT } from '../../constants';
 import { RefreshCw } from 'lucide-react';
 import MapIconButton from '../ui/MapIconButton';
+import GameIcon from '../ui/GameIcon';
 import { OpenTradeDetail } from '../../types/openTrade';
 
 /** localStorage flag: the player has opened the trade window at least once. */
@@ -118,7 +119,7 @@ const TradeButton: React.FC = () => {
         )}
       </MapIconButton>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="🔄 Trade" aria-label="Trade" width="max-w-[480px]">
+      <Modal open={open} onClose={() => setOpen(false)} title={<><GameIcon name="trade" size={17} className="inline -mt-0.5" /> Trade</>} aria-label="Trade" width="max-w-[480px]">
         {/* Keyed by the port so a new port click re-presets the form. */}
         <TradeTab key={port ?? 'none'} port={port} />
       </Modal>

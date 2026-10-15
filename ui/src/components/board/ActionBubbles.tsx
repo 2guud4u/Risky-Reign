@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { BuildCheck } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
+import GameIcon, { IconName } from '../ui/GameIcon';
 
 /** One action shown as a bubble on the map. */
 export interface BubbleAction {
   key: string;
-  /** Emoji shown in the collapsed bubble. */
-  icon: string;
+  /** GameIcon name shown in the collapsed bubble. */
+  icon: IconName;
   label: string;
-  /** Cost text shown when expanded (e.g. "1 🪵, 1 🧱" or "FREE 🛤️"). */
-  costText: string;
+  /** Cost shown when expanded (counts + resource icons, or plain text). */
+  costText: React.ReactNode;
   /** The backend's own rule check: allowed, or the reason it isn't. */
   check: BuildCheck;
   run: () => void;
@@ -84,7 +85,7 @@ export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, onC
           } ${ok ? '' : 'grayscale opacity-50'}`}
           aria-hidden="true"
         >
-          {a.icon}
+          <GameIcon name={a.icon} size={24} />
         </span>
         {open && (
           <span className="flex flex-col items-start text-left leading-tight whitespace-nowrap">
@@ -190,9 +191,11 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
               {a.coach && (
                 <span
                   aria-hidden="true"
-                  className="pointer-finger pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-5xl drop-shadow-lg"
+                  className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 drop-shadow-lg"
                 >
-                  👇
+                  <span className="pointer-finger inline-block">
+                    <GameIcon name="pointer" size={44} style={{ transform: 'scaleY(-1)' }} />
+                  </span>
                 </span>
               )}
               {bubble}
@@ -236,7 +239,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                       aria-hidden="true"
                     />
                   ) : c.icon ? (
-                    <span aria-hidden="true" className="text-xl leading-none">{c.icon}</span>
+                    <GameIcon name={c.icon} size={22} />
                   ) : null}
                   <span>{c.costText}</span>
                 </button>
@@ -250,7 +253,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
               title={a.label}
               className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-blue-700 bg-blue-600 ring-4 ring-blue-300/60 shadow-lg text-2xl leading-none cursor-pointer transition-all duration-200"
             >
-              <span aria-hidden="true">{a.icon}</span>
+              <GameIcon name={a.icon} size={24} />
             </button>
           </div>
         );
@@ -264,7 +267,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
           title="Close"
           className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-gray-500"
         >
-          {'✕'}
+          <GameIcon name="x" size={24} />
         </button>
         <span aria-hidden="true" className="px-1.5 py-px rounded bg-black/60 text-[10px] font-semibold text-white">
           Close

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Board, PublicPlayer } from 'common';
 import Chip from '../../components/ui/Chip';
+import GameIcon from '../../components/ui/GameIcon';
 
 interface PlayersListProps {
   players: PublicPlayer[];
@@ -50,31 +51,31 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
               <>
                 {hasRoad && (
                   <span className="text-blue-700 font-semibold" title={`Longest road: ${roadLen} roads (+2 VP)`}>
-                    🛤️{roadLen}
+                    <GameIcon name="road" size={12} className="inline" />{roadLen}
                   </span>
                 )}
                 {hasArmy && (
                   <span className="text-red-700 font-semibold" title={`Largest army: ${soldiers} soldiers (+2 VP)`}>
-                    ⚔️
+                    <GameIcon name="attack" size={12} />
                   </span>
                 )}
                 {hasWar && (
                   <span className="text-orange-700 font-semibold" title={`Conqueror: ${battlesWon} battles won (+2 VP)`}>
-                    👑
+                    <GameIcon name="crown" size={12} />
                   </span>
                 )}
                 {battlesWon > 0 && (
                   <span className="text-amber-700 font-semibold" title={`Battles won: ${battlesWon}`}>
-                    🏆{battlesWon}
+                    <GameIcon name="trophy" size={12} className="inline" />{battlesWon}
                   </span>
                 )}
                 {(player.victoryPoints ?? 0) > 0 && (
                   <span className="text-yellow-700" title="Victory points">
-                    ⭐{player.victoryPoints}
+                    <GameIcon name="star" size={12} className="inline" />{player.victoryPoints}
                   </span>
                 )}
                 <span className="text-gray-600" title="Total resource cards">
-                  🃏{totalResources}
+                  <GameIcon name="cards" size={12} className="inline" />{totalResources}
                 </span>
               </>
             }
@@ -93,7 +94,7 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
             )}
             {player.eliminated && (
               <span className="ml-1 text-[12px]" title="No settlements, cities, or soldiers left — spectating">
-                💀
+                <GameIcon name="skull" size={12} />
               </span>
             )}
           </Chip>

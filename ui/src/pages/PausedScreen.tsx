@@ -5,6 +5,7 @@ import { useGameRoom } from '../contexts/GameContext';
 import { saveSession, clearSavedSession, readSavedSession } from '../utils/session';
 import { PASSWORD_MAX } from 'common';
 import Button from '../components/ui/Button';
+import GameIcon from '../components/ui/GameIcon';
 
 const inputClass =
   'w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 bg-white text-ink text-[15px] placeholder:text-ink-faint focus:border-gold focus:outline-none';
@@ -126,7 +127,7 @@ const PausedScreen: React.FC<PausedScreenProps> = ({ info, onBack }) => {
                     />
                     <span className="text-[15px] font-semibold text-ink">{p.name}</span>
                     <span className="ml-auto text-[12px] text-ink-faint">
-                      {p.connected ? 'back in ✓' : 'waiting…'}
+                      {p.connected ? <>back in <GameIcon name="check" size={11} className="inline" /></> : 'waiting…'}
                     </span>
                   </button>
                 ))}
@@ -195,7 +196,7 @@ const PausedScreen: React.FC<PausedScreenProps> = ({ info, onBack }) => {
             onBack();
           }}
         >
-          ← Back to lobby
+          <GameIcon name="arrowLeft" size={13} className="inline -mt-0.5" /> Back to lobby
         </Button>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { RESOURCES } from 'common';
 import { useGameRoom } from '../../contexts/GameContext';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
+import GameIcon from '../../components/ui/GameIcon';
 
 /**
  * The robber's bag: every resource card discarded by the 7 rule, plus the
@@ -27,7 +28,7 @@ const RobberBagView: React.FC = () => {
             key={r}
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-gray-200 bg-gray-50"
           >
-            <span className="text-base">{RESOURCE_ICONS[r]}</span>
+            <GameIcon name={RESOURCE_ICONS[r]} size={18} />
             <span className="text-sm font-semibold text-gray-700">{bag[r]}</span>
           </div>
         ))}

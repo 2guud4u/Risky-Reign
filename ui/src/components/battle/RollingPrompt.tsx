@@ -1,4 +1,5 @@
 import React from 'react';
+import GameIcon from '../ui/GameIcon';
 
 interface RollingPromptProps {
   /** "Name (N)" entries for owners who still owe a roll this round. */
@@ -17,7 +18,7 @@ interface RollingPromptProps {
 export const RollingPrompt: React.FC<RollingPromptProps> = ({ waitingLines, rolling, myRollPending }) =>
   myRollPending || rolling ? (
     <div className="rounded-lg bg-amber-100 border-2 border-amber-400 px-3 py-2 text-amber-900 attention-ring">
-      <div className="text-[14px] font-bold">{rolling ? '🎲 Rolling…' : '🎲 Your roll'}</div>
+      <div className="text-[14px] font-bold"><GameIcon name="dice" size={14} className="inline -mt-0.5" /> {rolling ? 'Rolling…' : 'Your roll'}</div>
       {!rolling && <div className="text-[12px]">Click the troop the finger points at to roll its die.</div>}
     </div>
   ) : (

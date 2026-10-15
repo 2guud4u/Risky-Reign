@@ -4,7 +4,7 @@ import { useEdgeBuild } from '../../hooks/useEdgeBuild';
 import { useSetupCoach } from '../../hooks/useSetupCoach';
 import ActionBubbles from './ActionBubbles';
 
-/** Build Road for the selected edge, as a 🔨 bubble on the map. */
+/** Build Road for the selected edge, as a bubble on the map. */
 const EdgeActionBubbles: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, edge }) => {
   const road = useEdgeBuild(board, edge);
   const coach = useSetupCoach(board);
@@ -13,7 +13,7 @@ const EdgeActionBubbles: React.FC<{ board: Board; edge: EdgeNode }> = ({ board, 
       actions={[
         {
           key: 'road',
-          icon: '🔨',
+          icon: 'build',
           label: road.label,
           costText: road.costText,
           check: road.check,

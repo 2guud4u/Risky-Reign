@@ -19,47 +19,57 @@ import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import Modal from '../ui/Modal';
 import MapIconButton from '../ui/MapIconButton';
 import { Info } from 'lucide-react';
+import GameIcon, { IconName } from '../ui/GameIcon';
 
 /** One build recipe: what it is, what it costs, and what it gets you. */
 interface Recipe {
-  icon: string;
+  icon: IconName;
   name: string;
   /** Fixed cost; omitted for recipes with a choice of payment (healing). */
   price?: Price;
-  /** Free-form cost line for recipes `price` can't express. */
-  costText?: string;
+  /** Free-form cost for recipes `price` can't express (heal: pick Wheat or Sheep). */
+  cost?: React.ReactNode;
   note: string;
 }
 
 /** Every recipe, read from the shared `common` price constants. */
 const RECIPES: Recipe[] = [
-  { icon: '🛤️', name: 'Road', price: RoadPrice, note: 'Connects your settlements; counts toward Longest Road.' },
-  { icon: '🏠', name: 'Settlement', price: SettlementPrice, note: '1 VP. Collects resources from adjacent hexes.' },
-  { icon: '🏰', name: 'City', price: CityPrice, note: 'Upgrade a settlement. 2 VP; collects double resources.' },
-  { icon: '⚔️', name: 'Soldier', price: SoldierPrice, note: 'Garrisons a vertex; fights battles and the robber.' },
+  { icon: 'road', name: 'Road', price: RoadPrice, note: 'Connects your settlements; counts toward Longest Road.' },
+  { icon: 'settlement', name: 'Settlement', price: SettlementPrice, note: '1 VP. Collects resources from adjacent hexes.' },
+  { icon: 'city', name: 'City', price: CityPrice, note: 'Upgrade a settlement. 2 VP; collects double resources.' },
+  { icon: 'attack', name: 'Soldier', price: SoldierPrice, note: 'Garrisons a vertex; fights battles and the robber.' },
   {
-    icon: '🩹',
+    icon: 'heal',
     name: 'Heal soldier',
-    costText: HealSoldierResources.map((r) => `${HealSoldierAmount} ${RESOURCE_ICONS[r]}`).join(' or '),
+    cost: (
+      <>
+        {HealSoldierResources.map((r, i) => (
+          <React.Fragment key={r}>
+            {i > 0 && ' or '}
+            {HealSoldierAmount} <GameIcon name={RESOURCE_ICONS[r]} size={13} className="inline -mt-0.5" />
+          </React.Fragment>
+        ))}
+      </>
+    ),
     note: 'Restores one injured soldier.',
   },
-  { icon: '🎴', name: 'Development card', price: DevelopmentCardPrice, note: 'Draw a random development card.' },
+  { icon: 'cards', name: 'Development card', price: DevelopmentCardPrice, note: 'Draw a random development card.' },
 ];
 
 /**
  * Every way to earn victory points, read from the shared scoring constants
  * (see `applyBonuses`). Bonuses have one holder; a tie keeps the current one.
  */
-const ACHIEVEMENTS: { icon: string; name: string; vp: number; note: string }[] = [
-  { icon: '🏠', name: 'Settlement', vp: 1, note: 'Each settlement you own.' },
-  { icon: '🏰', name: 'City', vp: 2, note: 'Each city you own.' },
-  { icon: '⭐', name: 'Victory Point card', vp: 1, note: 'Counted as soon as you draw it.' },
-  { icon: '🛤️', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
-  { icon: '🛡️', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
-  { icon: '👑', name: 'Conqueror', vp: BONUS_VP, note: `Most battles won against players, at least ${CONQUEROR_MIN}.` },
+const ACHIEVEMENTS: { icon: IconName; name: string; vp: number; note: string }[] = [
+  { icon: 'settlement', name: 'Settlement', vp: 1, note: 'Each settlement you own.' },
+  { icon: 'city', name: 'City', vp: 2, note: 'Each city you own.' },
+  { icon: 'star', name: 'Victory Point card', vp: 1, note: 'Counted as soon as you draw it.' },
+  { icon: 'road', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
+  { icon: 'knight', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
+  { icon: 'crown', name: 'Conqueror', vp: BONUS_VP, note: `Most battles won against players, at least ${CONQUEROR_MIN}.` },
 ];
 
-/** The cost as one icon chip per card (e.g. 🌾 🌾 🪨 🪨 🪨). */
+/** The cost as one icon chip per card (e.g. 2 wheat, 3 ore). */
 const CostChips: React.FC<{ price: Price }> = ({ price }) => (
   <span className="flex flex-wrap gap-1">
     {RESOURCES.filter((k) => price[k] > 0).map((k) => (
@@ -68,7 +78,7 @@ const CostChips: React.FC<{ price: Price }> = ({ price }) => (
         title={`${price[k]} ${k}`}
         className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 text-[13px]"
       >
-        {price[k]} {RESOURCE_ICONS[k]}
+        {price[k]} <GameIcon name={RESOURCE_ICONS[k]} size={14} />
       </span>
     ))}
   </span>
@@ -76,8 +86,8 @@ const CostChips: React.FC<{ price: Price }> = ({ price }) => (
 
 /** Info modal tabs, in display order. */
 const TABS = [
-  { key: 'recipes', label: '🧾 Recipes' },
-  { key: 'achievements', label: '🏅 Achievements' },
+  { key: 'recipes', label: 'Recipes' },
+  { key: 'achievements', label: 'Achievements' },
 ] as const;
 
 /**
@@ -143,12 +153,12 @@ const RecipesButton: React.FC = () => {
               <li key={r.name} className="border border-gray-200 rounded-md p-2 bg-white">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[14px] font-semibold text-gray-800">
-                    {r.icon} {r.name}
+                    <GameIcon name={r.icon} size={14} className="inline -mt-0.5" /> {r.name}
                   </span>
                   {r.price ? (
                     <CostChips price={r.price} />
                   ) : (
-                    <span className="text-[13px]">{r.costText}</span>
+                    <span className="text-[13px]">{r.cost}</span>
                   )}
                 </div>
                 <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
@@ -165,7 +175,7 @@ const RecipesButton: React.FC = () => {
                 <li key={a.name} className="border border-gray-200 rounded-md p-2 bg-white">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[14px] font-semibold text-gray-800">
-                      {a.icon} {a.name}
+                      <GameIcon name={a.icon} size={14} className="inline -mt-0.5" /> {a.name}
                     </span>
                     <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-[12px] font-bold text-amber-800">
                       +{a.vp} VP

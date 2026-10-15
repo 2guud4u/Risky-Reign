@@ -1,6 +1,7 @@
 import React from 'react';
 import { PortType, PixelCoord } from 'common';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import { RESOURCE_ART } from './ui/GameIcon';
 import {
   PORT_FACE_FILL,
   PORT_GENERIC_FILL,
@@ -113,7 +114,10 @@ const PortDockInner: React.FC<{
   const isGeneric = port === 'generic';
   const r = size * PORT_RADIUS;
   const ring = isGeneric ? PORT_GENERIC_FILL : PORT_SPECIAL_FILL;
-  const glyph = isGeneric ? '⛵' : RESOURCE_ICONS[port as keyof typeof RESOURCE_ICONS];
+  const art = isGeneric
+    ? RESOURCE_ART.ship
+    : RESOURCE_ART[RESOURCE_ICONS[port as keyof typeof RESOURCE_ICONS] as keyof typeof RESOURCE_ART];
+  const glyphSize = size * PORT_TEXT * 1.3;
   const ratio = isGeneric ? '3:1' : '2:1';
   return (
     <g>
@@ -134,15 +138,13 @@ const PortDockInner: React.FC<{
       <circle cx={x} cy={y} r={r} fill={ring} stroke={PORT_STROKE} strokeWidth={1} />
       <circle cx={x} cy={y} r={r * 0.8} fill={PORT_FACE_FILL} />
       {/* Resource glyph on top, trade ratio beneath. */}
-      <text
-        x={x}
-        y={y - r * 0.18}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={size * PORT_TEXT}
-      >
-        {glyph}
-      </text>
+      <image
+        href={art}
+        x={x - glyphSize / 2}
+        y={y - r * 0.18 - glyphSize / 2}
+        width={glyphSize}
+        height={glyphSize}
+      />
       <text
         x={x}
         y={y + r * 0.52}

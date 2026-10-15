@@ -3,9 +3,9 @@ import { ChatMessage } from 'common';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import { priceLabel } from '../utils/price';
+import { PriceText } from '../utils/price';
+import GameIcon from '../components/ui/GameIcon';
 import TurnOverlay from './TurnOverlay';
-
 /** Tailwind gradient classes for the your-turn toast, keyed to the current phase. */
 const phaseGradient = (phase: string): string => {
   switch (phase) {
@@ -103,7 +103,7 @@ const NoticeRail: React.FC = () => {
     notices.push({
       key: 'knocked-out',
       mine: false,
-      text: '💀 You have been knocked out (no settlements, cities, or soldiers left). You can keep spectating.',
+      text: 'You have been knocked out (no settlements, cities, or soldiers left). You can keep spectating.',
     });
   }
   const pendingDiscards = Object.keys(gameRoom.discards ?? {});
@@ -134,7 +134,7 @@ const NoticeRail: React.FC = () => {
       mine: true,
       text: (
         <span className="flex items-center gap-3">
-          <span>🛡️ Knight: click a glowing ring to spawn a soldier there.</span>
+          <span><GameIcon name="knight" size={14} className="inline -mt-0.5" /> Knight: click a glowing ring to spawn a soldier there.</span>
           <button
             type="button"
             onClick={() => chooseKnightEffect(gameRoom.id, 'cancel')}
@@ -194,7 +194,7 @@ const NoticeRail: React.FC = () => {
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.95 }}
             transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 500, damping: 30 }}
           >
-            <span className="text-2xl drop-shadow">🎯</span>
+            <GameIcon name="target" size={24} className="drop-shadow" />
             <div className="flex flex-col leading-tight">
               <span className="text-[15px] font-bold drop-shadow">It's your turn</span>
               <span className="text-[11px] font-semibold uppercase tracking-wider opacity-90">
@@ -216,8 +216,8 @@ const NoticeRail: React.FC = () => {
               exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
               transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 500, damping: 32 }}
             >
-              🔄 <strong>{m.trade.from}</strong> gave <strong>{priceLabel(m.trade.gave)}</strong> to{' '}
-              <strong>{m.trade.to ?? '🏦 the bank'}</strong> for <strong>{priceLabel(m.trade.got)}</strong>
+              <GameIcon name="trade" size={14} className="inline -mt-0.5" /> <strong>{m.trade.from}</strong> gave <strong><PriceText price={m.trade.gave} size={13} /></strong> to{' '}
+              <strong>{m.trade.to ?? 'the bank'}</strong> for <strong><PriceText price={m.trade.got} size={13} /></strong>
             </motion.div>
           ) : null
         )}

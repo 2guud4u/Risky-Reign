@@ -1,4 +1,5 @@
 import React from 'react';
+import GameIcon from '../../components/ui/GameIcon';
 
 /** Inline reason popup shown when a greyed-out action is clicked. */
 export const ReasonNotice: React.FC<{ reason: string; onDismiss: () => void }> = ({
@@ -13,7 +14,7 @@ export const ReasonNotice: React.FC<{ reason: string; onDismiss: () => void }> =
       className="text-red-400 hover:text-red-600 leading-none cursor-pointer"
       aria-label="Dismiss"
     >
-      ✕
+      <GameIcon name="x" size={13} />
     </button>
   </div>
 );

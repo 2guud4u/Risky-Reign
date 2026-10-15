@@ -15,6 +15,7 @@ import ColorPicker from '../components/ColorPicker';
 import BoardView from '../containers/BoardView';
 import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
+import GameIcon from '../components/ui/GameIcon';
 import { readSavedSession, saveSession, clearSavedSession } from '../utils/session';
 import Button from '../components/ui/Button';
 import { Settings, Link2, Check, LogOut } from 'lucide-react';
@@ -149,7 +150,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
             Join as a player
           </Button>
           <Button variant="ghost" size="sm" onClick={leaveLobby}>
-            ← Back to lobby
+            <GameIcon name="arrowLeft" size={13} className="inline -mt-0.5" /> Back to lobby
           </Button>
         </div>
       </div>
@@ -425,7 +426,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               and Quick Play skips the room; empty ⇒ open to Quick Play. */}
           <div className="mt-5 border-t border-ink-faint/30 pt-3">
             <label className="block text-[13px] font-semibold mb-1.5 text-ink">
-              Room Password {gameRoom.hasPassword ? '🔒' : ''}
+              Room Password {gameRoom.hasPassword ? <GameIcon name="lock" size={12} className="inline -mt-0.5" /> : ''}
             </label>
             {(() => {
               const isHost = gameRoom.players[0]?.id === currentPlayer.id;

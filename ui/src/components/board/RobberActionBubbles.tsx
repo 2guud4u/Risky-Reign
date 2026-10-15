@@ -2,11 +2,12 @@ import React from 'react';
 import { Board } from 'common';
 import { useRobberActions } from '../../hooks/useRobberActions';
 import ActionBubbles, { BubbleAction } from './ActionBubbles';
+import { IconName } from '../ui/GameIcon';
 
-/** Emoji shown in each collapsed robber bubble. */
-const ROBBER_ICONS: Record<string, string> = {
-  attack: '⚔️',
-  move: '🥷',
+/** GameIcon name shown in each collapsed robber bubble. */
+const ROBBER_ICONS: Record<string, IconName> = {
+  attack: 'attack',
+  move: 'robber',
 };
 
 /**
@@ -18,7 +19,7 @@ const RobberActionBubbles: React.FC<{ board: Board; hexId: string }> = ({ board,
   const actions = useRobberActions(board, hexId);
   const bubbles: BubbleAction[] = actions.map((a) => ({
     key: a.key,
-    icon: ROBBER_ICONS[a.key] ?? '❓',
+    icon: ROBBER_ICONS[a.key] ?? 'question',
     label: a.label,
     costText: a.costText,
     check: a.check,

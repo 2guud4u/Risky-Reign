@@ -31,31 +31,27 @@ export const TOTAL_DEVELOPMENT_CARDS = Object.values(DEVELOPMENT_CARD_DISTRIBUTI
   0
 );
 
-/** Display metadata for each development card type. */
-export const DEVELOPMENT_CARD_META: Record<DevelopmentCardType, { label: string; icon: string; description: string }> = {
+/** Display metadata for each development card type. (Icons live in the UI —
+ * `DEV_CARD_ICONS` in `ui/src/utils/resourceIcons.ts`.) */
+export const DEVELOPMENT_CARD_META: Record<DevelopmentCardType, { label: string; description: string }> = {
   knight: {
     label: 'Knight',
-    icon: '⚔️',
     description: 'Either move the robber (no steal), or spawn a soldier where you already have one.',
   },
   road_building: {
     label: 'Road Building',
-    icon: '🛤️',
     description: 'Build up to 2 roads at no cost immediately.',
   },
   year_of_plenty: {
     label: 'Year of Plenty',
-    icon: '🎁',
     description: 'Take any 2 resources from the bank.',
   },
   monopoly: {
     label: 'Monopoly',
-    icon: '💰',
     description: 'Name one resource type. All other players must give you all their cards of that type.',
   },
   victory_point: {
     label: 'Victory Point',
-    icon: '⭐',
     description: 'Worth 1 victory point.',
   },
 };

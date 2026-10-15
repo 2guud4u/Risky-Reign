@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * Victory overlay: shown on top of the board when the game ends. Displays the
@@ -18,7 +19,7 @@ const VictoryOverlay: React.FC = () => {
   if (viewingMap) {
     return (
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl shadow-2xl bg-white border border-gray-200">
-        <span className="text-[15px] font-bold">🏆 {gameRoom.winner} wins!</span>
+        <span className="text-[15px] font-bold"><GameIcon name="trophy" size={15} className="inline -mt-0.5" /> {gameRoom.winner} wins!</span>
         <button
           type="button"
           onClick={() => setViewingMap(false)}
@@ -42,7 +43,7 @@ const VictoryOverlay: React.FC = () => {
   return (
     <Modal open aria-label="Game over" width="max-w-[520px]">
       <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">🏆 {gameRoom.winner} wins!</h1>
+        <h1 className="text-3xl font-bold mb-2"><GameIcon name="trophy" size={26} className="inline -mt-1" /> {gameRoom.winner} wins!</h1>
         <p className="text-gray-600 mb-6">
           First to {gameRoom.pointsToWin} victory points — or the last player standing — wins the game.
         </p>
@@ -56,7 +57,7 @@ const VictoryOverlay: React.FC = () => {
                 {p.name}
               </span>
               <span className="text-yellow-700 font-semibold">
-                {p.eliminated && <span className="text-gray-500 mr-2">💀 Knocked out</span>}⭐ {p.victoryPoints} VP
+                {p.eliminated && <span className="text-gray-500 mr-2"><GameIcon name="skull" size={12} className="inline -mt-0.5" /> Knocked out</span>}<GameIcon name="star" size={13} className="inline -mt-0.5" /> {p.victoryPoints} VP
               </span>
             </div>
           ))}

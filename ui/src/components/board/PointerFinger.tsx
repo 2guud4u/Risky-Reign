@@ -1,12 +1,16 @@
 import React from 'react';
 import { PixelCoord } from 'common';
 import { BOARD_VERTEX_SIZE, PROJ_SIZE } from '../../constants';
+import { GAME_ICONS } from '../ui/GameIcon';
 
 /** Finger glyph size, as a fraction of the hex size (board units, so it
  *  scales with zoom like every other piece). */
 const FINGER_SIZE_FRACTION = 0.55;
 /** Target ring radius, in multiples of the vertex dot. */
 const RING_SCALE = 2.6;
+
+/** Down-pointing hand — the lucide Pointer glyph rotated 180° (it points up). */
+const PointerIcon = GAME_ICONS.pointer;
 
 /**
  * Giant bobbing 👇 drawn on the board, its fingertip just above `at`, with an
@@ -44,16 +48,13 @@ export const PointerFinger: React.FC<{ at: PixelCoord; label?: string; onTargetC
         </g>
       )}
       <g pointerEvents="none" className="select-none">
-        <text
-          x={at.x}
-          y={tipY}
-          textAnchor="middle"
-          fontSize={size}
+        <g
+          transform={`translate(${at.x} ${tipY - size / 2}) scale(1 -1)`}
           className="pointer-finger"
-          style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.45))' }}
+          style={{ filter: 'drop-shadow(0 -4px 6px rgba(0,0,0,0.45))' }}
         >
-          👇
-        </text>
+          <PointerIcon x={-size / 2} y={-size / 2} width={size} height={size} color="#fff" />
+        </g>
         {label && (
           <text
             x={at.x}

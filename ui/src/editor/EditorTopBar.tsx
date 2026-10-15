@@ -1,5 +1,6 @@
 import React from 'react';
 import { EditorTopBarProps } from './types';
+import GameIcon from '../components/ui/GameIcon';
 
 /**
  * The editor's top bar: back/reset buttons and a live summary of the draft
@@ -19,7 +20,7 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({
       onClick={onBack}
       className="px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-sm cursor-pointer"
     >
-      ← Back to Lobby
+      <GameIcon name="arrowLeft" size={14} className="inline -mt-0.5" /> Back to Lobby
     </button>
     <button
       onClick={onResetStandard}

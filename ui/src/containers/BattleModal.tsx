@@ -4,6 +4,7 @@ import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import MiniView from '../components/MiniView';
+import GameIcon from '../components/ui/GameIcon';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { useBattleReposition } from '../hooks/useBattleReposition';
 import {
@@ -151,7 +152,7 @@ const BattleModalInner: React.FC<{
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 shrink-0">
           <h2 className="m-0 flex items-center gap-2 text-lg font-bold min-w-0">
             <SideName name={battle.attacker} color={colors[battle.attacker]} you={battle.attacker === me} />
-            <span className="text-gray-400 font-normal text-[14px]">⚔️</span>
+            <GameIcon name="attack" size={15} className="text-gray-400" />
             <SideName
               name={battle.defender || 'Defender'}
               color={colors[battle.defender]}

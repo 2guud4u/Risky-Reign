@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CHAT_MESSAGE_MAX } from 'common';
-import { priceLabel } from '../../utils/price';
+import { PriceText } from '../../utils/price';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { MessageCircle } from 'lucide-react';
 import MapIconButton from '../ui/MapIconButton';
+import GameIcon from '../ui/GameIcon';
 import Button from '../ui/Button';
 
 /**
@@ -121,9 +122,9 @@ const ChatButton: React.FC = () => {
                     key={`${m.at}-${i}`}
                     className="text-[12px] leading-snug break-words rounded-md bg-green-50 border border-green-200 px-2 py-1 text-green-900"
                   >
-                    <span aria-hidden="true">🔄 </span>
-                    <strong>{m.trade.from}</strong> gave <strong>{priceLabel(m.trade.gave)}</strong> to{' '}
-                    <strong>{m.trade.to ?? '🏦 the bank'}</strong> for <strong>{priceLabel(m.trade.got)}</strong>
+                    <GameIcon name="trade" size={12} className="inline -mt-0.5" />{' '}
+                    <strong>{m.trade.from}</strong> gave <strong><PriceText price={m.trade.gave} size={11} /></strong> to{' '}
+                    <strong>{m.trade.to ?? 'the bank'}</strong> for <strong><PriceText price={m.trade.got} size={11} /></strong>
                   </div>
                 ) : (
                   <div key={`${m.at}-${i}`} className="text-[13px] leading-snug break-words">
@@ -132,7 +133,7 @@ const ChatButton: React.FC = () => {
                         className="mr-1 text-purple-600 font-semibold"
                         title={m.from === myName ? `Whisper to ${m.to}` : `Whisper to you`}
                       >
-                        🤫{m.from === myName ? `→${m.to}` : ''}
+                        <GameIcon name="lock" size={11} className="inline" />{m.from === myName ? <><GameIcon name="arrowRight" size={11} className="inline" />{m.to}</> : ''}
                       </span>
                     )}
                     <span
@@ -156,10 +157,10 @@ const ChatButton: React.FC = () => {
                 onChange={(e) => setWhisperTo(e.target.value)}
                 className="flex-1 min-w-0 px-1.5 py-1 border border-gray-300 rounded-md text-[12px] bg-white"
               >
-                <option value="">🌐 Everyone</option>
+                <option value="">Everyone</option>
                 {whisperTargets.map((n) => (
                   <option key={n} value={n}>
-                    🤫 {n}
+                    Whisper to {n}
                   </option>
                 ))}
               </select>

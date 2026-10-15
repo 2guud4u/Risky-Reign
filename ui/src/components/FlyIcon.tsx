@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { FlyIcon } from '../types/flyIcon';
+import GameIcon from './ui/GameIcon';
 
 let nextId = 0;
 export const nextIconId = (): number => nextId++;
@@ -98,7 +99,7 @@ export const FlyIconView: React.FC<{
       className="fixed left-0 top-0 z-[60] pointer-events-none will-change-transform"
       style={{ transform: `translate(${icon.sourceX}px, ${icon.sourceY}px)`, opacity: 0 }}
     >
-      <span className="text-2xl drop-shadow">{RESOURCE_ICONS[icon.resource]}</span>
+      <GameIcon name={RESOURCE_ICONS[icon.resource]} size={26} className="drop-shadow" />
     </div>
   );
 };

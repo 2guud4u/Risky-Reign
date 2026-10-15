@@ -3,6 +3,7 @@ import { BattlePhase } from 'common';
 import { TroopSlot } from '../../types/battleModal';
 import { effDead, effInjured, FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
 import { TROOP_R } from '../../constants';
+import { GAME_ICONS } from '../ui/GameIcon';
 import {
   DEAD_TROOP_OPACITY,
   INJURED_TROOP_SCALE,
@@ -18,6 +19,9 @@ import {
   TROOP_ROLL_BADGE_R,
   TROOP_ROLL_LABEL_SIZE,
 } from './constants';
+
+/** Dice glyph on a troop that's mine to roll (replaces the old  label). */
+const DiceIcon = GAME_ICONS.dice;
 
 interface BattleTroopProps {
   slot: TroopSlot;
@@ -61,7 +65,7 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
     label = s.rollNum;
     labelSize = TROOP_ROLL_LABEL_SIZE;
   } else if (mine) {
-    label = '🎲';
+    label = '';
   }
   // Both troops share one figure box, centered on (x, y): the soldier art's
   // drawn figure. The robber is scaled so its figure matches that height.
@@ -119,13 +123,23 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
           />
         </svg>
       )}
-      {/* Dark disc behind a rolled number so it reads on any owner color. */}
-      {!dead && !rolling && s.rollNum !== null && (
+      {/* Dark disc behind a rolled number (or the roll cue) so it reads on any owner color. */}
+      {!dead && !rolling && (s.rollNum !== null || mine) && (
         <circle
           cx={x}
           cy={y}
           r={TROOP_ROLL_LABEL_SIZE * TROOP_ROLL_BADGE_R}
           fill={TROOP_ROLL_BADGE_FILL}
+          pointerEvents="none"
+        />
+      )}
+      {!dead && !rolling && s.rollNum === null && mine && (
+        <DiceIcon
+          x={x - TROOP_ROLL_LABEL_SIZE * 0.7}
+          y={y - TROOP_ROLL_LABEL_SIZE * 0.7}
+          width={TROOP_ROLL_LABEL_SIZE * 1.4}
+          height={TROOP_ROLL_LABEL_SIZE * 1.4}
+          color="#fff"
           pointerEvents="none"
         />
       )}

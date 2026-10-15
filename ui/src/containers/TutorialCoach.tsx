@@ -3,6 +3,7 @@ import { useGameRoom } from '../contexts/GameContext';
 import { useSetupCoach } from '../hooks/useSetupCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { affordableSummary } from '../utils/affordable';
+import GameIcon from '../components/ui/GameIcon';
 
 /** Milliseconds of no input on your turn before "Need help?" slides in. */
 const IDLE_HELP_MS = 30_000;
@@ -15,7 +16,7 @@ const PHASE_TIPS: Record<string, { title: string; body: string }> = {
   },
   Build: {
     title: 'Build phase',
-    body: 'Click a vertex or an edge on the map to see what you can build there. 🔄 trades with players or the bank. ℹ️ lists every cost. Press End Turn (top) when you are done.',
+    body: 'Click a vertex or an edge on the map to see what you can build there. The Trade button swaps cards with players or the bank; the info button lists every cost. Press End Turn (top) when you are done.',
   },
   Action: {
     title: 'Action phase',
@@ -80,17 +81,17 @@ const TutorialCoach: React.FC = () => {
         <>
           <div className="text-[11px] font-bold uppercase tracking-wide text-blue-600">Quick tutorial</div>
           <div className="text-[15px] font-bold text-gray-900">
-            {coach.key === 'settlement' ? '🏠' : '🛤️'} {coach.title}
+            <GameIcon name={coach.key === 'settlement' ? 'settlement' : 'road'} size={15} className="inline -mt-0.5" /> {coach.title}
           </div>
           <p className="m-0 text-[13px] text-gray-600">
             {coach.bubbleOpen
-              ? `Now click the ${coach.key === 'settlement' ? '🏠' : '🔨'} button at the bottom, then click it again to confirm.`
+              ? `Now click the ${coach.key === 'settlement' ? 'home' : 'hammer'} button at the bottom, then click it again to confirm.`
               : coach.body}
           </p>
         </>
       ) : showTip && tip ? (
         <>
-          <div className="text-[15px] font-bold text-gray-900">💡 {tip.title}</div>
+          <div className="text-[15px] font-bold text-gray-900"><GameIcon name="bulb" size={15} className="inline -mt-0.5" /> {tip.title}</div>
           <p className="m-0 text-[13px] text-gray-600">{tip.body}</p>
           {gameRoom?.board && currentPlayer && phase && (() => {
             const lines = affordableSummary(gameRoom.board, currentPlayer, phase);
@@ -99,8 +100,8 @@ const TutorialCoach: React.FC = () => {
                 <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">With your cards</div>
                 <ul className="m-0 p-0 list-none flex flex-col gap-0.5">
                   {lines.map((l) => (
-                    <li key={l.text} className="text-[13px] text-gray-800">
-                      {l.icon} {l.text}
+                    <li key={l.key} className="text-[13px] text-gray-800">
+                      <GameIcon name={l.icon} size={14} className="inline -mt-0.5" /> {l.text}
                     </li>
                   ))}
                 </ul>
@@ -117,7 +118,7 @@ const TutorialCoach: React.FC = () => {
         </>
       ) : (
         <>
-          <div className="text-[15px] font-bold text-gray-900">🙋 Need help?</div>
+          <div className="text-[15px] font-bold text-gray-900"><GameIcon name="question" size={15} className="inline -mt-0.5" /> Need help?</div>
           <p className="m-0 text-[13px] text-gray-600">Not sure what to do this turn?</p>
           <div className="flex gap-2">
             <button

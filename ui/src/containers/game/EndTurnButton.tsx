@@ -3,6 +3,7 @@ import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { useBuildRules } from '../../hooks/useBuildRules';
 import { useTutorialHints } from '../../utils/tutorial';
+import GameIcon from '../../components/ui/GameIcon';
 
 /**
  * Turn controls. SetUp and Dice phases advance automatically (setup once the
@@ -165,8 +166,8 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
               : 'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[13px] font-bold rounded-md border border-amber-300 bg-amber-50 text-amber-800'
           }
         >
-          <span className="pointer-finger inline-block text-base leading-none" aria-hidden="true">
-            👇
+          <span className="pointer-finger inline-flex" aria-hidden="true">
+            <GameIcon name="pointer" size={15} style={{ transform: 'scaleY(-1)' }} />
           </span>
           Nothing left to build — end your turn
         </div>
@@ -204,7 +205,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
               : 'px-2 py-1 text-xs text-center rounded border border-amber-200 bg-amber-50 text-amber-800'
           }
         >
-          ⚠ {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} can still act
+          <GameIcon name="warning" size={11} className="inline -mt-0.5" /> {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} can still act
         </div>
       )}
       {secsLeft !== null && (

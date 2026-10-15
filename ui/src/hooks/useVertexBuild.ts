@@ -30,7 +30,7 @@ export function useVertexSoldierSelectAll(board: Board, vertex: VertexNode): Bub
   const allSelected = picked.length === actableIds.length;
   return {
     key: 'toggle-select-all-soldiers',
-    icon: allSelected ? '👤' : '👥',
+    icon: allSelected ? 'user' : 'users',
     label: allSelected ? 'Pick none' : `Pick all ${actableIds.length}`,
     costText: '',
     check: { allowed: true, reason: null },
