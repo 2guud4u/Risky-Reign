@@ -1,9 +1,10 @@
-import { Board, BuildCheck, ResourceKey } from 'common';
+import { adjacentHexIds, Board, BuildCheck, canMoveRobberAdjacent, ResourceKey } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { useBuildRules } from './useBuildRules';
 import { actableSoldierIds } from '../utils/soldierActions';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
+import { hexDirectionOf } from '../utils/direction';
 import { SoldierAction, SoldierActionChoice } from './useSoldierActions';
 
 const ALLOWED: BuildCheck = { allowed: true, reason: null };
@@ -33,7 +34,7 @@ const vertexLabel = (board: Board, vertexId: string, robberHexId: string): strin
  */
 export function useRobberActions(board: Board, robberHexId: string): SoldierAction[] {
   const { gameRoom, currentPlayer, requestBoardFit } = useGameRoom();
-  const { fightRobber, playDevelopmentCard, chooseKnightEffect } = useSocket();
+  const { fightRobber, playDevelopmentCard, chooseKnightEffect, moveRobberAfterWin } = useSocket();
   const { fightRobberCheck } = useBuildRules(board);
 
   const actions: SoldierAction[] = [];
@@ -90,23 +91,57 @@ export function useRobberActions(board: Board, robberHexId: string): SoldierActi
     check: attackCheck,
     run: () => {}, // expanded bubble: a soldier is picked instead
     choices,
-    column: true,
+    // choices pop leftward — see ActionBubbles.
   });
 
   // ---- Move ----
-  if (robberPending || winPending) {
-    // A move is already owed: zoom out so every highlighted target fits,
-    // then click or drag the robber onto one.
+  if (winPending) {
+    // After defeating the robber it can only move ONE hex over (Rule:
+    // "move robber 1 tile away of their choosing") — so the bubble expands
+    // into direction-arrow chips like a soldier move, one per legal target.
+    const choice = gameRoom.robberDefeatedBy!;
+    const moveChoices: SoldierActionChoice[] = adjacentHexIds(board, choice.fromHexId)
+      .filter((hexId) => canMoveRobberAdjacent(board, choice.fromHexId, hexId).allowed)
+      .map((hexId) => {
+        const hex = board.hexes[hexId];
+        const { direction, angle } = hexDirectionOf(
+          board.hexes[choice.fromHexId].coord,
+          hex.coord
+        );
+        const where = `${hex.terrain}${hex.rollNumber !== null ? ` ${hex.rollNumber}` : ''}`;
+        return {
+          key: `robber-move-${hexId}`,
+          icon: '', // direction arrows are SVG, not emoji
+          label: `Move robber ${direction} to ${where}`,
+          costText: `${direction} · ${where}`,
+          check: ALLOWED,
+          run: () => moveRobberAfterWin(hexId, gameRoom.id),
+          eligible: true,
+          direction,
+          angle,
+        };
+      });
     actions.push({
       key: 'move',
       kind: 'move',
       label: 'Move',
-      costText: winPending ? 'Pick a highlighted adjacent hex' : 'Pick a highlighted hex',
+      costText: 'Pick a direction',
+      check: moveChoices.length ? ALLOWED : { allowed: false, reason: 'No legal hex next to the robber' },
+      run: requestBoardFit,
+      choices: moveChoices,
+    });
+  } else if (robberPending) {
+    // Rolled 7 or played Knight: any hex is legal — no direction list can
+    // cover that, so the bubble just zooms out to the highlighted targets.
+    actions.push({
+      key: 'move',
+      kind: 'move',
+      label: 'Move',
+      costText: 'Pick a highlighted hex',
       check: ALLOWED,
       run: requestBoardFit,
     });
   } else {
-    // Otherwise the only way to move it is a Knight card (any hex, no steal).
     const cards = currentPlayer.developmentCards;
     const knightIndex = cards.findIndex(
       (card, i) => card === 'knight' && i < cards.length - currentPlayer.devCardsBoughtThisTurn

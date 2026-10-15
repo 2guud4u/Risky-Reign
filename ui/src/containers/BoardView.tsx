@@ -336,12 +336,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     <div className="w-full h-full flex flex-col">
       <div
         ref={containerRef}
-        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden"
-        style={{
-          backgroundImage: "url('/art/ocean.jpeg')",
-          backgroundRepeat: 'repeat',
-          backgroundColor: '#00FFFF',
-        }}
+        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden bg-ocean"
       >
         {viewport.isDirty && (
           <button

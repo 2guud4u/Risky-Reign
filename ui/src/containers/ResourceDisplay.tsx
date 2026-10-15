@@ -1,251 +1,203 @@
-import React, { useEffect, useState } from 'react';
-import { BuildCheck, Player, canAfford, DevelopmentCardPrice, DEVELOPMENT_CARD_META } from 'common';
+import React, { useState } from 'react';
+import { BuildCheck, Player, canAfford, DevelopmentCardPrice, DEVELOPMENT_CARD_META, RESOURCES } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { priceLabel } from '../utils/price';
-import { ActionBubble } from '../components/board/ActionBubbles';
-import { RESOURCE_PANEL_LIP_HEIGHT_PX } from '../constants';
-import { devCardTabHintSeen, markDevCardTabHintSeen, useTutorialHints } from '../utils/tutorial';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import Button from '../components/ui/Button';
-
-type PanelView = 'resources' | 'devCards';
-
-/** Collapse-style chevron button that flips the panel between its two views. */
-const ChevronButton: React.FC<{ direction: 'up' | 'down'; label: string; onClick: () => void }> = ({
-  direction,
-  label,
-  onClick,
-}) => {
-  const Icon = direction === 'up' ? ChevronUp : ChevronDown;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="w-full flex items-center justify-center py-0.5 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 cursor-pointer"
-    >
-      <Icon size={14} strokeWidth={2.5} aria-hidden="true" />
-    </button>
-  );
-};
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 /**
- * Buy-a-dev-card bubble, styled and behaving like the map's action bubbles:
- * first click expands it (cost, or the reason it's blocked), second click on
- * the expanded bubble buys. It sits in a fixed bubble-sized slot and grows
- * leftward over the board so the panel itself never widens.
- */
-const BuyDevCardBubble: React.FC<{ check: BuildCheck; onBuy: () => void }> = ({ check, onBuy }) => {
-  const [open, setOpen] = useState(false);
-
-  // If buying becomes allowed/blocked mid-expansion (turn/phase flips or the
-  // hand changes), collapse so a stale confirm can't be clicked.
-  useEffect(() => setOpen(false), [check.allowed]);
-
-  return (
-    <div className="relative self-center w-14 h-14 mt-1">
-      <div className="absolute right-0 top-0 w-max">
-        <ActionBubble
-          action={{
-            key: 'buyDevCard',
-            icon: '🎴',
-            label: 'Buy Dev Card',
-            costText: priceLabel(DevelopmentCardPrice),
-            check,
-            run: onBuy,
-          }}
-          open={open}
-          onClick={() => {
-            if (!open) {
-              setOpen(true);
-              return;
-            }
-            setOpen(false);
-            if (check.allowed) onBuy();
-          }}
-        />
-      </div>
-    </div>
-  );
-};
-
-/**
- * The current player's hand, shown as a single vertical column overlaid on the
- * right-middle of the board. Two views: resource cards (a down chevron at the
- * bottom opens the dev cards) and development cards (an up chevron at the top
- * returns to resources), where face-up cards have Play plus a buy bubble. Free
- * roads stay visible in both views. `data-resource-section` marks the
- * landing point for the flying resource-gain icons, so it stays on the outer
- * container regardless of the active view.
+ * The current player's hand, rendered as a card tray centered on the bottom
+ * edge: resource cards fanned on the left, dev cards on the right, and a
+ * dashed Buy tile at the end. The action bubbles orbit the selected board
+ * point instead of bottom-center, so this strip never collides with them.
+ *
+ * Phones start collapsed to a pull-tab so the board keeps the height; the
+ * tab reopens the tray. Desktop keeps the tray open.
  */
 const ResourceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { drawDevelopmentCard, playDevelopmentCard } = useSocket();
-  const [view, setView] = useState<PanelView>('resources');
-  // Phones start collapsed — the board needs the width; the edge strip
-  // reopens the panel on demand. Desktop keeps the expanded default.
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
   );
-  const hintsOn = useTutorialHints();
-  // Show the "dev cards live behind the ▼" pointer at most once per session.
-  const [devHintSeen, setDevHintSeen] = useState(devCardTabHintSeen);
+  // Which dev card is selected (shows its Play chip). Cleared when the hand
+  // changes so a stale chip can't fire on a shifted card index.
+  const [selCard, setSelCard] = useState<number | null>(null);
+  const [buyOpen, setBuyOpen] = useState(false);
 
-const me: Player | null = currentPlayer;
-const isMyTurn = !!me && !!gameRoom && gameRoom.turnState.player === me.name;
-// Mirror the server's purchase rules. An empty deck is reshuffled server-side,
-// so it never blocks a purchase.
-const buyCheck: BuildCheck = !isMyTurn
-   ? { allowed: false, reason: 'You can only buy development cards on your turn' }
-   : gameRoom.turnState.phase !== 'Build'
-     ? { allowed: false, reason: 'You can only buy development cards during the Build phase' }
-     : !canAfford(me.resources, DevelopmentCardPrice)
-       ? { allowed: false, reason: 'Need 1 wheat, 1 brick and 1 ore' }
-       : { allowed: true, reason: null };
+  const me: Player | null = currentPlayer;
+  const isMyTurn = !!me && !!gameRoom && gameRoom.turnState.player === me.name;
 
-if (!gameRoom || !me) return null;
+  // Mirror the server's purchase rules. An empty deck is reshuffled
+  // server-side, so it never blocks a purchase.
+  const buyCheck: BuildCheck = !isMyTurn
+    ? { allowed: false, reason: 'You can only buy development cards on your turn' }
+    : gameRoom.turnState.phase !== 'Build'
+      ? { allowed: false, reason: 'You can only buy development cards during the Build phase' }
+      : !canAfford(me.resources, DevelopmentCardPrice)
+        ? { allowed: false, reason: `Need ${priceLabel(DevelopmentCardPrice)}` }
+        : { allowed: true, reason: null };
 
-const handleDrawDevCard = () => drawDevelopmentCard(gameRoom.id);
-const handlePlayDevCard = (cardIndex: number) => playDevelopmentCard(gameRoom.id, cardIndex);
-// One-shot pointer at the ▼ dev-card tab: show once (while actually playing,
-// not during SetUp) until the player either opens the tab or dismisses it.
-const showDevHint =
-  hintsOn && !devHintSeen && !collapsed && view === 'resources' &&
-  gameRoom.gameStatus === 'playing' && gameRoom.turnState.phase !== 'SetUp';
-const dismissDevHint = () => {
-  setDevHintSeen(true);
-  markDevCardTabHintSeen();
-};
-const openDevCards = () => {
-  setView('devCards');
-  dismissDevHint();
-};
+  if (!gameRoom || !me) return null;
 
-   return (
-    <div className="relative">
-      {showDevHint && (
-        <div
-          role="note"
-          aria-label="Development cards hint"
-          onMouseDown={(e) => e.stopPropagation()}
-          // Sits left of the panel, vertically near the ▼ chevron it points at.
-          className="absolute right-full bottom-6 mr-2 z-30 w-40 rounded-lg border-2 border-blue-300 bg-white shadow-xl p-2.5 text-[12px] text-gray-700"
-        >
-          <div className="font-bold text-gray-900">Your dev cards live here 👉</div>
-          <p className="m-0 mt-0.5">Press <strong>▼</strong> under Resources to see (and play) development cards.</p>
-          <Button
-            size="sm"
-            onClick={dismissDevHint}
-            className="mt-1.5 !px-2 !py-0.5 !bg-blue-600 !text-white !text-[11px] hover:!bg-blue-700"
-          >
-            Got it
-          </Button>
-          {/* Little arrow nub pointing right at the chevron. */}
-          <span aria-hidden="true" className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2.5 h-2.5 rotate-45 bg-white border-t-2 border-r-2 border-blue-300" />
-        </div>
-      )}
-      <div
-        data-resource-section="true"
-        className={`flex items-stretch ${collapsed ? 'justify-center' : ''} bg-white rounded-lg shadow pl-0 pr-2 pt-2 pb-2`}
+  const handleDrawDevCard = () => drawDevelopmentCard(gameRoom.id);
+  const handlePlayDevCard = (cardIndex: number) => {
+    playDevelopmentCard(gameRoom.id, cardIndex);
+    setSelCard(null);
+  };
+
+  return (
+    <div
+      data-resource-section="true"
+      className={`fixed left-1/2 -translate-x-1/2 bottom-0 z-20 transition-transform duration-200 ${
+        collapsed ? 'translate-y-full' : ''
+      }`}
+    >
+      {/* Pull tab: phones start collapsed so the board keeps the height. */}
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        aria-label={collapsed ? 'Show your hand' : 'Hide your hand'}
+        title={collapsed ? 'Show your hand' : 'Hide your hand'}
+        className="absolute bottom-full left-1/2 -translate-x-1/2 flex items-center justify-center w-16 h-7 rounded-t-lg bg-canvas-raised border border-b-0 border-ink-faint/40 text-ink-faint shadow-card cursor-pointer hover:text-ink"
       >
-         {/* Collapse strip: replaces the panel's left padding; a slim bar on
-          * the panel's left edge; click to hide (when collapsed the same bar
-          * remains at the screen edge); click again to bring it back. */}
-         <button
-           type="button"
-           onClick={() => setCollapsed(!collapsed)}
-           aria-label={collapsed ? 'Show resources panel' : 'Hide resources panel'}
-           title={collapsed ? 'Show resources panel' : 'Hide resources panel'}
-           className="w-11 md:w-[10px] flex shrink-0 items-center justify-center rounded-l-lg cursor-pointer hover:bg-gray-100"
-           style={{ minHeight: RESOURCE_PANEL_LIP_HEIGHT_PX }}
-         >
-           <span className="text-gray-500">
-             {collapsed ? <ChevronRight size={10} strokeWidth={2.5} aria-hidden="true" /> : <ChevronLeft size={10} strokeWidth={2.5} aria-hidden="true" />}
-           </span>
-         </button>
-         {!collapsed && (
-           <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-            {view === 'devCards' && (
-              <ChevronButton direction="up" label="Show resources" onClick={() => setView('resources')} />
-            )}
+        {collapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
 
-            {view === 'resources' && (
-              <>
-                <div className="text-[12px] font-semibold text-gray-600 text-center">Resources</div>
-                {Object.entries(me.resources).map(([resource, count]) => (
-                  <div
-                    key={resource}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-300 bg-white text-[13px] shadow-sm"
-                    title={`${resource}: ${count}`}
-                  >
-                    <span>{RESOURCE_ICONS[resource as keyof typeof RESOURCE_ICONS] ?? '❓'}</span>
-                    <strong>{count}</strong>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {/* Free roads from a played Road Building card. */}
-            {me.freeRoadsLeft > 0 && (
-              <div className="text-[11px] text-green-700 font-semibold text-center" title="Free roads from Road Building card">
-                🛤️ {me.freeRoadsLeft} free road{me.freeRoadsLeft > 1 ? 's' : ''}
+      {/* Wood tray: warm brown base + horizontal grain + knots. */}
+      <div
+        className="relative flex items-end gap-4 px-4 pt-2.5 pb-2 rounded-t-2xl"
+        style={{
+          background:
+            'radial-gradient(ellipse 10px 26px at 22% 40%, rgba(70,40,15,.4), transparent 60%),' +
+            'radial-gradient(ellipse 8px 20px at 74% 60%, rgba(70,40,15,.3), transparent 60%),' +
+            'repeating-linear-gradient(to bottom, rgba(0,0,0,.10) 0 1px, transparent 1px 9px),' +
+            'linear-gradient(to bottom, #a9713e, #8f5c2d)',
+          boxShadow: 'var(--tw-shadow, 0 4px 12px rgba(45,37,32,.12)), inset 0 2px 0 rgba(255,255,255,.15)',
+        }}
+      >
+        {/* Resource cards, fanned like a physical hand. */}
+        <div className="flex items-end" data-resource-cards="true">
+          {RESOURCES.map((resource, i) => {
+            const count = me.resources[resource] ?? 0;
+            const tilt = i % 2 === 0 ? '-4deg' : '4deg';
+            return (
+              <div
+                key={resource}
+                className="flex flex-col items-center justify-center w-[52px] h-[74px] rounded-lg border-2 border-ink-faint/45 bg-white shadow-card -ml-3.5 first:ml-0 transition-transform"
+                style={{ transform: `rotate(${tilt})`, transformOrigin: 'bottom center' }}
+                title={`${resource}: ${count}`}
+              >
+                <span className="text-[22px] leading-none">
+                  {RESOURCE_ICONS[resource] ?? '❓'}
+                </span>
+                <span className="mt-1 px-1.5 py-px rounded-md bg-ink text-white text-[11px] font-extrabold leading-tight">
+                  {count}
+                </span>
               </div>
-            )}
+            );
+          })}
+        </div>
 
-            {view === 'devCards' && (
-              <>
-                {/* Development cards (face-up) with Play. */}
-                <div className="text-[12px] font-semibold text-gray-600 text-center">
-                  Dev Cards
-                </div>
-                {me.developmentCards.length === 0 ? (
-                  <div className="text-[11px] text-gray-400 italic text-center">None yet</div>
-                ) : (
-                  me.developmentCards.map((card, i) => {
-                    const meta = DEVELOPMENT_CARD_META[card];
-                    // A card bought this turn can't be played until next turn: the last
-                    // `devCardsBoughtThisTurn` cards in the hand are the ones just bought.
-                    const lockedThisTurn = i >= me.developmentCards.length - me.devCardsBoughtThisTurn;
-                    return (
-                      <div
-                        key={`${card}-${i}`}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-purple-300 bg-purple-50 text-[12px]"
-                        title={meta.description}
-                      >
-                        <span>{meta.icon}</span>
-                        <span className="flex-1 truncate">{meta.label}</span>
-                        {isMyTurn &&
-                          (lockedThisTurn ? (
-                            <span className="text-[10px] text-gray-500" title="A card bought this turn can only be played next turn">
-                              Next turn
-                            </span>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => handlePlayDevCard(i)}
-                              className="!px-1.5 !py-0.5 !bg-purple-600 !text-white !text-[10px] !rounded hover:!bg-purple-700"
-                            >
-                              Play
-                            </Button>
-                          ))}
-                      </div>
-                    );
-                  })
+        <div className="self-stretch w-px my-1 bg-white/20" />
+
+        {/* Dev cards: tap a playable card to reveal its Play chip. */}
+        <div className="flex items-end gap-1.5">
+          {me.developmentCards.length === 0 && (
+            <div className="w-[48px] h-[68px] flex items-center justify-center rounded-lg border-2 border-dashed border-white/40 text-[11px] text-white/70 text-center px-1">
+              No dev cards
+            </div>
+          )}
+          {me.developmentCards.map((card, i) => {
+            const meta = DEVELOPMENT_CARD_META[card];
+            // A card bought this turn can't be played until next turn: the
+            // last `devCardsBoughtThisTurn` cards in the hand are the ones
+            // just bought.
+            const lockedThisTurn = i >= me.developmentCards.length - me.devCardsBoughtThisTurn;
+            const playable = isMyTurn && !lockedThisTurn;
+            // First click selects the card (lifts it + shows the Play chip);
+            // the second click on the Play chip (or the card again) plays it.
+            const selected = selCard === i;
+            return (
+              <button
+                key={`${card}-${i}`}
+                type="button"
+                disabled={!playable}
+                onClick={() => {
+                  if (selected) {
+                    handlePlayDevCard(i);
+                    return;
+                  }
+                  setSelCard(i);
+                }}
+                title={`${meta.label}${lockedThisTurn ? ' — playable next turn' : playable ? ' — tap to select, tap again to play' : ''}`}
+                className={`relative flex flex-col items-center justify-center w-12 h-[68px] rounded-lg border-2 shadow-card transition-transform ${
+                  selected ? '-translate-y-2 ring-2 ring-purple-400' : ''
+                } ${lockedThisTurn ? 'opacity-50' : 'cursor-pointer hover:-translate-y-1.5'} bg-purple-50 border-purple-300`}
+              >
+                {selected && playable && (
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-extrabold whitespace-nowrap pointer-events-none">
+                    Play
+                  </span>
                 )}
-
-                {/* Buy a development card (two-step bubble, under the dev-card list). */}
-                <BuyDevCardBubble check={buyCheck} onBuy={handleDrawDevCard} />
+                <span className="text-[20px] leading-none">{meta.icon}</span>
+                <span className="mt-0.5 text-[8px] font-bold text-purple-700">{meta.label}</span>
+              </button>
+            );
+          })}
+          {/* Buy tile: first tap expands to the cost + confirm; second buys. */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!buyOpen) {
+                setBuyOpen(true);
+                return;
+              }
+              setBuyOpen(false);
+              if (buyCheck.allowed) handleDrawDevCard();
+            }}
+            disabled={buyOpen && !buyCheck.allowed}
+            title={buyOpen ? (buyCheck.allowed ? `Buy for ${priceLabel(DevelopmentCardPrice)} — tap again` : buyCheck.reason ?? "Can't buy") : `Buy a development card (${priceLabel(DevelopmentCardPrice)})`}
+            className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 text-[11px] font-bold transition-all ${
+              buyOpen ? 'w-auto px-2 h-[68px]' : 'w-12 h-[68px]'
+            } ${
+              buyOpen
+                ? buyCheck.allowed
+                  ? 'bg-gold border-gold-deep text-white border-solid'
+                  : 'bg-white/80 border-ink-faint/50 border-dashed text-ink-soft cursor-default'
+                : 'border-dashed border-white/60 text-white/85 cursor-pointer hover:bg-white/10'
+            }`}
+          >
+            {buyOpen ? (
+              buyCheck.allowed ? (
+                <>
+                  <span>{priceLabel(DevelopmentCardPrice)} → 🃏</span>
+                  <span className="text-[9px] opacity-90">tap to buy</span>
+                </>
+              ) : (
+                <span className="text-[10px] leading-tight text-center px-1 max-w-[140px]">
+                  {buyCheck.reason ?? "Can't buy"}
+                </span>
+              )
+            ) : (
+              <>
+                <span className="text-[13px] leading-none">⛏️🐑🌾</span>
+                <span>Buy 🃏</span>
               </>
             )}
+          </button>
+        </div>
 
-            {view === 'resources' && (
-              <ChevronButton direction="down" label="Show development cards" onClick={openDevCards} />
-            )}
+        {/* Free roads from a played Road Building card — pinned above the tray's right edge. */}
+        {me.freeRoadsLeft > 0 && (
+          <div
+            className="absolute bottom-full right-3 mb-1.5 px-2 py-0.5 rounded-md bg-canvas-raised text-[11px] font-extrabold text-moss shadow-card"
+            title="Free roads from Road Building card"
+          >
+            🛤️ {me.freeRoadsLeft} free road{me.freeRoadsLeft > 1 ? 's' : ''}
           </div>
-      )}
+        )}
       </div>
     </div>
   );

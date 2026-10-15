@@ -75,7 +75,6 @@ const VertexActionBubbles: React.FC<{ board: Board; vertex: VertexNode }> = ({ b
             })),
           }
         : {}),
-      ...(a.column ? { column: a.column } : {}),
     })),
   ];
   return <ActionBubbles actions={actions} resetKey={vertex.id} />;

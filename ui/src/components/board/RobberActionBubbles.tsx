@@ -33,10 +33,11 @@ const RobberActionBubbles: React.FC<{ board: Board; hexId: string }> = ({ board,
             check: c.check,
             run: c.run,
             eligible: c.eligible,
+            direction: c.direction,
+            angle: c.angle,
           })),
         }
       : {}),
-    ...(a.column ? { column: a.column } : {}),
   }));
   return <ActionBubbles actions={bubbles} resetKey={`robber-${hexId}`} />;
 };

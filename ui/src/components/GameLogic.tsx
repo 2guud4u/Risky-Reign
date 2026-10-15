@@ -187,24 +187,13 @@ const GameLogic: React.FC = () => {
     };
   }, [notice]);
 
-  // The ocean backdrop shows on the lobby and the in-game "waiting for
-  // players" room (not the game board or the board editor).
-  const showOceanBg = view === 'lobby' || (view === 'game' && gameRoom != null && gameRoom.gameStatus === 'waiting');
+  // The ocean backdrop covers everything except the board editor — the live
+  // board tiles the same texture anyway, and every pre-game screen (lobby,
+  // waiting room, rejoin picker, paused/resume) floats its card on the water.
+  const showOceanBg = view !== 'boardEditor';
 
   return (
-    <div
-      className="min-h-dvh flex flex-col items-center p-4"
-      style={
-        showOceanBg
-          ? {
-              backgroundImage: 'url(/art/ocean.jpeg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-            }
-          : undefined
-      }
-    >
+    <div className={`min-h-dvh flex flex-col items-center p-4${showOceanBg ? ' bg-ocean' : ''}`}>
       <ConnectionBanner hidden={isConnected} onRetry={() => socket?.connect()} />
       {toast && (
         <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">

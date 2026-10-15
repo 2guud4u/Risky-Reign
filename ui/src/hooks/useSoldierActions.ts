@@ -48,8 +48,6 @@ export interface SoldierAction {
    * no direct action of its own.
    */
   choices?: SoldierActionChoice[];
-  /** Choice bubbles only: expand upward into a vertical column (attack). */
-  column?: boolean;
 }
 
 const ALLOWED: BuildCheck = { allowed: true, reason: null };
@@ -213,7 +211,6 @@ export function useSoldierActions(board: Board, vertex: VertexNode): SoldierActi
       check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'No enemy to attack here' },
       run: () => {}, // expanded bubble: an enemy is picked instead
       choices,
-      column: true, // expand upward into a vertical column
     });
   }
 

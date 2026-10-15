@@ -1,4 +1,4 @@
-import { Board, VertexNode } from 'common';
+import { Board, CubeCoord, VertexNode, cubeToPixel } from 'common';
 
 /**
  * One of the 8 compass directions a soldier move can go, from the selected
@@ -76,4 +76,18 @@ export function moveDirectionsFrom(board: Board, vertex: VertexNode): MoveDirect
     }
   }
   return Array.from(byDirection.values());
+}
+
+/**
+ * Compass direction + arrow angle between two hexes (cube coords → board
+ * pixels). Used for the robber's one-hex-away move after it is defeated,
+ * which lists directions the same way soldier moves do.
+ */
+export function hexDirectionOf(from: CubeCoord, to: CubeCoord): { direction: string; angle: number } {
+  const a = cubeToPixel(from, 100);
+  const b = cubeToPixel(to, 100);
+  const d = Math.atan2(b.x - a.x, -(b.y - a.y));
+  const deg = ((d * 180) / Math.PI + 360) % 360;
+  const index = Math.round(deg / COMPASS_SPAN) % COMPASS_LABELS.length;
+  return { direction: COMPASS_LABELS[index], angle: COMPASS_ANGLES[index] };
 }

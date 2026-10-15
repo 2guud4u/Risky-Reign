@@ -122,16 +122,14 @@ const Game: React.FC = () => {
   const roll = gameRoom.roll;
   return (
     <div>
-      {/* Corner stack: the last roll beside the ⚙️ menu button. The dice
-          stack vertically over the gear — no backing, matching the floating
-          giant dice. */}
+      {/* Corner stack: the last roll above the ⚙️ menu button. The dice are
+          white discs the same size as the gear, so the corner column reads as
+          one consistent control stack. */}
       <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex flex-col items-center gap-2">
         {roll && roll.die1 !== null && roll.die2 !== null && (
-          // Last roll, always visible beside the gear — replaces the old
-          // compact dice that floated above the menu.
-          <div className="flex flex-col items-center gap-1">
-            <Dice value={roll.die1} size={28} />
-            <Dice value={roll.die2} size={28} />
+          <div className="flex flex-col items-center gap-1.5">
+            <Dice value={roll.die1} size={48} circle />
+            <Dice value={roll.die2} size={48} circle />
           </div>
         )}
         {menuOpen && (
@@ -194,7 +192,9 @@ const Game: React.FC = () => {
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center rounded-md text-gray-600 cursor-pointer hover:bg-gray-100"
+          // White-circle backing, same look as the left-edge map buttons: the
+          // bare icon was unreadable on the ocean/board texture.
+          className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-gray-300 bg-white text-gray-700 shadow-lg leading-none cursor-pointer hover:scale-110 hover:border-blue-500 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform"
           title="Menu"
           aria-label="Menu"
           aria-expanded={menuOpen}
@@ -257,9 +257,7 @@ const Game: React.FC = () => {
             </div>
           )}
           <BoardView hexSize={GAME_HEX_SIZE} />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
-            <ResourceDisplay />
-          </div>
+          <ResourceDisplay />
           {/* Trade window, opened from the 🔄 button in the top-left corner. */}
           <TradeButton />
           {/* Build-recipe reference, opened from the ℹ️ button under 🔄. */}

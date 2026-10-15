@@ -49,6 +49,15 @@ body {
     }
 }
 
+/* The game board's ocean — tiled texture used behind lobby/waiting screens too
+   (the cream canvas looked stark against the game's water). Cyan is the
+   fallback color behind a missing/slow texture. */
+.bg-ocean {
+    background-image: url('/art/ocean.jpeg');
+    background-repeat: repeat;
+    background-color: #00ffff;
+}
+
 @keyframes blink {
     0%,
     100% {
@@ -216,7 +225,8 @@ body {
     content: '';
     position: absolute;
     inset: -3px;
-    border-radius: calc(0.75rem + 3px);
+    /* bar is rounded-xl (1.5rem in the theme) + 3px ring inset */
+    border-radius: calc(1.5rem + 3px);
     padding: 3px;
     background: conic-gradient(
         from var(--turn-glow-angle),

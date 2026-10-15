@@ -9,6 +9,8 @@ interface DiceProps {
   canRoll?: boolean;
   /** Called when the die is clicked (only when canRoll is true). */
   onRoll?: () => void;
+  /** Round die: a white disc matching the corner gear button (last-roll stack). */
+  circle?: boolean;
 }
 
 /** Pip positions on a 100x100 face (x, y) for each die value 1-6. */
@@ -50,11 +52,11 @@ const PIP_LAYOUTS: Record<number, [number, number][]> = {
 const PIP_RADIUS = 9;
 
 /** A single die. Shows its value as pips (dots) or "?" when unrolled; clickable to roll. */
-const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll }) => (
+const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll, circle }) => (
   <button
     type="button"
     onClick={canRoll ? onRoll : undefined}
-    className={`rounded-lg border-2 flex items-center justify-center font-bold text-gray-800 ${
+    className={`${circle ? 'rounded-full shadow-lg' : 'rounded-lg'} border-2 flex items-center justify-center font-bold text-gray-800 ${
       canRoll
         ? 'border-amber-500 bg-amber-50 cursor-pointer hover:bg-amber-100 active:scale-90 transition-transform motion-reduce:active:scale-100'
         : 'border-gray-300 bg-white'

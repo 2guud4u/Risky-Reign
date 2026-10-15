@@ -6,7 +6,7 @@ import { phaseColor } from './TurnOverlay';
 import { X } from 'lucide-react';
 
 /** How many turns ahead the timeline forecasts. */
-const TIMELINE_LOOKAHEAD = 5;
+const TIMELINE_LOOKAHEAD = 25;
 
 /**
  * Turn timeline dropdown, hanging just under the turn status bar (its parent
@@ -35,8 +35,9 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </button>
       </div>
       {/* pt-2: overflow-x-auto clips vertically too — without headroom the
-          current node's ring is cut off at the top. */}
-      <ol className="relative flex m-0 p-0 pt-2 -mt-2 list-none overflow-x-auto">
+          current node's ring is cut off at the top.
+          w-[400px] shows ~5 nodes (80px each); the other 20 scroll. */}
+      <ol className="relative flex w-[400px] max-w-[calc(100vw-4rem)] m-0 p-0 pt-2 -mt-2 list-none overflow-x-auto overscroll-x-contain">
         {steps.map((pos, i) => {
           const now = i === 0;
           const name = pos.player === currentPlayer?.name ? 'You' : pos.player;
