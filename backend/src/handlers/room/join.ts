@@ -9,6 +9,8 @@ import {
   MAX_PLAYERS,
   validateLayouts,
   generateBoard,
+  generateRoomCode,
+  pickQuickPlayRoom,
   HexLayout,
   GAME_HEX_SIZE,
   ROOM_CODE_CHARS,
@@ -21,7 +23,8 @@ import { broadcastRoom } from '../../broadcast';
 import { MAX_ROOMS } from '../../constants';
 import { HandlerContext } from '../context';
 import { hydrateRoom, pausedInfo, persistedMeta } from '../../lifecycle';
-import { broadcastPausedInfo, disconnectedSeats, PLAYER_NAME_RE } from './shared';
+import { broadcastPausedInfo, disconnectedSeats, passwordAttempts, PLAYER_NAME_RE } from './shared';
+import { verifyPassword } from '../../persistence/passwords';
 
 /**
  * Room joining: create-or-attach, seat-token re-attach, the resume-lobby and
@@ -33,7 +36,7 @@ export function registerJoinHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
   const { io, socket } = ctx;
 
   // Handle room joining.
-  socket.on('joinRoom', (data: { roomId: string; playerName: string; color?: string; layouts?: HexLayout[]; token?: string }) => {
+  socket.on('joinRoom', (data: { roomId: string; playerName: string; color?: string; layouts?: HexLayout[]; token?: string; password?: string }) => {
     const { roomId, color, layouts } = data;
     const token = typeof data.token === 'string' ? data.token : undefined;
     const playerName = typeof data.playerName === 'string' ? data.playerName.trim() : '';
@@ -114,6 +117,22 @@ export function registerJoinHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
       broadcastPausedInfo(io, roomId);
       return;
     }
+    // Private rooms gate EVERY non-seat path on the room password — the
+    // seat-token re-attach above is proof enough for a returning player,
+    // but nobody else learns the seat list or joins without the password.
+    if (room.passwordHash) {
+      if (!passwordAttempts.check(socket.id)) {
+        socket.emit('error', { message: 'Too many attempts — try again shortly' });
+        return;
+      }
+      const pw = typeof data.password === 'string' ? data.password : '';
+      if (!pw || !verifyPassword(pw, room.passwordHash)) {
+        socket.emit('error', { message: 'Wrong room password' });
+        return;
+      }
+      passwordAttempts.reset(socket.id);
+    }
+
     // A reopened lobby collects seats through the resume screen instead of
     // adding new players: show its seat list (claims go through claimSeat
     // with the lobby password).
@@ -173,5 +192,25 @@ export function registerJoinHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
     // Send updated room state to all players.
     applyBonuses(room);
     broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Quick Play: land in the fullest open waiting room (default settings, no
+  // password — see quickPlayEligible) or, when none exists, a fresh code the
+  // client joins to create. Answering with the code keeps joinRoom the only
+  // seat-creation path (token/session/color logic stays in one place).
+  socket.on('quickPlay', () => {
+    const found = pickQuickPlayRoom(gameRooms.values());
+    if (found) {
+      socket.emit('quickPlayFound', { roomId: found.id });
+      return;
+    }
+    if (gameRooms.size >= MAX_ROOMS) {
+      socket.emit('error', { message: 'Server is full' });
+      return;
+    }
+    // Retry the rare generated-code collision rather than dying.
+    let code = generateRoomCode();
+    while (gameRooms.has(code) || persistedMeta(code)) code = generateRoomCode();
+    socket.emit('quickPlayFound', { roomId: code });
   });
 }

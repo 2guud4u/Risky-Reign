@@ -39,4 +39,6 @@ export * from './utils/battle';
 export * from './utils/score';
 export * from './utils/turnOrder';
 export * from './utils/color';
+export * from './utils/roomCode';
+export * from './utils/quickPlay';
 export * from './adapters/boardAdapter';

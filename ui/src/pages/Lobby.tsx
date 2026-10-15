@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { readSavedSession, saveSession } from '../utils/session';
-import { generateRoomCode } from '../utils/roomCode';
+import { generateRoomCode } from 'common';
 import Button from '../components/ui/Button';
 
 const inputClass =
@@ -14,12 +14,13 @@ interface LobbyProps {
 
 const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
   const [roomId, setRoomId] = useState('');
-  const { isConnected, joinRoom: onJoinRoom } = useSocket();
+  const [password, setPassword] = useState('');
+  const { isConnected, joinRoom: onJoinRoom, quickPlay: onQuickPlay } = useSocket();
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (roomId.trim()) {
-      onJoinRoom('', roomId.trim());
+      onJoinRoom('', roomId.trim(), undefined, undefined, password.trim() || undefined);
       // Persist the join so a reload auto-rejoins. The name is chosen after
       // joining; the session is updated once the name is set.
       const saved = readSavedSession();
@@ -75,6 +76,19 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
             </p>
           </div>
 
+          <div>
+            <label className="block text-[13px] font-semibold mb-1.5 text-ink">
+              Password <span className="text-ink-faint font-normal">(only if the room is private)</span>
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Leave blank for open rooms"
+              className={inputClass}
+            />
+          </div>
+
           <Button
             variant="primary"
             type="submit"
@@ -84,6 +98,16 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
             {isConnected ? 'Join Game' : 'Connecting...'}
           </Button>
         </form>
+
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onQuickPlay}
+          disabled={!isConnected}
+          className="w-full mt-3"
+        >
+          ⚡ Quick Play
+        </Button>
 
         {error && (
           <div className="mt-4 p-3 bg-clay-pale border border-clay/40 text-clay rounded-md text-sm">

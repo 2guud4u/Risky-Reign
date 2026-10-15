@@ -173,6 +173,12 @@ export interface GameRoom {
   spectators: string[];
   /** Room chat, oldest first; capped at CHAT_LOG_MAX (server trims). */
   chatLog: ChatMessage[];
+  /**
+   * Server-only room password hash (never broadcast — `hasPassword` carries
+   * the public flag). Set ⇒ the room is private: joining and spectating
+   * require the password and Quick Play skips it. Null ⇒ open.
+   */
+  passwordHash: string | null;
 }
 /**
  * A player as broadcast to clients: the secret `token` is stripped, and other
@@ -191,7 +197,10 @@ export type PublicPlayer = Omit<Player, 'token' | 'resources' | 'developmentCard
  * The room as broadcast to a given client: the shared `devCardDeck` draw order
  * is hidden (only its size is public) and every player is a `PublicPlayer`.
  */
-export type PublicGameRoom = Omit<GameRoom, 'players' | 'devCardDeck' | 'spectators'> & {
+export type PublicGameRoom = Omit<
+  GameRoom,
+  'players' | 'devCardDeck' | 'spectators' | 'passwordHash'
+> & {
   players: PublicPlayer[];
   /** Face-down cards remaining in the shared deck (order hidden). */
   devCardDeckCount: number;
@@ -199,4 +208,6 @@ export type PublicGameRoom = Omit<GameRoom, 'players' | 'devCardDeck' | 'spectat
   spectatorCount: number;
   /** ms timestamp when this game's DB row is swept (null = not persisted). */
   expiresAt: number | null;
+  /** True when the room is passworded (private); the hash never ships. */
+  hasPassword: boolean;
 };

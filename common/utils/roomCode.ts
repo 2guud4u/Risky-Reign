@@ -1,9 +1,11 @@
-import { ROOM_CODE_CHARS, ROOM_CODE_LENGTH } from 'common';
+import { ROOM_CODE_CHARS, ROOM_CODE_LENGTH } from '../Constant';
 
 /**
  * Generate an unguessable room code: ROOM_CODE_LENGTH characters drawn from
  * ROOM_CODE_CHARS using crypto-grade randomness. Rejection sampling keeps
  * every char equally likely (256 is not a multiple of the alphabet size).
+ * Shared by the UI (create-room button) and the server (Quick Play's
+ * create-on-miss path).
  */
 export function generateRoomCode(): string {
   const alphabet = ROOM_CODE_CHARS;

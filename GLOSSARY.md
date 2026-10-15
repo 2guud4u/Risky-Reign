@@ -21,3 +21,11 @@
 | Primitives | Shared components built on tokens (Button, Modal, Chip) — screens compose these rather than raw classes. |
 | Chrome icons | UI chrome (menu, close, players, settings) — rendered as real SVG icons, not emoji. |
 | Game flavor | Emoji/art that *is* the game (resource cards, soldier/robber sprites, terrain art) — kept as-is. |
+
+## Rooms & lobby
+
+| Term | Meaning |
+|------|---------|
+| Quick Play | Server-side matchmaking: joins the fullest open lobby (waiting, default settings, no password), else creates a fresh room. |
+| Open room | A room with no password set — joinable by code alone and visible to Quick Play. |
+| Private room | A room whose host set a lobby password — joinable by code + password only; Quick Play skips it. |

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, createContext, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   ClientToServerEvents,
@@ -22,10 +22,14 @@ type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
  * the caller by socket.id, so payloads never carry an identity — just roomId
  * and the event's own fields.
  */
+/** The wire payload of an event; {roomId} for zero-arg events like quickPlay. */
+type EmitPayload<E extends keyof ClientToServerEvents> =
+  Parameters<ClientToServerEvents[E]> extends [infer P] ? P : { roomId: string };
+
 const emitAction = <E extends keyof ClientToServerEvents>(
   socket: GameSocket | null,
   event: E,
-  payload: Parameters<ClientToServerEvents[E]>[0]
+  payload: { roomId: string }
 ) => {
   if (!socket || !payload.roomId) return;
   // Loose emit: `E` stays generic here, so the typed `socket.emit` overload
@@ -108,6 +112,7 @@ const actionSpec = {
   updatePlayerName: (roomId: string, name: string) => ({ roomId, name }),
   startGame: (roomId: string) => ({ roomId }),
   resetGame: (roomId: string) => ({ roomId }),
+  setRoomPassword: (roomId: string, password: string) => ({ roomId, password }),
   refreshMap: (roomId: string) => ({ roomId }),
   updatePointsToWin: (roomId: string, pointsToWin: number) => ({ roomId, pointsToWin }),
   setTurnMode: (roomId: string, turnMode: TurnMode) => ({ roomId, turnMode }),
@@ -120,7 +125,7 @@ const actionSpec = {
     name,
     lobbyPassword,
   }),
-  spectateRoom: (roomId: string) => ({ roomId }),
+  spectateRoom: (roomId: string, password?: string) => ({ roomId, password }),
   pauseGame: (roomId: string, hostPassword: string, lobbyPassword: string) => ({
     roomId,
     hostPassword,
@@ -147,7 +152,7 @@ const actionSpec = {
     giveCount,
   }),
 } satisfies Partial<{
-  [E in keyof ClientToServerEvents]: (...args: never[]) => Parameters<ClientToServerEvents[E]>[0];
+  [E in keyof ClientToServerEvents]: (...args: never[]) => EmitPayload<E>;
 }>;
 
 /** The generated room actions, with the spec's friendly signatures. */
@@ -157,7 +162,15 @@ interface SocketContextType extends RoomActions {
   socket: GameSocket | null;
   isConnected: boolean;
   /** `asCity`: during setup, place a city directly (room's setup-cities setting). */
-  joinRoom: (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => void;
+  joinRoom: (
+    playerName: string,
+    roomId: string,
+    color?: string,
+    layouts?: HexLayout[],
+    password?: string
+  ) => void;
+  /** Find-or-create an open waiting room (the server picks). */
+  quickPlay: () => void;
 }
 
 const noopActions = Object.keys(actionSpec).reduce(
@@ -169,6 +182,7 @@ const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
   joinRoom: () => {},
+  quickPlay: () => {},
   ...noopActions,
 });
 
@@ -193,19 +207,49 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     [socket]
   );
 
-  const joinRoom = (playerName: string, roomId: string, color?: string, layouts?: HexLayout[]) => {
+  // The join emit, factored so both the exposed action and the
+  // `quickPlayFound` listener share it.
+  const emitJoin = useCallback(
+    (
+      s: GameSocket,
+      playerName: string,
+      roomId: string,
+      color?: string,
+      layouts?: HexLayout[],
+      password?: string
+    ) => {
+      // Re-attach to our seat after a reload: send the saved token (only
+      // when the session is for this exact room — never leak a stale token).
+      const saved = readSavedSession();
+      const token = saved && saved.roomId === roomId ? saved.token : undefined;
+      s.emit('joinRoom', {
+        roomId,
+        playerName,
+        color,
+        ...(token ? { token } : {}),
+        ...(layouts && layouts.length > 0 ? { layouts } : {}),
+        ...(password ? { password } : {}),
+      });
+    },
+    []
+  );
+
+  const joinRoom = (
+    playerName: string,
+    roomId: string,
+    color?: string,
+    layouts?: HexLayout[],
+    password?: string
+  ) => {
     if (!socket) return;
-    // Re-attach to our seat after a reload: send the saved token (only when
-    // the session is for this exact room — never leak a stale token).
-    const saved = readSavedSession();
-    const token = saved && saved.roomId === roomId ? saved.token : undefined;
-    socket.emit('joinRoom', {
-      roomId,
-      playerName,
-      color,
-      ...(token ? { token } : {}),
-      ...(layouts && layouts.length > 0 ? { layouts } : {}),
-    });
+    emitJoin(socket, playerName, roomId, color, layouts, password);
+  };
+
+  // Quick Play: ask the server for an open room (or a fresh code), then take
+  // the normal joinRoom path with the answer.
+  const quickPlay = () => {
+    if (!socket) return;
+    socket.emit('quickPlay');
   };
 
   useEffect(() => {
@@ -230,11 +274,23 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
       if (saved) saveSession({ ...saved, token: data.token });
     });
 
+    // Quick Play landed: join the code it found through the normal path.
+    newSocket.on('quickPlayFound', (data) => {
+      emitJoin(newSocket, '', data.roomId);
+      // Persist the join so a reload auto-rejoins (same as a manual join).
+      const saved = readSavedSession();
+      saveSession({
+        roomId: data.roomId,
+        playerName: '',
+        ...(saved?.roomId === data.roomId ? { token: saved.token } : {}),
+      });
+    });
+
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       newSocket.close();
     };
-  }, []);
+  }, [emitJoin]);
 
   return (
     <SocketContext.Provider
@@ -242,6 +298,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         socket,
         isConnected,
         joinRoom,
+        quickPlay,
         ...actions,
       }}
     >

@@ -97,12 +97,19 @@ export interface ClientToServerEvents {
   endBattle: (data: { roomId: string }) => void;
   exitBattle: (data: { roomId: string }) => void;
   rollDice: (data: { roomId: string }) => void;
-  joinRoom: (data: { roomId: string; playerName: string; color?: string; layouts?: HexLayout[]; token?: string }) => void;
+  joinRoom: (data: { roomId: string; playerName: string; color?: string; layouts?: HexLayout[]; token?: string; password?: string }) => void;
+  /** Land in an open waiting room (defaults settings, no password) or, when
+      none exist, create a fresh room. The server answers with
+      `quickPlayFound { roomId }`; the client then joins that code. */
+  quickPlay: () => void;
   updatePlayerColor: (data: { roomId: string; color: string }) => void;
   updatePlayerName: (data: { roomId: string; name: string }) => void;
   startGame: (data: { roomId: string }) => void;
   resetGame: (data: { roomId: string }) => void;
   refreshMap: (data: { roomId: string }) => void;
+  /** Host only: room password (privacy). Set ⇒ private (code + password to
+      join/spectate, invisible to Quick Play); empty ⇒ open room again. */
+  setRoomPassword: (data: { roomId: string; password: string }) => void;
   updatePointsToWin: (data: { roomId: string; pointsToWin: number }) => void;
   setTurnMode: (data: { roomId: string; turnMode: TurnMode }) => void;
   setSetupCities: (data: { roomId: string; setupCities: number }) => void;
@@ -124,8 +131,9 @@ export interface ClientToServerEvents {
   /** Take over a disconnected seat offered by `rejoinOptions`. The lobby
       password is required when the seat lives in a paused 'resuming' game. */
   claimSeat: (data: { roomId: string; name: string; lobbyPassword?: string }) => void;
-  /** Watch a started game without a seat. */
-  spectateRoom: (data: { roomId: string }) => void;
+  /** Watch a started game without a seat. Private rooms require their
+      room password here too — private means invisible, not just unjoinable. */
+  spectateRoom: (data: { roomId: string; password?: string }) => void;
   /** Host only: persist the running game and close the room for later resume. */
   pauseGame: (data: { roomId: string; hostPassword: string; lobbyPassword: string }) => void;
   /** Reopen a paused game into a 'resuming' lobby (host password). */
@@ -146,6 +154,8 @@ export interface ServerToClientEvents {
   error: (error: { message: string }) => void;
   /** Seat token for a just-joined socket, used to re-attach after reload. */
   joined: (data: { token: string }) => void;
+  /** The room code Quick Play landed on (existing open room, or a fresh one). */
+  quickPlayFound: (data: { roomId: string }) => void;
   /** One-shot robber-fight dice result, broadcast to the room. */
   robberFightResult: (result: RobberFightResult) => void;
   /**

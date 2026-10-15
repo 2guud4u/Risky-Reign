@@ -127,6 +127,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     battlesWon: {},
     lastActivityAt: Date.now(),
     spectators: [],
+    passwordHash: null,
   };
   gameRooms.set(roomId, room);
   return room;

@@ -84,6 +84,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     setTurnMode: onSetTurnMode,
     setSetupCities: onSetSetupCities,
     setTurnTimer: onSetTurnTimer,
+    setRoomPassword: onSetRoomPassword,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
     joinRoom: onJoinRoom,
@@ -92,6 +93,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
   const [nameInput, setNameInput] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [roomPassword, setRoomPassword] = useState('');
   const handleSetName = () => {
     const name = nameInput.trim();
     if (!name || !gameRoom || !currentPlayer) return;
@@ -413,6 +415,46 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                   )}
                   <p className="mt-1 text-[11px] text-ink-faint">
                     Build and Action phases auto-end when the clock runs out. Pauses during fights.
+                  </p>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Room password = privacy: set ⇒ friends join with code+password
+              and Quick Play skips the room; empty ⇒ open to Quick Play. */}
+          <div className="mt-5 border-t border-ink-faint/30 pt-3">
+            <label className="block text-[13px] font-semibold mb-1.5 text-ink">
+              Room Password {gameRoom.hasPassword ? '🔒' : ''}
+            </label>
+            {(() => {
+              const isHost = gameRoom.players[0]?.id === currentPlayer.id;
+              return (
+                <>
+                  <input
+                    type="password"
+                    value={roomPassword}
+                    onChange={(e) => setRoomPassword(e.target.value)}
+                    placeholder={gameRoom.hasPassword ? 'New password (or clear to open)' : 'None set — room is open'}
+                    disabled={!isHost}
+                    className={inputClass}
+                  />
+                  {isHost && (
+                    <div className="mt-2 flex gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => onSetRoomPassword(gameRoom.id, roomPassword.trim())}
+                      >
+                        {roomPassword.trim() ? 'Set password' : 'Clear password'}
+                      </Button>
+                    </div>
+                  )}
+                  <p className="mt-1 text-[11px] text-ink-faint">
+                    {gameRoom.hasPassword
+                      ? 'Private: friends join with code + password; Quick Play skips this room.'
+                      : 'Open: anyone can join by code, and Quick Play may drop strangers in.'}
                   </p>
                 </>
               );

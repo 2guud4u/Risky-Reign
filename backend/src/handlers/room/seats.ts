@@ -70,7 +70,7 @@ export function registerSeatHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
   // Watch a started game without a seat: room updates with every hand masked,
   // no actions (every action handler resolves the caller by seat socket id,
   // which a spectator never has).
-  socket.on('spectateRoom', (data: { roomId: string }) => {
+  socket.on('spectateRoom', (data: { roomId: string; password?: string }) => {
     let room = gameRooms.get(data?.roomId);
     if (!room) {
       // Same resolution as joinRoom: a paused row just reports its info;
@@ -87,6 +87,20 @@ export function registerSeatHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
       return;
+    }
+    // Private means invisible: watching a passworded room needs the room
+    // password too, same as joining.
+    if (room.passwordHash) {
+      if (!passwordAttempts.check(socket.id)) {
+        socket.emit('error', { message: 'Too many attempts — try again shortly' });
+        return;
+      }
+      const pw = typeof data.password === 'string' ? data.password : '';
+      if (!pw || !verifyPassword(pw, room.passwordHash)) {
+        socket.emit('error', { message: 'Wrong room password' });
+        return;
+      }
+      passwordAttempts.reset(socket.id);
     }
     if (room.gameStatus === 'resuming') {
       // The resume lobby has nothing to spectate until the game continues.

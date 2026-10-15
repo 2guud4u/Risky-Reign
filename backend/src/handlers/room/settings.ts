@@ -11,9 +11,9 @@ import {
   MIN_TURN_TIMER_S,
   MAX_TURN_TIMER_S,
   CHAT_LOG_MAX,
+  PASSWORD_MAX,
   shuffle,
 } from 'common';
-
 import { createBoard, gameRooms, resetRoom } from '../../store';
 // passKnockedOutTurn removed: leaveGame now keeps the seat like disconnect.
 import { DEV_PRESET, applyDevPreset } from '../../devPreset';
@@ -21,6 +21,7 @@ import { broadcastRoom } from '../../broadcast';
 import { HandlerContext, requireRoom } from '../context';
 import { clearResumeLobbyHash, transition } from '../../lifecycle';
 import { remove as removePersisted } from '../../persistence/gameRepository';
+import { hashPassword } from '../../persistence/passwords';
 
 /**
  * Room configuration and game lifecycle the host controls while waiting:
@@ -78,6 +79,29 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       return;
     }
     room.pointsToWin = value;
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Room password: the privacy switch. Host only, while waiting — like every
+  // other room setting. Set ⇒ the room leaves the Quick Play pool and joins/
+  // spectates need it; empty ⇒ open again (the room re-enters the pool).
+  socket.on('setRoomPassword', (data: { roomId: string; password: string }) => {
+    const room = requireRoom(socket, data?.roomId);
+    if (!room) return;
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'Can only change settings while waiting' });
+      return;
+    }
+    if (room.players[0]?.id !== socket.id) {
+      socket.emit('error', { message: 'Only the host can change settings' });
+      return;
+    }
+    const pw = typeof data.password === 'string' ? data.password : '';
+    if (pw.length > PASSWORD_MAX) {
+      socket.emit('error', { message: `Passwords are at most ${PASSWORD_MAX} characters` });
+      return;
+    }
+    room.passwordHash = pw ? hashPassword(pw) : null;
     broadcastRoom(io, room, 'roomUpdate');
   });
 

@@ -3,7 +3,7 @@ import { useSocket } from '../contexts/SocketContext';
 import { EditorHistorySnapshot, SavePanelProps } from './types';
 import { inputClass } from './constants';
 import { cloneMap, toHexLayouts } from './utils';
-import { generateRoomCode } from '../utils/roomCode';
+import { generateRoomCode } from 'common';
 
 /**
  * Save & Start panel: for a new room it collects a player name and room id and

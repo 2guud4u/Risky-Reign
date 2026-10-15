@@ -52,7 +52,8 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
     turnTimerMs: snap.turnTimerMs ?? 0,
     phaseTimerEndsAt: null,
     phaseTimerRemainingMs: null,
-    turnMode: { ...snap.turnMode, secondRoll: snap.turnMode.secondRoll ?? false },
+    // Snapshots written before room passwords existed are open rooms.
+    passwordHash: snap.passwordHash ?? null,
     bonuses: {
       ...snap.bonuses,
       // Snapshots written before the rename still carry hasWarmonger.

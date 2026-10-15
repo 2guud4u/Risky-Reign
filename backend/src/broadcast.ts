@@ -41,7 +41,7 @@ export function sanitizeRoomFor(
     };
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { devCardDeck: _deck, players: _players, spectators, chatLog, ...rest } = room;
+  const { devCardDeck: _deck, players: _players, spectators, chatLog, passwordHash, ...rest } = room;
   // Whispers (m.to set) are visible only to their sender and recipient —
   // they never reach another client's sanitized payload.
   const viewerName = room.players.find((p) => p.id === viewerSocketId)?.name;
@@ -56,6 +56,7 @@ export function sanitizeRoomFor(
     spectatorCount: spectators.length,
     // Persisted games carry a sweep deadline; memory-only rooms get none.
     expiresAt,
+    hasPassword: passwordHash !== null,
   };
 }
 
