@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { PublicGameRoom, PublicPlayer, SoldierBattleState } from 'common';
+import { PublicGameRoom, PublicPlayer, SoldierBattleState, canRollSoldier, resolveBattleOutcome } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
@@ -7,9 +7,7 @@ import MiniView from '../components/MiniView';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { useBattleReposition } from '../hooks/useBattleReposition';
 import {
-  canRollSoldier,
   clashLineSpread,
-  computeBattleOutcome,
   computeDiceMatchup,
   computeWaitingLines,
   FALLBACK_OWNER_COLOR,
@@ -108,7 +106,7 @@ const BattleModalInner: React.FC<{
     rollBattleDie(soldierId, gameRoom.id);
   };
 
-  const canRoll = (s: SoldierBattleState): boolean => canRollSoldier(battle, s, phase, me);
+  const canRoll = (s: SoldierBattleState): boolean => canRollSoldier(battle, s, me);
   const myRollPending = Object.values(battle.states).some((side) => side.soldiers.some(canRoll));
 
   const canContinue = currentPlayer !== null && battle.attacker === me && phase === 'betweenRounds';
@@ -118,7 +116,8 @@ const BattleModalInner: React.FC<{
   const defenderAlive = defenderSide.soldiers.some((s) => !s.dead && !s.injured);
   const attackerAlive = attackerSide.soldiers.some((s) => !s.dead && !s.injured);
 
-  const outcome = computeBattleOutcome(battle, attackerSide.soldiers, defenderSide.soldiers, phase);
+  // Verdict comes from common — the same rule the server credits battlesWon with.
+  const outcome = phase === 'repositioning' || phase === 'finished' ? resolveBattleOutcome(battle) : null;
 
   // During 'betweenRounds' this round's casualties are hidden (pending), so
   // every troop that rolled is still on the clash line.

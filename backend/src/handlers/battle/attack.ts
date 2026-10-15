@@ -1,7 +1,7 @@
 import { canStartBattle, createBattleState } from 'common';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom, requirePlayer } from '../context';
 
 /**
  * Battle-start handler: beginning an attack on a vertex (or a robber
@@ -14,11 +14,8 @@ export function registerBattleAttackHandlers(ctx: HandlerContext): void {
     'startAttack',
     (data: { roomId: string; soldierIds: string[]; targetVertexId: string; defenderName?: string }) => {
       const { roomId, soldierIds, targetVertexId, defenderName } = data;
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+      const room = requireRoom(socket, roomId);
+      if (!room) return;
       if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board) {
@@ -26,11 +23,8 @@ export function registerBattleAttackHandlers(ctx: HandlerContext): void {
         return;
       }
       const turnState = room.turnState;
-      const currentPlayer = room.players.find((p) => p.id === socket.id);
-      if (!currentPlayer) {
-        socket.emit('error', { message: 'Player not found' });
-        return;
-      }
+      const currentPlayer = requirePlayer(room, socket);
+      if (!currentPlayer) return;
       // A battle can only be started during the Action phase, on your turn.
       if (turnState.phase !== 'Action' || turnState.player !== currentPlayer.name) {
         socket.emit('error', { message: 'You can only start a battle on your turn in the Action phase' });

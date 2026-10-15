@@ -7,7 +7,7 @@ import {
   activeSoldiersOf,
   MAX_PER_ROUND,
 } from 'common';
-import { BattleOutcome, DiceMatch, RepositionTroop, TroopSlot } from '../types/battleModal';
+import { DiceMatch, RepositionTroop, TroopSlot } from '../types/battleModal';
 import {
   CENTER_GAP,
   COL_W,
@@ -106,47 +106,6 @@ export function layoutSide(
   return slots;
 }
 
-/** The name of the side (`states` key) a troop is committed to, if any. */
-export const sideNameOf = (battle: BattleState, s: SoldierBattleState): string | undefined =>
-  Object.keys(battle.states).find((name) => battle.states[name].soldiers.includes(s));
-
-/**
- * A soldier is "active" only if it is in the active front line (first
- * MAX_PER_ROUND standing troops on its side).
- */
-export const isActiveSoldier = (battle: BattleState, s: SoldierBattleState): boolean => {
-  const sideName = sideNameOf(battle, s);
-  if (!sideName) return false;
-  return activeSoldiersOf(battle, sideName).includes(s);
-};
-
-/**
- * In an injured fight the injured defenders still roll (Rule 28), so they
- * are rollable despite being injured.
- */
-export const isInjuredFightDefender = (battle: BattleState, s: SoldierBattleState): boolean => {
-  if (!battle.injuredFight) return false;
-  return sideNameOf(battle, s) === battle.defender;
-};
-
-/**
- * A soldier can roll only if it is in the active front line, owned by the
- * current player, alive, uninjured (unless an injured-fight defender), and
- * not yet rolled this round.
- */
-export const canRollSoldier = (
-  battle: BattleState,
-  s: SoldierBattleState,
-  phase: BattlePhase,
-  currentPlayerName: string | undefined
-): boolean =>
-  phase === 'rolling' &&
-  currentPlayerName === s.soldier.owner &&
-  !s.dead &&
-  (!s.injured || isInjuredFightDefender(battle, s)) &&
-  s.rollNum === null &&
-  isActiveSoldier(battle, s);
-
 /**
  * Injured survivors of this battle, keyed by their current resting vertex
  * (from the repositioning map), so each can be dragged one road-step at a time.
@@ -207,41 +166,6 @@ export function computeWaitingLines(battle: BattleState, phase: BattlePhase): st
     }
   }
   return waitingLines;
-}
-
-/** Battle outcome summary for the finished / repositioning phases. */
-export function computeBattleOutcome(
-  battle: BattleState,
-  attackerSoldiers: SoldierBattleState[],
-  defenderSoldiers: SoldierBattleState[],
-  phase: BattlePhase
-): BattleOutcome | null {
-  if (phase !== 'finished' && phase !== 'repositioning') return null;
-  const atkAlive = attackerSoldiers.filter((s) => !s.dead && !s.injured).length;
-  const defAlive = defenderSoldiers.filter((s) => !s.dead && !s.injured).length;
-  const atkDead = attackerSoldiers.filter((s) => s.dead).length;
-  const defDead = defenderSoldiers.filter((s) => s.dead).length;
-  const atkInj = attackerSoldiers.filter((s) => s.injured && !s.dead).length;
-  const defInj = defenderSoldiers.filter((s) => s.injured && !s.dead).length;
-  const defenderName = battle.defender || 'defender';
-  let winner: string | null;
-  if (battle.forfeitedBy) {
-    // Early end on an undecided battle: the attacker fled, defender wins.
-    winner = defenderName;
-  } else if (battle.robberFight) {
-    // Nobody is marked dead in a robber fight: the attacker wins only on a
-    // strictly higher roll (the robber wins ties).
-    const soldierRoll = attackerSoldiers[0]?.rollNum ?? 0;
-    const robberRoll = defenderSoldiers[0]?.rollNum ?? 0;
-    winner = soldierRoll > robberRoll ? battle.attacker : defenderName;
-  } else if (battle.injuredFight) {
-    // The injured defenders never count as "standing": they win by escaping
-    // (any survivor), the attacker wins by killing every one of them.
-    winner = defenderSoldiers.some((s) => !s.dead) ? defenderName : battle.attacker;
-  } else {
-    winner = atkAlive > 0 ? battle.attacker : defAlive > 0 ? defenderName : null;
-  }
-  return { atkAlive, defAlive, atkDead, defDead, atkInj, defInj, winner };
 }
 
 /** Matched-up dice for the just-resolved round (highest vs highest, ...). */

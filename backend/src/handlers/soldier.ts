@@ -13,7 +13,7 @@ import {
 } from 'common';
 import { gameRooms, freshResourceCount } from '../store';
 import { broadcastRoom } from '../broadcast';
-import { HandlerContext, blockIfCannotAct } from './context';
+import { HandlerContext, blockIfCannotAct, requireRoom, requirePlayer } from './context';
 
 /**
  * Soldier handlers: moving a garrisoned soldier, healing one, capturing a
@@ -24,11 +24,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
 
   socket.on('moveSoldier', (data: { roomId: string; soldierId: string; targetVertexId: string }) => {
     const { roomId, soldierId, targetVertexId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -36,11 +33,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI).
     const check = canMoveSoldierTo(board, turnState, currentPlayer.name, soldierId, targetVertexId);
@@ -75,11 +69,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
     'captureSettlement',
     (data: { roomId: string; soldierId: string; vertexId: string }) => {
       const { roomId, soldierId, vertexId } = data;
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+      const room = requireRoom(socket, roomId);
+      if (!room) return;
       if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board) {
@@ -87,11 +78,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
         return;
       }
       const turnState = room.turnState;
-      const currentPlayer = room.players.find((p) => p.id === socket.id);
-      if (!currentPlayer) {
-        socket.emit('error', { message: 'Player not found' });
-        return;
-      }
+      const currentPlayer = requirePlayer(room, socket);
+      if (!currentPlayer) return;
 
       // Authoritative rules live in common (shared with the UI). A capture
       // is done by exactly one soldier (own, on the vertex, no enemy or
@@ -140,11 +128,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
   socket.on('healSoldier', (data: { roomId: string; soldierId: string; payWith?: string }) => {
     const { roomId, soldierId } = data;
     const payWith = data.payWith as ResourceKey | undefined;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -152,11 +137,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI), including the
     // heal payment choice: 1 card of either Wheat or Sheep.
@@ -187,11 +169,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
 
   socket.on('fightRobber', (data: { roomId: string; soldierId: string; vertexId: string }) => {
     const { roomId, soldierId, vertexId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -199,11 +178,8 @@ export function registerSoldierHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI).
     const check = canFightRobber(room, currentPlayer.name, soldierId, vertexId);

@@ -2,7 +2,7 @@ import { applyBonuses, injuredLeftToMove, nextRepositionTurn } from 'common';
 import { passKnockedOutTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom, requirePlayer } from '../context';
 
 /**
  * Repositioning handlers: dragging injured soldiers along a road to a
@@ -26,11 +26,8 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
         return;
       }
       if (blockIfCannotAct(room, socket)) return;
-      const currentPlayer = room.players.find((p) => p.id === socket.id);
-      if (!currentPlayer) {
-        socket.emit('error', { message: 'Player not found' });
-        return;
-      }
+      const currentPlayer = requirePlayer(room, socket);
+      if (!currentPlayer) return;
       if (room.battleState.phase !== 'repositioning') {
         socket.emit('error', { message: 'The battle is not in the repositioning phase' });
         return;
@@ -97,11 +94,8 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
       return;
     }
     if (blockIfCannotAct(room, socket)) return;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
     if (room.battleState.phase !== 'repositioning') {
       socket.emit('error', { message: 'The battle is not in the repositioning phase' });
       return;
@@ -140,11 +134,8 @@ export function registerBattleRepositioningHandlers(ctx: HandlerContext): void {
   // leave unless there is no road out.
   socket.on('exitBattle', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     const bs = room.battleState;
     if (bs && (bs.phase === 'finished' || bs.phase === 'repositioning')) {
       if (bs.phase === 'repositioning' && bs.repositionTurn) {

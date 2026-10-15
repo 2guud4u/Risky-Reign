@@ -1,39 +1,54 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Board, BoardUIState, PublicGameRoom, PixelCoord, Player, adjacentHexIds } from 'common';
+import React, { useCallback } from 'react';
+import {
+  Board,
+  BoardUIState,
+  PublicGameRoom,
+  PixelCoord,
+  Player,
+  adjacentHexIds,
+} from 'common';
 import { DROP_THRESHOLD_FRACTION, PROJ_SIZE } from '../constants';
 import { SelectableObject } from '../types';
 import { DragSettle, SoldierDragState } from '../types/board';
 import { useGameRoom } from '../contexts/GameContext';
 import {
   isSoldierDraggable,
-  mouseToSvgPoint,
   movableSoldierAt,
   nearestWithin,
   soldierMovableThisTurn,
   validSoldierTargets,
 } from '../utils/boardInteraction';
+import { useDragMachine } from './useDragMachine';
 
 /**
- * Board drag state machine: dragging your own soldiers between adjacent
- * vertices during the Action phase, and dragging the robber while a robber
- * move is pending. Also owns Escape handling (clears the selection and
- * cancels any in-progress drag) and the drop-resolution math.
+ * The drag kinds the board understands. Each kind is a small state payload;
+ * the pointer mechanics (one-at-a-time sessions, primary-pointer guards,
+ * Escape, the settle spring) live in `useDragMachine` — this file holds the
+ * per-kind resolvers that decide what a drop does.
+ */
+type BoardDrag =
+  | { kind: 'soldier'; data: SoldierDragState }
+  | { kind: 'robber' }
+  | { kind: 'robberWin' };
+
+/**
+ * Drag-and-drop on the board: soldiers along roads, the robber to a new hex,
+ * and the post-robber-fight winner move. Game-rule resolvers are here; the
+ * machine underneath is shared.
  *
- * The callbacks are memoized and read current drag state through `stateRef`
- * so the memoized layer components (SoldierBadges etc.) get stable function
- * props — only the tiny drag-ghost overlay re-renders per mousemove, not the
- * whole board tree.
+ * The callbacks are memoized so the memoized layer components
+ * (SoldierBadges etc.) get stable function props — only the tiny drag-ghost
+ * overlay re-renders per mousemove, not the board.
  */
 export function useBoardDrag(opts: {
   board: Board | null;
   base: BoardUIState | null;
   gameRoom: PublicGameRoom | null;
   currentPlayer: Player | null;
-  svgRef: React.RefObject<SVGSVGElement>;
-  setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
-  /** Shared flag the viewport touch layer reads to suppress pinch/pan
-   *  while a piece drag is live. Owned by BoardView. */
+  svgRef: React.RefObject<SVGSVGElement | null>;
+  /** Written true while a piece drag is live, so the touch layer reads to suppress pinch/pan. */
   dragActiveRef: React.MutableRefObject<boolean>;
+  setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
   moveSoldier: (soldierId: string, targetVertexId: string, roomId: string) => void;
   moveRobber: (hexId: string, roomId: string) => void;
   moveRobberAfterWin: (hexId: string, roomId: string) => void;
@@ -52,43 +67,82 @@ export function useBoardDrag(opts: {
 
   const { showToast } = useGameRoom();
 
-  // Soldier drag-and-drop state.
-  const dragActiveRef = opts.dragActiveRef;
-  const [drag, setDrag] = useState<SoldierDragState | null>(null);
-  const [mousePos, setMousePos] = useState<PixelCoord | null>(null);
-  // Robber drag state: true while the user is dragging the robber.
-  const [robberDrag, setRobberDrag] = useState(false);
-  // Post-win robber move: the winner drags the robber to an adjacent hex.
-  const [winDrag, setWinDrag] = useState(false);
-  // Post-drop settle: the ghost springs to its landing (or snaps back).
-  const [settle, setSettle] = useState<DragSettle | null>(null);
+  const dropThreshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
 
-  // Latest-values ref so the memoized callbacks read current drag state
-  // without those values being in their dependency lists.
-  const stateRef = useRef({ drag, mousePos, robberDrag, winDrag });
-  stateRef.current = { drag, mousePos, robberDrag, winDrag };
-  dragActiveRef.current = !!(drag || robberDrag || winDrag);
+  /** What a drop does, per drag kind. Returns the settle landing (or null). */
+  const resolveDrop = useCallback(
+    (d: BoardDrag, mp: PixelCoord | null): Omit<DragSettle, 'from'> | null => {
+      switch (d.kind) {
+        case 'robberWin': {
+          // Post-win robber move: drop on a valid adjacent hex.
+          const fromHexId = gameRoom?.robberDefeatedBy?.fromHexId;
+          if (!mp || !board || !currentPlayer || !gameRoom || !fromHexId) return null;
+          // Only the hexes adjacent to the robber's current hex are valid.
+          const valid = adjacentHexIds(board, fromHexId)
+            .map((id) => base?.hexes[id])
+            .filter((h): h is NonNullable<typeof h> => !!h && h.terrain !== 'Desert');
+          const target = nearestWithin(valid, mp, dropThreshold, (hex) => hex.position);
+          if (target) moveRobberAfterWin(target.id, gameRoom.id);
+          // Landed: spring to the target; missed: spring back to the robber's hex.
+          const landAt = target?.position ?? base?.hexes[fromHexId]?.position;
+          return landAt ? { kind: 'robber', to: landAt } : null;
+        }
+        case 'robber': {
+          if (!mp || !board || !currentPlayer || !gameRoom) return null;
+          // Drop on the nearest valid hex (non-Desert, no robber) within reach.
+          const target = nearestWithin(
+            Object.values(base?.hexes ?? {}).filter((h) => h.terrain !== 'Desert' && !h.hasRobber),
+            mp,
+            dropThreshold,
+            (hex) => hex.position
+          );
+          const home = Object.values(base?.hexes ?? {}).find((h) => h.hasRobber)?.position;
+          if (target) moveRobber(target.id, gameRoom.id);
+          const landAt = target?.position ?? home;
+          return landAt ? { kind: 'robber', to: landAt } : null;
+        }
+        case 'soldier': {
+          const s = d.data;
+          if (!mp || !board || !currentPlayer || !gameRoom) return null;
+          // Drop on the nearest valid target vertex within reach.
+          const target = nearestWithin(
+            s.validTargets,
+            mp,
+            dropThreshold,
+            (tid) => board.vertices[tid]?.position ?? null
+          );
+          const ghostColor = gameRoom.players.find((p) => p.name === s.ownerName)?.color;
+          if (target) {
+            moveSoldier(s.soldierId, target, gameRoom.id);
+            const landAt = board.vertices[target]?.position;
+            return landAt ? { kind: 'soldier', to: landAt, color: ghostColor } : null;
+          }
+          // Invalid drop: the ghost snaps back to the soldier's own vertex.
+          const home = board.vertices[s.fromVertexId]?.position;
+          // Dropped near a vertex that isn't road-connected: explain the miss.
+          // Drops on open water / empty space stay a silent snap-back.
+          if (
+            nearestWithin(Object.keys(board.vertices), mp, dropThreshold, (tid) =>
+              board.vertices[tid]?.position ?? null
+            )
+          ) {
+            showToast('Soldiers can only move along a road');
+          }
+          return home ? { kind: 'soldier', to: home, color: ghostColor } : null;
+        }
+      }
+    },
+    [board, base, gameRoom, currentPlayer, moveRobber, moveRobberAfterWin, moveSoldier, showToast, dropThreshold]
+  );
 
-  const cancelDrag = useCallback(() => {
-    setDrag(null);
-    setRobberDrag(false);
-    setWinDrag(false);
-    setMousePos(null);
-  }, []);
-
-  /** Begin a settle: the ghost springs from the drop point to `to`. */
-  const beginSettle = useCallback((s: DragSettle) => setSettle(s), []);
-
-  // Escape clears the selection and cancels any in-progress soldier drag.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      cancelDrag();
-      setSelectedObject(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [setSelectedObject, cancelDrag]);
+  const machine = useDragMachine<BoardDrag>({
+    svgRef,
+    dragActiveRef: opts.dragActiveRef,
+    onDrop: resolveDrop,
+    onEscape: () => setSelectedObject(null),
+  });
+  const { drag, mousePos, settle, clearSettle, beginDrag, cancelDrag, handlePointerMove, handlePointerUp } =
+    machine;
 
   // A pending robber move (a 7 roll or a played knight card) makes the
   // robber draggable for the pending player: dragging it to a valid hex
@@ -98,9 +152,9 @@ export function useBoardDrag(opts: {
     (e: React.PointerEvent) => {
       if (!robberPending) return;
       e.stopPropagation(); // see startDrag: keep the click, stop the pan
-      setRobberDrag(true);
+      beginDrag({ kind: 'robber' });
     },
-    [robberPending]
+    [robberPending, beginDrag]
   );
 
   // A won robber fight makes the robber draggable for the winner: dragging
@@ -111,9 +165,9 @@ export function useBoardDrag(opts: {
     (e: React.PointerEvent) => {
       if (!winPending) return;
       e.stopPropagation(); // see startDrag: keep the click, stop the pan
-      setWinDrag(true);
+      beginDrag({ kind: 'robberWin' });
     },
-    [winPending]
+    [winPending, beginDrag]
   );
 
   /** Whether the current player may drag this owner's soldiers at a vertex. */
@@ -121,6 +175,22 @@ export function useBoardDrag(opts: {
     (ownerName: string, vertexId: string): boolean =>
       isSoldierDraggable(gameRoom, currentPlayer?.name, ownerName, vertexId),
     [gameRoom, currentPlayer]
+  );
+
+  const beginSoldierDrag = useCallback(
+    (soldierId: string, ownerName: string, vertexId: string) => {
+      if (!board) return;
+      beginDrag({
+        kind: 'soldier',
+        data: {
+          soldierId,
+          ownerName,
+          fromVertexId: vertexId,
+          validTargets: validSoldierTargets(board, vertexId),
+        },
+      });
+    },
+    [board, beginDrag]
   );
 
   /** Start dragging the first movable soldier this owner has at the vertex. */
@@ -133,15 +203,11 @@ export function useBoardDrag(opts: {
       // touch (tap-to-select would die). The svg's onDragStart guard already
       // stops the native image drag.
       e.stopPropagation();
-      setDrag({
-        soldierId: soldier.id,
-        ownerName,
-        fromVertexId: vertexId,
-        validTargets: validSoldierTargets(board, vertexId),
-      });
+      beginSoldierDrag(soldier.id, ownerName, vertexId);
     },
-    [board, gameRoom]
+    [board, gameRoom, beginSoldierDrag]
   );
+
   /** Start dragging a specific soldier (the zoomed-in sprite layer). */
   const startDragSoldier = useCallback(
     (e: React.PointerEvent, ownerName: string, vertexId: string, soldierId: string) => {
@@ -153,114 +219,17 @@ export function useBoardDrag(opts: {
       if (!soldier || soldier.owner !== ownerName || !soldierMovableThisTurn(soldier, gameRoom)) return;
       // See startDrag: keep the click, stop the pan.
       e.stopPropagation();
-      setDrag({
-        soldierId: soldier.id,
-        ownerName,
-        fromVertexId: vertexId,
-        validTargets: validSoldierTargets(board, vertexId),
-      });
+      beginSoldierDrag(soldier.id, ownerName, vertexId);
     },
-    [board, gameRoom, currentPlayer?.name]
+    [board, gameRoom, currentPlayer?.name, beginSoldierDrag]
   );
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.isPrimary === false) return; // a second finger: not the drag pointer
-      const { drag: d, robberDrag: r, winDrag: w } = stateRef.current;
-      if (!d && !r && !w) return;
-      setMousePos(mouseToSvgPoint(e, svgRef.current));
-    },
-    [svgRef]
-  );
-
-  const handlePointerUp = useCallback((e?: React.PointerEvent) => {
-    // A second finger's release must not resolve (or cancel) the drag.
-    if (e && e.isPrimary === false) return;
-    const { drag: d, mousePos: mp, robberDrag: rd, winDrag: wd } = stateRef.current;
-    // Handle the post-win robber move: drop on a valid adjacent hex.
-    if (wd) {
-      setWinDrag(false);
-      if (mp && board && currentPlayer && gameRoom) {
-        const fromHexId = gameRoom.robberDefeatedBy?.fromHexId;
-        if (fromHexId) {
-          // Only the hexes adjacent to the robber's current hex are valid.
-          const valid = adjacentHexIds(board, fromHexId)
-            .map((id) => base?.hexes[id])
-            .filter((h): h is NonNullable<typeof h> => !!h && h.terrain !== 'Desert');
-          const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
-          const target = nearestWithin(valid, mp, threshold, (hex) => hex.position);
-          const landAt = target?.position ?? base?.hexes[fromHexId]?.position;
-          if (target) {
-            moveRobberAfterWin(target.id, gameRoom.id);
-          }
-          // Landed: spring to the target; missed: spring back to the robber's hex.
-          if (landAt) beginSettle({ kind: 'robber', from: mp, to: landAt });
-        }
-      }
-      setMousePos(null);
-      return;
-    }
-    // Handle robber drag.
-    if (rd) {
-      setRobberDrag(false);
-      if (mp && board && currentPlayer && gameRoom) {
-        // Drop on the nearest valid hex (non-Desert, no robber) within reach.
-        const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
-        const target = nearestWithin(
-          Object.values(base?.hexes ?? {}).filter((h) => h.terrain !== 'Desert' && !h.hasRobber),
-          mp,
-          threshold,
-          (hex) => hex.position
-        );
-        const home = Object.values(base?.hexes ?? {}).find((h) => h.hasRobber)?.position;
-        const landAt = target?.position ?? home;
-        if (target) {
-          moveRobber(target.id, gameRoom.id);
-        }
-        if (landAt) beginSettle({ kind: 'robber', from: mp, to: landAt });
-      }
-      setMousePos(null);
-      return;
-    }
-    // Handle soldier drag.
-    if (!d || !mp || !board || !currentPlayer || !gameRoom) {
-      cancelDrag();
-      return;
-    }
-    // Drop on the nearest valid target vertex within reach.
-    const threshold = PROJ_SIZE * DROP_THRESHOLD_FRACTION;
-    const target = nearestWithin(
-      d.validTargets,
-      mp,
-      threshold,
-      (tid) => board.vertices[tid]?.position ?? null
-    );
-    const ghostColor = gameRoom.players.find((p) => p.name === d.ownerName)?.color;
-    if (target) {
-      moveSoldier(d.soldierId, target, gameRoom.id);
-      const landAt = board.vertices[target]?.position;
-      if (landAt) beginSettle({ kind: 'soldier', from: mp, to: landAt, color: ghostColor });
-    } else {
-      // Invalid drop: the ghost snaps back to the soldier's own vertex.
-      const home = board.vertices[d.fromVertexId]?.position;
-      if (home) beginSettle({ kind: 'soldier', from: mp, to: home, color: ghostColor });
-      // Dropped near a vertex that isn't road-connected: explain the miss.
-      // Drops on open water / empty space stay a silent snap-back.
-      if (
-        nearestWithin(Object.keys(board.vertices), mp, threshold, (tid) => board.vertices[tid]?.position ?? null)
-      ) {
-        showToast('Soldiers can only move along a road');
-      }
-    }
-    cancelDrag();
-  }, [board, base, gameRoom, currentPlayer, moveRobber, moveRobberAfterWin, moveSoldier, cancelDrag, beginSettle, showToast]);
 
   return {
-    drag,
-    robberDrag,
+    drag: drag?.kind === 'soldier' ? drag.data : null,
+    robberDrag: drag?.kind === 'robber',
     mousePos,
     settle,
-    clearSettle: () => setSettle(null),
+    clearSettle,
     robberPending,
     winPending,
     canDragSoldier,

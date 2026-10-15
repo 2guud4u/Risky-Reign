@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
+import { sep } from 'node:path';
 import react from '@vitejs/plugin-react';
 import checker from 'vite-plugin-checker';
 
@@ -17,9 +18,26 @@ import checker from 'vite-plugin-checker';
  *   before `vite build`, so the checker is dev-only.
  * - Output goes to `build/`, which the backend serves (`backend/src/index.ts`).
  */
+/** Watches the linked `common` package's compiled output: `optimizeDeps` only
+ * re-bundles at server start, so a mid-session `common` rebuild would keep
+ * serving the stale copy — silently, until a new export is called and the app
+ * crashes (seen 2026-10: `canRollSoldier` added → every attack crashed). A
+ * restart re-bundles (force) and reloads the page. Note: chokidar v4 (Vite ≥7)
+ * dropped glob support, so the directory is watched and changes are filtered. */
+const restartOnCommonRebuild = (): Plugin => ({
+  name: 'restart-on-common-rebuild',
+  configureServer(server) {
+    server.watcher.add('../common/dist');
+    server.watcher.on('all', (event: string, file: string) => {
+      if (event === 'change' && file.includes(`${sep}common${sep}dist${sep}`)) server.restart();
+    });
+  },
+});
+
 export default defineConfig(({ command }) => ({
   plugins: [
     react(),
+    command === 'serve' && restartOnCommonRebuild(),
     command === 'serve' &&
       checker({
         typescript: true,

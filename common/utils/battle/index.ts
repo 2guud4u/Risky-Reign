@@ -15,7 +15,12 @@ export {
   rollBattleDie,
   allSoldiersRolled,
   canRollBattleDie,
+  sideNameOf,
+  isInjuredFightDefender,
+  isActiveSoldier,
+  canRollSoldier,
 } from './rolls';
+export { resolveBattleOutcome } from './outcome';
 export {
   resolveBattleRoundIfComplete,
   escapeInjuredSurvivors,

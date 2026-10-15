@@ -10,7 +10,7 @@ import {
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom, requirePlayer } from '../context';
 
 /** Remove a soldier id from the per-turn tracking arrays (used by undo). */
 function removeSoldierTracking(turnState: TurnState, soldierId: string): void {
@@ -31,18 +31,12 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
 
   socket.on('endTurn', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     // Only the acting player may end their turn, and not mid-battle.
-    const caller = room.players.find((p) => p.id === socket.id);
-    if (!caller) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const caller = requirePlayer(room, socket);
+    if (!caller) return;
     if (caller.name !== room.turnState.player) {
       socket.emit('error', { message: 'Not your turn' });
       return;
@@ -102,11 +96,8 @@ export function registerTurnFlowHandlers(ctx: HandlerContext): void {
   // `advanceTurn`, and the phase must match the entry kind.
   socket.on('undoBuild', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     // Only the acting player may undo, and never mid-battle (an undo could
     // teleport a soldier that's committed to an in-progress fight).

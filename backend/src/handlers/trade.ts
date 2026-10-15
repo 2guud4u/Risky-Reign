@@ -12,7 +12,7 @@ import {
 } from 'common';
 import { gameRooms, announceTrade, freshResourceCount } from '../store';
 import { broadcastRoom } from '../broadcast';
-import { HandlerContext, blockIfCannotAct } from './context';
+import { HandlerContext, blockIfCannotAct, requireRoom } from './context';
 
 /**
  * Trade handlers: creating/accepting/declining/cancelling player-to-player
@@ -27,11 +27,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     'createTradeOffer',
     (data: { roomId: string; to: string | null; give?: unknown; want?: unknown }) => {
       const { roomId, to } = data;
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+      const room = requireRoom(socket, roomId);
+      if (!room) return;
       if (blockIfCannotAct(room, socket)) return;
       const sender = room.players.find((p) => p.id === socket.id);
       if (!sender) {
@@ -61,11 +58,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
 
   socket.on('acceptTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const acceptor = room.players.find((p) => p.id === socket.id);
     if (!acceptor) {
@@ -94,11 +88,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
   // claim it; the creator then accepts or declines the taker.
   socket.on('takeTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
@@ -122,11 +113,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
 
   socket.on('declineTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
@@ -157,11 +145,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
 
   socket.on('cancelTrade', (data: { roomId: string; tradeId: string }) => {
     const { roomId, tradeId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
@@ -183,11 +168,8 @@ export function registerTradeHandlers(ctx: HandlerContext): void {
     giveCount: number;
   }) => {
     const { roomId, giveResource, wantResource, giveCount } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
