@@ -14,8 +14,8 @@ export const HexLayer = React.memo(function HexLayer({
   winPending,
   winTargetIds,
   rollTotal,
-  onRobberMouseDown,
-  onWinRobberMouseDown,
+  onRobberPointerDown,
+  onWinRobberPointerDown,
   onRobberClick,
   onHexClick,
   onRobberHover,
@@ -29,8 +29,8 @@ export const HexLayer = React.memo(function HexLayer({
   winTargetIds: ReadonlySet<string>;
   /** Current roll total (both dice), or null before both dice are rolled. */
   rollTotal: number | null;
-  onRobberMouseDown: (e: React.MouseEvent) => void;
-  onWinRobberMouseDown: (e: React.MouseEvent) => void;
+  onRobberPointerDown: (e: React.PointerEvent) => void;
+  onWinRobberPointerDown: (e: React.PointerEvent) => void;
   /** Clicking the robber opens its action bubbles (attack / move). */
   onRobberClick: () => void;
   /** Clicking a highlighted hex while a robber move is pending places it. */
@@ -56,8 +56,8 @@ export const HexLayer = React.memo(function HexLayer({
             size={PROJ_SIZE}
             highlight={isRobberTarget}
             onClick={isRobberTarget ? onHexClick : undefined}
-            onRobberMouseDown={
-              robberPending ? onRobberMouseDown : winPending ? onWinRobberMouseDown : undefined
+            onRobberPointerDown={
+              robberPending ? onRobberPointerDown : winPending ? onWinRobberPointerDown : undefined
             }
             onRobberClick={onRobberClick}
             robberDraggable={robberDraggable}

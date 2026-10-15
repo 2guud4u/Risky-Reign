@@ -230,8 +230,6 @@ export const PORT_PLANK_W = 0.16;
 
 // ── Game (layout) ──────────────────────────────────────────────────────────
 
-/** Width (px) of the resource panel collapse strip / collapsed sliver. */
-export const RESOURCE_PANEL_TAB_SIZE_PX = 10;
 /** Height (px) of the collapsed sliver (a tiny vertical strip at the screen edge). */
 export const RESOURCE_PANEL_LIP_HEIGHT_PX = 64;
 /** Gap between the resource panel (and its collapsed lip) and the right window edge (Game.tsx wrapper: `right-2`). */
@@ -249,7 +247,12 @@ export const PAN_THRESHOLD = 4;
 /** Smallest distance (px) between two touch points before a pinch zooms. */
 export const PINCH_MIN_DIST = 12;
 /** Transparent hit-line width (board units) for selecting/pressing a road; the visible road stays thin. */
-export const ROAD_HIT_WIDTH = 22;
+export const ROAD_HIT_WIDTH = 26;
+/** Invisible hit ring radius on a board vertex, in multiples of the vertex
+ *  size — fingertip-sized taps land at board-fit zoom. */
+export const VERTEX_HIT_SCALE = 1.75;
+/** Extra invisible hit radius (board units) around a soldier count badge. */
+export const BADGE_HIT_PAD = 8;
 /**
  * Minimum zoom for individual soldier SVGs instead of count badges.
  */

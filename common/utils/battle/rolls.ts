@@ -42,18 +42,48 @@ function findCommittedSoldier(
   return null;
 }
 
+/** The name of the side (`states` key) a troop is committed to, if any. */
+export const sideNameOf = (battle: BattleState, s: SoldierBattleState): string | undefined =>
+  Object.keys(battle.states).find((name) => battle.states[name].soldiers.includes(s));
+
 /** True when this is an injured fight and the soldier is on the defender's
  * side (the injured defenders that still roll). */
-function isInjuredFightDefender(
+export function isInjuredFightDefender(
   battleState: BattleState,
   soldier: SoldierBattleState
 ): boolean {
   if (!battleState.injuredFight) return false;
-  const sideName = Object.keys(battleState.states).find(
-    (name) => battleState.states[name].soldiers.includes(soldier)
-  );
-  return sideName === battleState.defender;
+  return sideNameOf(battleState, soldier) === battleState.defender;
 }
+
+/**
+ * A soldier is "active" only if it is in the active front line (first
+ * MAX_PER_ROUND standing troops on its side).
+ */
+export const isActiveSoldier = (battle: BattleState, s: SoldierBattleState): boolean => {
+  const sideName = sideNameOf(battle, s);
+  if (!sideName) return false;
+  return activeSoldiersOf(battle, sideName).includes(s);
+};
+
+/**
+ * A soldier can roll only if the battle is in the rolling phase, the troop
+ * is in the active front line, owned by the player, alive, uninjured (unless
+ * an injured-fight defender), and not yet rolled this round. The UI uses this
+ * to show which dice are clickable; the server mirrors it in
+ * `canRollBattleDie` so a stale UI can never trigger an illegal roll.
+ */
+export const canRollSoldier = (
+  battle: BattleState,
+  s: SoldierBattleState,
+  playerName: string | undefined
+): boolean =>
+  battle.phase === 'rolling' &&
+  playerName === s.soldier.owner &&
+  !s.dead &&
+  (!s.injured || isInjuredFightDefender(battle, s)) &&
+  s.rollNum === null &&
+  isActiveSoldier(battle, s);
 
 /**
  * Record the die a player just rolled for one of their committed soldiers.
@@ -123,9 +153,7 @@ export function canRollBattleDie(
   if (soldier.injured && !isInjuredFightDefender(battleState, soldier)) {
     return false;
   }
-  const sideName = Object.keys(battleState.states).find(
-    (name) => battleState.states[name].soldiers.includes(soldier)
-  );
+  const sideName = sideNameOf(battleState, soldier);
   if (!sideName) return false;
   return activeSoldiersOf(battleState, sideName).includes(soldier);
 }

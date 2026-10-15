@@ -17,8 +17,8 @@ interface HexagonProps {
   onClick?: (hexId: string) => void;
   /** Draw a dashed highlight ring (e.g. valid robber targets). */
   highlight?: boolean;
-  /** Drag handler for the robber (called on mousedown on the robber circle). */
-  onRobberMouseDown?: (e: React.MouseEvent) => void;
+  /** Drag handler for the robber (pointerdown on the robber image). */
+  onRobberPointerDown?: (e: React.PointerEvent) => void;
   /** Click handler for the robber (opens its action bubbles). */
   onRobberClick?: () => void;
   /** Whether the robber is draggable (changes cursor). */
@@ -34,7 +34,7 @@ interface HexagonProps {
  * adapter (BoardHex.position), so this component only projects the six
  * corners around that center — no cube-coord math here.
  */
-const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberMouseDown, onRobberClick, robberDraggable, litUp, onRobberHover }) => {
+const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobberPointerDown, onRobberClick, robberDraggable, litUp, onRobberHover }) => {
   const { x, y } = hex.position;
 
   const hexPoints = hexPointsAt(x, y, size);
@@ -76,7 +76,8 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           width={size * ROBBER_W_FRACTION}
           height={size * ROBBER_H_FRACTION}
           preserveAspectRatio="xMidYMax meet"
-          onMouseDown={onRobberMouseDown}
+          onPointerDown={onRobberPointerDown}
+          data-drag-handle={onRobberPointerDown ? true : undefined}
           onClick={(e) => {
             e.stopPropagation();
             onRobberClick?.();

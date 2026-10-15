@@ -10,7 +10,7 @@ import {
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom } from '../context';
 
 /**
  * Robber-resolution handlers: placing the robber (after a 7 or a knight),
@@ -25,11 +25,8 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
   // holds until the steal resolves. A knight only moves the robber — no steal.
   socket.on('moveRobber', (data: { roomId: string; hexId: string }) => {
     const { roomId, hexId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -82,11 +79,8 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
   // `cardIndex` from `victimName`, which completes the Dice phase.
   socket.on('chooseSteal', (data: { roomId: string; victimName: string; cardIndex: number }) => {
     const { roomId, victimName, cardIndex } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
@@ -126,11 +120,8 @@ export function registerRobberHandlers(ctx: HandlerContext): void {
   // resource cards (the floor of half their hand), choosing which ones.
   socket.on('resolveDiscard', (data: { roomId: string; discards: Record<string, number> }) => {
     const { roomId, discards } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {

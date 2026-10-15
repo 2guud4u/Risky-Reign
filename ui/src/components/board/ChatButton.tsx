@@ -3,6 +3,10 @@ import { CHAT_MESSAGE_MAX } from 'common';
 import { priceLabel } from '../../utils/price';
 import { useGameRoom } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { MessageCircle } from 'lucide-react';
+import MapIconButton from '../ui/MapIconButton';
+import Button from '../ui/Button';
 
 /**
  * 💬 button in the top-left corner stack (between ℹ️ and 👤). Toggles the room
@@ -15,6 +19,7 @@ const ChatButton: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { sendChat } = useSocket();
   const [open, setOpen] = useState(false);
+  const reduce = useReducedMotion();
   const [seen, setSeen] = useState(0);
   const [draft, setDraft] = useState('');
   // '' = everyone; a player name = whisper (only they see it).
@@ -66,18 +71,16 @@ const ChatButton: React.FC = () => {
 
   return (
     <>
-      <button
-        type="button"
+      <MapIconButton
+        icon={<MessageCircle size={22} />}
+        active={open}
         onClick={toggle}
         onMouseDown={(e) => e.stopPropagation()}
         title={open ? 'Hide chat' : 'Chat'}
         aria-label={open ? 'Hide chat' : 'Show chat'}
         aria-expanded={open}
-        className={`absolute top-[120px] left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 transition-transform ${
-          open ? 'bg-blue-100 border-blue-600 ring-2 ring-blue-300' : 'bg-white border-gray-300 hover:border-blue-500'
-        }`}
+        className="top-[120px] left-[max(0.5rem,env(safe-area-inset-left))]"
       >
-        <span aria-hidden="true">💬</span>
         {unread > 0 && (
           <span
             aria-label={`${unread} unread messages`}
@@ -86,16 +89,21 @@ const ChatButton: React.FC = () => {
             {unread > 9 ? '9+' : unread}
           </span>
         )}
-      </button>
+      </MapIconButton>
 
+      <AnimatePresence>
       {open && (
-        <div
+        <motion.div
           role="region"
           aria-label="Room chat"
           // Beside the button so it can overlap the player column without
           // closing it; keep clicks inside from panning the map.
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white/95 backdrop-blur-sm shadow-xl"
+          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white shadow-xl origin-left"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, x: -12, scale: 0.96 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, x: -8, scale: 0.97 }}
+          transition={reduce ? { duration: 0.1 } : { type: 'spring', stiffness: 480, damping: 34 }}
         >
           <div
             ref={logRef}
@@ -167,16 +175,18 @@ const ChatButton: React.FC = () => {
               maxLength={CHAT_MESSAGE_MAX}
               className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-md text-[13px]"
             />
-            <button
+            <Button
               type="submit"
+              size="sm"
               disabled={!draft.trim()}
-              className="px-3 py-1.5 rounded-md text-[13px] font-semibold text-white bg-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              className="!bg-blue-500 !text-white hover:!bg-blue-600"
             >
               Send
-            </button>
+            </Button>
           </form>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </>
   );
 };

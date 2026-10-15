@@ -22,6 +22,9 @@ import ChatButton from '../components/board/ChatButton';
 import TutorialCoach from './TutorialCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { GAME_HEX_SIZE } from 'common';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
+import { Settings, Lightbulb, Maximize, Minimize, Pause, LogOut } from 'lucide-react';
 
 
 /**
@@ -119,14 +122,14 @@ const Game: React.FC = () => {
   const roll = gameRoom.roll;
   return (
     <div>
-      {/* Corner pill: the last roll beside the ⚙️ menu button, one bordered
-          unit so the pair can never drift apart; safe-inset keeps it above
-          the home-indicator / off a landscape notch. */}
-      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex items-center gap-2 rounded-md border border-gray-300 bg-white shadow px-2 py-1">
+      {/* Corner stack: the last roll beside the ⚙️ menu button. The dice
+          stack vertically over the gear — no backing, matching the floating
+          giant dice. */}
+      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[max(0.75rem,env(safe-area-inset-left))] z-50 flex flex-col items-center gap-2">
         {roll && roll.die1 !== null && roll.die2 !== null && (
           // Last roll, always visible beside the gear — replaces the old
           // compact dice that floated above the menu.
-          <div className="flex items-center gap-1">
+          <div className="flex flex-col items-center gap-1">
             <Dice value={roll.die1} size={28} />
             <Dice value={roll.die2} size={28} />
           </div>
@@ -136,20 +139,24 @@ const Game: React.FC = () => {
             <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
               Room {gameRoom.id}
             </div>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Lightbulb size={15} />}
               onClick={() => setTutorialHints(!hintsOn)}
-              className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+              className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
             >
-              {hintsOn ? '💡 Turn tips off' : '💡 Turn tips on'}
-            </button>
-            <button
-              type="button"
+              {hintsOn ? 'Turn tips off' : 'Turn tips on'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={fullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
               onClick={toggleFullscreen}
-              className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+              className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
             >
-              {fullscreen ? '⤶ Leave full screen' : '⛶ Full screen'}
-            </button>
+              {fullscreen ? 'Leave full screen' : 'Full screen'}
+            </Button>
             {fsHint && (
               <p className="m-0 mb-1 px-2 py-1 text-[11px] leading-snug text-amber-700 bg-amber-50 rounded-md">
                 This browser can't hide its bars. On iPhone, open the Share menu and choose{' '}
@@ -157,90 +164,95 @@ const Game: React.FC = () => {
               </p>
             )}
             {canPause && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Pause size={15} />}
                 onClick={() => {
                   setMenuOpen(false);
                   setPauseOpen(true);
                 }}
-                className="w-full mb-1 px-2 py-1.5 text-left text-[13px] font-semibold rounded-md cursor-pointer hover:bg-gray-100"
+                className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
               >
-                ⏸️ Pause game…
-              </button>
+                Pause game…
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<LogOut size={15} />}
               onClick={() => {
                 setMenuOpen(false);
                 leaveGame();
               }}
-              className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-red-600 text-white cursor-pointer hover:bg-red-700"
+              className="w-full !justify-start !bg-red-600 !text-white !text-[13px] !font-semibold hover:!bg-red-700"
             >
               {spectating ? 'Stop watching' : 'Leave game'}
-            </button>
+            </Button>
           </div>
         )}
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="w-8 h-8 flex items-center justify-center text-[20px] leading-none rounded-md cursor-pointer hover:bg-gray-100"
+          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center rounded-md text-gray-600 cursor-pointer hover:bg-gray-100"
           title="Menu"
           aria-label="Menu"
           aria-expanded={menuOpen}
         >
-          {'⚙️'}
+          <Settings size={20} />
         </button>
       </div>
 
       {/* Pause dialog: the host picks the reopen password (host) and the
           seat-claim password (lobby). The game keeps running for nobody —
           the room closes and the link shows the paused screen. */}
-      {pauseOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-lg p-5 w-full max-w-[380px] flex flex-col gap-3">
-            <h2 className="text-lg font-bold m-0">Pause this game</h2>
-            <p className="m-0 text-[13px] text-gray-600">
-              The board is saved and the room closes. Reopen it later with the host password;
-              players rejoin their seats with the lobby password.
-            </p>
-            <input
-              type="password"
-              value={hostPassword}
-              onChange={(e) => setHostPassword(e.target.value)}
-              placeholder="Host password (reopens the game)"
-              className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
-            />
-            <input
-              type="password"
-              value={lobbyPassword}
-              onChange={(e) => setLobbyPassword(e.target.value)}
-              placeholder="Lobby password (players rejoin)"
-              className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setPauseOpen(false)}
-                className="flex-1 py-2 rounded-md bg-gray-100 text-gray-700 text-[14px] font-semibold cursor-pointer hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={submitPause}
-                disabled={!hostPassword || !lobbyPassword}
-                className="flex-1 py-2 rounded-md bg-blue-600 text-white text-[14px] font-semibold cursor-pointer hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Pause game
-              </button>
-            </div>
+      <Modal
+        open={pauseOpen}
+        onClose={() => setPauseOpen(false)}
+        title="Pause this game"
+        width="max-w-[380px]"
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setPauseOpen(false)}
+              className="flex-1 !bg-gray-100 !text-gray-700 hover:!bg-gray-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitPause}
+              disabled={!hostPassword || !lobbyPassword}
+              className="flex-1 !bg-blue-600 !text-white !font-semibold hover:!bg-blue-700"
+            >
+              Pause game
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="m-0 text-[13px] text-gray-600">
+          The board is saved and the room closes. Reopen it later with the host password;
+          players rejoin their seats with the lobby password.
+        </p>
+        <input
+          type="password"
+          value={hostPassword}
+          onChange={(e) => setHostPassword(e.target.value)}
+          placeholder="Host password (reopens the game)"
+          className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+        />
+        <input
+          type="password"
+          value={lobbyPassword}
+          onChange={(e) => setLobbyPassword(e.target.value)}
+          placeholder="Lobby password (players rejoin)"
+          className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+        />
+      </Modal>
       <div className="fixed inset-0 flex safe-inset">
         <div className="relative flex-1 min-w-0 bg-white">
           {spectating && (
-            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900/80 text-white text-[13px] font-semibold shadow-lg">
+            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-[13px] font-semibold shadow-lg">
               👀 Spectating
             </div>
           )}

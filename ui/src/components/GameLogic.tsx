@@ -193,7 +193,7 @@ const GameLogic: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center p-4"
+      className="min-h-dvh flex flex-col items-center p-4"
       style={
         showOceanBg
           ? {

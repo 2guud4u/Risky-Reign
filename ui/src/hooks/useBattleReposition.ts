@@ -87,21 +87,21 @@ export function useBattleReposition(opts: {
   };
 
   /** Press on one of my waiting troops: pick it, and arm a drag. */
-  const startTroopPress = (troop: RepositionTroop, e: React.MouseEvent) => {
+  const startTroopPress = (troop: RepositionTroop, e: React.PointerEvent) => {
     if (!myStaged.some((t) => t.soldierId === troop.soldierId)) return;
     e.stopPropagation();
     setPickedId(troop.soldierId);
     press.current = { soldierId: troop.soldierId, x: e.clientX, y: e.clientY };
   };
 
-  const onMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const p = press.current;
     if (!p) return;
     if (!ghost && Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_THRESHOLD_PX) return;
     setGhost(toSvg(e.clientX, e.clientY));
   };
 
-  const endDrag = (e?: React.MouseEvent<SVGSVGElement>) => {
+  const endDrag = (e?: React.PointerEvent<SVGSVGElement>) => {
     const dragging = !!ghost;
     press.current = null;
     setGhost(null);
@@ -124,7 +124,7 @@ export function useBattleReposition(opts: {
     startTroopPress,
     /** Drag ghost position (SVG space) and the target it's over, while dragging. */
     drag: ghost ? { at: ghost, overTarget: targetAt(ghost) } : null,
-    /** Mouse handlers for the mini-map svg. */
-    svgHandlers: { onMouseMove, onMouseUp: endDrag, onMouseLeave: () => endDrag() },
+    /** Pointer handlers for the mini-map svg (mouse + touch via pointer events). */
+    svgHandlers: { onPointerMove, onPointerUp: endDrag, onPointerCancel: () => endDrag(), onPointerLeave: () => endDrag() },
   };
 }

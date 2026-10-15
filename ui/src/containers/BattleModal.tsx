@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { SoldierBattleState } from 'common';
+import React, { useEffect, useRef, useState } from 'react';
+import { PublicGameRoom, PublicPlayer, SoldierBattleState, canRollSoldier, resolveBattleOutcome } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import MiniView from '../components/MiniView';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { useBattleReposition } from '../hooks/useBattleReposition';
 import {
-  canRollSoldier,
   clashLineSpread,
-  computeBattleOutcome,
   computeDiceMatchup,
   computeWaitingLines,
   FALLBACK_OWNER_COLOR,
@@ -49,13 +48,16 @@ const SideName: React.FC<{ name: string; color?: string; you: boolean; align?: '
  * picked for you, arrows point to where it can go, and moving your last one
  * finishes your turn.
  */
-const BattleModal: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+const BattleModalInner: React.FC<{
+  gameRoom: PublicGameRoom;
+  currentPlayer: PublicPlayer | null;
+}> = ({ gameRoom, currentPlayer }) => {
+  const reduce = useReducedMotion();
   const { rollBattleDie, continueBattle, endBattle, exitBattle, repositionSoldier, finishRepositioning, moveRobberAfterWin } =
     useSocket();
 
-  const battle = gameRoom?.battleState ?? null;
-  const board = gameRoom?.board ?? null;
+  const battle = gameRoom.battleState ?? null;
+  const board = gameRoom.board ?? null;
   // The troop whose roll is in flight (clicked, awaiting the result) —
   // gives instant feedback so the click doesn't feel dead.
   const [rollingSoldierId, setRollingSoldierId] = useState<string | null>(null);
@@ -81,7 +83,7 @@ const BattleModal: React.FC = () => {
       .find((x) => x.soldier.id === rollingSoldierId);
     if (!s || s.rollNum !== null) setRollingSoldierId(null);
   }, [battle, rollingSoldierId]);
-  if (!gameRoom || !battle || !board) return null;
+  if (!battle || !board) return null;
 
   const vertex = board.vertices[battle.vertexId];
   const center = vertex ? vertex.position : { x: 0, y: 0 };
@@ -104,7 +106,7 @@ const BattleModal: React.FC = () => {
     rollBattleDie(soldierId, gameRoom.id);
   };
 
-  const canRoll = (s: SoldierBattleState): boolean => canRollSoldier(battle, s, phase, me);
+  const canRoll = (s: SoldierBattleState): boolean => canRollSoldier(battle, s, me);
   const myRollPending = Object.values(battle.states).some((side) => side.soldiers.some(canRoll));
 
   const canContinue = currentPlayer !== null && battle.attacker === me && phase === 'betweenRounds';
@@ -114,7 +116,8 @@ const BattleModal: React.FC = () => {
   const defenderAlive = defenderSide.soldiers.some((s) => !s.dead && !s.injured);
   const attackerAlive = attackerSide.soldiers.some((s) => !s.dead && !s.injured);
 
-  const outcome = computeBattleOutcome(battle, attackerSide.soldiers, defenderSide.soldiers, phase);
+  // Verdict comes from common — the same rule the server credits battlesWon with.
+  const outcome = phase === 'repositioning' || phase === 'finished' ? resolveBattleOutcome(battle) : null;
 
   // During 'betweenRounds' this round's casualties are hidden (pending), so
   // every troop that rolled is still on the clash line.
@@ -135,9 +138,15 @@ const BattleModal: React.FC = () => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 md:p-4">
       {/* Fixed to the viewport height: the map shrinks to fit, never scrolls. */}
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-4 flex flex-col gap-3 overflow-hidden">
+      <motion.div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-2 md:p-4 flex flex-col gap-3 overflow-hidden"
+        initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
+        transition={reduce ? { duration: 0.12 } : { type: 'spring', stiffness: 380, damping: 30 }}
+      >
         {/* Header: attacker vs defender, plus where the battle stands. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 shrink-0">
           <h2 className="m-0 flex items-center gap-2 text-lg font-bold min-w-0">
@@ -152,10 +161,10 @@ const BattleModal: React.FC = () => {
           </h2>
           {!battle.robberFight && <BattleStepper phase={phase} retreatPending={!!moverName} round={battle.round} />}
         </div>
-        <div className="flex-1 min-h-0 flex gap-4">
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-4 overflow-y-auto md:overflow-visible">
           {/* The arena: the vertex mini-map with both armies on it, or (when
               repositioning) the injured troops and where they can retreat. */}
-          <div className="flex-1 min-w-0 min-h-0">
+          <div className="min-w-0 min-h-[240px] md:flex-1 md:min-h-0">
             {vertex && (
               <MiniView
                 board={board}
@@ -200,7 +209,7 @@ const BattleModal: React.FC = () => {
           </div>
 
           {/* Side panel: what to do right now. */}
-          <div className="w-72 shrink-0 flex flex-col gap-3 min-h-0 overflow-y-auto">
+          <div className="w-full md:w-72 shrink-0 flex flex-col gap-3 min-h-0 md:overflow-y-auto">
             {phase === 'rolling' && (
               <RollingPrompt waitingLines={waitingLines} rolling={rollingSoldierId !== null} myRollPending={myRollPending} />
             )}
@@ -232,8 +241,29 @@ const BattleModal: React.FC = () => {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
+  );
+};
+
+/**
+ * Presence wrapper: keeps the last live battle so the exiting modal still has
+ * data to render — AnimatePresence replays the removed child for the exit
+ * spring, and the inner component reads state from props (never context) so
+ * it can paint that final frame.
+ */
+const BattleModal: React.FC = () => {
+  const { gameRoom, currentPlayer } = useGameRoom();
+  const last = useRef<{ gameRoom: PublicGameRoom; currentPlayer: PublicPlayer | null } | null>(null);
+  if (gameRoom?.battleState && gameRoom.board) {
+    last.current = { gameRoom, currentPlayer };
+  }
+  const open = !!(gameRoom?.battleState && gameRoom.board);
+  const shown = last.current;
+  return (
+    <AnimatePresence>
+      {open && shown && <BattleModalInner gameRoom={shown.gameRoom} currentPlayer={shown.currentPlayer} />}
+    </AnimatePresence>
   );
 };
 

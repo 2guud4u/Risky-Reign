@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import Modal from '../components/ui/Modal';
 
 /**
  * Victory overlay: shown on top of the board when the game ends. Displays the
@@ -39,8 +40,8 @@ const VictoryOverlay: React.FC = () => {
   const standings = [...gameRoom.players].sort((a, b) => b.victoryPoints - a.victoryPoints);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-[520px] w-full text-center">
+    <Modal open aria-label="Game over" width="max-w-[520px]">
+      <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">🏆 {gameRoom.winner} wins!</h1>
         <p className="text-gray-600 mb-6">
           First to {gameRoom.pointsToWin} victory points — or the last player standing — wins the game.
@@ -71,13 +72,13 @@ const VictoryOverlay: React.FC = () => {
           <button
             type="button"
             onClick={() => resetGame(gameRoom.id)}
-            className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer"
+            className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer transition-all active:scale-95 motion-reduce:active:scale-100"
           >
             Play Again
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

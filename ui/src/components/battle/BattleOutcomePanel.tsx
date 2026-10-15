@@ -1,6 +1,5 @@
 import React from 'react';
-import { adjacentHexIds, BattleState, Board, Player } from 'common';
-import { BattleOutcome } from '../../types/battleModal';
+import { adjacentHexIds, BattleOutcome, BattleState, Board, Player } from 'common';
 
 interface BattleOutcomePanelProps {
   battle: BattleState;

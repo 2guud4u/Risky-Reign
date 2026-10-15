@@ -182,6 +182,24 @@ export interface BattleState {
   forfeitedBy?: string;
 }
 
+/**
+ * Win/loss verdict plus the per-side casualty tally behind it. Produced by
+ * `resolveBattleOutcome` (utils/battle/outcome.ts) — the single source for
+ * the winner rule, shared by the server's battlesWon credit and the battle
+ * window's outcome panel.
+ */
+export interface BattleOutcome {
+  atkAlive: number;
+  defAlive: number;
+  atkDead: number;
+  defDead: number;
+  atkInj: number;
+  defInj: number;
+  winner: string | null;
+  /** Attacker name when an undecided battle was forfeited by an early end. */
+  forfeitedBy?: string;
+}
+
 export interface ResourceCount {
   Wood: number;
   Brick: number;

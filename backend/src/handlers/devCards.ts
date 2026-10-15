@@ -10,7 +10,7 @@ import {
 } from 'common';
 import { gameRooms } from '../store';
 import { broadcastRoom } from '../broadcast';
-import { HandlerContext, blockIfCannotAct } from './context';
+import { HandlerContext, blockIfCannotAct, requireRoom } from './context';
 
 /**
  * Development-card handlers: drawing a card from the shared deck, playing a
@@ -25,11 +25,8 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
   // 1 ore (DevelopmentCardPrice) — the standard Catan price.
   socket.on('drawDevelopmentCard', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
@@ -78,11 +75,8 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
    */
   socket.on('playDevelopmentCard', (data: { roomId: string; cardIndex: number }) => {
     const { roomId, cardIndex } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     if (!player) {
@@ -177,11 +171,8 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
     'resolveDevCardChoice',
     (data: { roomId: string; resources: string[] }) => {
       const { roomId, resources } = data;
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+      const room = requireRoom(socket, roomId);
+      if (!room) return;
       if (blockIfCannotAct(room, socket)) return;
       const player = room.players.find((p) => p.id === socket.id);
       if (!player) {
@@ -254,11 +245,8 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
   // is allowed until the knight resolves (e.g. leave spawn mode).
   socket.on('chooseKnightEffect', (data: { roomId: string; effect: string }) => {
     const { roomId, effect } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const player = room.players.find((p) => p.id === socket.id);
     const choice = room.devCardChoice;
@@ -285,11 +273,8 @@ export function registerDevCardHandlers(ctx: HandlerContext): void {
   // a soldier. Like a recruit, it can't move or act this turn (Rule 24).
   socket.on('knightSpawnSoldier', (data: { roomId: string; vertexId: string }) => {
     const { roomId, vertexId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     const player = room.players.find((p) => p.id === socket.id);

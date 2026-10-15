@@ -1,3 +1,11 @@
+> **Status (2026-10-12): SUPERSEDED.** This plan describes Option B (a separate
+> `<MobileGame/>` component tree). The current approach is a **single adaptive
+> component tree** — same components, responsive collapse + unified pointer
+> events — per the spec at `2guud4u/Risky-Reign#2`. The mobile-breakage survey
+> below (§1 of `MOBILE_PLAN.md`) is still accurate and is what the responsive
+> ticket works from; the hook-extraction table (§3) is still the right list of
+> shared view-model seams. Nothing else here is a blueprint.
+
 # Separate Mobile UI — Implementation Plan
 
 Chosen approach: **Option B** from `plans/MOBILE_PLAN.md` — a dedicated phone

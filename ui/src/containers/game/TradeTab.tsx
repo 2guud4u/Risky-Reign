@@ -9,7 +9,7 @@ import { emptyPrice } from '../../constants';
 
 /** Small round +/- button used by every amount control. */
 const stepperBtn =
-  'w-5 h-5 flex items-center justify-center rounded-full border border-gray-300 bg-white text-[12px] font-bold text-gray-600 cursor-pointer hover:border-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed';
+  'w-11 h-11 md:w-5 md:h-5 flex items-center justify-center rounded-full border border-gray-300 bg-white text-[16px] md:text-[12px] font-bold text-gray-600 cursor-pointer hover:border-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed';
 
 /** A player-color dot. */
 const Dot: React.FC<{ color?: string; size?: number }> = ({ color, size = 10 }) => (
@@ -436,7 +436,7 @@ const TradeTab: React.FC<{
       )}
 
       {isTurnOwner && isBank && (
-        <section className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 flex flex-col gap-3">
+        <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-3">
           <div>
             <SectionTitle>You give</SectionTitle>
             <div className="grid grid-cols-5 gap-1.5">
@@ -508,7 +508,7 @@ const TradeTab: React.FC<{
       )}
 
       {isTurnOwner && counterparty !== '' && !isBank && (
-        <section className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 flex flex-col gap-3">
+        <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-3">
           <div className="grid grid-cols-[auto_repeat(5,minmax(0,1fr))] items-center gap-x-1.5 gap-y-1.5">
             <span />
             {RESOURCES.map((k) => (

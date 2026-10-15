@@ -8,7 +8,7 @@ import {
 import { advanceTurn } from '../../turn';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom } from '../context';
 
 /**
  * Dice-roll handler: rolling the dice one die per click during the Dice
@@ -19,11 +19,8 @@ export function registerDiceHandlers(ctx: HandlerContext): void {
 
   socket.on('rollDice', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {

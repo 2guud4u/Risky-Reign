@@ -22,9 +22,10 @@ const MiniView: React.FC<MiniViewProps> = ({
   showGarrisonedSoldiers = true,
   children,
   svgRef,
-  onMouseMove,
-  onMouseUp,
-  onMouseLeave,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+  onPointerLeave,
   minViewSize,
   className,
 }) => {
@@ -41,10 +42,12 @@ const MiniView: React.FC<MiniViewProps> = ({
       width="100%"
       height="auto"
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.size} ${viewBox.size}`}
+      style={{ touchAction: 'none' }}
       className={`mx-auto rounded-md bg-gray-50 ${className ?? ''}`}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onPointerLeave={onPointerLeave}
     >
       {layout.hexes.map((h) => (
         <MiniHexTile key={h.id} hex={h} />

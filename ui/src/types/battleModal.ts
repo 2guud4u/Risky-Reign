@@ -19,17 +19,6 @@ export interface RepositionTroop {
   vertexId: string;
 }
 
-/** Win/loss summary shown once the battle is over. */
-export interface BattleOutcome {
-  atkAlive: number;
-  defAlive: number;
-  atkDead: number;
-  defDead: number;
-  atkInj: number;
-  defInj: number;
-  winner: string | null;
-}
-
 /** One compared die pair from the just-resolved round. */
 export interface DiceMatch {
   /** Attacker's roll. */

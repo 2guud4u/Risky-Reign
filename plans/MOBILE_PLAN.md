@@ -9,18 +9,24 @@ not change. Desktop keeps working throughout.
 
 ---
 
-## 0. Current state (surveyed 2026-09-29)
+## 0. Current state (surveyed 2026-09-29, re-walked 2026-10-12)
 
-The game screen is a fixed two-column layout: board on the left, a 420 px
-sidebar on the right (`containers/Game.tsx`, `SIDEBAR_W` in `ui/src/constants.ts`).
-Nothing adapts to screen size — there are **2** responsive Tailwind prefixes
-in the whole app, both in the board editor.
+**Delta since the survey:** the fixed 420px sidebar is gone — the board now
+fills the window (`Game.tsx` is a single `fixed inset-0` container), the
+resource panel is a right-edge overlay (`ResourceDisplay.tsx`), and the
+menu is a bottom-left corner pill with dice + ⚙️ (`Game.tsx:124`). Turn
+overlay + notice rail are top-center `NoticeRail`, not pinned off a sidebar
+width. Player info lives in compact chips behind the 👤 button.
+`MOBILE_UI_PLAN.md` (the dedicated-mobile-UI plan) is **superseded** — the
+build is a single adaptive tree, not a `<MobileGame/>` fork.
+
+**Still true:** no responsive Tailwind prefixes in the app; all breakage below
+remains.
 
 | Area | Today | Why it breaks on a phone |
 |---|---|---|
-| **Layout** | Sidebar is a fixed 420 px column (`SideBar/Index.tsx`, `SideBar/styles.ts:4` `w-[420px]`) | A 375–430 px phone has no room for the board at all |
-| **Overlays placed off the sidebar** | `TurnOverlay.tsx:43` and `DiceDisplay.tsx:61` use `right: SIDEBAR_W + 12` | Pinned relative to a sidebar that won't exist in the same place |
-| **Board input** | Pan = `onMouseDown` + window `mousemove` (`useBoardViewport.ts:77–118`); zoom = mouse wheel + double-click | No touch pan, no pinch zoom; a touch drag scrolls/zooms the page instead |
+| **Layout** | Board fills the window; resource panel is a fixed right-edge overlay (`ResourceDisplay.tsx`), corner pill + left-edge buttons are fixed-position | Overlay buttons/panel can overlap the board or each other at phone width; nothing reflows |
+| **Board input** | Pan = `onMouseDown` + window `mousemove` (`useBoardViewport.ts`); zoom = mouse wheel + double-click | No touch pan, no pinch zoom; a touch drag scrolls/zooms the page instead |
 | **Piece drags** | Soldier drag `SoldierBadges.tsx:57` and robber drag `Hexagon.tsx:67` start on `onMouseDown`; move/drop on the board svg's `onMouseMove`/`onMouseUp` (`BoardView.tsx:211–212`) | Mouse-only; there is no drag at all on touch |
 | **Hover-only UI** | Vertex/edge highlight (`BoardVertex.tsx:61`, `PieceLayers.tsx`), robber-bag popup opens on hover only (`Hexagon.tsx:68`, `BoardView.tsx:48,234`) | Touch has no hover: the robber bag contents are unreachable |
 | **Tap targets** | Vertex dot `r=8` board units, edge line 4 units wide (8 with a road), trade steppers `w-5 h-5` (20 px) | At phone width the board scales to ~0.37×: vertex ≈ 6 px, edge ≈ 1.6 px — far below the ~44 px touch minimum |

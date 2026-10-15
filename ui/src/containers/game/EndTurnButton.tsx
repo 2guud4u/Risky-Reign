@@ -150,7 +150,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
 
   const buttonClass =
     variant === 'snackbar'
-      ? 'px-3 py-1.5 text-[13px] font-bold rounded-md bg-white text-gray-900 cursor-pointer hover:bg-white/90'
+      ? 'px-3 py-3 md:py-1.5 text-[13px] font-bold rounded-md bg-white text-gray-900 cursor-pointer hover:bg-white/90'
       : 'w-full px-4 py-2 text-sm text-center rounded-md border border-gray-300 bg-blue-600 text-white cursor-pointer';
 
   return (

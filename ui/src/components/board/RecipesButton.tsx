@@ -16,7 +16,9 @@ import {
   WIN_VP,
 } from 'common';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
-import { backdropClass, modalCardClass } from '../../styles';
+import Modal from '../ui/Modal';
+import MapIconButton from '../ui/MapIconButton';
+import { Info } from 'lucide-react';
 
 /** One build recipe: what it is, what it costs, and what it gets you. */
 interface Recipe {
@@ -101,103 +103,81 @@ const RecipesButton: React.FC = () => {
 
   return (
     <>
-      <button
-        type="button"
+      <MapIconButton
+        icon={<Info size={22} />}
         onClick={() => setOpen(true)}
         onMouseDown={(e) => e.stopPropagation()}
         title="Info"
         aria-label="Show recipes and achievements"
-        className="absolute top-16 left-2 z-20 flex items-center justify-center w-12 h-12 rounded-full bg-white border-2 border-gray-300 shadow-lg text-2xl leading-none cursor-pointer hover:scale-110 hover:border-blue-500 transition-transform"
-      >
-        <span aria-hidden="true">ℹ️</span>
-      </button>
+        className="top-16 left-[max(0.5rem,env(safe-area-inset-left))]"
+      />
 
-      {open && (
-        <div
-          className={backdropClass}
-          onMouseDown={(e) => {
-            // Click outside the card closes it.
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Recipes and achievements"
-            className={`${modalCardClass} max-w-[440px] max-h-[90vh] overflow-y-auto`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="m-0 text-lg font-bold text-gray-800">ℹ️ Info</h2>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close info"
-                className="w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div role="tablist" className="flex gap-1 mb-3 border-b border-gray-200">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`px-3 py-1.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer ${
-                    tab === t.key
-                      ? 'border-blue-600 text-blue-700'
-                      : 'border-transparent text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            {tab === 'recipes' ? (
-              <ul role="tabpanel" className="m-0 p-0 list-none flex flex-col gap-2">
-                {RECIPES.map((r) => (
-                  <li key={r.name} className="border border-gray-200 rounded-md p-2 bg-white">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[14px] font-semibold text-gray-800">
-                        {r.icon} {r.name}
-                      </span>
-                      {r.price ? (
-                        <CostChips price={r.price} />
-                      ) : (
-                        <span className="text-[13px]">{r.costText}</span>
-                      )}
-                    </div>
-                    <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div role="tabpanel">
-                <p className="text-[12px] text-gray-500 m-0 mb-2">
-                  First to {WIN_VP} VP wins. Bonuses go to one player; a tie keeps the current holder.
-                </p>
-                <ul className="m-0 p-0 list-none flex flex-col gap-2">
-                  {ACHIEVEMENTS.map((a) => (
-                    <li key={a.name} className="border border-gray-200 rounded-md p-2 bg-white">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[14px] font-semibold text-gray-800">
-                          {a.icon} {a.name}
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-[12px] font-bold text-amber-800">
-                          +{a.vp} VP
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-gray-500 m-0 mt-1">{a.note}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Info"
+        aria-label="Recipes and achievements"
+        width="max-w-[440px]"
+      >
+        <div role="tablist" className="flex gap-1 mb-3 border-b border-gray-200">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-3 py-1.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer ${
+                tab === t.key
+                  ? 'border-blue-600 text-blue-700'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-      )}
+        {tab === 'recipes' ? (
+          <ul role="tabpanel" className="m-0 p-0 list-none flex flex-col gap-2">
+            {RECIPES.map((r) => (
+              <li key={r.name} className="border border-gray-200 rounded-md p-2 bg-white">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[14px] font-semibold text-gray-800">
+                    {r.icon} {r.name}
+                  </span>
+                  {r.price ? (
+                    <CostChips price={r.price} />
+                  ) : (
+                    <span className="text-[13px]">{r.costText}</span>
+                  )}
+                </div>
+                <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div role="tabpanel">
+            <p className="text-[12px] text-gray-500 m-0 mb-2">
+              First to {WIN_VP} VP wins. Bonuses go to one player; a tie keeps the current holder.
+            </p>
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {ACHIEVEMENTS.map((a) => (
+                <li key={a.name} className="border border-gray-200 rounded-md p-2 bg-white">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[14px] font-semibold text-gray-800">
+                      {a.icon} {a.name}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-[12px] font-bold text-amber-800">
+                      +{a.vp} VP
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-gray-500 m-0 mt-1">{a.note}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Modal>
     </>
   );
 };

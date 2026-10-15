@@ -31,8 +31,11 @@ interface SoldierGroupProps {
   selectableSoldierIds?: ReadonlySet<string>;
   /** Soldier ids with an unspent action (marked with an energy bolt). */
   canActSoldierIds?: ReadonlySet<string>;
+  /** Soldier ids actually draggable right now: only these get the drag
+   *  handle, so touching a non-draggable soldier pans the board. */
+  draggableSoldierIds?: ReadonlySet<string>;
   /** Start dragging this soldier (the Action-phase move). */
-  onSoldierDragStart?: (e: React.MouseEvent, ownerName: string, soldierId: string) => void;
+  onSoldierDragStart?: (e: React.PointerEvent, ownerName: string, soldierId: string) => void;
 }
 
 /**
@@ -48,6 +51,7 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
   selectedSoldierIds,
   selectableSoldierIds,
   canActSoldierIds,
+  draggableSoldierIds,
   onSoldierDragStart,
 }) => {
   const elements: React.ReactNode[] = [];
@@ -57,6 +61,7 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
     const selectable = selectableSoldierIds?.has(s.id) ?? false;
     const isSel = selectedSoldierIds?.has(s.id) ?? false;
     const canAct = canActSoldierIds?.has(s.id) ?? false;
+    const draggable = draggableSoldierIds?.has(s.id) ?? false;
     // Art size for this (possibly injured, smaller) soldier.
     const aw = SOLDIER_ART_WIDTH * fs.scale;
     const ah = SOLDIER_ART_HEIGHT * fs.scale;
@@ -84,11 +89,14 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
     elements.push(
       <g
         key={`s-${s.id}`}
-        style={{ cursor: onSoldierDragStart ? 'grab' : selectable && onSoldierClick ? 'pointer' : undefined }}
+        style={{ cursor: draggable ? 'grab' : selectable && onSoldierClick ? 'pointer' : undefined }}
         onClick={selectable && onSoldierClick ? () => onSoldierClick(s.id) : undefined}
-        // Drag any own soldier to move it (the hook re-validates the rules;
-        // stopPropagation keeps the board from treating the press as a pan).
-        onMouseDown={onSoldierDragStart ? (e) => onSoldierDragStart(e, army.ownerName, s.id) : undefined}
+        // Drag a movable soldier to move it (the hook re-validates the
+        // rules; stopPropagation keeps the board from treating the press
+        // as a pan). Only a draggable sprite is a handle — touching any
+        // other soldier pans the board instead.
+        onPointerDown={onSoldierDragStart ? (e) => onSoldierDragStart(e, army.ownerName, s.id) : undefined}
+        data-drag-handle={draggable ? true : undefined}
       >
         <svg
           x={x - aw / 2}

@@ -16,6 +16,17 @@ import BoardView from '../containers/BoardView';
 import Game from '../containers/Game';
 import VictoryOverlay from '../containers/VictoryOverlay';
 import { readSavedSession, saveSession, clearSavedSession } from '../utils/session';
+import Button from '../components/ui/Button';
+import { Settings, Link2, Check, LogOut } from 'lucide-react';
+
+const inputClass =
+  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
+
+/** Segmented option button (turn-structure presets, setup-cities counts). */
+const segClass = (active: boolean) =>
+  `flex-1 py-1.5 px-1 rounded-md text-[13px] font-semibold border cursor-pointer transition-colors disabled:opacity-60 ${
+    active ? 'border-gold bg-gold-pale text-ink' : 'border-ink-faint/40 bg-white text-ink-soft hover:bg-canvas-sunken'
+  }`;
 
 /** Bottom-left menu (gear) shared by the waiting room: leave the lobby. */
 const LobbyMenu: React.FC<{
@@ -26,27 +37,23 @@ const LobbyMenu: React.FC<{
 }> = ({ open, onToggle, onLeave, roomId }) => (
   <div className="fixed bottom-3 left-3 z-50">
     {open && (
-      <div className="absolute bottom-full left-0 mb-2 w-44 rounded-md border border-gray-300 bg-white shadow-lg p-2 text-gray-800">
-        <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">Room {roomId}</div>
-        <button
-          type="button"
-          onClick={onLeave}
-          className="w-full px-2 py-1.5 text-left text-[13px] font-semibold rounded-md bg-red-600 text-white cursor-pointer hover:bg-red-700"
-        >
+      <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl border border-ink-faint/40 bg-canvas-raised shadow-pop p-2 text-ink">
+        <div className="px-2 py-1.5 text-[13px] font-semibold text-ink-soft">Room {roomId}</div>
+        <Button variant="danger" size="sm" onClick={onLeave} icon={<LogOut size={14} />} className="w-full !justify-start">
           Leave game
-        </button>
+        </Button>
       </div>
     )}
-    <button
-      type="button"
+    <Button
+      variant="icon"
       onClick={onToggle}
-      className="px-3 py-2 text-[20px] leading-none font-semibold rounded-md border border-gray-300 bg-white shadow cursor-pointer hover:bg-gray-100"
+      className="!p-2"
       title="Menu"
       aria-label="Menu"
       aria-expanded={open}
     >
-      {'⚙️'}
-    </button>
+      <Settings size={20} />
+    </Button>
   </div>
 );
 
@@ -77,6 +84,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     setTurnMode: onSetTurnMode,
     setSetupCities: onSetSetupCities,
     setTurnTimer: onSetTurnTimer,
+    setRoomPassword: onSetRoomPassword,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
     joinRoom: onJoinRoom,
@@ -85,6 +93,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
   const [nameInput, setNameInput] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [roomPassword, setRoomPassword] = useState('');
   const handleSetName = () => {
     const name = nameInput.trim();
     if (!name || !gameRoom || !currentPlayer) return;
@@ -127,22 +136,21 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
   if (!currentPlayer) {
     if (gameRoom.gameStatus !== 'waiting') return gameRoom.gameStatus === 'finished' ? <><Game /><VictoryOverlay /></> : <Game />;
     return (
-      <div className="flex items-center justify-center min-h-screen w-full p-4">
-        <div className="bg-white rounded-lg shadow p-6 w-full max-w-[420px] text-center flex flex-col gap-3">
-          <h1 className="text-xl font-bold m-0">The game went back to the lobby</h1>
-          <button
-            type="button"
+      <div className="flex items-center justify-center min-h-dvh w-full p-4 bg-canvas">
+        <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px] text-center flex flex-col gap-3">
+          <h1 className="text-xl font-bold m-0 text-ink">The game went back to the lobby</h1>
+          <Button
+            variant="primary"
             onClick={() => {
               saveSession({ roomId: gameRoom.id, playerName: '' });
               onJoinRoom('', gameRoom.id);
             }}
-            className="py-2.5 rounded-md text-[15px] font-semibold text-white bg-blue-600 cursor-pointer hover:bg-blue-700"
           >
             Join as a player
-          </button>
-          <button type="button" onClick={leaveLobby} className="text-[13px] text-gray-500 hover:text-gray-800 cursor-pointer">
+          </Button>
+          <Button variant="ghost" size="sm" onClick={leaveLobby}>
             ← Back to lobby
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -153,10 +161,10 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     // Name-first: join is name-optional, so ask for the name before the color.
     if (!currentPlayer.name.trim()) {
       return (
-        <div className="flex items-start lg:items-center justify-center min-h-screen w-full p-4">
-          <div className="bg-white rounded-lg shadow p-6 w-full max-w-[420px]">
-            <h1 className="text-2xl font-bold text-center mb-2">Risky Reign</h1>
-            <p className="text-center text-gray-600 mb-4">Room {gameRoom.id}</p>
+        <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4 bg-canvas">
+          <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px]">
+            <h1 className="text-2xl font-bold text-center mb-2 text-ink">Risky Reign</h1>
+            <p className="text-center text-ink-soft mb-4">Room {gameRoom.id}</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -165,25 +173,19 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               className="flex flex-col gap-4"
             >
               <div>
-                <label className="block text-[13px] font-semibold mb-1.5">Your Name</label>
+                <label className="block text-[13px] font-semibold mb-1.5 text-ink">Your Name</label>
                 <input
                   type="text"
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
                   placeholder="Enter your name"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className={inputClass}
                 />
               </div>
-              <button
-                type="submit"
-                disabled={!nameInput.trim()}
-                className={`py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white ${
-                  nameInput.trim() ? 'bg-blue-600 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'
-                }`}
-              >
+              <Button variant="primary" type="submit" disabled={!nameInput.trim()}>
                 Confirm
-              </button>
+              </Button>
             </form>
           </div>
           <LobbyMenu
@@ -198,30 +200,30 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
     const canStart =
       gameRoom.players[0]?.id === currentPlayer.id && gameRoom.players.length >= MIN_PLAYERS;
     return (
-      <div className="flex items-start lg:items-center justify-center min-h-screen w-full p-4">
+      <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4 bg-canvas">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
           <div className="hidden lg:block" />
-          <div className="bg-white rounded-lg shadow p-4 w-full max-w-[520px] justify-self-center">
-          <h1 className="text-2xl font-bold text-center mb-4">Waiting for Players</h1>
-          <p className="text-center text-gray-600">
+          <div className="bg-canvas-raised rounded-xl shadow-card p-4 w-full max-w-[520px] justify-self-center">
+          <h1 className="text-2xl font-bold text-center mb-4 text-ink">Waiting for Players</h1>
+          <p className="text-center text-ink-soft">
             Current Room ID: <strong>{gameRoom.id}</strong>
             <button
               type="button"
               onClick={copyJoinLink}
               title="Copy join link"
               aria-label="Copy join link"
-              className="ml-1.5 align-middle text-[13px] text-gray-500 hover:text-gray-800 cursor-pointer"
+              className="ml-0.5 -my-2 align-middle inline-flex items-center justify-center min-w-[40px] min-h-[44px] text-[13px] text-ink-soft hover:text-ink cursor-pointer"
             >
-              {linkCopied ? '✓' : '🔗'}
+              {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
             </button>
-            {linkCopied && <span className="text-[11px] text-green-600"> link copied</span>}
+            {linkCopied && <span className="text-[11px] text-moss font-semibold"> link copied</span>}
           </p>
-          <p className="text-center text-gray-600">
+          <p className="text-center text-ink-soft">
             Players: {gameRoom.players.map((p) => p.name).join(', ')}
           </p>
 
           <div className="mt-4">
-            <label className="block text-[13px] font-semibold mb-1.5">Your Color</label>
+            <label className="block text-[13px] font-semibold mb-1.5 text-ink">Your Color</label>
             <ColorPicker
               value={currentPlayer.color}
               others={gameRoom.players
@@ -230,37 +232,27 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               onChange={(color) => onUpdatePlayerColor(gameRoom.id, color)}
             />
           </div>
-
-          {error && <p className="text-red-600 text-center mt-2">{error}</p>}
+          {error && <p className="text-clay text-center mt-2 text-sm">{error}</p>}
           {canStart && (
-            <button
-              onClick={() => onStartGame(gameRoom.id)}
-              className="mt-4 w-full py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer"
-            >
+            <Button variant="primary" onClick={() => onStartGame(gameRoom.id)} className="mt-4 w-full">
               Start Game
-            </button>
+            </Button>
           )}
-          <button
-            onClick={() => onRefreshMap(gameRoom.id)}
-            className="mt-2 w-full py-2.5 px-4 bg-green-500 text-white border-0 rounded-md cursor-pointer text-sm"
-          >
+          <Button variant="secondary" onClick={() => onRefreshMap(gameRoom.id)} className="mt-2 w-full">
             Refresh Map
-          </button>
+          </Button>
           {onCustomizeBoard && (
-            <button
-              onClick={onCustomizeBoard}
-              className="mt-2 w-full py-2.5 px-4 bg-emerald-600 text-white border-0 rounded-md cursor-pointer text-sm"
-            >
+            <Button variant="secondary" onClick={onCustomizeBoard} className="mt-2 w-full">
               Customize Board
-            </button>
+            </Button>
           )}
           <div className="mt-4 flex justify-center w-full">
             <BoardView hexSize={LOBBY_HEX_SIZE} />
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 max-w-[320px] justify-self-center lg:justify-self-end">
-          <h2 className="text-xl font-bold text-center mb-4">Game Settings</h2>
-          <label className="block text-[13px] font-semibold mb-1.5">Points to Win</label>
+        <div className="bg-canvas-raised rounded-xl shadow-card p-4 max-w-[320px] justify-self-center lg:justify-self-end">
+          <h2 className="text-xl font-bold text-center mb-4 text-ink">Game Settings</h2>
+          <label className="block text-[13px] font-semibold mb-1.5 text-ink">Points to Win</label>
           <input
             type="number"
             min={1}
@@ -271,14 +263,16 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                 onUpdatePointsToWin(gameRoom.id, value);
               }
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-[15px]"
+            className={inputClass}
           />
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onUpdatePointsToWin(gameRoom.id, DEFAULT_POINTS_TO_WIN)}
-            className="mt-3 w-full py-2 px-4 border border-gray-300 bg-gray-100 rounded-md text-sm cursor-pointer"
+            className="mt-3 w-full"
           >
             Reset to Default
-          </button>
+          </Button>
 
           {/* Turn structure: which phases act once per round vs go around the
               whole table. Host-only; other players see the current setting
@@ -292,35 +286,33 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               hint: string,
             ) => (
               <div>
-                <label className="block text-[13px] font-semibold mb-1.5">{label}</label>
+                <label className="block text-[13px] font-semibold mb-1.5 text-ink">{label}</label>
                 <select
                   value={mode[key]}
                   disabled={!isHost}
                   onChange={(e) =>
                     onSetTurnMode(gameRoom.id, { ...mode, [key]: e.target.value as TurnMode['build'] })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-[15px] bg-white disabled:opacity-60"
+                  className={inputClass}
                 >
                   <option value="around">Around the table</option>
                   <option value="single">Single (one turn)</option>
                 </select>
-                <p className="mt-1 text-[11px] text-gray-500">{hint}</p>
+                <p className="mt-1 text-[11px] text-ink-faint">{hint}</p>
               </div>
             );
             const presetBtn = (label: string, preset: TurnMode, active: boolean) => (
               <button
                 onClick={() => isHost && onSetTurnMode(gameRoom.id, { ...preset })}
                 disabled={!isHost}
-                className={`flex-1 py-1.5 px-1 rounded-md text-[11px] font-semibold border cursor-pointer disabled:opacity-60 ${
-                  active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-600'
-                }`}
+                className={segClass(active)}
               >
                 {label}
               </button>
             );
             return (
-              <div className="mt-5 border-t border-gray-200 pt-3 space-y-3">
-                <p className="text-[13px] font-semibold">Turn Structure</p>
+              <div className="mt-5 border-t border-ink-faint/30 pt-3 space-y-3">
+                <p className="text-[13px] font-semibold text-ink">Turn Structure</p>
                 <div className="flex gap-1.5">
                   {presetBtn(
                     'Regular',
@@ -336,17 +328,17 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                 {scopeSelect('build', 'Build phase', 'around = every player builds; single = only the dice roller')}
                 {/* The second roll only exists after an around-the-table Build. */}
                 {mode.build === 'around' && (
-                  <label className="flex items-start gap-2 text-[13px] cursor-pointer">
+                  <label className="flex items-start gap-2 text-[13px] cursor-pointer text-ink">
                     <input
                       type="checkbox"
                       checked={mode.secondRoll}
                       disabled={!isHost}
                       onChange={(e) => onSetTurnMode(gameRoom.id, { ...mode, secondRoll: e.target.checked })}
-                      className="mt-0.5"
+                      className="mt-0.5 accent-gold"
                     />
                     <span>
-                      <span className="font-semibold">Second roll</span>
-                      <span className="block text-[11px] text-gray-500">
+                      <span className="font-semibold text-ink">Second roll</span>
+                      <span className="block text-[11px] text-ink-faint">
                         After everyone builds, the same player rolls again before the Action phase.
                       </span>
                     </span>
@@ -355,42 +347,38 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                 {scopeSelect('action', 'Action phase', 'around = every player acts; single = only the dice roller')}
               </div>
             );
+
           })()}
 
           {/* Setup cities: how many of each player's two setup placements may
               be a city (the player chooses which). Host-only, like the rest. */}
-          <div className="mt-5 border-t border-gray-200 pt-3">
-            <label className="block text-[13px] font-semibold mb-1.5">Setup Cities</label>
+          <div className="mt-5 border-t border-ink-faint/30 pt-3">
+            <label className="block text-[13px] font-semibold mb-1.5 text-ink">Setup Cities</label>
             <div className="flex gap-1.5">
               {Array.from({ length: MAX_SETUP_CITIES + 1 }, (_, n) => (
                 <button
-                  key={n}
                   onClick={() => onSetSetupCities(gameRoom.id, n)}
                   disabled={gameRoom.players[0]?.id !== currentPlayer.id}
-                  className={`flex-1 py-1.5 px-1 rounded-md text-[13px] font-semibold border cursor-pointer disabled:opacity-60 ${
-                    gameRoom.setupCities === n
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 bg-white text-gray-600'
-                  }`}
+                  className={segClass(gameRoom.setupCities === n)}
                 >
                   {n}
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-gray-500">
+            <p className="mt-1 text-[11px] text-ink-faint">
               How many setup placements each player may make a city instead of a settlement.
             </p>
           </div>
 
           {/* Turn timer: a per-phase clock for Build and Action (seconds;
               0/off = no limit). Fights pause it. Host-only. */}
-          <div className="mt-5 border-t border-gray-200 pt-3">
+          <div className="mt-5 border-t border-ink-faint/30 pt-3">
             {(() => {
               const isHost = gameRoom.players[0]?.id === currentPlayer.id;
               const on = gameRoom.turnTimerMs > 0;
               return (
                 <>
-                  <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                  <label className="flex items-center gap-2 text-[13px] cursor-pointer text-ink">
                     <input
                       type="checkbox"
                       checked={on}
@@ -399,7 +387,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                         onSetTurnTimer(gameRoom.id, e.target.checked ? MIN_TURN_TIMER_S * 1000 : 0)
                       }
                     />
-                    <span className="font-semibold">Turn Timer</span>
+                    <span className="font-semibold text-ink">Turn Timer</span>
                   </label>
                   {on && (
                     <div className="mt-2 flex items-center gap-2">
@@ -420,13 +408,53 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
                             onSetTurnTimer(gameRoom.id, s * 1000);
                           }
                         }}
-                        className="w-24 px-2 py-1.5 border border-gray-300 rounded-md text-[13px] disabled:opacity-60"
+                        className="w-24 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink disabled:opacity-60 focus:border-gold focus:outline-none"
                       />
-                      <span className="text-[13px] text-gray-600">seconds per phase</span>
+                      <span className="text-[13px] text-ink-soft">seconds per phase</span>
                     </div>
                   )}
-                  <p className="mt-1 text-[11px] text-gray-500">
+                  <p className="mt-1 text-[11px] text-ink-faint">
                     Build and Action phases auto-end when the clock runs out. Pauses during fights.
+                  </p>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Room password = privacy: set ⇒ friends join with code+password
+              and Quick Play skips the room; empty ⇒ open to Quick Play. */}
+          <div className="mt-5 border-t border-ink-faint/30 pt-3">
+            <label className="block text-[13px] font-semibold mb-1.5 text-ink">
+              Room Password {gameRoom.hasPassword ? '🔒' : ''}
+            </label>
+            {(() => {
+              const isHost = gameRoom.players[0]?.id === currentPlayer.id;
+              return (
+                <>
+                  <input
+                    type="password"
+                    value={roomPassword}
+                    onChange={(e) => setRoomPassword(e.target.value)}
+                    placeholder={gameRoom.hasPassword ? 'New password (or clear to open)' : 'None set — room is open'}
+                    disabled={!isHost}
+                    className={inputClass}
+                  />
+                  {isHost && (
+                    <div className="mt-2 flex gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => onSetRoomPassword(gameRoom.id, roomPassword.trim())}
+                      >
+                        {roomPassword.trim() ? 'Set password' : 'Clear password'}
+                      </Button>
+                    </div>
+                  )}
+                  <p className="mt-1 text-[11px] text-ink-faint">
+                    {gameRoom.hasPassword
+                      ? 'Private: friends join with code + password; Quick Play skips this room.'
+                      : 'Open: anyone can join by code, and Quick Play may drop strangers in.'}
                   </p>
                 </>
               );

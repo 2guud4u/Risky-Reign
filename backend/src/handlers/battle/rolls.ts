@@ -8,7 +8,7 @@ import {
 } from 'common';
 import { gameRooms } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom, requirePlayer } from '../context';
 import { applyRobberFightOutcome } from './resolution';
 
 /**
@@ -22,22 +22,16 @@ export function registerBattleRollHandlers(ctx: HandlerContext): void {
     'rollBattleDie',
     (data: { roomId: string; soldierId: string }) => {
       const { roomId, soldierId } = data;
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+      const room = requireRoom(socket, roomId);
+      if (!room) return;
       if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board || !room.battleState) {
         socket.emit('error', { message: 'No battle in progress' });
         return;
       }
-      const currentPlayer = room.players.find((p) => p.id === socket.id);
-      if (!currentPlayer) {
-        socket.emit('error', { message: 'Player not found' });
-        return;
-      }
+      const currentPlayer = requirePlayer(room, socket);
+      if (!currentPlayer) return;
       if (room.battleState.phase !== 'rolling') {
         socket.emit('error', { message: 'The battle is not in the rolling phase' });
         return;

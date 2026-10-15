@@ -70,7 +70,7 @@ export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, onC
           ok
             ? open
               ? 'bg-blue-600 border-blue-700 text-white'
-              : 'bg-white border-gray-300 hover:scale-110 hover:border-blue-500'
+              : 'bg-white border-gray-300 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-blue-500'
             : open
               ? 'bg-white border-gray-300 text-gray-800'
               : 'bg-gray-200 border-gray-300'
@@ -206,7 +206,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                     }}
                     aria-label={`${a.label}: ${c.label}`}
                     title={c.label}
-                    className="bubble-pop flex items-center gap-2 h-10 pl-2 pr-4 rounded-full bg-white border-2 shadow-lg text-[14px] font-bold text-gray-800 whitespace-nowrap cursor-pointer transition-transform duration-150 hover:scale-110"
+                    className="bubble-pop flex items-center gap-2 h-10 pl-2 pr-4 rounded-full bg-white border-2 shadow-lg text-[14px] font-bold text-gray-800 whitespace-nowrap cursor-pointer transition-transform duration-150 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
                     style={{ borderColor: c.color ?? '#d1d5db', animationDelay: `${i * 50}ms` }}
                   >
                     <span
@@ -254,7 +254,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
                   }}
                   aria-label={`Confirm: ${c.label}`}
                   title={`${c.label} — ${c.costText}`}
-                  className="flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105"
+                  className="flex items-center justify-center gap-1 px-3 h-10 rounded-full bg-white/20 border border-white/40 text-xl leading-none cursor-pointer transition-all duration-150 hover:bg-white/35 hover:scale-105 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100"
                 >
                   {c.direction ? (
                     <svg
@@ -281,7 +281,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
           onClick={() => setSelectedObject(null)}
           aria-label="Close and zoom back out"
           title="Close"
-          className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 hover:border-gray-500"
+          className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-gray-500"
         >
           {'✕'}
         </button>

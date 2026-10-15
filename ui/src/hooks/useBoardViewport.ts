@@ -8,6 +8,7 @@ import {
   PINCH_MIN_DIST,
   ZOOM_STEP,
 } from '../constants';
+import { beginPan, beginPinch, panStep, pinchStep, touchesDragHandle, PanGesture, PinchGesture } from '../utils/viewportGestures';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -25,8 +26,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * reconciler never overwrites the imperatively-set attribute.
  *
  * Panning is a left-button drag on empty board space. Vertices, edges, and
- * soldier badges all stopPropagation on mousedown, so they keep their own
- * click/drag behavior and do not start a pan. Double-click zooms in;
+ * soldier badges keep their own click behavior; draggable pieces
+ * (`data-drag-handle`: soldiers, the robber) are detected by attribute so a
+ * piece drag never arms a pan on mouse or touch. Double-click zooms in;
  * Shift+double-click (or the reset button) restores the fit view. `focusOn`
  * animates the view to a board point (used when a vertex is clicked).
  */
@@ -36,25 +38,21 @@ export function useBoardViewport(
   /** The svg's on-screen size. The view always shows at least `baseSize`
    *  board units on the shorter side and extends on the longer side, so the
    *  map fills the whole area instead of a letterboxed square. */
-  screen: { w: number; h: number } | null
+  screen: { w: number; h: number } | null,
+  /** Shared flag with the drag hook: true while a soldier/robber drag is
+   *  live. Read by the touch handlers so a second finger can't pinch while
+   *  a piece is in hand. */
+  dragActiveRef: React.MutableRefObject<boolean>
 ) {
+  const dragRef = dragActiveRef;
   // Source of truth lives in refs so pan/zoom never triggers a React render.
   const zoomRef = useRef(1);
   const centerRef = useRef({ x: 0, y: 0 });
-  // `scale` = screen px per board unit, measured once when the pan starts
-  // (zoom can't change mid-drag), so moves never force a layout read.
-  const panRef = useRef<{ startX: number; startY: number; originX: number; originY: number; active: boolean; scale: number } | null>(null);
-  // Two-finger pinch state: the gesture's midpoint, the two touches'
-  // distance, and the zoom/center at the previous move (zoom is a ratio on
-  // the distance; the midpoint anchors the zoom point on screen).
-  const pinchRef = useRef<{
-    midX: number;
-    midY: number;
-    dist: number;
-    originX: number;
-    originY: number;
-    zoom: number;
-  } | null>(null);
+  const panRef = useRef<PanGesture | null>(null);
+  // Two-finger pinch state: the two touches' distance, and the zoom/center
+  // at the previous move (zoom is a ratio on the distance; the midpoint
+  // anchors the zoom point on screen).
+  const pinchRef = useRef<PinchGesture | null>(null);
   // Handle of the in-flight focus animation, so a new gesture can cancel it.
   const animRef = useRef<number | null>(null);
   // Pending once-per-frame viewBox write (pan/wheel can fire many times a frame).
@@ -215,14 +213,10 @@ export function useBoardViewport(
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    panRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      originX: centerRef.current.x,
-      originY: centerRef.current.y,
-      active: false,
-      scale: 1,
-    };
+    // Pressing a draggable piece (soldier, robber) starts a piece drag via
+    // pointerdown — the real mousedown still fires and must not arm a pan.
+    if (touchesDragHandle(e.target)) return;
+    panRef.current = beginPan(e, centerRef.current.x, centerRef.current.y);
   }, []);
 
   useEffect(() => {
@@ -267,33 +261,33 @@ export function useBoardViewport(
     // touchmove listener's preventDefault() is the second. A plain tap
     // still produces a click (only touchstart's preventDefault would kill
     // it, so touchstart stays passive).
-    const touchDist = (a: Touch, b: Touch) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+    //
+    // Drag handles: a touch starting on a draggable piece (soldier, robber)
+    // is a piece drag, not a pan — and if a drag is already live, a second
+    // finger must not turn it into a pinch.
     const beginTouchPan = (t: Touch) => {
-       panRef.current = {
-         startX: t.clientX,
-         startY: t.clientY,
-         originX: centerRef.current.x,
-         originY: centerRef.current.y,
-         active: false,
-         scale: 1,
-       };
+       panRef.current = beginPan(t, centerRef.current.x, centerRef.current.y);
     };
     const onTouchStart = (e: TouchEvent) => {
        if (e.touches.length === 2) {
+         if (dragRef.current) {
+           // A piece drag is live (or just started on a handle): suppress the
+           // pinch instead of fighting the drag for the board's view.
+           pinchRef.current = null;
+           panRef.current = null;
+           return;
+         }
          panRef.current = null; // pinch takes priority; suppress the single-finger pan
-         const a = e.touches[0];
-         const b = e.touches[1];
-         pinchRef.current = {
-           midX: (a.clientX + b.clientX) / 2,
-           midY: (a.clientY + b.clientY) / 2,
-           dist: touchDist(a, b),
-           originX: centerRef.current.x,
-           originY: centerRef.current.y,
-           zoom: zoomRef.current,
-         };
+         pinchRef.current = beginPinch(e.touches[0], e.touches[1], centerRef.current, zoomRef.current);
        } else if (e.touches.length === 1) {
          pinchRef.current = null;
-         beginTouchPan(e.touches[0]);
+         const onHandle = touchesDragHandle(e.target);
+         dragRef.current = dragRef.current || onHandle;
+         if (onHandle) {
+           panRef.current = null;
+         } else {
+           beginTouchPan(e.touches[0]);
+         }
        }
     };
     const onTouchMove = (e: TouchEvent) => {
@@ -302,34 +296,23 @@ export function useBoardViewport(
          e.preventDefault();
          const a = e.touches[0];
          const b = e.touches[1];
-         const dist = touchDist(a, b);
-         if (dist < PINCH_MIN_DIST || pinch.dist < PINCH_MIN_DIST) return;
-         cancelAnim();
-         const zoom = clamp(pinch.zoom * (dist / pinch.dist), MIN_ZOOM, MAX_ZOOM);
-         // Keep the board point under the midpoint pinned to the new midpoint:
-         // read it off at the previous zoom, write the center back at the new one.
          const rect = svgRef.current?.getBoundingClientRect();
-         if (rect && rect.width > 0) {
-           const { halfW: hw } = extentRef.current;
-           const pxPrev = rect.width / ((2 * hw) / pinch.zoom);
-           const pxNew = rect.width / ((2 * hw) / zoom);
-           const offX = (a.clientX + b.clientX) / 2 - rect.left - rect.width / 2;
-           const offY = (a.clientY + b.clientY) / 2 - rect.top - rect.height / 2;
-           const boardX = pinch.originX + offX / pxPrev;
-           const boardY = pinch.originY + offY / pxPrev;
-           zoomRef.current = zoom;
-           centerRef.current = { x: boardX - offX / pxNew, y: boardY - offY / pxNew };
-         } else {
-           zoomRef.current = zoom;
-         }
-         pinchRef.current = {
-           midX: (a.clientX + b.clientX) / 2,
-           midY: (a.clientY + b.clientY) / 2,
-           dist,
-           originX: centerRef.current.x,
-           originY: centerRef.current.y,
-           zoom: zoomRef.current,
-         };
+         if (!rect || rect.width <= 0) return;
+         cancelAnim();
+         const next = pinchStep(
+           pinch,
+           a,
+           b,
+           rect,
+           extentRef.current.halfW,
+           PINCH_MIN_DIST,
+           MIN_ZOOM,
+           MAX_ZOOM
+         );
+         if (!next) return;
+         pinchRef.current = next.pinch;
+         zoomRef.current = next.zoom;
+         centerRef.current = next.center;
          scheduleViewBox();
          markDirty(true);
        } else if (e.touches.length === 1) {
@@ -337,20 +320,12 @@ export function useBoardViewport(
          const pan = panRef.current;
          if (!pan) return;
          e.preventDefault();
-         if (!pan.active) {
-           if (Math.hypot(t.clientX - pan.startX, t.clientY - pan.startY) < PAN_THRESHOLD) return;
-           pan.active = true;
-           cancelAnim();
-           pan.originX = centerRef.current.x;
-           pan.originY = centerRef.current.y;
-           pan.startX = t.clientX;
-           pan.startY = t.clientY;
-           pan.scale = pxPerBoard();
-         }
-         centerRef.current = {
-           x: pan.originX - (t.clientX - pan.startX) / pan.scale,
-           y: pan.originY - (t.clientY - pan.startY) / pan.scale,
-         };
+         const wasActive = pan.active;
+         const next = panStep(pan, t, PAN_THRESHOLD, centerRef.current, pxPerBoard);
+         if (!next) return;
+         if (!wasActive && next.pan.active) cancelAnim(); // pan just took over from a focus animation
+         panRef.current = next.pan;
+         centerRef.current = next.center;
          scheduleViewBox();
          markDirty(true);
        }
@@ -359,7 +334,9 @@ export function useBoardViewport(
        if (e.touches.length === 0) {
          panRef.current = null;
          pinchRef.current = null;
+         dragRef.current = false;
        } else if (e.touches.length === 1) {
+         if (dragRef.current) return; // a finger lifted mid piece-drag: no pan
          // Finger lifted mid-pinch: keep panning with the last finger
          // (re-base so the board doesn't jump).
          pinchRef.current = null;

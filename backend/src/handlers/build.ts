@@ -17,7 +17,7 @@ import {
 import { advanceTurn } from '../turn';
 import { gameRooms } from '../store';
 import { broadcastRoom } from '../broadcast';
-import { HandlerContext, blockIfCannotAct } from './context';
+import { HandlerContext, blockIfCannotAct, requireRoom, requirePlayer } from './context';
 
 /**
  * Building handlers: settlements, roads (including free Road-Building roads),
@@ -31,11 +31,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
   socket.on('buildSettlement', (data: { roomId: string; vertexId: string; asCity?: boolean }) => {
     const { roomId, vertexId } = data;
     const asCity = data.asCity === true;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -43,11 +40,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI).
     const check = asCity
@@ -125,11 +119,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
 
   socket.on('buildRoad', (data: { roomId: string; edgeId: string }) => {
     const { roomId, edgeId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -137,11 +128,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI). A free road
     // from a played Road Building card skips the resource cost.
@@ -201,11 +189,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
 
   socket.on('upgradeSettlementToCity', (data: { roomId: string; vertexId: string }) => {
     const { roomId, vertexId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -213,11 +198,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI).
     const check = canUpgradeSettlementToCity(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);
@@ -264,11 +246,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
 
   socket.on('recruitSoldier', (data: { roomId: string; vertexId: string }) => {
     const { roomId, vertexId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board) {
@@ -276,11 +255,8 @@ export function registerBuildHandlers(ctx: HandlerContext): void {
       return;
     }
     const turnState = room.turnState;
-    const currentPlayer = room.players.find((p) => p.id === socket.id);
-    if (!currentPlayer) {
-      socket.emit('error', { message: 'Player not found' });
-      return;
-    }
+    const currentPlayer = requirePlayer(room, socket);
+    if (!currentPlayer) return;
 
     // Authoritative rules live in common (shared with the UI).
     const check = canRecruitSoldierAt(board, turnState, currentPlayer.name, vertexId, currentPlayer.resources);

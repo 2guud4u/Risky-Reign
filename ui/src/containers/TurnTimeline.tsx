@@ -3,6 +3,7 @@ import { upcomingTurns } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { phaseColor } from './TurnOverlay';
+import { X } from 'lucide-react';
 
 /** How many turns ahead the timeline forecasts. */
 const TIMELINE_LOOKAHEAD = 5;
@@ -21,16 +22,16 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const knockedOut = gameRoom.players.filter((p) => p.eliminated).map((p) => p.name);
   const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD, knockedOut, gameRoom.turnMode)];
   return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-[calc(100vw-2rem)] rounded-xl bg-white/95 shadow-2xl border border-gray-200 px-4 pt-2 pb-3 text-gray-800">
+    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-[calc(100vw-2rem)] rounded-xl bg-white shadow-2xl border border-gray-200 px-4 pt-2 pb-3 text-gray-800">
       <div className="flex items-center mb-1">
         <span className="text-[12px] font-semibold text-gray-500">Turn order</span>
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto px-1 text-gray-400 hover:text-gray-700 cursor-pointer"
+          className="ml-auto flex items-center justify-center w-8 h-8 md:w-6 md:h-6 rounded text-gray-400 hover:text-gray-700 cursor-pointer"
           aria-label="Close turn timeline"
         >
-          ✕
+          <X size={14} />
         </button>
       </div>
       {/* pt-2: overflow-x-auto clips vertically too — without headroom the

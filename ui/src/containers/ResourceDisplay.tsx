@@ -5,8 +5,10 @@ import { useSocket } from '../contexts/SocketContext';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { priceLabel } from '../utils/price';
 import { ActionBubble } from '../components/board/ActionBubbles';
-import { RESOURCE_PANEL_TAB_SIZE_PX, RESOURCE_PANEL_LIP_HEIGHT_PX } from '../constants';
+import { RESOURCE_PANEL_LIP_HEIGHT_PX } from '../constants';
 import { devCardTabHintSeen, markDevCardTabHintSeen, useTutorialHints } from '../utils/tutorial';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 type PanelView = 'resources' | 'devCards';
 
@@ -15,25 +17,20 @@ const ChevronButton: React.FC<{ direction: 'up' | 'down'; label: string; onClick
   direction,
   label,
   onClick,
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label={label}
-    title={label}
-    className="w-full flex items-center justify-center py-0.5 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 cursor-pointer"
-  >
-    <svg width="16" height="10" viewBox="0 0 16 10" fill="none" aria-hidden="true">
-      <polyline
-        points={direction === 'up' ? '2,8 8,2 14,8' : '2,2 8,8 14,2'}
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  </button>
-);
+}) => {
+  const Icon = direction === 'up' ? ChevronUp : ChevronDown;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="w-full flex items-center justify-center py-0.5 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-200/70 cursor-pointer"
+    >
+      <Icon size={14} strokeWidth={2.5} aria-hidden="true" />
+    </button>
+  );
+};
 
 /**
  * Buy-a-dev-card bubble, styled and behaving like the map's action bubbles:
@@ -88,7 +85,11 @@ const ResourceDisplay: React.FC = () => {
   const { gameRoom, currentPlayer } = useGameRoom();
   const { drawDevelopmentCard, playDevelopmentCard } = useSocket();
   const [view, setView] = useState<PanelView>('resources');
-  const [collapsed, setCollapsed] = useState(false);
+  // Phones start collapsed — the board needs the width; the edge strip
+  // reopens the panel on demand. Desktop keeps the expanded default.
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
   const hintsOn = useTutorialHints();
   // Show the "dev cards live behind the ▼" pointer at most once per session.
   const [devHintSeen, setDevHintSeen] = useState(devCardTabHintSeen);
@@ -131,24 +132,24 @@ const openDevCards = () => {
           aria-label="Development cards hint"
           onMouseDown={(e) => e.stopPropagation()}
           // Sits left of the panel, vertically near the ▼ chevron it points at.
-          className="absolute right-full bottom-6 mr-2 z-30 w-40 rounded-lg border-2 border-blue-300 bg-white/95 shadow-xl p-2.5 text-[12px] text-gray-700"
+          className="absolute right-full bottom-6 mr-2 z-30 w-40 rounded-lg border-2 border-blue-300 bg-white shadow-xl p-2.5 text-[12px] text-gray-700"
         >
           <div className="font-bold text-gray-900">Your dev cards live here 👉</div>
           <p className="m-0 mt-0.5">Press <strong>▼</strong> under Resources to see (and play) development cards.</p>
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={dismissDevHint}
-            className="mt-1.5 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[11px] font-semibold cursor-pointer hover:bg-blue-700"
+            className="mt-1.5 !px-2 !py-0.5 !bg-blue-600 !text-white !text-[11px] hover:!bg-blue-700"
           >
             Got it
-          </button>
+          </Button>
           {/* Little arrow nub pointing right at the chevron. */}
           <span aria-hidden="true" className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2.5 h-2.5 rotate-45 bg-white border-t-2 border-r-2 border-blue-300" />
         </div>
       )}
       <div
         data-resource-section="true"
-        className={`flex items-stretch ${collapsed ? 'justify-center' : ''} bg-white/85 backdrop-blur-sm rounded-lg shadow pl-0 pr-2 pt-2 pb-2`}
+        className={`flex items-stretch ${collapsed ? 'justify-center' : ''} bg-white rounded-lg shadow pl-0 pr-2 pt-2 pb-2`}
       >
          {/* Collapse strip: replaces the panel's left padding; a slim bar on
           * the panel's left edge; click to hide (when collapsed the same bar
@@ -158,18 +159,12 @@ const openDevCards = () => {
            onClick={() => setCollapsed(!collapsed)}
            aria-label={collapsed ? 'Show resources panel' : 'Hide resources panel'}
            title={collapsed ? 'Show resources panel' : 'Hide resources panel'}
-           className="flex shrink-0 items-center justify-center rounded-l-lg cursor-pointer hover:bg-gray-100"
-           style={{ width: RESOURCE_PANEL_TAB_SIZE_PX, minHeight: RESOURCE_PANEL_LIP_HEIGHT_PX }}
+           className="w-11 md:w-[10px] flex shrink-0 items-center justify-center rounded-l-lg cursor-pointer hover:bg-gray-100"
+           style={{ minHeight: RESOURCE_PANEL_LIP_HEIGHT_PX }}
          >
-           <svg width="6" height="6" viewBox="0 0 14 14" fill="none" aria-hidden="true" className="text-gray-500">
-             <polyline
-               points={collapsed ? '9,3 5,7 9,11' : '5,3 9,7 5,11'}
-               stroke="currentColor"
-               strokeWidth="2"
-               strokeLinecap="round"
-               strokeLinejoin="round"
-             />
-           </svg>
+           <span className="text-gray-500">
+             {collapsed ? <ChevronRight size={10} strokeWidth={2.5} aria-hidden="true" /> : <ChevronLeft size={10} strokeWidth={2.5} aria-hidden="true" />}
+           </span>
          </button>
          {!collapsed && (
            <div className="flex flex-col gap-1.5 flex-1 min-w-0">
@@ -228,13 +223,13 @@ const openDevCards = () => {
                               Next turn
                             </span>
                           ) : (
-                            <button
-                              type="button"
+                            <Button
+                              size="sm"
                               onClick={() => handlePlayDevCard(i)}
-                              className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
+                              className="!px-1.5 !py-0.5 !bg-purple-600 !text-white !text-[10px] !rounded hover:!bg-purple-700"
                             >
                               Play
-                            </button>
+                            </Button>
                           ))}
                       </div>
                     );

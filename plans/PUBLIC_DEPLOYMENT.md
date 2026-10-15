@@ -105,6 +105,8 @@ Ordered by risk removed per effort. **2A-1 through 2A-4 are blockers.**
       that knows a code can wipe a running game. Add the same
       `room.players.some(p => p.id === socket.id)` guard `refreshMap` uses;
       restrict start/reset to host; require `gameStatus` preconditions.
+      [Done for `setRoomPassword` (host-only, waiting-only); same pattern
+      still needed for `updateSetupCities`/`setTurnMode`/`startGame` etc.]
 - [ ] **2A-5 Room codes (F7).** Generate server-side with `crypto.randomInt`,
       ≥10 chars, no look-alike characters. `joinRoom` joins only (no implicit
       creation). One generic "Room not available" error (current distinct

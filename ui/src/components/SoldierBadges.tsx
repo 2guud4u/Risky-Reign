@@ -3,6 +3,7 @@ import { VertexNode } from 'common';
 import {
   PROJ_SIZE,
   SOLDIER_BADGE_GAP,
+  BADGE_HIT_PAD,
   SOLDIER_BADGE_R,
   SOLDIER_BADGE_ROW_OFFSET_FRACTION,
 } from '../constants';
@@ -17,7 +18,7 @@ interface SoldierBadgesProps {
   /** Whether the current player may drag this owner's soldiers at a vertex. */
   canDragSoldier: (ownerName: string, vertexId: string) => boolean;
   /** Start a soldier drag (picks an eligible soldier). */
-  onDragStart: (e: React.MouseEvent, ownerName: string, vertexId: string) => void;
+  onDragStart: (e: React.PointerEvent, ownerName: string, vertexId: string) => void;
   /** Select a vertex. */
   onSelect: (obj: { type: 'vertex'; id: string }) => void;
 }
@@ -54,10 +55,13 @@ export const SoldierBadges = React.memo(function SoldierBadges({
           return (
             <g
               key={`${vertexId}-${ownerName}`}
-              onMouseDown={(e) => onDragStart(e, ownerName, vertexId)}
+              data-drag-handle={draggable ? true : undefined}
+              onPointerDown={(e) => onDragStart(e, ownerName, vertexId)}
               onClick={() => onSelect({ type: 'vertex', id: vertexId })}
               style={{ cursor: draggable ? 'grab' : 'pointer' }}
             >
+              {/* Fattened invisible hit ring so a fingertip lands it. */}
+              <circle cx={cx} cy={cy} r={SOLDIER_BADGE_R + BADGE_HIT_PAD} fill="transparent" />
               <circle
                 cx={cx}
                 cy={cy}

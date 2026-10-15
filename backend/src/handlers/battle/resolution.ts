@@ -5,13 +5,14 @@ import {
   canMoveRobberAdjacent,
   placeRobber,
   nextRepositionTurn,
+  resolveBattleOutcome,
   Board,
   BattleState,
   GameRoom,
 } from 'common';
 import { gameRooms, freshResourceCount } from '../../store';
 import { broadcastRoom } from '../../broadcast';
-import { HandlerContext, blockIfCannotAct } from '../context';
+import { HandlerContext, blockIfCannotAct, requireRoom } from '../context';
 
 /**
  * Battle-resolution handlers and helpers: committing a resolved round's
@@ -28,11 +29,8 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
   // starts the next round.
   socket.on('continueBattle', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board || !room.battleState) {
@@ -96,11 +94,8 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
   // marked as having fled and the defender is credited the win.
   socket.on('endBattle', (data: { roomId: string }) => {
     const { roomId } = data;
-    const room = gameRooms.get(roomId);
-    if (!room) {
-      socket.emit('error', { message: 'Room not found' });
-      return;
-    }
+    const room = requireRoom(socket, roomId);
+    if (!room) return;
     if (blockIfCannotAct(room, socket)) return;
     const board = room.board;
     if (!board || !room.battleState) {
@@ -136,11 +131,8 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
     'moveRobberAfterWin',
     (data: { roomId: string; hexId: string }) => {
       const { roomId, hexId } = data;
-      const room = gameRooms.get(roomId);
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
+      const room = requireRoom(socket, roomId);
+      if (!room) return;
       if (blockIfCannotAct(room, socket)) return;
       const board = room.board;
       if (!board) {
@@ -149,7 +141,7 @@ export function registerBattleResolutionHandlers(ctx: HandlerContext): void {
       }
       const player = room.players.find((p) => p.id === socket.id);
       if (!player) {
-        socket.emit('error', { message: 'Player not found' });
+        socket.emit('error', { message: 'Player not found in room' });
         return;
       }
       const choice = room.robberDefeatedBy;
@@ -202,33 +194,16 @@ export function applyRoundCasualties(board: Board, battleState: BattleState): Re
 }
 
 /**
- * Count a won player-vs-player battle toward the Conqueror bonus. A normal
- * battle is won by the side that still has living, uninjured troops when the
- * other side has none. An injured fight is won by the attacker only if every
- * injured defender died (any escapee means the defender won). Robber fights
- * count for nobody. With `earlyEnd` (the attacker chose to stop mid-fight)
- * an undecided battle is a forfeit: `forfeitedBy` is set on the battle and
- * the defender takes the win — the attacker can't flee and keep a result.
+ * Count a won player-vs-player battle toward the Conqueror bonus. The winner
+ * rule itself lives in `resolveBattleOutcome` (common) — the same function
+ * the UI's outcome panel reads, so the credited win can never disagree with
+ * what the outcome panel shows. `earlyEnd` marks an undecided battle as a
+ * forfeit (the attacker fled) and the defender takes the win.
  */
 function recordBattleWin(room: GameRoom, battle: BattleState, earlyEnd = false): void {
-  if (battle.robberFight) return;
-  const soldiersOf = (side: string) => battle.states[side]?.soldiers ?? [];
-  let winner: string | null;
-  if (battle.injuredFight) {
-    winner = soldiersOf(battle.defender).some((s) => !s.dead) ? battle.defender : battle.attacker;
-  } else {
-    const standing = (side: string) => soldiersOf(side).some((s) => !s.dead && !s.injured);
-    const atk = standing(battle.attacker);
-    const def = standing(battle.defender);
-    winner = atk && !def ? battle.attacker : def && !atk ? battle.defender : null;
-    // Forfeit applies only while the fight is genuinely undecided — both
-    // sides still standing. A wiped-out attacker already lost, and a
-    // "See result" click on a decided battle must not flip its outcome.
-    if (!winner && earlyEnd && atk && def) {
-      battle.forfeitedBy = battle.attacker;
-      winner = battle.defender;
-    }
-  }
+  const outcome = resolveBattleOutcome(battle, earlyEnd);
+  if (outcome.forfeitedBy) battle.forfeitedBy = outcome.forfeitedBy;
+  const winner = outcome.winner;
   if (!winner || !room.players.some((p) => p.name === winner)) return;
   room.battlesWon[winner] = (room.battlesWon[winner] ?? 0) + 1;
 }
