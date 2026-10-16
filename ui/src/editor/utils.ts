@@ -176,10 +176,6 @@ export function applyTerrain(hex: EditorHex, terrain: Terrain): EditorHex {
   return { ...hex, terrain, rollNumber: canCarryNumber(terrain) ? hex.rollNumber : null };
 }
 
-/** Deep-copy an `EditorMap` (history snapshots and restores). */
-export function cloneMap(map: EditorMap): EditorMap {
-  return JSON.parse(JSON.stringify(map)) as EditorMap;
-}
 
 
 /** Number of placeable hexes still missing a roll number (blocks saving). */

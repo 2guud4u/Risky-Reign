@@ -22,13 +22,14 @@ export type Tactic = 'equal' | 'random' | 'current';
 /** Which hexes the number-assignment targets. */
 export type Target = 'only empty' | 'only filled' | 'all';
 
-/** Props for the board editor page. */
+/** Props for the board editor (the Board tab of Customize Game). */
 export interface BoardEditorProps {
-  /** When set, the editor edits this existing room's board (Save → editBoard). */
-  roomId?: string;
-  /** The board to seed the draft from (defaults to a standard board). */
-  initialBoard?: Board;
-  onBack: () => void;
+  /** The room whose board this editor saves back to (editBoard). */
+  roomId: string;
+  /** The board to seed the draft from (the room's current board). */
+  initialBoard: Board;
+  /** Regenerate a random map on the server (the draft resets via remount). */
+  onRefreshMap: () => void;
 }
 
 /** A drag payload started from the editor toolbar (a terrain or a number). */
@@ -50,19 +51,12 @@ export type CanvasDragState =
   | { kind: 'hex'; from: CubeCoord; startX: number; startY: number; moved: boolean }
   | { kind: 'number'; from: CubeCoord; value: number; startX: number; startY: number; moved: boolean };
 
-/** A saved board snapshot in the editor's undo-history list. */
-export interface EditorHistorySnapshot {
-  id: number;
-  label: string;
-  time: string;
-  map: EditorMap;
-}
 
-/** Props for the top bar (back/reset buttons + validity summary). */
+/** Props for the top bar (reset/regen buttons + validity summary). */
 export interface EditorTopBarProps {
-  onBack: () => void;
   onResetStandard: () => void;
   onResetExpansion: () => void;
+  onRefreshMap: () => void;
   hexCount: number;
   validation: ValidationResult;
   missingNumbers: number;
@@ -94,13 +88,12 @@ export interface NumberPaletteProps {
   onAssign: () => void;
 }
 
-/** Props for the save/start panel (name + room inputs, history list). */
+/** Props for the save panel (applies the draft board to the room). */
 export interface SavePanelProps {
-  roomId?: string;
+  roomId: string;
   map: EditorMap;
   validation: ValidationResult;
   missingNumbers: number;
-  onRestore: (map: EditorMap) => void;
 }
 
 /** Props for a single hex cell rendered inside the editor canvas. */

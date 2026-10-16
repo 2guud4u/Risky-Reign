@@ -21,4 +21,6 @@ export interface SavedSession {
   token?: string;
   /** Watching without a seat: a reload re-enters as a spectator. */
   spectating?: boolean;
+  /** Room password the user already answered once (private rooms only). */
+  password?: string;
 }

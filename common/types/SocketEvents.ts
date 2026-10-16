@@ -116,6 +116,8 @@ export interface ClientToServerEvents {
   /** Host only: per-phase turn timer in ms (0 = off). Waiting-lobby setting. */
   setTurnTimer: (data: { roomId: string; turnTimerMs: number }) => void;
   editBoard: (data: { roomId: string; layouts: HexLayout[] }) => void;
+  /** Host-only: gate who may change rules/board while waiting (customization lock). */
+  setRulesLock: (data: { roomId: string; locked: boolean }) => void;
   endTurn: (data: { roomId: string }) => void;
   undoBuild: (data: { roomId: string }) => void;
   drawDevelopmentCard: (data: { roomId: string }) => void;
@@ -151,7 +153,7 @@ export interface ServerToClientEvents {
   /** Full sanitized room during lobby/setup (same payload as gameUpdate). */
   roomUpdate: (room: PublicGameRoom) => void;
   /** Rejected action or fatal request; `{ message }` shown to the user. */
-  error: (error: { message: string }) => void;
+  error: (error: { message: string; code?: 'PASSWORD_REQUIRED' }) => void;
   /** Seat token for a just-joined socket, used to re-attach after reload. */
   joined: (data: { token: string }) => void;
   /** The room code Quick Play landed on (existing open room, or a fresh one). */

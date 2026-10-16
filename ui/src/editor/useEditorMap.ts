@@ -6,7 +6,6 @@ import {
   assignNumbers,
   boardToMap,
   canCarryNumber,
-  cloneMap,
   coordKey,
   expansionBoardMap,
   standardBoardMap,
@@ -135,12 +134,6 @@ export function useEditorMap(initialBoard?: Board) {
     setSelectedCoord(null);
   };
 
-  /** Restore a saved snapshot (go back to it). */
-  const restore = (snapshotMap: EditorMap) => {
-    setMap(cloneMap(snapshotMap));
-    setSelectedCoord(null);
-  };
-
   return {
     map,
     selectedCoord,
@@ -158,6 +151,5 @@ export function useEditorMap(initialBoard?: Board) {
     paintHex,
     resetToStandard,
     resetToExpansion,
-    restore,
   };
 }

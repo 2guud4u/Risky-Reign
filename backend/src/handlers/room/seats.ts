@@ -97,7 +97,7 @@ export function registerSeatHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
       }
       const pw = typeof data.password === 'string' ? data.password : '';
       if (!pw || !verifyPassword(pw, room.passwordHash)) {
-        socket.emit('error', { message: 'Wrong room password' });
+        socket.emit('error', { message: 'Wrong room password', code: 'PASSWORD_REQUIRED' });
         return;
       }
       passwordAttempts.reset(socket.id);

@@ -50,6 +50,8 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
     // off; a stale deadline must never carry over a resume.
     setupCities: snap.setupCities ?? 0,
     turnTimerMs: snap.turnTimerMs ?? 0,
+    // Snapshots written before the lock existed are unlocked.
+    rulesLocked: snap.rulesLocked ?? false,
     phaseTimerEndsAt: null,
     phaseTimerRemainingMs: null,
     // Snapshots written before room passwords existed are open rooms.

@@ -128,6 +128,13 @@ export interface GameRoom {
   phaseTimerEndsAt: number | null;
   /** Time left when a battle suspends the phase timer (null = not paused). */
   phaseTimerRemainingMs: number | null;
+  /**
+   * Customization lock (waiting phase only). Host sets it: false (default)
+   * lets anyone in the room change rules and the board from Customize Game;
+   * true restricts those edits to the host. The lobby password and game
+   * start are always host-only and ignore this flag.
+   */
+  rulesLocked: boolean;
   winner: string | null;
   roll: RollResult;
   /** Pending robber placement (a 7 roll or a played knight card). */

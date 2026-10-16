@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  LOBBY_HEX_SIZE,
-  MIN_PLAYERS,
-  DEFAULT_POINTS_TO_WIN,
-  MAX_SETUP_CITIES,
-  MIN_TURN_TIMER_S,
-  MAX_TURN_TIMER_S,
-  TURN_MODE_PRESETS,
-  TurnMode,
-} from 'common';
+import { LOBBY_HEX_SIZE, MIN_PLAYERS } from 'common';
 import { useGameRoom } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
@@ -23,11 +14,6 @@ import { Settings, Link2, Check, LogOut } from 'lucide-react';
 const inputClass =
   'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
 
-/** Segmented option button (turn-structure presets, setup-cities counts). */
-const segClass = (active: boolean) =>
-  `flex-1 py-1.5 px-1 rounded-md text-[13px] font-semibold border cursor-pointer transition-colors disabled:opacity-60 ${
-    active ? 'border-gold bg-gold-pale text-ink' : 'border-ink-faint/40 bg-white text-ink-soft hover:bg-canvas-sunken'
-  }`;
 
 /** Bottom-left menu (gear) shared by the waiting room: leave the lobby. */
 const LobbyMenu: React.FC<{
@@ -75,16 +61,11 @@ function fallbackCopyText(text: string): boolean {
   }
 }
 
-const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }> = ({ error, onCustomizeBoard }) => {
+const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }> = ({ error, onCustomizeGame }) => {
   const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer } = useGameRoom();
   const {
     startGame: onStartGame,
-    refreshMap: onRefreshMap,
     updatePlayerColor: onUpdatePlayerColor,
-    updatePointsToWin: onUpdatePointsToWin,
-    setTurnMode: onSetTurnMode,
-    setSetupCities: onSetSetupCities,
-    setTurnTimer: onSetTurnTimer,
     setRoomPassword: onSetRoomPassword,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
@@ -143,7 +124,12 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
           <Button
             variant="primary"
             onClick={() => {
-              saveSession({ roomId: gameRoom.id, playerName: '' });
+              const kept = readSavedSession();
+              saveSession({
+                roomId: gameRoom.id,
+                playerName: '',
+                ...(kept?.roomId === gameRoom.id ? { password: kept.password } : {}),
+              });
               onJoinRoom('', gameRoom.id);
             }}
           >
@@ -239,12 +225,9 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
               Start Game
             </Button>
           )}
-          <Button variant="secondary" onClick={() => onRefreshMap(gameRoom.id)} className="mt-2 w-full">
-            Refresh Map
-          </Button>
-          {onCustomizeBoard && (
-            <Button variant="secondary" onClick={onCustomizeBoard} className="mt-2 w-full">
-              Customize Board
+          {onCustomizeGame && (
+            <Button variant="secondary" onClick={onCustomizeGame} className="mt-2 w-full">
+              Customize Game
             </Button>
           )}
           <div className="mt-4 flex justify-center w-full">
@@ -252,179 +235,42 @@ const GamePage: React.FC<{ error: string | null; onCustomizeBoard?: () => void }
           </div>
         </div>
         <div className="bg-canvas-raised rounded-xl shadow-card p-4 max-w-[320px] justify-self-center lg:justify-self-end">
-          <h2 className="text-xl font-bold text-center mb-4 text-ink">Game Settings</h2>
-          <label className="block text-[13px] font-semibold mb-1.5 text-ink">Points to Win</label>
-          <input
-            type="number"
-            min={1}
-            value={gameRoom.pointsToWin}
-            onChange={(e) => {
-              const value = parseInt(e.target.value, 10);
-              if (!Number.isNaN(value) && value >= 1) {
-                onUpdatePointsToWin(gameRoom.id, value);
-              }
-            }}
-            className={inputClass}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onUpdatePointsToWin(gameRoom.id, DEFAULT_POINTS_TO_WIN)}
-            className="mt-3 w-full"
-          >
-            Reset to Default
-          </Button>
-
-          {/* Turn structure: which phases act once per round vs go around the
-              whole table. Host-only; other players see the current setting
-              but can't change it (the backend also rejects non-host edits). */}
+          <h2 className="text-xl font-bold text-center mb-3 text-ink">Game Rules</h2>
           {(() => {
-            const isHost = gameRoom.players[0]?.id === currentPlayer.id;
             const mode = gameRoom.turnMode;
-            const scopeSelect = (
-              key: 'build' | 'action',
-              label: string,
-              hint: string,
-            ) => (
-              <div>
-                <label className="block text-[13px] font-semibold mb-1.5 text-ink">{label}</label>
-                <select
-                  value={mode[key]}
-                  disabled={!isHost}
-                  onChange={(e) =>
-                    onSetTurnMode(gameRoom.id, { ...mode, [key]: e.target.value as TurnMode['build'] })
-                  }
-                  className={inputClass}
-                >
-                  <option value="around">Around the table</option>
-                  <option value="single">Single (one turn)</option>
-                </select>
-                <p className="mt-1 text-[11px] text-ink-faint">{hint}</p>
-              </div>
-            );
-            const presetBtn = (label: string, preset: TurnMode, active: boolean) => (
-              <button
-                onClick={() => isHost && onSetTurnMode(gameRoom.id, { ...preset })}
-                disabled={!isHost}
-                className={segClass(active)}
-              >
-                {label}
-              </button>
-            );
+            const turns =
+              mode.build === 'single' && mode.action === 'single'
+                ? 'Regular turns'
+                : mode.build === 'around' && mode.action === 'around' && !mode.secondRoll
+                  ? 'Expanded turns'
+                  : `B: ${mode.build} · A: ${mode.action}${mode.secondRoll ? ' · second roll' : ''}`;
+            const lines = [
+              `${gameRoom.pointsToWin} VP to win`,
+              turns,
+              `${gameRoom.setupCities} setup ${gameRoom.setupCities === 1 ? 'city' : 'cities'}`,
+            ];
+            if (gameRoom.turnTimerMs > 0) lines.push(`${Math.round(gameRoom.turnTimerMs / 1000)}s turn timer`);
             return (
-              <div className="mt-5 border-t border-ink-faint/30 pt-3 space-y-3">
-                <p className="text-[13px] font-semibold text-ink">Turn Structure</p>
-                <div className="flex gap-1.5">
-                  {presetBtn(
-                    'Regular',
-                    TURN_MODE_PRESETS.catan,
-                    mode.build === 'single' && mode.action === 'single',
-                  )}
-                  {presetBtn(
-                    'Expanded',
-                    TURN_MODE_PRESETS.expanded,
-                    mode.build === 'around' && mode.action === 'around' && !mode.secondRoll,
-                  )}
-                </div>
-                {scopeSelect('build', 'Build phase', 'around = every player builds; single = only the dice roller')}
-                {/* The second roll only exists after an around-the-table Build. */}
-                {mode.build === 'around' && (
-                  <label className="flex items-start gap-2 text-[13px] cursor-pointer text-ink">
-                    <input
-                      type="checkbox"
-                      checked={mode.secondRoll}
-                      disabled={!isHost}
-                      onChange={(e) => onSetTurnMode(gameRoom.id, { ...mode, secondRoll: e.target.checked })}
-                      className="mt-0.5 accent-gold"
-                    />
-                    <span>
-                      <span className="font-semibold text-ink">Second roll</span>
-                      <span className="block text-[11px] text-ink-faint">
-                        After everyone builds, the same player rolls again before the Action phase.
-                      </span>
-                    </span>
-                  </label>
+              <>
+                <ul className="m-0 p-0 list-none text-[13px] text-ink-soft text-center space-y-1">
+                  {lines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {onCustomizeGame && (
+                  <Button variant="ghost" size="sm" onClick={onCustomizeGame} className="mt-3 w-full">
+                    Change in Customize Game
+                  </Button>
                 )}
-                {scopeSelect('action', 'Action phase', 'around = every player acts; single = only the dice roller')}
-              </div>
+              </>
             );
-
           })()}
 
-          {/* Setup cities: how many of each player's two setup placements may
-              be a city (the player chooses which). Host-only, like the rest. */}
-          <div className="mt-5 border-t border-ink-faint/30 pt-3">
-            <label className="block text-[13px] font-semibold mb-1.5 text-ink">Setup Cities</label>
-            <div className="flex gap-1.5">
-              {Array.from({ length: MAX_SETUP_CITIES + 1 }, (_, n) => (
-                <button
-                  onClick={() => onSetSetupCities(gameRoom.id, n)}
-                  disabled={gameRoom.players[0]?.id !== currentPlayer.id}
-                  className={segClass(gameRoom.setupCities === n)}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 text-[11px] text-ink-faint">
-              How many setup placements each player may make a city instead of a settlement.
-            </p>
-          </div>
-
-          {/* Turn timer: a per-phase clock for Build and Action (seconds;
-              0/off = no limit). Fights pause it. Host-only. */}
-          <div className="mt-5 border-t border-ink-faint/30 pt-3">
-            {(() => {
-              const isHost = gameRoom.players[0]?.id === currentPlayer.id;
-              const on = gameRoom.turnTimerMs > 0;
-              return (
-                <>
-                  <label className="flex items-center gap-2 text-[13px] cursor-pointer text-ink">
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      disabled={!isHost}
-                      onChange={(e) =>
-                        onSetTurnTimer(gameRoom.id, e.target.checked ? MIN_TURN_TIMER_S * 1000 : 0)
-                      }
-                    />
-                    <span className="font-semibold text-ink">Turn Timer</span>
-                  </label>
-                  {on && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={MIN_TURN_TIMER_S}
-                        max={MAX_TURN_TIMER_S}
-                        step={5}
-                        value={Math.round(gameRoom.turnTimerMs / 1000)}
-                        disabled={!isHost}
-                        onChange={(e) => {
-                          const s = parseInt(e.target.value, 10);
-                          if (
-                            !Number.isNaN(s) &&
-                            s >= MIN_TURN_TIMER_S &&
-                            s <= MAX_TURN_TIMER_S
-                          ) {
-                            onSetTurnTimer(gameRoom.id, s * 1000);
-                          }
-                        }}
-                        className="w-24 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink disabled:opacity-60 focus:border-gold focus:outline-none"
-                      />
-                      <span className="text-[13px] text-ink-soft">seconds per phase</span>
-                    </div>
-                  )}
-                  <p className="mt-1 text-[11px] text-ink-faint">
-                    Build and Action phases auto-end when the clock runs out. Pauses during fights.
-                  </p>
-                </>
-              );
-            })()}
-          </div>
-
           {/* Room password = privacy: set ⇒ friends join with code+password
-              and Quick Play skips the room; empty ⇒ open to Quick Play. */}
-          <div className="mt-5 border-t border-ink-faint/30 pt-3">
+              and Quick Play skips the room; empty ⇒ open to Quick Play. Host
+              only — it is room access control, not a game rule, so it stays
+              here and ignores the customization lock. */}
+          <div className="mt-4 border-t border-ink-faint/30 pt-3">
             <label className="block text-[13px] font-semibold mb-1.5 text-ink">
               Room Password {gameRoom.hasPassword ? <GameIcon name="lock" size={12} className="inline -mt-0.5" /> : ''}
             </label>

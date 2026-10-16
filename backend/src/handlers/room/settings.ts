@@ -32,12 +32,23 @@ import { hashPassword } from '../../persistence/passwords';
 export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
   const { io, socket } = ctx;
 
+  // Rule/board edits go through Customize Game, gated by the room's
+  // customization lock: unlocked (default) lets any seated player change
+  // them; locked keeps them host-only. Password/start/reset stay host-only.
+  const canCustomize = (room: { players: { id: string }[]; rulesLocked: boolean }): boolean =>
+    !room.rulesLocked || room.players[0]?.id === socket.id;
+  const rejectIfLockedOut = (room: { players: { id: string }[]; rulesLocked: boolean }): boolean => {
+    if (canCustomize(room)) return false;
+    socket.emit('error', { message: 'The host locked game customization' });
+    return true;
+  };
   socket.on('refreshMap', (data: { roomId: string }) => {
     const { roomId } = data;
     const room = requireRoom(socket, roomId);
     if (!room) return;
-    // Only the host may regenerate the map, and only before the game starts —
-    // mid-game this would wipe every settlement, road, and soldier.
+    // Customization-gated: anyone may regenerate when the room is unlocked —
+    // before the game starts. Mid-game this would wipe every settlement,
+    // road, and soldier.
     if (room.gameStatus !== 'waiting') {
       socket.emit('error', { message: 'The game has already started' });
       return;
@@ -46,11 +57,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'You are not in this room' });
       return;
     }
-    const isHost = room.players[0]?.id === socket.id;
-    if (!isHost) {
-      socket.emit('error', { message: 'Only the host can regenerate the map' });
-      return;
-    }
+    if (rejectIfLockedOut(room)) return;
     // Regenerate the game board.
     room.board = createBoard();
     // The new board resets the robber to the desert; drop any pending move.
@@ -68,11 +75,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Can only change settings while waiting' });
       return;
     }
-    const isHost = room.players[0]?.id === socket.id;
-    if (!isHost) {
-      socket.emit('error', { message: 'Only the host can change settings' });
-      return;
-    }
+    if (rejectIfLockedOut(room)) return;
     const value = Math.floor(pointsToWin);
     if (!Number.isFinite(value) || value < 1) {
       socket.emit('error', { message: 'Points to win must be at least 1' });
@@ -106,8 +109,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
   });
 
   // Set the turn structure (Build/Action scope per round, plus the optional
-  // second roll after an 'around' Build). Host only, while waiting — like
-  // every other room setting.
+  // second roll after an 'around' Build). Customization-gated, while waiting.
   socket.on('setTurnMode', (data: { roomId: string; turnMode: TurnMode }) => {
     const { roomId, turnMode } = data;
     const room = requireRoom(socket, roomId);
@@ -116,10 +118,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Can only change settings while waiting' });
       return;
     }
-    if (room.players[0]?.id !== socket.id) {
-      socket.emit('error', { message: 'Only the host can change settings' });
-      return;
-    }
+    if (rejectIfLockedOut(room)) return;
     const ok =
       (turnMode?.build === 'single' || turnMode?.build === 'around') &&
       (turnMode?.action === 'single' || turnMode?.action === 'around') &&
@@ -137,8 +136,8 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
     broadcastRoom(io, room, 'roomUpdate');
   });
 
-  // How many setup placements may be cities (0..MAX_SETUP_CITIES). Host only,
-  // while waiting — like every other room setting.
+  // How many setup placements may be cities (0..MAX_SETUP_CITIES).
+  // Customization-gated, while waiting.
   socket.on('setSetupCities', (data: { roomId: string; setupCities: number }) => {
     const room = requireRoom(socket, data?.roomId);
     if (!room) return;
@@ -146,10 +145,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Can only change settings while waiting' });
       return;
     }
-    if (room.players[0]?.id !== socket.id) {
-      socket.emit('error', { message: 'Only the host can change settings' });
-      return;
-    }
+    if (rejectIfLockedOut(room)) return;
     const value = data.setupCities;
     if (!Number.isInteger(value) || value < 0 || value > MAX_SETUP_CITIES) {
       socket.emit('error', { message: `Setup cities must be 0 to ${MAX_SETUP_CITIES}` });
@@ -158,9 +154,8 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
     room.setupCities = value;
     broadcastRoom(io, room, 'roomUpdate');
   });
-
-  // Per-phase turn timer (0 = off). Host only, while waiting — like every
-  // other room setting. Value arrives in ms; whole seconds only.
+  // Per-phase turn timer (0 = off). Customization-gated, while waiting.
+  // Value arrives in ms; whole seconds only.
   socket.on('setTurnTimer', (data: { roomId: string; turnTimerMs: number }) => {
     const room = requireRoom(socket, data?.roomId);
     if (!room) return;
@@ -168,10 +163,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'Can only change settings while waiting' });
       return;
     }
-    if (room.players[0]?.id !== socket.id) {
-      socket.emit('error', { message: 'Only the host can change settings' });
-      return;
-    }
+    if (rejectIfLockedOut(room)) return;
     const ms = data.turnTimerMs;
     const valid =
       Number.isInteger(ms) &&
@@ -224,8 +216,8 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: ok.reason ?? 'Invalid board layout' });
       return;
     }
-    // Only the host may replace the board, and only before the game starts —
-    // mid-game this would wipe every settlement, road, and soldier.
+    // Customization-gated: anyone may replace the board when the room is
+    // unlocked — only before the game starts.
     if (room.gameStatus !== 'waiting') {
       socket.emit('error', { message: 'The game has already started' });
       return;
@@ -234,16 +226,29 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
       socket.emit('error', { message: 'You are not in this room' });
       return;
     }
-    const isHost = room.players[0]?.id === socket.id;
-    if (!isHost) {
-      socket.emit('error', { message: 'Only the host can edit the board' });
-      return;
-    }
+    if (rejectIfLockedOut(room)) return;
     // Rebuild the board from the custom layout. Pre-game (waiting) this is
     // safe — nothing is built yet. The robber resets to the new desert.
     room.board = generateBoard(layouts, { generator: 'custom', hexSize: GAME_HEX_SIZE });
     room.robberMove = null;
     applyBonuses(room);
+    broadcastRoom(io, room, 'roomUpdate');
+  });
+
+  // Customization lock (who may change rules/board while waiting). Host-only
+  // toggle — unlike the settings it gates, this one is never delegated.
+  socket.on('setRulesLock', (data: { roomId: string; locked: boolean }) => {
+    const room = requireRoom(socket, data?.roomId);
+    if (!room) return;
+    if (room.gameStatus !== 'waiting') {
+      socket.emit('error', { message: 'Can only change the lock while waiting' });
+      return;
+    }
+    if (room.players[0]?.id !== socket.id) {
+      socket.emit('error', { message: 'Only the host can change the lock' });
+      return;
+    }
+    room.rulesLocked = typeof data.locked === 'boolean' ? data.locked : false;
     broadcastRoom(io, room, 'roomUpdate');
   });
 

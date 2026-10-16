@@ -10,12 +10,13 @@ import { countMissingNumbers, countRollNumbers, countTerrain, setCustomDragImage
 import { useEditorMap } from './useEditorMap';
 
 /**
- * The board editor page. Reached from the waiting room (edit an existing
- * room's board) or the lobby (create a room with a custom board). Opens
- * with the current board (or a standard board if none), the player
- * edits/deletes/adds hexes on an infinite grid, then saves.
+ * The board editor — the Board tab of Customize Game. Opens with the room's
+ * current board; the player edits/deletes/adds hexes on an infinite grid,
+ * then Save Board pushes the layout to the room (editBoard). Refresh Map in
+ * the top bar asks the server for a fresh random map; the parent remounts
+ * this component when the room board changes.
  */
-const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onBack }) => {
+const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onRefreshMap }) => {
   const {
     map,
     selectedCoord,
@@ -33,7 +34,6 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
     paintHex,
     resetToStandard,
     resetToExpansion,
-    restore,
   } = useEditorMap(initialBoard);
   const [selectedTerrain, setSelectedTerrain] = useState<Terrain>('Wood');
   const [paintMode, setPaintMode] = useState(false);
@@ -53,11 +53,11 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
   const endToolbarDrag = () => setToolbarDrag(null);
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center p-4 gap-4">
+    <div className="w-full flex flex-col items-center gap-4">
       <EditorTopBar
-        onBack={onBack}
         onResetStandard={resetToStandard}
         onResetExpansion={resetToExpansion}
+        onRefreshMap={onRefreshMap}
         hexCount={Object.keys(map).length}
         validation={validation}
         missingNumbers={missingNumbers}
@@ -120,7 +120,6 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onB
             map={map}
             validation={validation}
             missingNumbers={missingNumbers}
-            onRestore={restore}
           />
         </div>
       </div>

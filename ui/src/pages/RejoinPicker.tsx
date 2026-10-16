@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RejoinSeat } from 'common';
 import { useSocket } from '../contexts/SocketContext';
-import { saveSession, clearSavedSession } from '../utils/session';
+import { saveSession, clearSavedSession, readSavedSession } from '../utils/session';
 import Button from '../components/ui/Button';
 import { Eye } from 'lucide-react';
 import GameIcon from '../components/ui/GameIcon';
@@ -20,7 +20,22 @@ interface RejoinPickerProps {
  * the only option.
  */
 const RejoinPicker: React.FC<RejoinPickerProps> = ({ roomId, seats, onBack }) => {
-  const { claimSeat, spectateRoom } = useSocket();
+  const { claimSeat, spectateRoom, socket } = useSocket();
+  const [watchPassword, setWatchPassword] = useState('');
+  // Private rooms gate spectating too: the server rejects the first
+  // spectateRoom, we surface a password field and retry with it.
+  const [watchNeedsPassword, setWatchNeedsPassword] = useState(false);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onError = (e: { message: string; code?: string }) => {
+      if (e.code === 'PASSWORD_REQUIRED') setWatchNeedsPassword(true);
+    };
+    socket.on('error', onError);
+    return () => {
+      socket.off('error', onError);
+    };
+  }, [socket]);
 
   const claim = (name: string) => {
     // The server answers with a fresh seat token (`joined`), saved onto this.
@@ -28,8 +43,14 @@ const RejoinPicker: React.FC<RejoinPickerProps> = ({ roomId, seats, onBack }) =>
     claimSeat(roomId, name);
   };
   const watch = () => {
-    saveSession({ roomId, playerName: '', spectating: true });
-    spectateRoom(roomId);
+    const pw = watchPassword.trim();
+    saveSession({
+      roomId,
+      playerName: '',
+      spectating: true,
+      ...(pw ? { password: pw } : readSavedSession()?.roomId === roomId ? { password: readSavedSession()?.password } : {}),
+    });
+    spectateRoom(roomId, pw || undefined);
   };
 
   return (
@@ -60,6 +81,22 @@ const RejoinPicker: React.FC<RejoinPickerProps> = ({ roomId, seats, onBack }) =>
           <p className="text-sm text-ink-soft m-0">
             Every player is still connected, so there's no seat to take. You can watch the game.
           </p>
+        )}
+
+        {watchNeedsPassword && (
+          <div>
+            <label className="block text-[13px] font-semibold mb-1.5 text-ink">
+              <GameIcon name="lock" size={12} className="inline -mt-0.5" /> Room Password
+            </label>
+            <input
+              type="password"
+              value={watchPassword}
+              onChange={(e) => setWatchPassword(e.target.value)}
+              placeholder="This room is private"
+              autoFocus
+              className="w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 bg-white text-ink text-[15px] focus:border-gold focus:outline-none"
+            />
+          </div>
         )}
 
         <Button

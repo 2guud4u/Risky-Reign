@@ -108,6 +108,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     turnMode: TURN_MODE_PRESETS.expanded,
     setupCities: 0,
     turnTimerMs: 0,
+    rulesLocked: false,
     phaseTimerEndsAt: null,
     phaseTimerRemainingMs: null,
     chatLog: [],

@@ -1,111 +1,35 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { useSocket } from '../contexts/SocketContext';
-import { EditorHistorySnapshot, SavePanelProps } from './types';
-import { inputClass } from './constants';
-import { cloneMap, toHexLayouts } from './utils';
-import { generateRoomCode } from 'common';
-import GameIcon from '../components/ui/GameIcon';
+import { SavePanelProps } from './types';
+import { toHexLayouts } from './utils';
 
 /**
- * Save & Start panel: for a new room it collects a player name and room id and
- * joins with the custom board; for an existing room it just saves (editBoard).
- * Every save also pushes a snapshot onto a history list that restores the
- * draft when clicked.
+ * Save Board panel (Customize Game → Board tab): applies the draft layout to
+ * the room via editBoard. Enabled only when the layout validates and every
+ * non-water hex carries a roll number. Loading a previous configuration is
+ * handled by game presets in the page header.
  */
-const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, validation, missingNumbers, onRestore }) => {
-  const [playerName, setPlayerName] = useState('');
-  const [newRoomId, setNewRoomId] = useState('');
-  const [history, setHistory] = useState<EditorHistorySnapshot[]>([]);
-  const historyIdRef = useRef(0);
-  const { joinRoom, editBoard } = useSocket();
-
-  // Editing an existing room needs a valid layout + no missing numbers; creating
-  // a new room also needs a name + room id.
-  const canSave =
-    validation.allowed && missingNumbers === 0 && (roomId ? true : playerName.trim() !== '' && newRoomId.trim() !== '');
-
-  const handleSave = () => {
-    if (!canSave) return;
-    // Snapshot the current board into the history stack so the player can
-    // click a previous save to go back to it.
-    historyIdRef.current += 1;
-    const snapshot = {
-      id: historyIdRef.current,
-      label: `Save #${historyIdRef.current}`,
-      time: new Date().toLocaleTimeString(),
-      map: cloneMap(map),
-    };
-    setHistory((h) => [...h, snapshot]);
-    const layouts = toHexLayouts(map);
-    if (roomId) {
-      editBoard(roomId, layouts);
-    } else {
-      joinRoom(playerName.trim(), newRoomId.trim(), undefined, layouts);
-    }
-  };
+const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, validation, missingNumbers }) => {
+  const { editBoard } = useSocket();
+  const canSave = validation.allowed && missingNumbers === 0;
 
   return (
     <div className="p-3 border border-gray-300 rounded-lg bg-white">
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">{roomId ? 'Save Board' : 'Save & Start'}</h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-2">Save Board</h3>
       <div className="flex flex-col gap-2">
-        {!roomId && (
-          <>
-            <input
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Your name"
-              className={inputClass}
-            />
-            <div className="flex gap-2">
-              <input
-                value={newRoomId}
-                onChange={(e) => setNewRoomId(e.target.value)}
-                placeholder="Room ID"
-                className={`${inputClass} flex-1`}
-              />
-              <button
-                onClick={() => setNewRoomId(generateRoomCode())}
-                title="Generate random room ID"
-                className="px-3 border border-gray-300 rounded-md bg-gray-100 cursor-pointer"
-              >
-                <GameIcon name="dice" size={18} />
-              </button>
-            </div>
-          </>
-        )}
         <button
-          onClick={handleSave}
+          onClick={() => canSave && editBoard(roomId, toHexLayouts(map))}
           disabled={!canSave}
-          className={`py-2 px-4 border-0 rounded-md text-sm font-semibold text-white cursor-pointer ${
-            canSave ? 'bg-blue-600' : 'bg-gray-400 cursor-not-allowed'
-          }`}
+          className="w-full py-2 px-3 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
-          {roomId ? 'Save Board' : 'Save & Start Game'}
+          Save Board
         </button>
-        {!validation.allowed && (
-          <p className="text-xs text-red-600">{validation.reason}</p>
-        )}
-        {validation.allowed && missingNumbers > 0 && (
-          <p className="text-xs text-red-600">
-            {missingNumbers} hex{missingNumbers > 1 ? 'es' : ''} missing a number (Desert/Water are exempt)
+        {!canSave && (
+          <p className="m-0 text-[12px] text-gray-500">
+            {!validation.allowed
+              ? validation.reason
+              : `${missingNumbers} hex${missingNumbers > 1 ? 'es are' : ' is'} missing a number.`}
           </p>
-        )}
-        {history.length > 0 && (
-          <div className="mt-2">
-            <h4 className="text-xs font-semibold text-gray-600 mb-1">History (click to go back)</h4>
-            <div className="max-h-40 overflow-y-auto flex flex-col gap-1">
-              {[...history].reverse().map((snap) => (
-                <button
-                  key={snap.id}
-                  onClick={() => onRestore(snap.map)}
-                  className="flex items-center justify-between px-2 py-1 border border-gray-200 rounded-md text-xs cursor-pointer hover:bg-blue-50"
-                >
-                  <span className="font-semibold text-gray-700">{snap.label}</span>
-                  <span className="text-gray-400">{snap.time}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         )}
       </div>
     </div>

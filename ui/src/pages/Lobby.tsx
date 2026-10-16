@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { readSavedSession, saveSession } from '../utils/session';
 import { generateRoomCode } from 'common';
@@ -16,16 +16,35 @@ interface LobbyProps {
 const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
   const [roomId, setRoomId] = useState('');
   const [password, setPassword] = useState('');
-  const { isConnected, joinRoom: onJoinRoom, quickPlay: onQuickPlay } = useSocket();
+  // The password field is hidden until the server says this room is private —
+  // open rooms never see it.
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const { isConnected, socket, joinRoom: onJoinRoom, quickPlay: onQuickPlay } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    const onError = (e: { message: string; code?: string }) => {
+      if (e.code === 'PASSWORD_REQUIRED') setNeedsPassword(true);
+    };
+    socket.on('error', onError);
+    return () => {
+      socket.off('error', onError);
+    };
+  }, [socket]);
 
   const handleJoinRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (roomId.trim()) {
       onJoinRoom('', roomId.trim(), undefined, undefined, password.trim() || undefined);
-      // Persist the join so a reload auto-rejoins. The name is chosen after
-      // joining; the session is updated once the name is set.
+      // Persist the join so a reload auto-rejoins; keep the answered password
+      // for reconnects. The name is chosen after joining.
       const saved = readSavedSession();
-      saveSession({ roomId: roomId.trim(), playerName: '', ...(saved?.roomId === roomId.trim() ? { token: saved.token } : {}) });
+      saveSession({
+        roomId: roomId.trim(),
+        playerName: '',
+        ...(saved?.roomId === roomId.trim() ? { token: saved.token } : {}),
+        ...(password.trim() ? { password: password.trim() } : {}),
+      });
     }
   };
 
@@ -67,7 +86,12 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
             <input
               type="text"
               value={roomId}
-              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setRoomId(e.target.value.toUpperCase());
+                // A different code may be an open room — hide the field again
+                // until the server says this one is private.
+                setNeedsPassword(false);
+              }}
               placeholder="Enter room ID"
               required
               className={inputClass}
@@ -77,18 +101,21 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
             </p>
           </div>
 
-          <div>
-            <label className="block text-[13px] font-semibold mb-1.5 text-ink">
-              Password <span className="text-ink-faint font-normal">(only if the room is private)</span>
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Leave blank for open rooms"
-              className={inputClass}
-            />
-          </div>
+          {needsPassword && (
+            <div>
+              <label className="block text-[13px] font-semibold mb-1.5 text-ink">
+                <GameIcon name="lock" size={12} className="inline -mt-0.5" /> Room Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="This room is private"
+                autoFocus
+                className={inputClass}
+              />
+            </div>
+          )}
 
           <Button
             variant="primary"

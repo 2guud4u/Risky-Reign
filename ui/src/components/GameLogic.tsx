@@ -7,7 +7,7 @@ import GamePage from '../pages/Game';
 import LobbyPage from '../pages/Lobby';
 import RejoinPicker from '../pages/RejoinPicker';
 import PausedScreen from '../pages/PausedScreen';
-import BoardEditorPage from '../editor/BoardEditor';
+import CustomizeGamePage from '../editor/CustomizeGame';
 import { clearSavedSession, readSavedSession, saveSession, joinCodeFromUrl } from '../utils/session';
 import { TOAST_DURATION_MS } from '../constants';
 
@@ -41,7 +41,7 @@ const GameLogic: React.FC = () => {
   const toastTimerRef = useRef<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
-  const [view, setView] = useState<'lobby' | 'game' | 'boardEditor'>('lobby');
+  const [view, setView] = useState<'lobby' | 'game' | 'customizeGame'>('lobby');
   const { socket, isConnected, joinRoom: onJoinRoom, spectateRoom } = useSocket();
   const { setGameRoom, setCurrentPlayer, gameRoom, toast, showToast } = useGameRoom();
   const autoJoinedRef = useRef(false);
@@ -77,7 +77,7 @@ const GameLogic: React.FC = () => {
     } else {
       autoJoinedRef.current = true;
     }
-    if (saved.spectating) spectateRoom(saved.roomId);
+    if (saved.spectating) spectateRoom(saved.roomId, saved.password);
     else onJoinRoom(saved.playerName, saved.roomId, saved.color);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, isConnected]);
@@ -187,10 +187,10 @@ const GameLogic: React.FC = () => {
     };
   }, [notice]);
 
-  // The ocean backdrop covers everything except the board editor — the live
+  // The ocean backdrop covers everything except Customize Game — the live
   // board tiles the same texture anyway, and every pre-game screen (lobby,
   // waiting room, rejoin picker, paused/resume) floats its card on the water.
-  const showOceanBg = view !== 'boardEditor';
+  const showOceanBg = view !== 'customizeGame';
 
   return (
     <div className={`min-h-dvh flex flex-col items-center p-4${showOceanBg ? ' bg-ocean' : ''}`}>
@@ -205,16 +205,12 @@ const GameLogic: React.FC = () => {
           {notice}
         </div>
       )}
-      {view === 'boardEditor' ? (
-        <BoardEditorPage
-          roomId={gameRoom?.id}
-          initialBoard={gameRoom?.board ?? undefined}
-          onBack={() => setView(gameRoom ? 'game' : 'lobby')}
-        />
+      {view === 'customizeGame' ? (
+        <CustomizeGamePage onBack={() => setView(gameRoom ? 'game' : 'lobby')} />
       ) : paused ? (
         <PausedScreen info={paused} onBack={() => setPaused(null)} />
       ) : gameRoom ? (
-        <GamePage error={error} onCustomizeBoard={() => setView('boardEditor')} />
+        <GamePage error={error} onCustomizeGame={() => setView('customizeGame')} />
       ) : rejoin ? (
         <RejoinPicker roomId={rejoin.roomId} seats={rejoin.seats} onBack={() => setRejoin(null)} />
       ) : (

@@ -118,6 +118,7 @@ const actionSpec = {
   setTurnMode: (roomId: string, turnMode: TurnMode) => ({ roomId, turnMode }),
   setSetupCities: (roomId: string, setupCities: number) => ({ roomId, setupCities }),
   setTurnTimer: (roomId: string, turnTimerMs: number) => ({ roomId, turnTimerMs }),
+  setRulesLock: (roomId: string, locked: boolean) => ({ roomId, locked }),
   editBoard: (roomId: string, layouts: HexLayout[]) => ({ roomId, layouts }),
   leaveGame: (roomId: string) => ({ roomId }),
   claimSeat: (roomId: string, name: string, lobbyPassword?: string) => ({
@@ -220,15 +221,18 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     ) => {
       // Re-attach to our seat after a reload: send the saved token (only
       // when the session is for this exact room — never leak a stale token).
+      // Same for the room password the user already answered once.
       const saved = readSavedSession();
       const token = saved && saved.roomId === roomId ? saved.token : undefined;
+      const savedPw = saved && saved.roomId === roomId ? saved.password : undefined;
+      const pw = password ?? savedPw;
       s.emit('joinRoom', {
         roomId,
         playerName,
         color,
         ...(token ? { token } : {}),
         ...(layouts && layouts.length > 0 ? { layouts } : {}),
-        ...(password ? { password } : {}),
+        ...(pw ? { password: pw } : {}),
       });
     },
     []
