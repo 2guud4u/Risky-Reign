@@ -1,5 +1,5 @@
 import type { DragEvent, Ref } from 'react';
-import { CubeCoord, Terrain, Board, DockSpec, PortType, ValidationResult } from 'common';
+import { CubeCoord, Terrain, Board, DockSpec, PortType, ValidationResult, MapCatalogEntry } from 'common';
 
 /**
  * A single placed hex in the board editor draft.
@@ -21,6 +21,9 @@ export type Tactic = 'equal' | 'random' | 'current';
 
 /** Which hexes the number-assignment targets. */
 export type Target = 'only empty' | 'only filled' | 'all';
+
+/** Which hexes the terrain assignment targets. */
+export type TerrainTarget = 'land only' | 'all';
 
 /** Props for the board editor (the Board tab of Customize Game). */
 export interface BoardEditorProps {
@@ -55,10 +58,8 @@ export type CanvasDragState =
   | { kind: 'dockAdd'; coastIndex: number; startX: number; startY: number; moved: boolean };
 
 
-/** Props for the top bar (reset/regen buttons + validity summary). */
+/** Props for the top bar (map regen button + validity summary). */
 export interface EditorTopBarProps {
-  onResetStandard: () => void;
-  onResetExpansion: () => void;
   onRefreshMap: () => void;
   hexCount: number;
   validation: ValidationResult;
@@ -75,6 +76,13 @@ export interface TerrainPaletteProps {
   onTerrainClick: (terrain: Terrain) => void;
   onTerrainDragStart: (e: DragEvent, terrain: Terrain) => void;
   onDragEnd: () => void;
+  terrainTactic: Tactic;
+  terrainTarget: TerrainTarget;
+  excludeWater: boolean;
+  onTerrainTacticChange: (tactic: Tactic) => void;
+  onTerrainTargetChange: (target: TerrainTarget) => void;
+  onExcludeWaterChange: (exclude: boolean) => void;
+  onAssignTerrain: () => void;
 }
 
 /** Props for the number palette + assign-numbers panel. */
@@ -103,6 +111,21 @@ export interface DockPaletteProps {
   onDragEnd: () => void;
   onRandomize: () => void;
   onRemoveDock: (dockIndex: number) => void;
+}
+
+/** Props for the maps palette (marketplace): catalog cards + favorites + load. */
+export interface MapsPaletteProps {
+  /** The map catalog entries to list. */
+  maps: MapCatalogEntry[];
+  /** Catalog ids currently favorited (browser-local). */
+  favorites: string[];
+  /** True when the draft differs from what it was seeded/loaded with. */
+  draftDirty: boolean;
+  onToggleFavorite: (mapId: string) => void;
+  /** Load the entry's layouts + docks into the draft. */
+  onLoad: (entry: MapCatalogEntry) => void;
+  /** Replace the draft with a freshly generated board ('standard' 19-hex or 'expansion' 30-hex). */
+  onGenerate: (kind: 'standard' | 'expansion') => void;
 }
 
 /** Props for the save panel (applies the draft board to the room). */

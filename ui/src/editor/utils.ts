@@ -9,12 +9,14 @@ import {
   computeAdjacency,
   coastRing,
   BOARD_RADIUS,
+  LandTerrain,
   TOKENS,
+  TERRAIN_COUNTS,
   shuffle,
   terrainColors,
   cubeCoordKey,
 } from 'common';
-import { EditorHex, EditorMap, Tactic, Target } from './types';
+import { EditorHex, EditorMap, Tactic, Target, TerrainTarget } from './types';
 import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, HEX_SIZE, NUMBER_OPTIONS, TERRAIN_OPTIONS } from './constants';
 
 /**
@@ -91,6 +93,86 @@ export function balancedNumbers(count: number): number[] {
     remaining -= 1;
   }
   return shuffle(result);
+}
+
+/** The six land terrains the mixer draws from (Desert included; Water never). */
+const LAND_TERRAINS: Terrain[] = ['Wood', 'Sheep', 'Wheat', 'Brick', 'Ore', 'Desert'];
+
+/**
+ * Build a terrain list following the standard board mix (`TERRAIN_COUNTS`,
+ * land-only) scaled to exactly `count` entries, then shuffled — same
+ * largest-remainder rounding as `balancedNumbers`.
+ */
+export function balancedTerrains(count: number): Terrain[] {
+  if (count <= 0) return [];
+  const weights = LAND_TERRAINS.map((t) => ({ t, w: TERRAIN_COUNTS[t as LandTerrain] }));
+  const totalWeight = weights.reduce((s, x) => s + x.w, 0);
+  const result: Terrain[] = [];
+  const remainders: { t: Terrain; frac: number }[] = [];
+  for (const { t, w } of weights) {
+    const ideal = (w * count) / totalWeight;
+    const whole = Math.floor(ideal);
+    for (let i = 0; i < whole; i++) result.push(t);
+    remainders.push({ t, frac: ideal - whole });
+  }
+  remainders.sort((a, b) => b.frac - a.frac);
+  let remaining = count - result.length;
+  for (const r of remainders) {
+    if (remaining <= 0) break;
+    result.push(r.t);
+    remaining -= 1;
+  }
+  return shuffle(result);
+}
+
+
+/**
+ * Return a new map with terrain reassigned on the hexes selected by
+ * `terrainTarget`, per `tactic`:
+ * - 'equal'   — TERRAIN_COUNTS ratio scaled to the target count (land only).
+ * - 'random'  — a uniform land terrain per target.
+ * - 'current' — the existing terrains reshuffled, padded with random land
+ *               terrains when the pool runs short.
+ *
+ * `excludeWater` freezes water hexes as targets AND strips Water from the
+ * reshuffled 'current' pool — no hex ever becomes or stops being water.
+ * Roll numbers survive on hexes that stay number-capable; Desert/Water
+ * results clear theirs via `applyTerrain`.
+ */
+export function assignTerrain(
+  map: EditorMap,
+  tactic: Tactic,
+  terrainTarget: TerrainTarget,
+  excludeWater: boolean
+): EditorMap {
+  const entries = Object.entries(map);
+  const isWaterHex = ([, hex]: [string, EditorHex]) => hex.terrain === 'Water';
+  const targets = terrainTarget === 'land only' || excludeWater
+    ? entries.filter((e) => !isWaterHex(e))
+    : entries;
+
+  let pool: Terrain[];
+  if (tactic === 'equal') {
+    pool = balancedTerrains(targets.length);
+  } else if (tactic === 'current') {
+    pool = shuffle(
+      entries
+        .map(([, hex]) => hex.terrain)
+        .filter((t) => !excludeWater || t !== 'Water')
+    );
+    while (pool.length < targets.length) {
+      pool.push(LAND_TERRAINS[Math.floor(Math.random() * LAND_TERRAINS.length)]);
+    }
+    pool = pool.slice(0, targets.length);
+  } else {
+    pool = targets.map(() => LAND_TERRAINS[Math.floor(Math.random() * LAND_TERRAINS.length)]);
+  }
+
+  const next = { ...map };
+  targets.forEach(([key], i) => {
+    next[key] = applyTerrain(next[key], pool[i]);
+  });
+  return next;
 }
 
 /** Seed an EditorMap from a fresh standard board. */

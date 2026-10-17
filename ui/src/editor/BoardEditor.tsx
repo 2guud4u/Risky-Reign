@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Terrain, PortType, validateLayouts } from 'common';
+import { Terrain, PortType, MAP_CATALOG, validateLayouts } from 'common';
 import BoardEditorCanvas from './BoardEditorCanvas';
 import EditorTopBar from './EditorTopBar';
 import TerrainPalette from './TerrainPalette';
 import NumberPalette from './NumberPalette';
 import DockPalette from './DockPalette';
+import MapsPalette from './MapsPalette';
 import SavePanel from './SavePanel';
-import { BoardEditorProps, Tactic, Target, ToolbarDrag } from './types';
+import { useMapFavorites } from '../hooks/useMapFavorites';
+import { BoardEditorProps, Tactic, Target, TerrainTarget, ToolbarDrag } from './types';
 import { countMissingNumbers, countRollNumbers, countTerrain, setCustomDragImage, toHexLayouts } from './utils';
 import { useEditorMap } from './useEditorMap';
 
-type SidebarTab = 'terrain' | 'numbers' | 'docks';
+type SidebarTab = 'terrain' | 'numbers' | 'docks' | 'maps';
 
 /**
  * The board editor — the Board tab of Customize Game. Opens with the room's
@@ -45,11 +47,18 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
     paintHex,
     resetToStandard,
     resetToExpansion,
+    loadDraft,
+    assignTerrainDraft,
+    draftDirty,
   } = useEditorMap(initialBoard);
+  const { favorites, toggle: toggleFavorite } = useMapFavorites();
   const [selectedTerrain, setSelectedTerrain] = useState<Terrain>('Wood');
   const [paintMode, setPaintMode] = useState(false);
   const [tactic, setTactic] = useState<Tactic>('random');
   const [target, setTarget] = useState<Target>('all');
+  const [terrainTactic, setTerrainTactic] = useState<Tactic>('random');
+  const [terrainTarget, setTerrainTarget] = useState<TerrainTarget>('land only');
+  const [excludeWater, setExcludeWater] = useState(true);
   const [toolbarDrag, setToolbarDrag] = useState<ToolbarDrag | null>(null);
   // Sidebar tabs share the toolbar column; the active one also flips the
   // canvas into docks mode (grips, add-handles, dock selection).
@@ -84,8 +93,6 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
   return (
     <div className="w-full flex flex-col items-center gap-4">
       <EditorTopBar
-        onResetStandard={resetToStandard}
-        onResetExpansion={resetToExpansion}
         onRefreshMap={onRefreshMap}
         hexCount={Object.keys(map).length}
         validation={validation}
@@ -128,6 +135,7 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
                 ['terrain', 'Terrain'],
                 ['numbers', 'Numbers'],
                 ['docks', 'Docks'],
+                ['maps', 'Maps'],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -158,6 +166,13 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
                 setToolbarDrag({ kind: 'terrain', value: t });
               }}
               onDragEnd={endToolbarDrag}
+              terrainTactic={terrainTactic}
+              terrainTarget={terrainTarget}
+              excludeWater={excludeWater}
+              onTerrainTacticChange={setTerrainTactic}
+              onTerrainTargetChange={setTerrainTarget}
+              onExcludeWaterChange={setExcludeWater}
+              onAssignTerrain={() => assignTerrainDraft(terrainTactic, terrainTarget, excludeWater)}
             />
           )}
           {tab === 'numbers' && (
@@ -197,6 +212,16 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
                 setSelectedDock(null); // indices churn; nothing to point at
               }}
               onRemoveDock={dockRemove}
+            />
+          )}
+          {tab === 'maps' && (
+            <MapsPalette
+              maps={MAP_CATALOG}
+              favorites={favorites}
+              draftDirty={draftDirty}
+              onToggleFavorite={toggleFavorite}
+              onLoad={(entry) => loadDraft(entry.layouts, entry.docks)}
+              onGenerate={(kind) => (kind === 'standard' ? resetToStandard() : resetToExpansion())}
             />
           )}
           <SavePanel

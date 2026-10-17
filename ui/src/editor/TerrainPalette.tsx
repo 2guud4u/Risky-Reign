@@ -1,7 +1,7 @@
 import React from 'react';
 import { terrainColors } from 'common';
 import { TERRAIN_OPTIONS } from './constants';
-import { TerrainPaletteProps } from './types';
+import { Tactic, TerrainPaletteProps, TerrainTarget } from './types';
 import GameIcon from '../components/ui/GameIcon';
 
 /**
@@ -17,6 +17,13 @@ const TerrainPalette: React.FC<TerrainPaletteProps> = ({
   onTerrainClick,
   onTerrainDragStart,
   onDragEnd,
+  terrainTactic,
+  terrainTarget,
+  excludeWater,
+  onTerrainTacticChange,
+  onTerrainTargetChange,
+  onExcludeWaterChange,
+  onAssignTerrain,
 }) => (
   <div className="p-3 border border-gray-300 rounded-lg bg-white">
     <div className="flex items-center justify-between mb-2">
@@ -54,6 +61,51 @@ const TerrainPalette: React.FC<TerrainPaletteProps> = ({
         </button>
       ))}
     </div>
+
+    <div className="flex gap-2 mt-3">
+      <div className="flex-1">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">Tactic</label>
+        <select
+          value={terrainTactic}
+          onChange={(e) => onTerrainTacticChange(e.target.value as Tactic)}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+        >
+          <option value="equal">Equal (standard ratio)</option>
+          <option value="random">Random</option>
+          <option value="current" disabled={terrainTarget === 'all'}>
+            Current (shuffle existing)
+          </option>
+        </select>
+      </div>
+      <div className="flex-1">
+        <label className="block text-xs font-semibold text-gray-600 mb-1">Target</label>
+        <select
+          value={terrainTarget}
+          onChange={(e) => onTerrainTargetChange(e.target.value as TerrainTarget)}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+        >
+          <option value="all" disabled={terrainTactic === 'current'}>
+            All placed
+          </option>
+          <option value="land only">Land only</option>
+        </select>
+      </div>
+    </div>
+    <label className="flex items-center gap-2 mt-2 text-xs text-gray-600 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={excludeWater}
+        onChange={(e) => onExcludeWaterChange(e.target.checked)}
+        className="cursor-pointer"
+      />
+      Exclude water — sea hexes never change or move
+    </label>
+    <button
+      onClick={onAssignTerrain}
+      className="w-full mt-2 px-2 py-1.5 border border-blue-300 bg-blue-50 text-blue-700 rounded-md text-sm cursor-pointer"
+    >
+      Assign terrain
+    </button>
   </div>
 );
 

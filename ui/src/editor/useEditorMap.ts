@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
-import { CubeCoord, Terrain, Board, DockSpec, extractDocks, randomDocks } from 'common';
-import { EditorMap, Tactic, Target } from './types';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { CubeCoord, Terrain, Board, DockSpec, HexLayout, extractDocks, randomDocks } from 'common';
+import { EditorMap, Tactic, Target, TerrainTarget } from './types';
 import {
   applyTerrain,
   assignNumbers,
+  assignTerrain,
   boardToMap,
   canCarryNumber,
   computeCoastRing,
@@ -28,6 +29,18 @@ export function useEditorMap(initialBoard?: Board) {
     if (initialBoard) return extractDocks(initialBoard);
     return randomDocks(computeCoastRing(standardBoardMap()).length);
   });
+  // Signature of the draft as last seeded/loaded — the "hand-edited" check the
+  // marketplace uses before replacing the canvas. Any map/dock mutation that
+  // diverges from this baseline makes the draft dirty again.
+  const baselineRef = useRef<string | null>(null);
+  const signature = (m: EditorMap, d: DockSpec[]) =>
+    JSON.stringify(
+      Object.values(m)
+        .map((h) => [h.coord.q, h.coord.r, h.terrain, h.rollNumber])
+        .sort()
+    ) + JSON.stringify(d.map((x) => [x.port, x.coast]));
+  const draftDirty = signature(map, docks) !== baselineRef.current;
+  if (baselineRef.current === null) baselineRef.current = signature(map, docks);
 
   // The coast ring follows the map; dock indices are positions along it.
   const coast = useMemo(() => computeCoastRing(map), [map]);
@@ -145,6 +158,11 @@ export function useEditorMap(initialBoard?: Board) {
     setMap((m) => assignNumbers(m, tactic, target));
   };
 
+  /** Assign terrain across the map per the chosen tactic/target/water rule. */
+  const assignTerrainDraft = (tactic: Tactic, target: TerrainTarget, excludeWater: boolean) => {
+    setMap((m) => assignTerrain(m, tactic, target, excludeWater));
+  };
+
   const moveHex = useCallback((from: CubeCoord, to: CubeCoord) => {
     setMap((m) => {
       const fromKey = coordKey(from);
@@ -200,15 +218,39 @@ export function useEditorMap(initialBoard?: Board) {
     setMap(m);
     // Map resets re-roll the docks over the new coast (the map's own reset,
     // so the draft doesn't keep stale indices against a different ring).
-    setDocks(randomDocks(computeCoastRing(m).length));
+    const d = randomDocks(computeCoastRing(m).length);
+    setDocks(d);
     setSelectedCoord(null);
+    baselineRef.current = signature(m, d);
   };
 
   const resetToExpansion = () => {
     const m = expansionBoardMap();
     setMap(m);
-    setDocks(randomDocks(computeCoastRing(m).length));
+    const d = randomDocks(computeCoastRing(m).length);
+    setDocks(d);
     setSelectedCoord(null);
+    baselineRef.current = signature(m, d);
+  };
+
+  /**
+   * Load a marketplace/preset layout into the draft: exact hexes + authored
+   * docks replace the current map, selections clear, and the dirty baseline
+   * re-seeds so the fresh load itself doesn't count as hand-edited.
+   */
+  const loadDraft = (layouts: HexLayout[], draftDocks: DockSpec[]) => {
+    const m: EditorMap = {};
+    for (const l of layouts) {
+      m[coordKey(l.coord)] = {
+        coord: l.coord,
+        terrain: l.terrain as Terrain,
+        rollNumber: l.rollNumber,
+      };
+    }
+    setMap(m);
+    setDocks(draftDocks);
+    setSelectedCoord(null);
+    baselineRef.current = signature(m, draftDocks);
   };
 
   return {
@@ -236,5 +278,8 @@ export function useEditorMap(initialBoard?: Board) {
     paintHex,
     resetToStandard,
     resetToExpansion,
+    loadDraft,
+    assignTerrainDraft,
+    draftDirty,
   };
 }

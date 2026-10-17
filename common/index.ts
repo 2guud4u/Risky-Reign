@@ -26,6 +26,7 @@ export * from './types/Room';
 export * from './types/BoardUI';
 export * from './types/Adjacency';
 export * from './types/BoardGenerator';
+export * from './types/MapCatalog';
 export * from './Constant';
 
 // board — geometry, generation, presentation projection
@@ -33,6 +34,7 @@ export * from './utils/coordinates';
 export * from './utils/hex';
 export * from './utils/adjacency';
 export * from './utils/boardValidate';
+export * from './utils/mapCatalog';
 export * from './utils/boardGenerator';
 export * from './utils/placement';
 export * from './adapters/boardAdapter';
