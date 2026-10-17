@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import { GameRoom, applyBonuses } from 'common';
 import { advanceTurn } from './turn';
 import { broadcastRoom } from './broadcast';
-import { gameRooms } from './store';
+import { getRoom } from './store';
 
 // Live setTimeout handles per room. Only the state on the room
 // (`phaseTimerEndsAt` / `phaseTimerRemainingMs`) is broadcast; the handle is
@@ -84,7 +84,7 @@ function disarm(room: GameRoom): void {
 
 function onExpire(io: Server, roomId: string, deadline: number | null): void {
   timers.delete(roomId);
-  const room = gameRooms.get(roomId);
+  const room = getRoom(roomId);
   if (!room || deadline === null || room.phaseTimerEndsAt !== deadline) return;
   if (!isTimedPhase(room)) return;
   // Time ran out: skip the phase exactly as endTurn would. The robber-win

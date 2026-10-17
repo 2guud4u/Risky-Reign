@@ -1,6 +1,6 @@
 import { PASSWORD_MAX } from 'common';
 
-import { gameRooms } from '../../store';
+import { getRoom, removeRoom } from '../../store';
 import { HandlerContext } from '../context';
 import {
   clearResumeLobbyHash,
@@ -28,7 +28,7 @@ export function registerPersistedGameHandlers(
   // tell the room channel, and drop it from memory. The link now shows the
   // paused screen to anyone who opens it.
   socket.on('pauseGame', (data: { roomId: string; hostPassword: string; lobbyPassword: string }) => {
-    const room = gameRooms.get(data?.roomId);
+    const room = getRoom(data?.roomId);
     if (!room || room.gameStatus !== 'playing') {
       socket.emit('error', { message: 'No running game to pause' });
       return;
@@ -54,14 +54,14 @@ export function registerPersistedGameHandlers(
       return;
     }
     io.to(room.id).emit('pausedGameInfo', pausedInfo(room.id, persistedMeta(room.id)!));
-    gameRooms.delete(room.id);
+    removeRoom(room.id);
   });
 
   // Host (by host password) reopens a paused game: the snapshot hydrates as
   // a 'resuming' lobby and original seats claim back in with the lobby
   // password. Password verification is rate-limited per socket.
   socket.on('openResumeLobby', (data: { roomId: string; hostPassword: string }) => {
-    if (gameRooms.get(data?.roomId)) {
+    if (getRoom(data?.roomId)) {
       socket.emit('error', { message: 'This game is already open' });
       return;
     }
@@ -94,7 +94,7 @@ export function registerPersistedGameHandlers(
   // The host's seat closes a resume lobby (back to paused). Reached from the
   // resume lobby's "Close" button.
   socket.on('closeResumeLobby', (data: { roomId: string }) => {
-    const room = gameRooms.get(data?.roomId);
+    const room = getRoom(data?.roomId);
     if (!room || room.gameStatus !== 'resuming') return;
     const isHost = room.players[0]?.id === socket.id;
     if (!isHost) {
@@ -103,14 +103,14 @@ export function registerPersistedGameHandlers(
     }
     transition(room, 'paused');
     io.to(room.id).emit('pausedGameInfo', pausedInfo(room.id, persistedMeta(room.id)!));
-    gameRooms.delete(room.id);
+    removeRoom(room.id);
     clearResumeLobbyHash(room.id);
   });
 
   // Cheap pre-check so the UI can validate a lobby password before a seat
   // pick. Verifies against the same hash claimSeat enforces.
   socket.on('unlockResumeLobby', (data: { roomId: string; lobbyPassword: string }) => {
-    const room = gameRooms.get(data?.roomId);
+    const room = getRoom(data?.roomId);
     const meta = persistedMeta(data?.roomId);
     if (!room || room.gameStatus !== 'resuming' || !meta) {
       socket.emit('error', { message: 'No resume lobby with that code' });

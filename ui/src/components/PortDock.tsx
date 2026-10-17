@@ -16,13 +16,11 @@ import {
   PORT_SPECIAL_FILL,
   PORT_STROKE,
   PORT_TEXT,
-  OPEN_TRADE_EVENT,
 } from '../constants';
-import { OpenTradeDetail } from '../types/openTrade';
+import { emitEffect } from '../effects';
 
 /** Open the trade window preset to this port's bank trade. */
-const openPortTrade = (port: PortType) =>
-  window.dispatchEvent(new CustomEvent<OpenTradeDetail>(OPEN_TRADE_EVENT, { detail: { port } }));
+const openPortTrade = (port: PortType) => emitEffect('openTrade', { port });
 
 /**
  * A plank bridge from the port badge to one vertex it serves: a wooden deck

@@ -53,7 +53,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
         value={mode[key]}
         disabled={disabled}
         onChange={(e) =>
-          setTurnMode(room.id, { ...mode, [key]: e.target.value as TurnMode['build'] })
+          setTurnMode({ ...mode, [key]: e.target.value as TurnMode['build'] })
         }
         className={inputClass}
       >
@@ -65,7 +65,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
   );
   const presetBtn = (label: string, preset: TurnMode, active: boolean) => (
     <button
-      onClick={() => !disabled && setTurnMode(room.id, { ...preset })}
+      onClick={() => !disabled && setTurnMode({ ...preset })}
       disabled={disabled}
       className={segClass(active)}
     >
@@ -85,7 +85,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
           onChange={(e) => {
             const value = parseInt(e.target.value, 10);
             if (!Number.isNaN(value) && value >= 1) {
-              updatePointsToWin(room.id, value);
+              updatePointsToWin(value);
             }
           }}
           className={inputClass}
@@ -93,7 +93,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => updatePointsToWin(room.id, DEFAULT_POINTS_TO_WIN)}
+          onClick={() => updatePointsToWin(DEFAULT_POINTS_TO_WIN)}
           disabled={disabled}
           className="mt-3 w-full"
         >
@@ -126,7 +126,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
               type="checkbox"
               checked={mode.secondRoll}
               disabled={disabled}
-              onChange={(e) => setTurnMode(room.id, { ...mode, secondRoll: e.target.checked })}
+              onChange={(e) => setTurnMode({ ...mode, secondRoll: e.target.checked })}
               className="mt-0.5 accent-gold"
             />
             <span>
@@ -148,7 +148,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
           {Array.from({ length: MAX_SETUP_CITIES + 1 }, (_, n) => (
             <button
               key={n}
-              onClick={() => setSetupCities(room.id, n)}
+              onClick={() => setSetupCities(n)}
               disabled={disabled}
               className={segClass(room.setupCities === n)}
             >
@@ -174,7 +174,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
                   checked={on}
                   disabled={disabled}
                   onChange={(e) =>
-                    setTurnTimer(room.id, e.target.checked ? MIN_TURN_TIMER_S * 1000 : 0)
+                    setTurnTimer(e.target.checked ? MIN_TURN_TIMER_S * 1000 : 0)
                   }
                 />
                 <span className="font-semibold text-ink">Turn Timer</span>
@@ -195,7 +195,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
                         s >= MIN_TURN_TIMER_S &&
                         s <= MAX_TURN_TIMER_S
                       ) {
-                        setTurnTimer(room.id, s * 1000);
+                        setTurnTimer(s * 1000);
                       }
                     }}
                     className="w-24 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink disabled:opacity-60 focus:border-gold focus:outline-none"

@@ -1,5 +1,6 @@
 import React from 'react';
-import { adjacentHexIds, BattleOutcome, BattleState, Board, Player } from 'common';
+import { BattleOutcome, BattleState, Board, Player } from 'common';
+import { robberTargets } from '../../board/selectors';
 import GameIcon from '../ui/GameIcon';
 
 interface BattleOutcomePanelProps {
@@ -7,9 +8,8 @@ interface BattleOutcomePanelProps {
   board: Board;
   outcome: BattleOutcome | null;
   currentPlayer: Player | null;
-  roomId: string;
   robberDefeatedBy: { playerName: string; fromHexId: string } | null;
-  moveRobberAfterWin: (playerId: string, hexId: string, roomId: string) => void;
+  moveRobberAfterWin: (hexId: string) => void;
   onExit: () => void;
   /** Whose turn it is to move injured troops (null = nobody). */
   moverName: string | undefined;
@@ -50,7 +50,6 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
   board,
   outcome,
   currentPlayer,
-  roomId,
   robberDefeatedBy,
   moveRobberAfterWin,
   onExit,
@@ -150,22 +149,20 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
         <div className="flex flex-col gap-1">
           <div className="text-[12px] font-semibold text-gray-600">Move the robber to:</div>
           <div className="flex flex-wrap gap-1">
-            {adjacentHexIds(board, robberDefeatedBy.fromHexId)
-              .filter((hexId) => board.hexes[hexId]?.terrain !== 'Desert')
-              .map((hexId) => {
-                const hex = board.hexes[hexId];
-                return (
-                  <button
-                    key={hexId}
-                    type="button"
-                    onClick={() => moveRobberAfterWin(currentPlayer!.id, hexId, roomId)}
-                    className="px-2 py-1 rounded-md border border-gray-300 bg-white text-[12px] hover:bg-gray-100 cursor-pointer"
-                  >
-                    {hex.terrain}
-                    {hex.rollNumber !== null ? ` (${hex.rollNumber})` : ''}
-                  </button>
-                );
-              })}
+            {robberTargets(board, robberDefeatedBy.fromHexId).map((hexId) => {
+              const hex = board.hexes[hexId];
+              return (
+                <button
+                  key={hexId}
+                  type="button"
+                  onClick={() => moveRobberAfterWin(hexId)}
+                  className="px-2 py-1 rounded-md border border-gray-300 bg-white text-[12px] hover:bg-gray-100 cursor-pointer"
+                >
+                  {hex.terrain}
+                  {hex.rollNumber !== null ? ` (${hex.rollNumber})` : ''}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

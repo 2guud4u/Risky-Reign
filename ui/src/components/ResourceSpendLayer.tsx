@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CityPrice, RoadPrice, SettlementPrice, SoldierPrice, ResourceKey, RESOURCES } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
-import { SPEND_DURATION, SPEND_STAGGER, BUILD_ANIMATION_EVENT } from '../constants';
+import { useGameState } from '../contexts/GameContext';
+import { SPEND_DURATION, SPEND_STAGGER } from '../constants';
+import { emitEffect, onEffect } from '../effects';
 import { FlyIcon } from '../types/flyIcon';
 import { BuildType, BuildAnimationInfo } from '../types/buildAnimation';
 import { nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyIcon';
@@ -11,7 +12,7 @@ import { nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyI
  * spent resources flying from the resource panel to the build location.
  */
 export const triggerBuildAnimation = (info: BuildAnimationInfo): void => {
-  window.dispatchEvent(new CustomEvent(BUILD_ANIMATION_EVENT, { detail: info }));
+  emitEffect('buildAnimation', info);
 };
 
 /** Map a build type to its resource cost. */
@@ -28,7 +29,7 @@ const PRICE_BY_TYPE: Record<BuildType, Partial<Record<ResourceKey, number>>> = {
  * from the resource panel to the location where the building was placed.
  */
 const ResourceSpendLayer: React.FC = () => {
-  const { gameRoom } = useGameRoom();
+  const { gameRoom } = useGameState();
   const gameRoomRef = useRef(gameRoom);
   gameRoomRef.current = gameRoom;
   const [icons, setIcons] = useState<FlyIcon[]>([]);
@@ -38,8 +39,7 @@ const ResourceSpendLayer: React.FC = () => {
   };
 
   useEffect(() => {
-    const onBuild = (e: Event) => {
-      const info = (e as CustomEvent<BuildAnimationInfo>).detail;
+    const onBuild = (info: BuildAnimationInfo) => {
       const room = gameRoomRef.current;
       if (!room || !room.board) return;
       // Setup placements are free: nothing is spent, so nothing flies.
@@ -94,8 +94,7 @@ const ResourceSpendLayer: React.FC = () => {
       });
       setIcons((prev) => [...prev, ...newIcons]);
     };
-    window.addEventListener(BUILD_ANIMATION_EVENT, onBuild);
-    return () => window.removeEventListener(BUILD_ANIMATION_EVENT, onBuild);
+    return onEffect('buildAnimation', onBuild);
   }, []);
 
   return (

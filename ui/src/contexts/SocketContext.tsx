@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo, useCallback, createContext, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '../config';
 import {
   ClientToServerEvents,
-  DockSpec,
-  HexLayout,
-  Price,
-  ResourceKey,
   ServerToClientEvents,
+  ResourceKey,
   TurnMode,
+  HexLayout,
+  DockSpec,
+  Price,
 } from 'common';
-import { SOCKET_URL } from '../config';
 import { readSavedSession, saveSession } from '../utils/session';
 
 /**
@@ -18,19 +18,19 @@ import { readSavedSession, saveSession } from '../utils/session';
  */
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
+/** The wire payload of an event; {roomId} for zero-arg events like quickPlay. */
+type EmitPayload<E extends keyof ClientToServerEvents> =
+  Parameters<ClientToServerEvents[E]> extends [infer P] ? P : { roomId: string };
+
 /**
  * Emit a room action if we have a live socket and a roomId. The server knows
  * the caller by socket.id, so payloads never carry an identity — just roomId
  * and the event's own fields.
  */
-/** The wire payload of an event; {roomId} for zero-arg events like quickPlay. */
-type EmitPayload<E extends keyof ClientToServerEvents> =
-  Parameters<ClientToServerEvents[E]> extends [infer P] ? P : { roomId: string };
-
 const emitAction = <E extends keyof ClientToServerEvents>(
   socket: GameSocket | null,
   event: E,
-  payload: { roomId: string }
+  payload: { roomId: string; [field: string]: unknown }
 ) => {
   if (!socket || !payload.roomId) return;
   // Loose emit: `E` stays generic here, so the typed `socket.emit` overload
@@ -39,128 +39,94 @@ const emitAction = <E extends keyof ClientToServerEvents>(
 };
 
 /**
- * The room actions: each entry maps a friendly argument list to the wire
- * payload for the event of the same name. The provider turns every entry
- * into an emitAction forwarder — one spec, no per-action declarations.
+ * The in-room actions: each entry maps a friendly argument list to the wire
+ * payload for the event of the same name, minus `roomId` — the provider
+ * injects the joined room's id, so callers never thread `gameRoom.id` through.
  * `joinRoom` is deliberately absent: it carries session-token logic and is
- * written by hand below.
+ * written by hand below, as are the actions that join/leave a room.
  */
 const actionSpec = {
-  buildSettlement: (vertexId: string, roomId: string, asCity?: boolean) => ({
-    roomId,
+  buildSettlement: (vertexId: string, asCity?: boolean) => ({
     vertexId,
     ...(asCity ? { asCity } : {}),
   }),
-  buildRoad: (edgeId: string, roomId: string) => ({ roomId, edgeId }),
-  upgradeSettlementToCity: (vertexId: string, roomId: string) => ({ roomId, vertexId }),
-  recruitSoldier: (vertexId: string, roomId: string) => ({ roomId, vertexId }),
-  moveSoldier: (soldierId: string, targetVertexId: string, roomId: string) => ({
-    roomId,
-    soldierId,
-    targetVertexId,
-  }),
-  captureSettlement: (soldierId: string, vertexId: string, roomId: string) => ({
-    roomId,
-    soldierId,
-    vertexId,
-  }),
-  fightRobber: (soldierId: string, vertexId: string, roomId: string) => ({
-    roomId,
-    soldierId,
-    vertexId,
-  }),
-  moveRobber: (hexId: string, roomId: string) => ({ roomId, hexId }),
-  chooseSteal: (victimName: string, cardIndex: number, roomId: string) => ({
-    roomId,
-    victimName,
-    cardIndex,
-  }),
-  resolveDiscard: (discards: Record<string, number>, roomId: string) => ({ roomId, discards }),
-  resolveDevCardChoice: (resources: string[], roomId: string) => ({ roomId, resources }),
-  chooseKnightEffect: (roomId: string, effect: 'robber' | 'spawn' | 'cancel') => ({
-    roomId,
-    effect,
-  }),
-  knightSpawnSoldier: (roomId: string, vertexId: string) => ({ roomId, vertexId }),
-  healSoldier: (soldierId: string, roomId: string, payWith?: ResourceKey) => ({
-    roomId,
-    soldierId,
-    payWith,
-  }),
-  startAttack: (soldierIds: string[], targetVertexId: string, roomId: string, defenderName?: string) => ({
-    roomId,
+  buildRoad: (edgeId: string) => ({ edgeId }),
+  upgradeSettlementToCity: (vertexId: string) => ({ vertexId }),
+  recruitSoldier: (vertexId: string) => ({ vertexId }),
+  moveSoldier: (soldierId: string, targetVertexId: string) => ({ soldierId, targetVertexId }),
+  captureSettlement: (soldierId: string, vertexId: string) => ({ soldierId, vertexId }),
+  fightRobber: (soldierId: string, vertexId: string) => ({ soldierId, vertexId }),
+  moveRobber: (hexId: string) => ({ hexId }),
+  chooseSteal: (victimName: string, cardIndex: number) => ({ victimName, cardIndex }),
+  resolveDiscard: (discards: Record<string, number>) => ({ discards }),
+  resolveDevCardChoice: (resources: string[]) => ({ resources }),
+  chooseKnightEffect: (effect: 'robber' | 'spawn' | 'cancel') => ({ effect }),
+  knightSpawnSoldier: (vertexId: string) => ({ vertexId }),
+  healSoldier: (soldierId: string, payWith?: ResourceKey) => ({ soldierId, payWith }),
+  startAttack: (soldierIds: string[], targetVertexId: string, defenderName?: string) => ({
     soldierIds,
     targetVertexId,
     defenderName,
   }),
-  rollBattleDie: (soldierId: string, roomId: string) => ({ roomId, soldierId }),
-  repositionSoldier: (soldierId: string, targetVertexId: string, roomId: string) => ({
-    roomId,
-    soldierId,
-    targetVertexId,
-  }),
-  finishRepositioning: (roomId: string) => ({ roomId }),
-  moveRobberAfterWin: (hexId: string, roomId: string) => ({ roomId, hexId }),
-  continueBattle: (roomId: string) => ({ roomId }),
-  endBattle: (roomId: string) => ({ roomId }),
-  exitBattle: (roomId: string) => ({ roomId }),
-  rollDice: (roomId: string) => ({ roomId }),
-  endTurn: (roomId: string) => ({ roomId }),
-  undoBuild: (roomId: string) => ({ roomId }),
-  drawDevelopmentCard: (roomId: string) => ({ roomId }),
-  playDevelopmentCard: (roomId: string, cardIndex: number) => ({ roomId, cardIndex }),
-  updatePlayerColor: (roomId: string, color: string) => ({ roomId, color }),
-  updatePlayerName: (roomId: string, name: string) => ({ roomId, name }),
-  startGame: (roomId: string) => ({ roomId }),
-  resetGame: (roomId: string) => ({ roomId }),
-  setRoomPassword: (roomId: string, password: string) => ({ roomId, password }),
-  refreshMap: (roomId: string) => ({ roomId }),
-  updatePointsToWin: (roomId: string, pointsToWin: number) => ({ roomId, pointsToWin }),
-  setTurnMode: (roomId: string, turnMode: TurnMode) => ({ roomId, turnMode }),
-  setSetupCities: (roomId: string, setupCities: number) => ({ roomId, setupCities }),
-  setTurnTimer: (roomId: string, turnTimerMs: number) => ({ roomId, turnTimerMs }),
-  setRulesLock: (roomId: string, locked: boolean) => ({ roomId, locked }),
-  editBoard: (roomId: string, layouts: HexLayout[], docks?: DockSpec[]) => ({ roomId, layouts, docks }),
-  leaveGame: (roomId: string) => ({ roomId }),
-  claimSeat: (roomId: string, name: string, lobbyPassword?: string) => ({
-    roomId,
-    name,
-    lobbyPassword,
-  }),
-  spectateRoom: (roomId: string, password?: string) => ({ roomId, password }),
-  pauseGame: (roomId: string, hostPassword: string, lobbyPassword: string) => ({
-    roomId,
-    hostPassword,
-    lobbyPassword,
-  }),
-  openResumeLobby: (roomId: string, hostPassword: string) => ({ roomId, hostPassword }),
-  closeResumeLobby: (roomId: string) => ({ roomId }),
-  unlockResumeLobby: (roomId: string, lobbyPassword: string) => ({ roomId, lobbyPassword }),
-  sendChat: (roomId: string, text: string, to?: string) => ({ roomId, text, to }),
-  createTradeOffer: (roomId: string, to: string | null, give: Price, want: Price) => ({
-    roomId,
-    to,
-    give,
-    want,
-  }),
-  acceptTrade: (roomId: string, tradeId: string) => ({ roomId, tradeId }),
-  declineTrade: (roomId: string, tradeId: string) => ({ roomId, tradeId }),
-  cancelTrade: (roomId: string, tradeId: string) => ({ roomId, tradeId }),
-  takeTrade: (roomId: string, tradeId: string) => ({ roomId, tradeId }),
-  bankTrade: (roomId: string, giveResource: string, wantResource: string, giveCount: number) => ({
-    roomId,
+  rollBattleDie: (soldierId: string) => ({ soldierId }),
+  repositionSoldier: (soldierId: string, targetVertexId: string) => ({ soldierId, targetVertexId }),
+  finishRepositioning: () => ({}),
+  moveRobberAfterWin: (hexId: string) => ({ hexId }),
+  continueBattle: () => ({}),
+  endBattle: () => ({}),
+  exitBattle: () => ({}),
+  rollDice: () => ({}),
+  endTurn: () => ({}),
+  undoBuild: () => ({}),
+  drawDevelopmentCard: () => ({}),
+  playDevelopmentCard: (cardIndex: number) => ({ cardIndex }),
+  updatePlayerColor: (color: string) => ({ color }),
+  updatePlayerName: (name: string) => ({ name }),
+  // An explicit arg overrides the bound room: the resuming lobby on the
+  // paused screen may not be the room the socket last joined.
+  startGame: (roomId?: string) => (roomId ? { roomId } : {}),
+  resetGame: () => ({}),
+  setRoomPassword: (password: string) => ({ password }),
+  refreshMap: () => ({}),
+  updatePointsToWin: (pointsToWin: number) => ({ pointsToWin }),
+  setTurnMode: (turnMode: TurnMode) => ({ turnMode }),
+  setSetupCities: (setupCities: number) => ({ setupCities }),
+  setTurnTimer: (turnTimerMs: number) => ({ turnTimerMs }),
+  setRulesLock: (locked: boolean) => ({ locked }),
+  editBoard: (layouts: HexLayout[], docks?: DockSpec[]) => ({ layouts, docks }),
+  sendChat: (text: string, to?: string) => ({ text, to }),
+  createTradeOffer: (to: string | null, give: Price, want: Price) => ({ to, give, want }),
+  acceptTrade: (tradeId: string) => ({ tradeId }),
+  declineTrade: (tradeId: string) => ({ tradeId }),
+  cancelTrade: (tradeId: string) => ({ tradeId }),
+  takeTrade: (tradeId: string) => ({ tradeId }),
+  bankTrade: (giveResource: string, wantResource: string, giveCount: number) => ({
     giveResource,
     wantResource,
     giveCount,
   }),
 } satisfies Partial<{
+  [E in keyof ClientToServerEvents]: (...args: never[]) => Omit<EmitPayload<E>, 'roomId'>;
+}>;
+
+/**
+ * Addressed actions: they target a room the socket may not be joined to yet
+ * (claiming a seat in a resuming lobby, spectating, reopening a paused game),
+ * so they keep an explicit leading `roomId`.
+ */
+const addressedActionSpec = {
+  openResumeLobby: (roomId: string, hostPassword: string) => ({ roomId, hostPassword }),
+  closeResumeLobby: (roomId: string) => ({ roomId }),
+  unlockResumeLobby: (roomId: string, lobbyPassword: string) => ({ roomId, lobbyPassword }),
+} satisfies Partial<{
   [E in keyof ClientToServerEvents]: (...args: never[]) => EmitPayload<E>;
 }>;
 
-/** The generated room actions, with the spec's friendly signatures. */
+/** The generated room actions, with the specs' friendly signatures. */
 type RoomActions = { [K in keyof typeof actionSpec]: (typeof actionSpec)[K] };
+type AddressedActions = { [K in keyof typeof addressedActionSpec]: (typeof addressedActionSpec)[K] };
 
-interface SocketContextType extends RoomActions {
+interface SocketContextType extends RoomActions, AddressedActions {
   socket: GameSocket | null;
   isConnected: boolean;
   /** `asCity`: during setup, place a city directly (room's setup-cities setting). */
@@ -173,26 +139,42 @@ interface SocketContextType extends RoomActions {
   ) => void;
   /** Find-or-create an open waiting room (the server picks). */
   quickPlay: () => void;
+  /** Watch a room without a seat. */
+  spectateRoom: (roomId: string, password?: string) => void;
+  /** Take a named seat in a resuming lobby. */
+  claimSeat: (roomId: string, name: string, lobbyPassword?: string) => void;
+  /** Leave the joined room (the server keeps the seat, marked disconnected). */
+  leaveGame: () => void;
+  /** Host: pause this game for later (two passwords: reopen + seat claims). */
+  pauseGame: (hostPassword: string, lobbyPassword: string) => void;
 }
 
-const noopActions = Object.keys(actionSpec).reduce(
-  (acc, k) => ({ ...acc, [k]: () => {} }),
-  {} as RoomActions
-);
+const noopActions = Object.fromEntries(
+  Object.keys({ ...actionSpec, ...addressedActionSpec }).map((k) => [k, () => {}])
+) as unknown as RoomActions & AddressedActions;
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
   joinRoom: () => {},
   quickPlay: () => {},
+  spectateRoom: () => {},
+  claimSeat: () => {},
+  leaveGame: () => {},
+  pauseGame: () => {},
   ...noopActions,
 });
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<GameSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  // The room every bound action targets: the last one we joined (or
+  // spectated / claimed a seat in). A ref, not state: no action emit ever
+  // needs a re-render, and forwarders built before the join still read it.
+  const joinedRoomIdRef = useRef<string>('');
 
-  // Every spec entry becomes an emitAction forwarder with the same signature.
+  // Every bound spec entry becomes an emitAction forwarder with the same
+  // signature; roomId comes from the joined room.
   const actions = useMemo(
     () =>
       Object.fromEntries(
@@ -202,10 +184,30 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
             emitAction(
               socket,
               event as keyof ClientToServerEvents,
-              (build as (...a: unknown[]) => { roomId: string })(...args)
+              {
+                roomId: joinedRoomIdRef.current,
+                ...(build as (...a: unknown[]) => object)(...args),
+              }
             ),
         ])
       ) as unknown as RoomActions,
+    [socket]
+  );
+
+  // Addressed actions emit to the room named by the caller.
+  const addressedActions = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(addressedActionSpec).map(([event, build]) => [
+          event,
+          (...args: unknown[]) =>
+            emitAction(
+              socket,
+              event as keyof ClientToServerEvents,
+              (build as (...a: unknown[]) => { roomId: string })(...args)
+            ),
+        ])
+      ) as unknown as AddressedActions,
     [socket]
   );
 
@@ -220,6 +222,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
       layouts?: HexLayout[],
       password?: string
     ) => {
+      joinedRoomIdRef.current = roomId;
       // Re-attach to our seat after a reload: send the saved token (only
       // when the session is for this exact room — never leak a stale token).
       // Same for the room password the user already answered once.
@@ -255,6 +258,36 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const quickPlay = () => {
     if (!socket) return;
     socket.emit('quickPlay');
+  };
+
+  const spectateRoom = (roomId: string, password?: string) => {
+    if (!socket) return;
+    joinedRoomIdRef.current = roomId;
+    socket.emit('spectateRoom', { roomId, password });
+  };
+  const claimSeat = (roomId: string, name: string, lobbyPassword?: string) => {
+    if (!socket) return;
+    joinedRoomIdRef.current = roomId;
+    socket.emit('claimSeat', { roomId, name, lobbyPassword });
+  };
+
+
+  const leaveGame = () => {
+    if (!socket) return;
+    emitAction(socket, 'leaveGame', { roomId: joinedRoomIdRef.current });
+    joinedRoomIdRef.current = '';
+  };
+
+  const pauseGame = (hostPassword: string, lobbyPassword: string) => {
+    if (!socket) return;
+    emitAction(socket, 'pauseGame', {
+      roomId: joinedRoomIdRef.current,
+      hostPassword,
+      lobbyPassword,
+    });
+    // The room view unmounts after this; a stale id must not retarget the
+    // bound actions until a real join sets it again.
+    joinedRoomIdRef.current = '';
   };
 
   useEffect(() => {
@@ -304,7 +337,12 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
         isConnected,
         joinRoom,
         quickPlay,
+        spectateRoom,
+        claimSeat,
+        leaveGame,
+        pauseGame,
         ...actions,
+        ...addressedActions,
       }}
     >
       {children}

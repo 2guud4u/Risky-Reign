@@ -2,12 +2,7 @@ import { Socket } from 'socket.io';
 
 import { GameServer, GameSocket } from './handlers/context';
 import { registerRoomHandlers } from './handlers/room';
-import { registerDevCardHandlers } from './handlers/devCards';
-import { registerTurnHandlers } from './handlers/turn';
-import { registerBuildHandlers } from './handlers/build';
-import { registerSoldierHandlers } from './handlers/soldier';
-import { registerBattleHandlers } from './handlers/battle';
-import { registerTradeHandlers } from './handlers/trade';
+import { registerDispatchHandlers } from './dispatch';
 
 /**
  * Wrap every listener registered on this socket so a single malformed message
@@ -32,19 +27,18 @@ function makeSocketCrashSafe(socket: GameSocket): void {
 }
 
 /**
- * Wire up all socket handlers. Each domain module registers its own handlers on
- * the socket, keeping this entrypoint thin and the per-connection setup explicit.
+ * Wire up the socket surface. Two seams:
+ *  - `registerDispatchHandlers`: every gameplay action, one loop over the
+ *    dispatch table (transport adapter — rules live in `actions/`).
+ *  - `registerRoomHandlers`: room-lifecycle transport (join, spectate,
+ *    pause/resume, disconnect) — these create/delete rooms and bind sockets,
+ *    which is adapter work, not a game action.
  */
 export function setupSocketHandlers(io: GameServer): void {
   io.on('connection', (socket) => {
     makeSocketCrashSafe(socket);
     const ctx = { io, socket };
     registerRoomHandlers(ctx);
-    registerDevCardHandlers(ctx);
-    registerTurnHandlers(ctx);
-    registerBuildHandlers(ctx);
-    registerSoldierHandlers(ctx);
-    registerBattleHandlers(ctx);
-    registerTradeHandlers(ctx);
+    registerDispatchHandlers(ctx);
   });
 }

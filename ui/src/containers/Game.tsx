@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameActions, useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import BoardView from './BoardView';
 import NoticeRail from './NoticeRail';
@@ -13,9 +13,8 @@ import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
 import Dice from '../components/Dice';
 import GameIcon from '../components/ui/GameIcon';
-import VertexActionBubbles from '../components/board/VertexActionBubbles';
-import RobberActionBubbles from '../components/board/RobberActionBubbles';
-import EdgeActionBubbles from '../components/board/EdgeActionBubbles';
+import ActionBubbles from '../components/board/ActionBubbles';
+import { useBoardActions } from '../board/actions';
 import TradeButton from '../components/board/TradeButton';
 import RecipesButton from '../components/board/RecipesButton';
 import PlayersButton from '../components/board/PlayersButton';
@@ -34,7 +33,9 @@ import { Settings, Lightbulb, Maximize, Minimize, Pause, LogOut } from 'lucide-r
  * (battle, prompts, turn status, dice) float above everything.
  */
 const Game: React.FC = () => {
-  const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer, selectedObject } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
+  const { clearRoomState } = useGameActions();
+  const bubbles = useBoardActions();
   const { leaveGame: emitLeaveGame, pauseGame: emitPauseGame } = useSocket();
   const [menuOpen, setMenuOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -58,9 +59,8 @@ const Game: React.FC = () => {
     // The server keeps the seat (marked disconnected) like a dropped
     // connection, so keep the saved session/token: rejoining this room
     // re-attaches to the same seat instead of joining as a new player.
-    if (gameRoom) emitLeaveGame(gameRoom.id);
-    setGameRoom(null);
-    setCurrentPlayer(null);
+    if (gameRoom) emitLeaveGame();
+    clearRoomState();
   };
 
   const toggleFullscreen = async () => {
@@ -106,20 +106,12 @@ const Game: React.FC = () => {
   const isHost = !!currentPlayer && gameRoom.players[0]?.name === currentPlayer.name;
   const canPause = isHost && gameRoom.gameStatus === 'playing';
   const submitPause = () => {
-    emitPauseGame(gameRoom.id, hostPassword, lobbyPassword);
+    emitPauseGame(hostPassword, lobbyPassword);
     setMenuOpen(false);
     setPauseOpen(false);
     setHostPassword('');
     setLobbyPassword('');
   };
-  const selectedVertex =
-    selectedObject?.type === 'vertex' ? gameRoom.board?.vertices[selectedObject.id] ?? null : null;
-  const selectedEdge =
-    selectedObject?.type === 'edge' ? gameRoom.board?.edges[selectedObject.id] ?? null : null;
-  const selectedRobber =
-    selectedObject?.type === 'robber'
-      ? Object.values(gameRoom.board?.hexes ?? {}).find((h) => h.robber)?.id ?? null
-      : null;
   const roll = gameRoom.roll;
   return (
     <div>
@@ -267,17 +259,8 @@ const Game: React.FC = () => {
           <ChatButton />
           {/* Player info column, toggled by the 👤 button under 💬. */}
           <PlayersButton />
-          {/* Build actions for the selected vertex/edge, as bubbles on the map. */}
-          {!spectating && selectedVertex && gameRoom.board && (
-            <VertexActionBubbles board={gameRoom.board} vertex={selectedVertex} />
-          )}
-          {!spectating && selectedEdge && gameRoom.board && (
-            <EdgeActionBubbles board={gameRoom.board} edge={selectedEdge} />
-          )}
-          {/* Attack / Move actions for the robber when it is selected. */}
-          {!spectating && selectedRobber && gameRoom.board && (
-            <RobberActionBubbles board={gameRoom.board} hexId={selectedRobber} />
-          )}
+          {/* Actions for the selected vertex/edge/robber, as bubbles on the map. */}
+          {bubbles && <ActionBubbles actions={bubbles.actions} resetKey={bubbles.resetKey} />}
           {/* Setup walkthrough + idle "Need help?" card (left edge of the map). */}
           <TutorialCoach />
         </div>

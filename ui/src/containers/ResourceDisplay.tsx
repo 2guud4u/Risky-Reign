@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { BuildCheck, Player, canAfford, DevelopmentCardPrice, DEVELOPMENT_CARD_META, RESOURCES } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { BuildCheck, Player, canBuyDevelopmentCard, playableDevCardIndexes, DevelopmentCardPrice, DEVELOPMENT_CARD_META, RESOURCES } from 'common';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { DEV_CARD_ICONS, RESOURCE_ICONS } from '../utils/resourceIcons';
 import GameIcon from '../components/ui/GameIcon';
@@ -17,7 +17,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
  * tab reopens the tray. Desktop keeps the tray open.
  */
 const ResourceDisplay: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { drawDevelopmentCard, playDevelopmentCard } = useSocket();
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
@@ -30,21 +30,17 @@ const ResourceDisplay: React.FC = () => {
   const me: Player | null = currentPlayer;
   const isMyTurn = !!me && !!gameRoom && gameRoom.turnState.player === me.name;
 
-  // Mirror the server's purchase rules. An empty deck is reshuffled
-  // server-side, so it never blocks a purchase.
-  const buyCheck: BuildCheck = !isMyTurn
-    ? { allowed: false, reason: 'You can only buy development cards on your turn' }
-    : gameRoom.turnState.phase !== 'Build'
-      ? { allowed: false, reason: 'You can only buy development cards during the Build phase' }
-      : !canAfford(me.resources, DevelopmentCardPrice)
-        ? { allowed: false, reason: `Need ${priceLabel(DevelopmentCardPrice)}` }
-        : { allowed: true, reason: null };
+  // The server's own purchase rule (shared from common): an empty deck is
+  // reshuffled server-side, so it never blocks a purchase.
+  const buyCheck: BuildCheck = me
+    ? canBuyDevelopmentCard(gameRoom!.turnState, me)
+    : { allowed: false, reason: null };
 
   if (!gameRoom || !me) return null;
 
-  const handleDrawDevCard = () => drawDevelopmentCard(gameRoom.id);
+  const handleDrawDevCard = () => drawDevelopmentCard();
   const handlePlayDevCard = (cardIndex: number) => {
-    playDevelopmentCard(gameRoom.id, cardIndex);
+    playDevelopmentCard(cardIndex);
     setSelCard(null);
   };
 
@@ -112,10 +108,9 @@ const ResourceDisplay: React.FC = () => {
           )}
           {me.developmentCards.map((card, i) => {
             const meta = DEVELOPMENT_CARD_META[card];
-            // A card bought this turn can't be played until next turn: the
-            // last `devCardsBoughtThisTurn` cards in the hand are the ones
-            // just bought.
-            const lockedThisTurn = i >= me.developmentCards.length - me.devCardsBoughtThisTurn;
+            // A card bought this turn can't be played until next turn — the
+            // shared predicate knows which indexes are fresh.
+            const lockedThisTurn = !playableDevCardIndexes(me).includes(i);
             const playable = isMyTurn && !lockedThisTurn;
             // First click selects the card (lifts it + shows the Play chip);
             // the second click on the Play chip (or the card again) plays it.

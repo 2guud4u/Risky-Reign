@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { ClientToServerEvents, GameRoom, Player, ServerToClientEvents } from 'common';
-import { gameRooms } from '../store';
+import { getRoom } from '../store';
 
 /** Server/Socket bound to the shared event contract. */
 export type GameServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -43,7 +43,7 @@ export function requireRoom(
   socket: GameSocket,
   roomId: string | undefined
 ): GameRoom | null {
-  const room = gameRooms.get(roomId ?? '');
+  const room = getRoom(roomId ?? '');
   if (!room) {
     socket.emit('error', { message: 'Room not found' });
     return null;

@@ -190,10 +190,6 @@ export const GAIN_STAGGER = 1100;
 export const SPEND_DURATION = 5000;
 /** ms offset between successive cards for the spend animation. */
 export const SPEND_STAGGER = 1100;
-/** Event that animates a build's spent resources flying to the location. */
-export const BUILD_ANIMATION_EVENT = 'build:animation';
-/** Event that opens the trade window (detail: `OpenTradeDetail`), e.g. from a port click. */
-export const OPEN_TRADE_EVENT = 'trade:open';
 
 /** Board center (the desert hex). */
 export const BOARD_CENTER = { q: 0, r: 0, s: 0 };
@@ -268,10 +264,6 @@ export const FOCUS_DURATION_MS = 350;
  */
 export const BOARD_SOLDIER_SCALE = 0.5;
 
-// ── useBuildRules ──────────────────────────────────────────────────────────
-
-/** "Afford any price" resource counts for free (Road Card) builds. */
-export const UNLIMITED_RESOURCES: Price = { Wood: 99, Brick: 99, Sheep: 99, Wheat: 99, Ore: 99 };
 
 // ── Trade / Dice ───────────────────────────────────────────────────────────
 

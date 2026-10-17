@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Price, PortType, RESOURCES, ResourceKey, TradeOffer, BuildCheck, hasAnyResource, covers, canBankTrade, bestBankTradeRatio, diceOwner } from 'common';
 import { ReasonNotice } from './ReasonNotice';
-import { useGameRoom } from '../../contexts/GameContext';
+import { useGameState } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { priceLabel } from '../../utils/price';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
@@ -88,12 +88,11 @@ const OfferCard: React.FC<{
   /** Why I can't act on this offer (shown instead of a missing button). */
   blockedReason?: string | null;
 }> = ({ offer, canAccept, canTake, blockedReason }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { acceptTrade, declineTrade, cancelTrade, takeTrade } = useSocket();
   if (!gameRoom || !currentPlayer) return null;
 
   const me = currentPlayer.name;
-  const roomId = gameRoom.id;
   const colorOf = (name: string | null) => gameRoom.players.find((p) => p.name === name)?.color;
   const isOpen = offer.to === null;
   const iAmCreator = offer.from === me;
@@ -165,39 +164,39 @@ const OfferCard: React.FC<{
               {isOpen && offer.claimer && (
                 <>
                   {canAccept && (
-                    <button type="button" className={accept} onClick={() => acceptTrade(roomId, offer.id)}>
+                    <button type="button" className={accept} onClick={() => acceptTrade(offer.id)}>
                       Accept {offer.claimer}
                     </button>
                   )}
-                  <button type="button" className={decline} onClick={() => declineTrade(roomId, offer.id)}>
+                  <button type="button" className={decline} onClick={() => declineTrade(offer.id)}>
                     Decline
                   </button>
                 </>
               )}
-              <button type="button" className={neutral} onClick={() => cancelTrade(roomId, offer.id)}>
+              <button type="button" className={neutral} onClick={() => cancelTrade(offer.id)}>
                 Cancel
               </button>
             </>
           ) : isOpen && !offer.claimer ? (
             // Open offer I haven't taken: take it.
             canTake && (
-              <button type="button" className={take} onClick={() => takeTrade(roomId, offer.id)}>
+              <button type="button" className={take} onClick={() => takeTrade(offer.id)}>
                 Take offer
               </button>
             )
           ) : iAmClaimer ? (
             // I took an open offer; withdraw my claim.
-            <button type="button" className={neutral} onClick={() => declineTrade(roomId, offer.id)}>
+            <button type="button" className={neutral} onClick={() => declineTrade(offer.id)}>
               Withdraw
             </button>
           ) : iAmRecipient ? (
             // Directed offer to me.
             <>
-              <button type="button" className={decline} onClick={() => declineTrade(roomId, offer.id)}>
+              <button type="button" className={decline} onClick={() => declineTrade(offer.id)}>
                 Decline
               </button>
               {canAccept && (
-                <button type="button" className={accept} onClick={() => acceptTrade(roomId, offer.id)}>
+                <button type="button" className={accept} onClick={() => acceptTrade(offer.id)}>
                   Accept
                 </button>
               )}
@@ -249,7 +248,7 @@ const TradeTab: React.FC<{
   /** Port clicked to open the window: presets the Bank form (its resource as the give). */
   port?: PortType | null;
 }> = ({ port = null }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { createTradeOffer, bankTrade } = useSocket();
   // A port click opens straight on the Bank form.
   const [counterparty, setCounterparty] = useState(port ? 'Bank' : '');
@@ -326,13 +325,13 @@ const TradeTab: React.FC<{
   };
   const submitBank = () => {
     if (!bankCheck.allowed) return;
-    bankTrade(gameRoom.id, bankGive, bankWant, bankCount);
+    bankTrade(bankGive, bankWant, bankCount);
     setBankCount(bankRatio);
   };
   const submitOffer = () => {
     if (!offerCheck.allowed || !counterparty || isBank) return;
     // 'Anyone' posts an open offer (to === null) any player can take.
-    createTradeOffer(gameRoom.id, isOpenTarget ? null : counterparty, give, want);
+    createTradeOffer(isOpenTarget ? null : counterparty, give, want);
     setGive({ ...emptyPrice });
     setWant({ ...emptyPrice });
   };

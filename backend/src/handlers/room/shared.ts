@@ -1,13 +1,13 @@
 import { GameRoom, RejoinSeat } from 'common';
-import { gameRooms } from '../../store';
+import { getRoom } from '../../store';
 import { GameServer } from '../context';
 import { pausedInfo, persistedMeta } from '../../lifecycle';
 import { createAttemptLimiter } from '../../persistence/passwords';
 
 /**
- * Helpers shared by the room handler modules (join, seats, settings,
- * persist): the paused-game info push, the rejoin-picker seat list, the
- * player-name shape, and the password probe limiter.
+ * Helpers shared by the room handler modules (join, seats, persist) and the
+ * room actions table: the paused-game info push, the rejoin-picker seat
+ * list, the player-name shape, and the password probe limiter.
  */
 
 /** A lobby name is letters, digits, space, _ or - (length checked by callers). */
@@ -20,7 +20,7 @@ export const passwordAttempts = createAttemptLimiter(8, 60_000);
 export function broadcastPausedInfo(io: GameServer, roomId: string): void {
   const meta = persistedMeta(roomId);
   if (!meta || (meta.status !== 'paused' && meta.status !== 'resuming')) return;
-  io.to(roomId).emit('pausedGameInfo', pausedInfo(roomId, meta, gameRooms.get(roomId)));
+  io.to(roomId).emit('pausedGameInfo', pausedInfo(roomId, meta, getRoom(roomId)));
 }
 
 /**

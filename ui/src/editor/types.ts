@@ -24,8 +24,6 @@ export type Target = 'only empty' | 'only filled' | 'all';
 
 /** Props for the board editor (the Board tab of Customize Game). */
 export interface BoardEditorProps {
-  /** The room whose board this editor saves back to (editBoard). */
-  roomId: string;
   /** The board to seed the draft from (the room's current board). */
   initialBoard: Board;
   /** Regenerate a random map on the server (the draft resets via remount). */
@@ -109,7 +107,6 @@ export interface DockPaletteProps {
 
 /** Props for the save panel (applies the draft board to the room). */
 export interface SavePanelProps {
-  roomId: string;
   map: EditorMap;
   /** The editor's dock draft, saved alongside the layouts. */
   docks: DockSpec[];

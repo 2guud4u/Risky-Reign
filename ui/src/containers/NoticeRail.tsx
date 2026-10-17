@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from 'common';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { PriceText } from '../utils/price';
 import GameIcon from '../components/ui/GameIcon';
@@ -42,7 +42,7 @@ const noticeClass = (mine: boolean): string =>
  * can never overlap.
  */
 const NoticeRail: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { chooseKnightEffect } = useSocket();
   const [toastVisible, setToastVisible] = useState(false);
   const reduce = useReducedMotion();
@@ -137,7 +137,7 @@ const NoticeRail: React.FC = () => {
           <span><GameIcon name="knight" size={14} className="inline -mt-0.5" /> Knight: click a glowing ring to spawn a soldier there.</span>
           <button
             type="button"
-            onClick={() => chooseKnightEffect(gameRoom.id, 'cancel')}
+            onClick={() => chooseKnightEffect('cancel')}
             className="px-2 py-0.5 rounded-md border border-amber-400 bg-white text-[12px] font-semibold text-amber-900 cursor-pointer hover:bg-amber-100"
           >
             Cancel

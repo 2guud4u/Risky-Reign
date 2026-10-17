@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PausedGameInfo, PublicGameRoom, PublicPlayer, RejoinSeat } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { useChrome, useGameActions, useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
 import GamePage from '../pages/Game';
@@ -43,7 +43,9 @@ const GameLogic: React.FC = () => {
   const noticeTimerRef = useRef<number | null>(null);
   const [view, setView] = useState<'lobby' | 'game' | 'customizeGame'>('lobby');
   const { socket, isConnected, joinRoom: onJoinRoom, spectateRoom } = useSocket();
-  const { setGameRoom, setCurrentPlayer, gameRoom, toast, showToast } = useGameRoom();
+  const { gameRoom } = useGameState();
+  const { toast } = useChrome();
+  const { setGameRoom, setCurrentPlayer, showToast, clearRoomState } = useGameActions();
   const autoJoinedRef = useRef(false);
   // A started game this browser holds no seat for: the rejoin picker's options.
   const [rejoin, setRejoin] = useState<{ roomId: string; seats: RejoinSeat[] } | null>(null);
@@ -107,8 +109,7 @@ const GameLogic: React.FC = () => {
     // for a live game arrives.
     socket.on('pausedGameInfo', (info) => {
       if (info.status === 'paused') {
-        setGameRoom(null);
-        setCurrentPlayer(null);
+        clearRoomState();
         setRejoin(null);
       }
       setPaused(info);
@@ -134,8 +135,7 @@ const GameLogic: React.FC = () => {
 
     // A game that already started: pick your old seat or watch.
     socket.on('rejoinOptions', (data) => {
-      setGameRoom(null);
-      setCurrentPlayer(null);
+      clearRoomState();
       setRejoin(data);
     });
 
@@ -164,7 +164,7 @@ const GameLogic: React.FC = () => {
       socket.off('error');
       socket.off('robberFightResult');
     };
-  }, [socket, setGameRoom, setCurrentPlayer, showToast]);
+  }, [socket, setGameRoom, setCurrentPlayer, showToast, clearRoomState]);
 
 
   // Auto-dismiss the error banner after a few seconds.

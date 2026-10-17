@@ -1,6 +1,6 @@
 import React from 'react';
 import { RESOURCES } from 'common';
-import { useGameRoom } from '../../contexts/GameContext';
+import { useGameState } from '../../contexts/GameContext';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import GameIcon from '../../components/ui/GameIcon';
 
@@ -9,7 +9,7 @@ import GameIcon from '../../components/ui/GameIcon';
  * resources produced by hexes the robber currently sits on.
  */
 const RobberBagView: React.FC = () => {
-  const { gameRoom } = useGameRoom();
+  const { gameRoom } = useGameState();
 
   if (!gameRoom || !gameRoom.robberBag) return null;
 

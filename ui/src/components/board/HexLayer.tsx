@@ -12,7 +12,7 @@ export const HexLayer = React.memo(function HexLayer({
   hexes,
   robberPending,
   winPending,
-  winTargetIds,
+  robberTargetIds,
   rollTotal,
   onRobberPointerDown,
   onWinRobberPointerDown,
@@ -25,8 +25,9 @@ export const HexLayer = React.memo(function HexLayer({
   robberPending: boolean;
   /** A won robber fight: the winner must move the robber to an adjacent hex. */
   winPending: boolean;
-  /** The hex ids the post-win robber may be moved to (adjacent, non-desert). */
-  winTargetIds: ReadonlySet<string>;
+  /** The hex ids the robber may currently be moved to (adjacent non-desert
+      after a win; any non-desert empty hex for a pending placement). */
+  robberTargetIds: ReadonlySet<string>;
   /** Current roll total (both dice), or null before both dice are rolled. */
   rollTotal: number | null;
   onRobberPointerDown: (e: React.PointerEvent) => void;
@@ -41,9 +42,7 @@ export const HexLayer = React.memo(function HexLayer({
   return (
     <>
       {hexes.map((hex) => {
-        const isRobberTarget =
-          (robberPending && hex.terrain !== 'Desert' && !hex.hasRobber) ||
-          (winPending && winTargetIds.has(hex.id));
+        const isRobberTarget = (robberPending || winPending) && robberTargetIds.has(hex.id);
         const litUp =
           rollTotal !== null &&
           hex.rollNumber === rollTotal &&

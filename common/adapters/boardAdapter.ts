@@ -112,31 +112,3 @@ export function domainToPresentation(board: Board, hexSize: number = 50): BoardU
   };
 }
 
-/**
- * Merge partial interaction updates into a presentation state immutably.
- */
-export function updatePresentationState(
-  state: BoardUIState,
-  updates: Partial<BoardUIState>
-): BoardUIState {
-  return {
-    ...state,
-    ...updates,
-    vertices: { ...state.vertices, ...(updates.vertices ?? {}) },
-    edges: { ...state.edges, ...(updates.edges ?? {}) },
-    hexes: { ...state.hexes, ...(updates.hexes ?? {}) },
-  };
-}
-
-/** Extract the build action implied by the current interaction state. */
-export function extractBuildActions(state: BoardUIState): {
-  settlementVertexId: VertexId | null;
-  roadEdgeId: EdgeId | null;
-  buildMode: BoardUIState['buildMode'];
-} {
-  return {
-    settlementVertexId: state.buildMode === 'settlement' ? state.selectedVertexId : null,
-    roadEdgeId: state.buildMode === 'road' ? state.selectedEdgeId : null,
-    buildMode: state.buildMode,
-  };
-}

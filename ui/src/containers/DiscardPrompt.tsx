@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import Modal from '../components/ui/Modal';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCES, ResourceKey } from 'common';
@@ -17,7 +17,7 @@ import GameIcon from '../components/ui/GameIcon';
  * Discards must all be resolved before the robber can be moved.
  */
 const DiscardPrompt: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { resolveDiscard } = useSocket();
   const [counts, setCounts] = useState<Record<ResourceKey, number>>({
     Wood: 0,
@@ -58,7 +58,7 @@ const DiscardPrompt: React.FC = () => {
 
   const confirm = () => {
     if (total !== need || !gameRoom) return;
-    resolveDiscard(counts, gameRoom.id);
+    resolveDiscard(counts);
     setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   };
 

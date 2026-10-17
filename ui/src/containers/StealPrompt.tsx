@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
 
@@ -14,7 +14,7 @@ import Modal from '../components/ui/Modal';
  * only their public `resourceCount` is known — every card is equally likely.
  */
 const StealPrompt: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { chooseSteal } = useSocket();
   const [selectedVictim, setSelectedVictim] = useState<string | null>(null);
 
@@ -74,7 +74,7 @@ const StealPrompt: React.FC = () => {
                 key={i}
                 type="button"
                 onClick={() =>
-                  gameRoom && chooseSteal(selectedPlayer.name, i, gameRoom.id)
+                  chooseSteal(selectedPlayer.name, i)
                 }
                 className="w-12 h-16 rounded-md bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center text-2xl font-bold shadow hover:scale-105 hover:shadow-lg active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform cursor-pointer"
                 title="Take this card"

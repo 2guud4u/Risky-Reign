@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Board, PixelCoord, canBuildRoadOn, canBuildSettlementAt } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState, useSelection } from '../contexts/GameContext';
 import { useTutorialHints } from '../utils/tutorial';
 
 /** One coaching step: what to do, and where on the board to point. */
@@ -28,7 +28,8 @@ export interface CoachStep {
  * there's nothing to coach.
  */
 export function useSetupCoach(board: Board | null): CoachStep | null {
-  const { gameRoom, currentPlayer, selectedObject } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
+  const { selectedObject } = useSelection();
   const hintsOn = useTutorialHints();
   const turn = gameRoom?.turnState;
   const active =

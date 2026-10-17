@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { diceOwner, PortType } from 'common';
-import { useGameRoom } from '../../contexts/GameContext';
+import { useGameState } from '../../contexts/GameContext';
 import TradeTab from '../../containers/game/TradeTab';
 import Modal from '../ui/Modal';
-import { OPEN_TRADE_EVENT } from '../../constants';
 import { RefreshCw } from 'lucide-react';
 import MapIconButton from '../ui/MapIconButton';
 import GameIcon from '../ui/GameIcon';
 import { OpenTradeDetail } from '../../types/openTrade';
+import { onEffect } from '../../effects';
 
 /** localStorage flag: the player has opened the trade window at least once. */
 const TRADE_SEEN_KEY = 'tradeWindowSeen';
@@ -32,7 +32,7 @@ function readTradeSeen(): boolean {
  * offer of yours that someone took.
  */
 const TradeButton: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const [open, setOpen] = useState(false);
   // Port clicked to open the window (presets the bank form); null = 🔄 button.
   const [port, setPort] = useState<PortType | null>(null);
@@ -50,12 +50,11 @@ const TradeButton: React.FC = () => {
 
   // A port click on the board opens the window on that port's bank trade.
   useEffect(() => {
-    const onOpen = (e: Event) => {
-      setPort((e as CustomEvent<OpenTradeDetail>).detail?.port ?? null);
+    const onOpen = (detail: OpenTradeDetail) => {
+      setPort(detail?.port ?? null);
       setOpen(true);
     };
-    window.addEventListener(OPEN_TRADE_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_TRADE_EVENT, onOpen);
+    return onEffect('openTrade', onOpen);
   }, []);
 
   // Escape closes the window (stopPropagation keeps the board's Escape

@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { PERSISTED_GAME_TTL_MS, RESUME_LOBBY_IDLE_MS } from 'common';
-import { gameRooms } from './store';
+import { roomEntries, getRoom, removeRoom } from './store';
 import { ROOM_IDLE_MS, ROOM_SWEEP_INTERVAL_MS, EXPIRY_SWEEP_INTERVAL_MS } from './constants';
 import { closeResumingRoom, clearResumeLobbyHash } from './lifecycle';
 import { deleteExpired } from './persistence/gameRepository';
@@ -24,14 +24,14 @@ export function startRoomSweep(io: Server): void {
   const idle = setInterval(() => {
     const cutoff = Date.now() - ROOM_IDLE_MS;
     const resumeCutoff = Date.now() - RESUME_LOBBY_IDLE_MS;
-    for (const [id, room] of gameRooms) {
+    for (const [id, room] of roomEntries()) {
       if (room.gameStatus === 'resuming' && room.lastActivityAt < resumeCutoff) {
         // An idle resume lobby closes back to paused rather than sitting
         // open with its lobby password. The row stays for reopening.
         closeResumingRoom(room);
-        gameRooms.delete(id);
+        removeRoom(id);
       } else if (room.lastActivityAt < cutoff) {
-        gameRooms.delete(id);
+        removeRoom(id);
         clearResumeLobbyHash(id);
       }
     }
@@ -44,14 +44,14 @@ export function startRoomSweep(io: Server): void {
     // refreshed by autosave on every broadcast).
     const removed = deleteExpired(Date.now() - PERSISTED_GAME_TTL_MS);
     for (const id of removed) {
-      const room = gameRooms.get(id);
+      const room = getRoom(id);
       if (room) {
         // Tell connected players, then evict: the row (their save) is gone.
         io.to(id).emit('gameExpired', { roomId: id });
         for (const p of room.players) {
           if (p.id) io.sockets.sockets.get(p.id)?.leave(id);
         }
-        gameRooms.delete(id);
+        removeRoom(id);
         clearResumeLobbyHash(id);
       }
     }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BuildCheck } from 'common';
-import { useGameRoom } from '../../contexts/GameContext';
+import { useGameActions } from '../../contexts/GameContext';
 import GameIcon, { IconName } from '../ui/GameIcon';
 
 /** One action shown as a bubble on the map. */
@@ -134,7 +134,7 @@ interface ActionBubblesProps {
  * which zooms the board back to where it was before the click.
  */
 const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
-  const { setSelectedObject } = useGameRoom();
+  const { setSelectedObject } = useGameActions();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // A new selection starts fresh.

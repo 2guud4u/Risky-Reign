@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CHAT_MESSAGE_MAX } from 'common';
 import { PriceText } from '../../utils/price';
-import { useGameRoom } from '../../contexts/GameContext';
+import { useGameState } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { MessageCircle } from 'lucide-react';
@@ -17,7 +17,7 @@ import Button from '../ui/Button';
  * Completed trades (player and bank) appear in the log as 🔄 announcements.
  */
 const ChatButton: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { sendChat } = useSocket();
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
@@ -60,7 +60,7 @@ const ChatButton: React.FC = () => {
     e.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    sendChat(gameRoom.id, text, whisperTo || undefined);
+    sendChat(text, whisperTo || undefined);
     setDraft('');
   };
 

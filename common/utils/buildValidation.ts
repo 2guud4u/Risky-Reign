@@ -94,14 +94,17 @@ export function canPlaceSetupCityAt(
 
 /**
  * Authoritative road build check, shared by the UI and the backend:
- * turn, phase, once-per-turn placement, existing road, ownership rule, and resources.
+ * turn, phase, once-per-turn placement, existing road, ownership rule, and
+ * resources. `freeRoad` (a played Road Building card) skips the resource
+ * cost outright — callers must not fake a resource pile to bypass it.
  */
 export function canBuildRoadOn(
   board: Board,
   turn: TurnState,
   playerName: string,
   edgeId: EdgeId,
-  playerResources?: ResourceCount
+  playerResources?: ResourceCount,
+  freeRoad = false
 ): BuildCheck {
   if (turn.player !== playerName) return { allowed: false, reason: 'Not your turn' };
   if (turn.phase !== 'SetUp' && turn.phase !== 'Build')
@@ -137,7 +140,7 @@ export function canBuildRoadOn(
 
   // Check resources in Build phase (applies whether the road touches a
   // settlement or extends a road — the settlement branch must not skip it).
-  if (turn.phase === 'Build') {
+  if (turn.phase === 'Build' && !freeRoad) {
     if (playerResources && !canAfford(playerResources, RoadPrice)) {
       return { allowed: false, reason: 'Not enough resources for a road' };
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
 import { RESOURCES, ResourceKey } from 'common';
@@ -18,7 +18,7 @@ import GameIcon from '../components/ui/GameIcon';
  * Other players see a "{player} is choosing a card" notice.
  */
 const DevCardPrompt: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { resolveDevCardChoice, chooseKnightEffect } = useSocket();
   const [counts, setCounts] = useState<Record<ResourceKey, number>>({
     Wood: 0,
@@ -57,7 +57,7 @@ const DevCardPrompt: React.FC = () => {
             <button
               key={o.effect}
               type="button"
-              onClick={() => gameRoom && chooseKnightEffect(gameRoom.id, o.effect)}
+              onClick={() => chooseKnightEffect(o.effect)}
               className="flex-1 py-4 rounded-md border-2 border-gray-300 bg-white hover:border-blue-500 hover:bg-blue-50 active:scale-95 motion-reduce:active:scale-100 transition-all flex flex-col items-center gap-1 cursor-pointer"
             >
               <GameIcon name={o.icon} size={32} />
@@ -68,7 +68,7 @@ const DevCardPrompt: React.FC = () => {
         </div>
         <button
           type="button"
-          onClick={() => gameRoom && chooseKnightEffect(gameRoom.id, 'cancel')}
+          onClick={() => chooseKnightEffect('cancel')}
           className="mt-3 w-full py-1.5 rounded-md text-[13px] font-semibold text-gray-500 hover:bg-gray-100 cursor-pointer"
         >
           Keep the card for later
@@ -97,7 +97,7 @@ const DevCardPrompt: React.FC = () => {
     for (const r of RESOURCES) {
       for (let i = 0; i < (counts[r] ?? 0); i++) resources.push(r);
     }
-    resolveDevCardChoice(resources, gameRoom.id);
+    resolveDevCardChoice(resources);
     setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
   };
 
@@ -126,7 +126,7 @@ const DevCardPrompt: React.FC = () => {
               <button
                 key={r}
                 type="button"
-                onClick={() => gameRoom && resolveDevCardChoice([r], gameRoom.id)}
+                onClick={() => resolveDevCardChoice([r])}
                 className="py-2 rounded-md border-2 border-gray-300 bg-white flex flex-col items-center gap-1 cursor-pointer hover:border-blue-500 hover:bg-blue-50 active:scale-95 motion-reduce:active:scale-100 transition-all"
               >
                 {face}

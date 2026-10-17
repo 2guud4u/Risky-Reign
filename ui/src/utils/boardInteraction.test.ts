@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nearestWithin, validSoldierTargets } from './boardInteraction';
+import { nearestWithin } from './boardInteraction';
 import type { Board } from 'common';
 
 /** Minimal board: three vertices in a row, edges A-B (road) and B-C (no road). */
@@ -16,15 +16,6 @@ const board = {
   hexes: {},
   soldiers: {},
 } as unknown as Board;
-
-describe('validSoldierTargets', () => {
-  it('only road-connected vertices are valid targets', () => {
-    expect(validSoldierTargets(board, 'A')).toEqual(['B']);
-    // B connects by road to A only — BC has no road.
-    expect(validSoldierTargets(board, 'B')).toEqual(['A']);
-    expect(validSoldierTargets(board, 'C')).toEqual([]);
-  });
-});
 
 describe('nearestWithin (drop resolution)', () => {
   const ids = ['A', 'B', 'C'];

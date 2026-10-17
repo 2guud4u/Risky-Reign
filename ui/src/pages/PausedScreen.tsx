@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PausedGameInfo } from 'common';
 import { useSocket } from '../contexts/SocketContext';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { saveSession, clearSavedSession, readSavedSession } from '../utils/session';
 import { PASSWORD_MAX } from 'common';
 import Button from '../components/ui/Button';
@@ -23,7 +23,7 @@ interface PausedScreenProps {
 const PausedScreen: React.FC<PausedScreenProps> = ({ info, onBack }) => {
   const { socket, openResumeLobby, unlockResumeLobby, claimSeat, closeResumeLobby, startGame } =
     useSocket();
-  const { gameRoom } = useGameRoom();
+  const { gameRoom } = useGameState();
   const [hostPassword, setHostPassword] = useState('');
   const [lobbyPassword, setLobbyPassword] = useState('');
   const [unlocked, setUnlocked] = useState(false);

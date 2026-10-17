@@ -6,9 +6,9 @@
  */
 
 import { useSyncExternalStore } from 'react';
+import { emitEffect, onEffect } from '../effects';
 
 const STORAGE_KEY = 'tutorialHints';
-const CHANGE_EVENT = 'tutorial-hints-change';
 
 function readHintsOn(): boolean {
   try {
@@ -25,14 +25,15 @@ export function setTutorialHints(on: boolean): void {
   } catch {
     // localStorage unavailable — the change still applies for this page.
   }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
+  emitEffect('tutorialHintsChange');
 }
 
 function subscribe(onChange: () => void): () => void {
-  window.addEventListener(CHANGE_EVENT, onChange);
+  const off = onEffect('tutorialHintsChange', onChange);
+  // Other tabs change the pref through their own localStorage.
   window.addEventListener('storage', onChange);
   return () => {
-    window.removeEventListener(CHANGE_EVENT, onChange);
+    off();
     window.removeEventListener('storage', onChange);
   };
 }

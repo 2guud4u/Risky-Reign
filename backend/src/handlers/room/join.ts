@@ -18,7 +18,7 @@ import {
   PLAYER_NAME_MAX,
 } from 'common';
 
-import { createGameRoom, gameRooms, freshResourceCount, STARTING_RESOURCES } from '../../store';
+import { createGameRoom, getRoom, hasRoom, roomCount, rooms, freshResourceCount, STARTING_RESOURCES } from '../../store';
 import { broadcastRoom } from '../../broadcast';
 import { MAX_ROOMS } from '../../constants';
 import { HandlerContext } from '../context';
@@ -60,7 +60,7 @@ export function registerJoinHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
       socket.emit('error', { message: 'Invalid color' });
       return;
     }
-    let room = gameRooms.get(roomId);
+    let room = getRoom(roomId);
     if (!room) {
       const meta = persistedMeta(roomId);
       if (meta?.status === 'paused') {
@@ -80,7 +80,7 @@ export function registerJoinHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
     }
     if (!room) {
       // A join that would CREATE a room is refused once the server is full.
-      if (gameRooms.size >= MAX_ROOMS) {
+      if (roomCount() >= MAX_ROOMS) {
         socket.emit('error', { message: 'Server is full' });
         return;
       }
@@ -199,18 +199,18 @@ export function registerJoinHandlers(ctx: HandlerContext, joinedRoomIds: Set<str
   // client joins to create. Answering with the code keeps joinRoom the only
   // seat-creation path (token/session/color logic stays in one place).
   socket.on('quickPlay', () => {
-    const found = pickQuickPlayRoom(gameRooms.values());
+    const found = pickQuickPlayRoom(rooms());
     if (found) {
       socket.emit('quickPlayFound', { roomId: found.id });
       return;
     }
-    if (gameRooms.size >= MAX_ROOMS) {
+    if (roomCount() >= MAX_ROOMS) {
       socket.emit('error', { message: 'Server is full' });
       return;
     }
     // Retry the rare generated-code collision rather than dying.
     let code = generateRoomCode();
-    while (gameRooms.has(code) || persistedMeta(code)) code = generateRoomCode();
+    while (hasRoom(code) || persistedMeta(code)) code = generateRoomCode();
     socket.emit('quickPlayFound', { roomId: code });
   });
 }

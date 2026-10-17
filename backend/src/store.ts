@@ -74,8 +74,45 @@ export function freshResourceCount(value: number): ResourceCount {
   };
 }
 
-/** In-memory store of active game rooms. */
-export const gameRooms = new Map<string, GameRoom>();
+/** In-memory store of active game rooms. Private: every mutation and lookup
+ * goes through the accessors below — the room aggregate owns this map so
+ * lifecycle invariants can't be bypassed by poking it directly. */
+const gameRooms = new Map<string, GameRoom>();
+
+/** Look up a live room by id. */
+export function getRoom(roomId: string): GameRoom | undefined {
+  return gameRooms.get(roomId);
+}
+
+/** Iterate all live rooms (sweeps, Quick Play candidate scan). */
+export function roomEntries(): IterableIterator<[string, GameRoom]> {
+  return gameRooms.entries();
+}
+
+/** Register a room (creation, hydration from a persisted snapshot). */
+export function putRoom(roomId: string, room: GameRoom): void {
+  gameRooms.set(roomId, room);
+}
+
+/** Evict a room (idle sweep, pause-to-disk, expiry). */
+export function removeRoom(roomId: string): void {
+  gameRooms.delete(roomId);
+}
+
+/** Live room count (Quick Play / MAX_ROOMS checks). */
+export function roomCount(): number {
+  return gameRooms.size;
+}
+
+/** Live rooms' values (Quick Play candidate scan). */
+export function rooms(): IterableIterator<GameRoom> {
+  return gameRooms.values();
+}
+
+/** Whether a room id is live in memory. */
+export function hasRoom(roomId: string): boolean {
+  return gameRooms.has(roomId);
+}
 
 /** Build a fresh standard board (projection size shared with the UI). */
 export function createBoard(): Board {
@@ -130,7 +167,7 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     spectators: [],
     passwordHash: null,
   };
-  gameRooms.set(roomId, room);
+  putRoom(roomId, room);
   return room;
 }
 
@@ -186,7 +223,3 @@ export function resetRoom(room: GameRoom): void {
   }
 }
 
-/** Look up a room by id. */
-export function getRoom(roomId: string): GameRoom | undefined {
-  return gameRooms.get(roomId);
-}

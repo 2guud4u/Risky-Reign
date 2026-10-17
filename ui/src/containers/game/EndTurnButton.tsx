@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useGameRoom } from '../../contexts/GameContext';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useGameState } from '../../contexts/GameContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { useBuildRules } from '../../hooks/useBuildRules';
+import { nothingBuildable } from '../../board/actions';
+import { actableSoldierIds } from '../../board/selectors';
 import { useTutorialHints } from '../../utils/tutorial';
 import GameIcon from '../../components/ui/GameIcon';
 
@@ -11,11 +12,15 @@ import GameIcon from '../../components/ui/GameIcon';
  * an info tip instead of an end-turn button.
  */
 const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant = 'panel' }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { endTurn: onEndTurn } = useSocket();
   const snack = variant === 'snackbar';
   const hintsOn = useTutorialHints();
-  const { nothingToBuild } = useBuildRules(gameRoom?.board ?? null);
+  const nothingToBuild = useMemo(
+    () => (gameRoom && currentPlayer ? nothingBuildable(gameRoom, currentPlayer) : false),
+    // Recomputed only when the broadcast room changes.
+    [gameRoom, currentPlayer]
+  );
 
   // Phase countdown: ticks once a second off the server-broadcast deadline.
   // The server clears `phaseTimerEndsAt` while a battle is open, so the chip
@@ -46,7 +51,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
     // Rolling the dice is done in the DiceDisplay (one die per click);
     // only advances the phase. The server derives the acting player from the
     // socket, so no playerId is sent.
-    onEndTurn(gameRoom.id);
+    onEndTurn();
   };
 
   const isMyTurn = !!(gameRoom && currentPlayer && gameRoom.turnState.player === currentPlayer.name);
@@ -56,16 +61,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
   // Soldiers of the current player who still have an unspent action this
   // Action phase (not yet acted, not just created). Shown as a warning when
   // ending the phase.
-  const soldiersWithActionsLeft = (() => {
-    if (gameRoom.turnState.phase !== 'Action' || !isMyTurn) return 0;
-    const turn = gameRoom.turnState;
-    return Object.values(gameRoom.board?.soldiers ?? {}).filter(
-      (s) =>
-        s.owner === currentPlayer.name &&
-        !turn.soldiersActedThisTurn.includes(s.id) &&
-        !turn.soldiersCreatedThisTurn.includes(s.id)
-    ).length;
-  })();
+  const soldiersWithActionsLeft = actableSoldierIds(gameRoom, currentPlayer.name).length;
 
   // SetUp: show a hint of what's still needed instead of an end-turn button.
   if (gameRoom.turnState.phase === 'SetUp') {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Dice from '../components/Dice';
 import { DICE_RESULT_LINGER_MS } from '../constants';
@@ -17,7 +17,7 @@ const GIANT_DICE_SIZE = 120;
  * renders nothing — the last roll stays visible in the corner pill.
  */
 const DiceDisplay: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { rollDice } = useSocket();
   const reduce = useReducedMotion();
 
@@ -80,13 +80,13 @@ const DiceDisplay: React.FC = () => {
                 value={r.die1}
                 size={GIANT_DICE_SIZE}
                 canRoll={isDicePlayer && r.die1 === null}
-                onRoll={() => rollDice(gameRoom.id)}
+                onRoll={() => rollDice()}
               />
               <Dice
                 value={r.die2}
                 size={GIANT_DICE_SIZE}
                 canRoll={isDicePlayer && r.die1 !== null && r.die2 === null}
-                onRoll={() => rollDice(gameRoom.id)}
+                onRoll={() => rollDice()}
               />
             </div>
           </motion.div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PublicGameRoom, PublicPlayer, SoldierBattleState, canRollSoldier, resolveBattleOutcome } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import MiniView from '../components/MiniView';
@@ -68,7 +68,6 @@ const BattleModalInner: React.FC<{
     board,
     battle,
     currentPlayer,
-    roomId: gameRoom?.id,
     repositionSoldier,
     finishRepositioning,
   });
@@ -104,7 +103,7 @@ const BattleModalInner: React.FC<{
     );
     if (!committed) return;
     setRollingSoldierId(soldierId);
-    rollBattleDie(soldierId, gameRoom.id);
+    rollBattleDie(soldierId);
   };
 
   const canRoll = (s: SoldierBattleState): boolean => canRollSoldier(battle, s, me);
@@ -224,18 +223,17 @@ const BattleModalInner: React.FC<{
               canContinue={canContinue}
               attackerAlive={attackerAlive}
               defenderAlive={defenderAlive}
-              onContinue={() => currentPlayer && continueBattle(gameRoom.id)}
-              onEnd={() => currentPlayer && endBattle(gameRoom.id)}
+              onContinue={() => currentPlayer && continueBattle()}
+              onEnd={() => currentPlayer && endBattle()}
             />
             <BattleOutcomePanel
               battle={battle}
               board={board}
               outcome={outcome}
               currentPlayer={currentPlayer}
-              roomId={gameRoom.id}
               robberDefeatedBy={gameRoom.robberDefeatedBy}
               moveRobberAfterWin={moveRobberAfterWin}
-              onExit={() => exitBattle(gameRoom.id)}
+              onExit={() => exitBattle()}
               moverName={moverName}
               myStagedCount={myStagedCount}
               moverTotal={moverTotal}
@@ -254,7 +252,7 @@ const BattleModalInner: React.FC<{
  * it can paint that final frame.
  */
 const BattleModal: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const last = useRef<{ gameRoom: PublicGameRoom; currentPlayer: PublicPlayer | null } | null>(null);
   if (gameRoom?.battleState && gameRoom.board) {
     last.current = { gameRoom, currentPlayer };

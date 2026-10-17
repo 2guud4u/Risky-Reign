@@ -19,7 +19,7 @@ type SidebarTab = 'terrain' | 'numbers' | 'docks';
  * the top bar asks the server for a fresh random map; the parent remounts
  * this component when the room board changes.
  */
-const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onRefreshMap }) => {
+const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMap }) => {
   const {
     map,
     docks,
@@ -200,7 +200,6 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ roomId, initialBoard, onR
             />
           )}
           <SavePanel
-            roomId={roomId}
             map={map}
             docks={docks}
             validation={validation}

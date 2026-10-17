@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LOBBY_HEX_SIZE, MIN_PLAYERS } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameActions, useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
 import BoardView from '../containers/BoardView';
@@ -62,7 +62,8 @@ function fallbackCopyText(text: string): boolean {
 }
 
 const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }> = ({ error, onCustomizeGame }) => {
-  const { gameRoom, currentPlayer, setGameRoom, setCurrentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
+  const { clearRoomState } = useGameActions();
   const {
     startGame: onStartGame,
     updatePlayerColor: onUpdatePlayerColor,
@@ -79,7 +80,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
   const handleSetName = () => {
     const name = nameInput.trim();
     if (!name || !gameRoom || !currentPlayer) return;
-    onUpdatePlayerName(gameRoom.id, name);
+    onUpdatePlayerName(name);
     // Keep the seat token so a reload re-attaches to this same player.
     const saved = readSavedSession();
     saveSession({
@@ -90,10 +91,9 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
     });
   };
   const leaveLobby = () => {
-    if (gameRoom) emitLeaveGame(gameRoom.id);
+    if (gameRoom) emitLeaveGame();
     clearSavedSession();
-    setGameRoom(null);
-    setCurrentPlayer(null);
+    clearRoomState();
     setMenuOpen(false);
   };
   const copyJoinLink = async () => {
@@ -216,12 +216,12 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
               others={gameRoom.players
                 .filter((p) => p.id !== currentPlayer.id)
                 .map((p) => ({ name: p.name || 'Unnamed player', color: p.color }))}
-              onChange={(color) => onUpdatePlayerColor(gameRoom.id, color)}
+              onChange={(color) => onUpdatePlayerColor(color)}
             />
           </div>
           {error && <p className="text-clay text-center mt-2 text-sm">{error}</p>}
           {canStart && (
-            <Button variant="primary" onClick={() => onStartGame(gameRoom.id)} className="mt-4 w-full">
+            <Button variant="primary" onClick={() => onStartGame()} className="mt-4 w-full">
               Start Game
             </Button>
           )}
@@ -292,7 +292,7 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
                         variant="ghost"
                         size="sm"
                         className="flex-1"
-                        onClick={() => onSetRoomPassword(gameRoom.id, roomPassword.trim())}
+                        onClick={() => onSetRoomPassword(roomPassword.trim())}
                       >
                         {roomPassword.trim() ? 'Set password' : 'Clear password'}
                       </Button>

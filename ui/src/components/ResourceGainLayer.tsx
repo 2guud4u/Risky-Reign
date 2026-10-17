@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { cubeToPixel, ResourceKey, RESOURCES } from 'common';
 import { BOARD_CENTER, GAIN_DURATION, GAIN_STAGGER, PROJ_SIZE } from '../constants';
 import { FlyIcon } from '../types/flyIcon';
@@ -14,7 +14,7 @@ import { nextIconId, toScreen, FlyIconView, resolveResourceAnchor } from './FlyI
  * Cards tab header).
  */
 const ResourceGainLayer: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const [icons, setIcons] = useState<FlyIcon[]>([]);
 
   const prevResources = useRef<Record<string, number> | null>(null);

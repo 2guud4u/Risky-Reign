@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSetupCoach } from '../hooks/useSetupCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { affordableSummary } from '../utils/affordable';
@@ -32,7 +32,7 @@ const PHASE_TIPS: Record<string, { title: string; body: string }> = {
  * current phase. "Hide tips" turns every hint off (remembered).
  */
 const TutorialCoach: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const hintsOn = useTutorialHints();
   const coach = useSetupCoach(gameRoom?.board ?? null);
   const turn = gameRoom?.turnState;

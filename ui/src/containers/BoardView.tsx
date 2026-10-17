@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { BOARD_RADIUS, domainToPresentation, BoardUIState, adjacentHexIds } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
+import { useGameActions, useGameState, useSelection } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import { useOnEffect } from '../effects';
 import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
 import { playerColorMap } from '../utils/soldierPlacement';
-import { actableSoldierIds, soldierCanAct } from '../utils/soldierActions';
-import { soldierMovableThisTurn } from '../utils/boardInteraction';
+import { actableSoldierIds, knightSpawnTargets, movableSoldierIds, robberPlacementTargets, robberTargets } from '../board/selectors';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { PortLayer } from '../components/board/PortLayer';
@@ -48,8 +48,9 @@ import {
  * Escape clears the selection and cancels any in-progress drag.
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
-  const { gameRoom, currentPlayer, selectedObject, setSelectedObject, selectedSoldierIds, setSelectedSoldierIds, boardFitVersion } =
-    useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
+  const { selectedObject, selectedSoldierIds } = useSelection();
+  const { setSelectedObject, setSelectedSoldierIds } = useGameActions();
   const { moveSoldier, moveRobber, moveRobberAfterWin } = useSocket();
 
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
@@ -151,13 +152,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   }, [selectedObject, restoreView]);
   // An action asking for the whole board (the robber's Move bubble) glides
   // out to the fit view so every highlighted target hex is on screen.
-  const seenFitVersion = useRef(boardFitVersion);
-  useEffect(() => {
-    if (boardFitVersion !== seenFitVersion.current) {
-      seenFitVersion.current = boardFitVersion;
-      fitView();
-    }
-  }, [boardFitVersion, fitView]);
+  useOnEffect('boardFit', fitView);
   // Clicking a vertex or edge selects it and glides the board in, centered on
   // it (an edge centers on its midpoint). The waiting-room preview board stays
   // static (the game hasn't started).
@@ -201,29 +196,17 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // phase only) — no vertex selection needed. Board-wide variant of
   // `actableSoldierIds`, so the selected vertex's pickable soldiers are
   // automatically included.
-  const boltedSoldierIds = useMemo(() => {
-    const out = new Set<string>();
-    const turn = gameRoom?.turnState;
-    if (!gameRoom?.board || !currentPlayer?.name || !turn) return out;
-    if (turn.phase !== 'Action' || turn.player !== currentPlayer.name || gameRoom.battleState) return out;
-    for (const s of Object.values(gameRoom.board.soldiers ?? {})) {
-      if (s.owner === currentPlayer.name && soldierCanAct(s, turn)) out.add(s.id);
-    }
-    return out;
-  }, [gameRoom, currentPlayer?.name]);
-  // Sprites the touch layer may treat as drag handles — the same gate
-  // `isSoldierDraggable` applies (own Action phase, movable this turn).
-  // Anything else (opponents, already-acted, other phases) pans on touch.
-  const draggableSoldierIds = useMemo(() => {
-    const out = new Set<string>();
-    const turn = gameRoom?.turnState;
-    if (!gameRoom?.board || !currentPlayer?.name || !turn) return out;
-    if (turn.phase !== 'Action' || turn.player !== currentPlayer.name) return out;
-    for (const s of Object.values(gameRoom.board.soldiers ?? {})) {
-      if (s.owner === currentPlayer.name && soldierMovableThisTurn(s, gameRoom)) out.add(s.id);
-    }
-    return out;
-  }, [gameRoom, currentPlayer?.name]);
+  const boltedSoldierIds = useMemo(
+    () => new Set(actableSoldierIds(gameRoom, currentPlayer?.name)),
+    [gameRoom, currentPlayer?.name]
+  );
+  // Sprites the touch layer may treat as drag handles — the movable gate
+  // `isSoldierDraggable` applies (own Action phase, movable this turn: not
+  // freshly healed, not a stationed cannon). Anything else pans on touch.
+  const draggableSoldierIds = useMemo(
+    () => new Set(movableSoldierIds(gameRoom, currentPlayer?.name)),
+    [gameRoom, currentPlayer?.name]
+  );
   const pickedSoldierIds = useMemo(() => new Set(selectedSoldierIds), [selectedSoldierIds]);
   const togglePickedSoldier = useCallback(
     (soldierId: string) =>
@@ -267,22 +250,22 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // Clicking a highlighted hex while a robber move is pending places it there.
   const onHexClick = useCallback(
     (hexId: string) => {
-      if (!gameRoom) return;
-      if (winPending) moveRobberAfterWin(hexId, gameRoom.id);
-      else if (robberPending) moveRobber(hexId, gameRoom.id);
+      if (winPending) moveRobberAfterWin(hexId);
+      else if (robberPending) moveRobber(hexId);
       setSelectedObject(null);
     },
-    [gameRoom, winPending, robberPending, moveRobber, moveRobberAfterWin, setSelectedObject]
+    [winPending, robberPending, moveRobber, moveRobberAfterWin, setSelectedObject]
   );
-  // The hexes the post-win robber may be moved to (adjacent to its current
-  // hex, non-desert) — highlighted while the winner must make the move.
-  const winTargetIds = useMemo(() => {
+  // The hexes the robber may land on right now: adjacent non-desert hexes
+  // after a won fight, or any non-desert empty hex for a pending 7/knight
+  // placement. Highlighted while the move is pending.
+  const robberTargetIds = useMemo(() => {
+    if (!board) return new Set<string>();
     const from = gameRoom?.robberDefeatedBy?.fromHexId;
-    if (!board || !from || !winPending) return new Set<string>();
-    return new Set(
-      adjacentHexIds(board, from).filter((id) => board.hexes[id]?.terrain !== 'Desert')
-    );
-  }, [board, gameRoom?.robberDefeatedBy?.fromHexId, winPending]);
+    if (winPending && from) return new Set(robberTargets(board, from));
+    if (robberPending) return new Set(robberPlacementTargets(board));
+    return new Set<string>();
+  }, [board, gameRoom?.robberDefeatedBy?.fromHexId, winPending, robberPending]);
 
   // Knight spawn: while my played Knight waits for its soldier, every vertex
   // where I already have a soldier is a target (same rule as the server's
@@ -292,15 +275,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     choice?.card === 'knight' && !!choice.spawn && choice.player === currentPlayer?.name;
   const spawnTargets = useMemo(() => {
     if (!board || !spawnPending || !currentPlayer) return [];
-    const ids = new Set(
-      Object.values(board.soldiers)
-        .filter((s) => s.owner === currentPlayer.name)
-        .map((s) => s.vertexId)
-    );
-    return [...ids].flatMap((id) => {
-      const v = board.vertices[id];
-      return v ? [{ id, position: v.position }] : [];
-    });
+    return knightSpawnTargets(board, currentPlayer.name).map((id) => ({
+      id,
+      position: board.vertices[id].position,
+    }));
   }, [board, spawnPending, currentPlayer]);
 
   // Setup coach: a suggested spot for my next settlement/road (null when off).
@@ -369,7 +347,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
             hexes={hexes}
             robberPending={robberPending}
             winPending={winPending}
-            winTargetIds={winTargetIds}
+            robberTargetIds={robberTargetIds}
             rollTotal={rollTotal}
             onRobberPointerDown={startRobberDrag}
             onWinRobberPointerDown={startWinDrag}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { useGameRoom } from '../../contexts/GameContext';
+import { useGameState } from '../../contexts/GameContext';
 import PlayersList from '../../containers/game/PlayersList';
 import MapIconButton from '../ui/MapIconButton';
 import { User } from 'lucide-react';
@@ -11,7 +11,7 @@ import { User } from 'lucide-react';
  * left side of the map; clicking it again hides them.
  */
 const PlayersButton: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
   if (!gameRoom || !currentPlayer) return null;

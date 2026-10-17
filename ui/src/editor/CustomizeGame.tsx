@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { boardToLayouts, presetFromRoom, useGamePresets, GamePreset } from '../hooks/useGamePresets';
 import GameRulesForm from '../components/GameRulesForm';
@@ -19,7 +19,7 @@ import Button from '../components/ui/Button';
  * localStorage, loadable in one click.
  */
 const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const {
     setRulesLock,
     setTurnMode,
@@ -63,11 +63,11 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const loadPreset = (p: GamePreset) => {
     if (!canEdit || !room) return;
-    updatePointsToWin(room.id, p.rules.pointsToWin);
-    setTurnMode(room.id, p.rules.turnMode);
-    setSetupCities(room.id, p.rules.setupCities);
-    setTurnTimer(room.id, p.rules.turnTimerMs);
-    editBoard(room.id, p.map, p.docks);
+    updatePointsToWin(p.rules.pointsToWin);
+    setTurnMode(p.rules.turnMode);
+    setSetupCities(p.rules.setupCities);
+    setTurnTimer(p.rules.turnTimerMs);
+    editBoard(p.map, p.docks);
   };
 
   const savePreset = () => {
@@ -94,7 +94,7 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         {/* Customization lock: host flips it; everyone sees the state. */}
         <button
           type="button"
-          onClick={() => isHost && setRulesLock(room.id, !room.rulesLocked)}
+          onClick={() => isHost && setRulesLock(!room.rulesLocked)}
           disabled={!isHost}
           title={
             isHost
@@ -194,9 +194,8 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       ) : canEdit && board ? (
         <BoardEditorPage
           key={boardKey}
-          roomId={room.id}
           initialBoard={board}
-          onRefreshMap={() => refreshMap(room.id)}
+          onRefreshMap={() => refreshMap()}
         />
       ) : (
         // Locked out or no board yet: the room's board as a static preview.

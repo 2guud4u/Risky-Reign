@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import EndTurnButton from './game/EndTurnButton';
 import TurnTimeline from './TurnTimeline';
@@ -27,7 +27,7 @@ export const phaseColor = (phase: string): string => {
  * the end-turn button. Positioned by NoticeRail (top center, above the notices).
  */
 const TurnOverlay: React.FC = () => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   const { undoBuild } = useSocket();
   const [timelineOpen, setTimelineOpen] = useState(false);
   if (!gameRoom) return null;
@@ -61,7 +61,7 @@ const TurnOverlay: React.FC = () => {
           {canUndo && (
             <button
               type="button"
-              onClick={() => undoBuild(gameRoom.id)}
+              onClick={() => undoBuild()}
               className="flex items-center gap-1 px-2.5 py-2 md:py-1.5 text-[13px] font-semibold rounded-md bg-white/25 cursor-pointer hover:bg-white/40"
               title="Undo last action"
               aria-label="Undo last action"

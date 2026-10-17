@@ -1,6 +1,6 @@
 import React from 'react';
 import { upcomingTurns } from 'common';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { phaseColor } from './TurnOverlay';
 import { X } from 'lucide-react';
@@ -16,7 +16,7 @@ const TIMELINE_LOOKAHEAD = 25;
  * advances with.
  */
 const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { gameRoom, currentPlayer } = useGameRoom();
+  const { gameRoom, currentPlayer } = useGameState();
   if (!gameRoom) return null;
   const colors = playerColorMap(gameRoom);
   const knockedOut = gameRoom.players.filter((p) => p.eliminated).map((p) => p.name);

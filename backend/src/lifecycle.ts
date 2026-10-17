@@ -1,10 +1,11 @@
 import { GameRoom, GameStatus, PausedGameInfo, PERSISTED_GAME_TTL_MS } from 'common';
-import { gameRooms } from './store';
+import { getRoom, putRoom } from './store';
 import {
   GameMeta,
   PersistedStatus,
   getMeta,
   load,
+  remove,
   saveSnapshot,
   updateStatus,
 } from './persistence/gameRepository';
@@ -24,10 +25,10 @@ import {
 /** Allowed status edges; anything else is a caller bug or a stale request. */
 const ALLOWED: Record<GameStatus, readonly GameStatus[]> = {
   waiting: ['playing'],
-  playing: ['paused', 'finished'],
+  playing: ['paused', 'finished', 'waiting'],
   paused: ['resuming'],
   resuming: ['playing', 'paused'],
-  finished: [],
+  finished: ['waiting'],
 };
 
 /**
@@ -103,6 +104,13 @@ export function transition(
       hostName: hostNameOf(room),
       completedAt: now,
     });
+  } else if (to === 'waiting') {
+    // "Play Again" returns the room to the lobby. The persisted row is
+    // finished business — drop it so the code's expiry can't sweep a lobby
+    // that was never persisted anyway.
+    remove(room.id);
+    clearResumeLobbyHash(room.id);
+    room.pausedAt = null;
   } else if (from === 'resuming' && to === 'playing') {
     // Lobby complete: fresh autosave, drop the in-memory lobby hash.
     saveSnapshot(room, { status: 'playing', hostName: hostNameOf(room) });
@@ -119,7 +127,7 @@ export function transition(
  * across restarts.
  */
 export function hydrateRoom(id: string, opts: { allowPaused?: boolean } = {}): GameRoom | null {
-  const existing = gameRooms.get(id);
+  const existing = getRoom(id);
   if (existing) return existing;
   const meta = getMeta(id);
   if (!meta) return null;
@@ -129,7 +137,7 @@ export function hydrateRoom(id: string, opts: { allowPaused?: boolean } = {}): G
   // Hydrated rooms arrive fully disconnected; the row's clock survives so the
   // expiry sweep and expiresAt stay continuous across restarts.
   room.lastActivityAt = meta.last_activity_at;
-  gameRooms.set(id, room);
+  putRoom(id, room);
   if (meta.status === 'resuming' && meta.lobby_password_hash) {
     resumeLobbyHashes.set(id, meta.lobby_password_hash);
   }

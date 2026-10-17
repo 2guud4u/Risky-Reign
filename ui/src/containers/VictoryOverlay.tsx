@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGameRoom } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
 import GameIcon from '../components/ui/GameIcon';
@@ -11,7 +11,7 @@ import GameIcon from '../components/ui/GameIcon';
  * players can still pan/zoom and look around the final board.
  */
 const VictoryOverlay: React.FC = () => {
-  const { gameRoom } = useGameRoom();
+  const { gameRoom } = useGameState();
   const { resetGame } = useSocket();
   const [viewingMap, setViewingMap] = useState(false);
   if (!gameRoom) return null;
@@ -29,7 +29,7 @@ const VictoryOverlay: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={() => resetGame(gameRoom.id)}
+          onClick={() => resetGame()}
           className="px-3 py-1.5 rounded-md text-[13px] font-semibold text-white bg-blue-500 cursor-pointer"
         >
           Play Again
@@ -72,7 +72,7 @@ const VictoryOverlay: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => resetGame(gameRoom.id)}
+            onClick={() => resetGame()}
             className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer transition-all active:scale-95 motion-reduce:active:scale-100"
           >
             Play Again
