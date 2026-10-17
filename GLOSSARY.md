@@ -31,3 +31,5 @@
 | Customize Game | The pre-game configuration page entered from the waiting room. Two tabs: General Rules (points to win, turn structure, setup cities, turn timer) and Board (the map editor). The only place game rules can be changed. |
 | Game preset | A named, browser-local saved bundle of game rules plus a board layout, loadable in one click from Customize Game. |
 | Customization lock | A room-wide host toggle gating who may change rules and board: unlocked (default) = anyone in the room may edit; locked = host only. Independent of the lobby password, which the host alone always controls. |
+| Coast vertex | A board vertex touching exactly one land hex, its other neighbors water or empty — the only place a trade port (dock) may sit. |
+| Dock | One trade port on the board's coastline: a generic (3:1) or resource (2:1) harbor occupying a span of one or two adjacent coast vertices. |

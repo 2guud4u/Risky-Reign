@@ -3,7 +3,11 @@ import {
   CubeCoord,
   Terrain,
   Board,
+  DockSpec,
+  PortType,
   assignStandardHexes,
+  computeAdjacency,
+  coastRing,
   BOARD_RADIUS,
   TOKENS,
   shuffle,
@@ -11,7 +15,46 @@ import {
   cubeCoordKey,
 } from 'common';
 import { EditorHex, EditorMap, Tactic, Target } from './types';
-import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, NUMBER_OPTIONS, TERRAIN_OPTIONS } from './constants';
+import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, HEX_SIZE, NUMBER_OPTIONS, TERRAIN_OPTIONS } from './constants';
+
+/**
+ * The editor's coast ring: vertices touching exactly one non-water placed
+ * hex, sorted by angle — the same order `generateBoard`/`extractDocks` use,
+ * so dock indices mean the same coast vertices on save.
+ */
+export function computeCoastRing(map: EditorMap): { x: number; y: number }[] {
+  const coords = Object.values(map).map((h) => h.coord);
+  if (coords.length === 0) return [];
+  const { vertices } = computeAdjacency(coords, HEX_SIZE);
+  return coastRing([...vertices.values()], (id) => map[id.slice(2)]?.terrain === 'Water').map(
+    (v) => v.position
+  );
+}
+
+/** The ring vertices a dock spans (wraps; each index mod n). */
+export function dockSpanVertices(
+  coast: { x: number; y: number }[],
+  dock: DockSpec
+): { x: number; y: number }[] {
+  const n = coast.length;
+  if (n === 0) return [];
+  return dock.coast.slice(0, 2).map((i) => coast[((i % n) + n) % n]);
+}
+
+/**
+ * Stretch/anchor a dock so it spans [s, t] around the ring. t === s shrinks
+ * to a single vertex; a non-adjacent t re-anchors the span at t (the span
+ * keeps its width), which makes any distant drop behave like a move.
+ */
+export function dockSpanTo(s: number, t: number, n: number, dock?: DockSpec): number[] {
+  if (t === s) return [s];
+  const wrap = (i: number) => ((i % n) + n) % n;
+  const sN = wrap(s), tN = wrap(t);
+  if (tN === (sN + 1) % n) return [sN, tN];
+  if (tN === (sN - 1 + n) % n) return [tN, sN];
+  const len = dock?.coast.length === 2 ? 2 : 1;
+  return len === 2 ? [tN, (tN + 1) % n] : [tN];
+}
 
 /** Canonical cube-coord string key — re-export of `cubeCoordKey` from common. */
 export const coordKey = cubeCoordKey;
@@ -125,7 +168,7 @@ export function expansionBoardMap(): EditorMap {
  * (a colored dot for terrain, a number token for numbers) instead of a
  * snapshot of the whole toolbar item / board.
  */
-export function setCustomDragImage(e: DragEvent, kind: 'terrain' | 'number', value: Terrain | number) {
+export function setCustomDragImage(e: DragEvent, kind: 'terrain' | 'number' | 'port', value: Terrain | number | PortType) {
   const el = document.createElement('div');
   el.style.width = '44px';
   el.style.height = '44px';
@@ -139,6 +182,11 @@ export function setCustomDragImage(e: DragEvent, kind: 'terrain' | 'number', val
   el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
   if (kind === 'terrain') {
     el.style.background = terrainColors[value as Terrain] ?? '#eee';
+  } else if (kind === 'port') {
+    el.style.background = value === 'generic' ? '#b8895a' : '#8a5a30';
+    el.style.color = '#fff';
+    el.textContent = value === 'generic' ? '3:1' : '2:1';
+    el.style.fontSize = '14px';
   } else {
     el.style.background = '#fff';
     el.textContent = String(value);

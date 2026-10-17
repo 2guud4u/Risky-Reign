@@ -4,6 +4,7 @@ import {
   validateLayouts,
   generateBoard,
   HexLayout,
+  DockSpec,
   GAME_HEX_SIZE,
   TurnMode,
   CHAT_MESSAGE_MAX,
@@ -22,6 +23,35 @@ import { HandlerContext, requireRoom } from '../context';
 import { clearResumeLobbyHash, transition } from '../../lifecycle';
 import { remove as removePersisted } from '../../persistence/gameRepository';
 import { hashPassword } from '../../persistence/passwords';
+
+const PORT_TYPES: ReadonlySet<string> = new Set([
+  'generic',
+  'Wood',
+  'Brick',
+  'Sheep',
+  'Wheat',
+  'Ore',
+]);
+
+/**
+ * Coerce the wire payload into DockSpec[] or undefined. Invalid entries are
+ * dropped (a bad dock never blocks a board save); an entirely malformed
+ * payload falls back to a random coast.
+ */
+function sanitizeDocks(input: unknown): DockSpec[] | undefined {
+  if (!Array.isArray(input)) return undefined;
+  const out: DockSpec[] = [];
+  for (const d of input) {
+    if (!d || typeof d !== 'object') continue;
+    const { port, coast } = d as Partial<DockSpec>;
+    if (typeof port !== 'string' || !PORT_TYPES.has(port)) continue;
+    if (!Array.isArray(coast) || coast.length === 0 || coast.length > 2) continue;
+    const indices = coast.filter((i) => Number.isInteger(i) && (i as number) >= 0) as number[];
+    if (indices.length === 0) continue;
+    out.push({ port: port as DockSpec['port'], coast: indices });
+  }
+  return out.length > 0 ? out : undefined;
+}
 
 /**
  * Room configuration and game lifecycle the host controls while waiting:
@@ -207,7 +237,7 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
     broadcastRoom(io, room, room.gameStatus === 'waiting' ? 'roomUpdate' : 'gameUpdate');
   });
 
-  socket.on('editBoard', (data: { roomId: string; layouts: HexLayout[] }) => {
+  socket.on('editBoard', (data: { roomId: string; layouts: HexLayout[]; docks?: DockSpec[] }) => {
     const { roomId, layouts } = data;
     const room = requireRoom(socket, roomId);
     if (!room) return;
@@ -229,7 +259,13 @@ export function registerRoomSettingsHandlers(ctx: HandlerContext): void {
     if (rejectIfLockedOut(room)) return;
     // Rebuild the board from the custom layout. Pre-game (waiting) this is
     // safe — nothing is built yet. The robber resets to the new desert.
-    room.board = generateBoard(layouts, { generator: 'custom', hexSize: GAME_HEX_SIZE });
+    // Explicit docks (indices into the coast ring) persist the editor's
+    // hand-placed harbors; absent = a fresh shuffled coast.
+    room.board = generateBoard(layouts, {
+      generator: 'custom',
+      hexSize: GAME_HEX_SIZE,
+      docks: sanitizeDocks(data.docks),
+    });
     room.robberMove = null;
     applyBonuses(room);
     broadcastRoom(io, room, 'roomUpdate');

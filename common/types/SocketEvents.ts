@@ -9,7 +9,7 @@
  * event name or a wrong-shaped payload a compile error on both ends.
  */
 import { PublicGameRoom } from './Room';
-import { HexLayout } from './BoardGenerator';
+import { DockSpec, HexLayout } from './BoardGenerator';
 import { Price, ResourceKey, TurnMode } from './Logic';
 
 /**
@@ -115,7 +115,7 @@ export interface ClientToServerEvents {
   setSetupCities: (data: { roomId: string; setupCities: number }) => void;
   /** Host only: per-phase turn timer in ms (0 = off). Waiting-lobby setting. */
   setTurnTimer: (data: { roomId: string; turnTimerMs: number }) => void;
-  editBoard: (data: { roomId: string; layouts: HexLayout[] }) => void;
+  editBoard: (data: { roomId: string; layouts: HexLayout[]; docks?: DockSpec[] }) => void;
   /** Host-only: gate who may change rules/board while waiting (customization lock). */
   setRulesLock: (data: { roomId: string; locked: boolean }) => void;
   endTurn: (data: { roomId: string }) => void;

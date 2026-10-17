@@ -41,7 +41,14 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   // Remount the editor when the server board changes (refresh, another
   // player's save, a preset load) — the draft is the room's board, so a new
   // board identity means the draft is stale.
-  const boardKey = useMemo(() => (board ? JSON.stringify(boardToLayouts(board)) : 'none'), [board]);
+  const boardKey = useMemo(
+    () =>
+      board
+        ? JSON.stringify(boardToLayouts(board)) +
+          JSON.stringify(Object.values(board.vertices ?? {}).map((v) => v.port))
+        : 'none',
+    [board]
+  );
 
   if (!room || room.gameStatus !== 'waiting') {
     return (
@@ -60,7 +67,7 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setTurnMode(room.id, p.rules.turnMode);
     setSetupCities(room.id, p.rules.setupCities);
     setTurnTimer(room.id, p.rules.turnTimerMs);
-    editBoard(room.id, p.map);
+    editBoard(room.id, p.map, p.docks);
   };
 
   const savePreset = () => {

@@ -1,12 +1,14 @@
-import { useCallback, useState } from 'react';
-import { CubeCoord, Terrain, Board } from 'common';
+import { useCallback, useMemo, useState } from 'react';
+import { CubeCoord, Terrain, Board, DockSpec, extractDocks, randomDocks } from 'common';
 import { EditorMap, Tactic, Target } from './types';
 import {
   applyTerrain,
   assignNumbers,
   boardToMap,
   canCarryNumber,
+  computeCoastRing,
   coordKey,
+  dockSpanTo,
   expansionBoardMap,
   standardBoardMap,
 } from './utils';
@@ -20,6 +22,75 @@ import {
 export function useEditorMap(initialBoard?: Board) {
   const [map, setMap] = useState<EditorMap>(() => (initialBoard ? boardToMap(initialBoard) : standardBoardMap()));
   const [selectedCoord, setSelectedCoord] = useState<string | null>(null);
+  // Dock draft: indices into `coast`. Seeded from the room board so the
+  // editor shows the live harbors; absent board => fresh random layout.
+  const [docks, setDocks] = useState<DockSpec[]>(() => {
+    if (initialBoard) return extractDocks(initialBoard);
+    return randomDocks(computeCoastRing(standardBoardMap()).length);
+  });
+
+  // The coast ring follows the map; dock indices are positions along it.
+  const coast = useMemo(() => computeCoastRing(map), [map]);
+  const coastLen = coast.length;
+
+  /** Move dock `i` so its span starts at coast index `to` (width kept). */
+  const moveDock = useCallback(
+    (i: number, to: number) => {
+      if (coastLen === 0) return;
+      setDocks((ds) =>
+        ds.map((d, idx) =>
+          idx !== i
+            ? d
+            : { ...d, coast: d.coast.slice(0, 2).map((_, j) => (to + j) % coastLen) }
+        )
+      );
+    },
+    [coastLen]
+  );
+
+  /** Drag dock `i`'s span end (0|1) to coast index `to` — stretch, shrink,
+      or (on a distant drop) re-anchor the span there. */
+  const stretchDock = useCallback(
+    (i: number, end: 0 | 1, to: number) => {
+      if (coastLen === 0) return;
+      setDocks((ds) =>
+        ds.map((d, idx) => {
+          if (idx !== i) return d;
+          const s = d.coast[end === 0 ? 1 : 0] ?? d.coast[0]; // the fixed end
+          return { ...d, coast: dockSpanTo(s, to, coastLen, d) };
+        })
+      );
+    },
+    [coastLen]
+  );
+
+  /** Re-roll the dock layout over the current coast (same 9-dock mix the
+      server uses for fresh maps). */
+  const randomizeDocks = useCallback(() => {
+    setDocks(randomDocks(coastLen));
+  }, [coastLen]);
+
+  /** Place a new dock at coast index `to` (len-1 span; occupied/invalid no-op). */
+  const addDock = useCallback(
+    (to: number, port: DockSpec['port']) => {
+      if (coastLen === 0) return;
+      const t = ((to % coastLen) + coastLen) % coastLen;
+      setDocks((ds) =>
+        ds.some((d) => d.coast.includes(t)) ? ds : [...ds, { port, coast: [t] }]
+      );
+    },
+    [coastLen]
+  );
+
+  /** Remove dock `i` (trash drop / Delete button). */
+  const removeDock = useCallback((i: number) => {
+    setDocks((ds) => ds.filter((_, idx) => idx !== i));
+  }, []);
+
+  /** Set dock `i`'s port type (palette click while selected). */
+  const setDockPort = useCallback((i: number, port: DockSpec['port']) => {
+    setDocks((ds) => ds.map((d, idx) => (idx === i ? { ...d, port } : d)));
+  }, []);
 
   const selectedHex = selectedCoord ? map[selectedCoord] : null;
 
@@ -125,17 +196,25 @@ export function useEditorMap(initialBoard?: Board) {
   }, []);
 
   const resetToStandard = () => {
-    setMap(standardBoardMap());
+    const m = standardBoardMap();
+    setMap(m);
+    // Map resets re-roll the docks over the new coast (the map's own reset,
+    // so the draft doesn't keep stale indices against a different ring).
+    setDocks(randomDocks(computeCoastRing(m).length));
     setSelectedCoord(null);
   };
 
   const resetToExpansion = () => {
-    setMap(expansionBoardMap());
+    const m = expansionBoardMap();
+    setMap(m);
+    setDocks(randomDocks(computeCoastRing(m).length));
     setSelectedCoord(null);
   };
 
   return {
     map,
+    docks,
+    coast,
     selectedCoord,
     setSelectedCoord,
     selectedHex,
@@ -147,6 +226,12 @@ export function useEditorMap(initialBoard?: Board) {
     assign,
     moveHex,
     moveNumber,
+    moveDock,
+    stretchDock,
+    randomizeDocks,
+    addDock,
+    removeDock,
+    setDockPort,
     placeNumber,
     paintHex,
     resetToStandard,

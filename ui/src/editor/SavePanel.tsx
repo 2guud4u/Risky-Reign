@@ -9,7 +9,7 @@ import { toHexLayouts } from './utils';
  * non-water hex carries a roll number. Loading a previous configuration is
  * handled by game presets in the page header.
  */
-const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, validation, missingNumbers }) => {
+const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, docks, validation, missingNumbers }) => {
   const { editBoard } = useSocket();
   const canSave = validation.allowed && missingNumbers === 0;
 
@@ -18,7 +18,7 @@ const SavePanel: React.FC<SavePanelProps> = ({ roomId, map, validation, missingN
       <h3 className="text-sm font-semibold text-gray-700 mb-2">Save Board</h3>
       <div className="flex flex-col gap-2">
         <button
-          onClick={() => canSave && editBoard(roomId, toHexLayouts(map))}
+          onClick={() => canSave && editBoard(roomId, toHexLayouts(map), docks)}
           disabled={!canSave}
           className="w-full py-2 px-3 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
         >

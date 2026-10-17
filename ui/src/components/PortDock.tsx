@@ -102,7 +102,10 @@ const PortDockInner: React.FC<{
   vertices: PixelCoord[];
   port: PortType;
   size: number;
-}> = ({ vertices, port, size }) => {
+  /** False in the board editor: no trade click-through, no hover cursor —
+      the canvas owns pointer events there (dock dragging). */
+  interactive?: boolean;
+}> = ({ vertices, port, size, interactive = true }) => {
   const anchor =
     vertices.length === 1
       ? vertices[0]
@@ -126,12 +129,17 @@ const PortDockInner: React.FC<{
       {/* Harbor medallion: soft drop shadow, colored ring, white coin face.
           Clicking it opens the trade window on this port's bank trade. */}
       <g
-        role="button"
-        aria-label={`Trade at ${isGeneric ? 'generic' : port} port (${ratio})`}
-        style={{ cursor: 'pointer' }}
-        // Keep the press from starting a board pan.
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={() => openPortTrade(port)}
+        role={interactive ? 'button' : undefined}
+        aria-label={interactive ? `Trade at ${isGeneric ? 'generic' : port} port (${ratio})` : undefined}
+        style={{ cursor: interactive ? 'pointer' : 'default' }}
+        // Keep the press from starting a board pan — but only when this dock
+        // is clickable; in the editor the canvas needs the event for drags.
+        {...(interactive
+          ? {
+              onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+              onClick: () => openPortTrade(port),
+            }
+          : {})}
       >
         <title>{`Trade at this port (${ratio})`}</title>
       <ellipse cx={x} cy={y + r * 0.12} rx={r} ry={r * 0.92} fill="#0a2434" opacity={0.18} />

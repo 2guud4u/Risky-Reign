@@ -20,10 +20,27 @@ import {
 } from '../types/Board';
 import { BOARD_RADIUS, GAME_HEX_SIZE } from '../Constant';
 import { CubeCoord } from '../types/Coordinates';
-import { HexLayout } from '../types/BoardGenerator';
-import { hexId as toHexId } from './coordinates';
+import { DockSpec, HexLayout } from '../types/BoardGenerator';
+import { hexId as toHexId, getNeighbors } from './coordinates';
 import { assignStandardHexes } from './hex';
 import { computeAdjacency } from './adjacency';
+
+/**
+ * Wrap a land layout in one ring of Water hexes — every empty neighbor of
+ * a land hex becomes water. Custom maps may stay ringless (coast = land +
+ * empty is still legal); generated standard/expansion boards always ring.
+ */
+export function withWaterRing(layouts: HexLayout[]): HexLayout[] {
+  const land = new Set(layouts.map((l) => `${l.coord.q},${l.coord.r},${l.coord.s}`));
+  const water = new Map<string, CubeCoord>();
+  for (const l of layouts) {
+    for (const n of getNeighbors(l.coord)) {
+      const key = `${n.q},${n.r},${n.s}`;
+      if (!land.has(key) && !water.has(key)) water.set(key, n);
+    }
+  }
+  return [...layouts, ...[...water.values()].map((coord) => ({ coord, terrain: 'Water' as const, rollNumber: null }))];
+}
 
 export { HexLayout };
 
@@ -36,30 +53,32 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 /**
- * Assign trade ports (harbors) to boundary vertices (1-hex vertices).
- * There are 9 docks (classic Catan): 5 special (2:1, one per resource) and
- * 4 generic (3:1). Each dock is a stretch of coastline: it spans 1-2
- * consecutive boundary vertices, so a settlement on any vertex of the
- * stretch can use the dock. The layout is fully random: the resource
- * assignment, the dock order, the dock widths, and the start position are
- * all shuffled. A few coast vertices stay port-free.
+ * The coast ring: vertices touching exactly one non-water hex (land or
+ * desert), sorted by angle around the board origin — the stable order the
+ * editor's coast indices and saved dock specs both address.
  */
-function assignPorts(vertices: Record<string, VertexNode>): void {
-  const boundary = Object.values(vertices)
-    .filter((v) => v.hexIds.length === 1)
+export function coastRing(
+  vertices: { position: { x: number; y: number }; hexIds: string[] }[],
+  isWater: (hexId: string) => boolean
+): { position: { x: number; y: number }; hexIds: string[] }[] {
+  return vertices
+    .filter((v) => v.hexIds.filter((id) => !isWater(id)).length === 1)
     .sort((a, b) => Math.atan2(a.position.y, a.position.x) - Math.atan2(b.position.y, b.position.x));
-  const n = boundary.length;
-  if (n === 0) return;
-  // 9 docks (classic Catan): 5 special (2:1, one per resource) + 4 generic
-  // (3:1).
+}
+
+/**
+ * Roll a random dock layout for a coast ring of length n: 9 docks (5 special
+ * 2:1 + 4 generic 3:1), shuffled order/types, spans of 1-2 vertices; a
+ * shorter coast drops the extra docks.
+ */
+export function randomDocks(n: number): DockSpec[] {
+  if (n === 0) return [];
   const special: PortType[] = shuffle(['Wood', 'Brick', 'Sheep', 'Wheat', 'Ore']);
-  const docks: PortType[] = [...special];
-  for (let i = 0; i < 4; i++) docks.push('generic');
-  const count = Math.min(docks.length, n);
+  const pool: PortType[] = [...special];
+  for (let i = 0; i < 4; i++) pool.push('generic');
+  const count = Math.min(pool.length, n);
   // Widths: every dock spans one vertex; then hand out extra slots (max +1
-  // per dock) so some docks expand to 2 vertices, leaving ~2 coast vertices
-  // free. A dock never spans more than 2 vertices (classic Catan: a harbor
-  // is bordered by 1-2 coastal intersections).
+  // per dock) so some docks expand to 2, leaving ~2 coast vertices free.
   const widths: number[] = [];
   for (let i = 0; i < count; i++) widths.push(1);
   const extra = Math.max(0, n - count - Math.min(2, n - count));
@@ -68,20 +87,80 @@ function assignPorts(vertices: Record<string, VertexNode>): void {
     if (candidates.length === 0) break;
     widths[candidates[Math.floor(Math.random() * candidates.length)]]++;
   }
-  // Place the docks in a random order, starting at a random coast vertex.
   const order = shuffle(Array.from({ length: count }, (_, i) => i));
   let cursor = Math.floor(Math.random() * n);
+  const docks: DockSpec[] = [];
   for (const di of order) {
+    const span: number[] = [];
     for (let w = 0; w < widths[di]; w++) {
-      boundary[cursor % n].port = docks[di];
+      span.push(cursor % n);
       cursor++;
+    }
+    docks.push({ port: pool[di], coast: span });
+  }
+  return docks;
+}
+
+/**
+ * Write dock assignments onto coast vertices. Explicit `docks` place the
+ * exact spans the editor saved; absent = a fresh shuffled coast.
+ */
+function assignPorts(
+  vertices: Record<string, VertexNode>,
+  hexes: Record<HexId, HexNode>,
+  docks?: DockSpec[]
+): void {
+  const ring = coastRing(Object.values(vertices), (id) => hexes[id]?.terrain === 'Water');
+  const n = ring.length;
+  if (n === 0) return;
+  for (const d of docks ?? randomDocks(n)) {
+    for (const i of d.coast.slice(0, 2)) {
+      const v = ring[i % n];
+      if (v) (v as VertexNode).port = d.port;
     }
   }
 }
 
+/**
+ * Read a board's ports back out as dock specs: walk the coast ring and merge
+ * consecutive vertices carrying the same port into one span (max 2 — the
+ * merge closes across the ring seam only for a genuine wraparound dock).
+ * Inverse of `assignPorts`' explicit-docks path; used to seed the board
+ * editor and presets from a live board.
+ */
+export function extractDocks(board: Board): DockSpec[] {
+  const ring = coastRing(
+    Object.values(board.vertices),
+    (id) => board.hexes[id]?.terrain === 'Water'
+  ) as VertexNode[];
+  const n = ring.length;
+  if (n === 0) return [];
+  const docks: DockSpec[] = [];
+  let open: DockSpec | null = null;
+  for (let i = 0; i < n; i++) {
+    const port = ring[i].port;
+    if (port && open && open.port === port && open.coast.length === 1) {
+      open.coast.push(i);
+    } else {
+      if (open) docks.push(open);
+      open = port ? { port, coast: [i] } : null;
+    }
+  }
+  if (!open) return docks;
+  const first = docks[0];
+  if (first && first.coast.length === 1 && first.port === open.port) {
+    // A len-2 dock wrapping the seam: first vertex is index 0, last is n-1.
+    // Keep it one dock — [n-1, n] — so a round-trip re-applies it identically.
+    first.coast = [n - 1, n];
+    return docks;
+  }
+  docks.push(open);
+  return docks;
+}
+
 export function generateBoard(
   layouts: HexLayout[],
-  options: { id?: string; generator?: string; hexSize?: number } = {}
+  options: { id?: string; generator?: string; hexSize?: number; docks?: DockSpec[] } = {}
 ): Board {
   const hexSize = options.hexSize ?? GAME_HEX_SIZE;
   const coords = layouts.map((l) => l.coord);
@@ -118,9 +197,9 @@ export function generateBoard(
     };
   }
 
-  // Assign trade ports (harbors) to 10 boundary vertices:
-  // 5 generic (3:1) + 5 special (2:1, one per resource).
-  assignPorts(vertices);
+  // Assign trade ports (harbors): explicit docks when the caller supplied
+  // them (editor save), else a shuffled coast layout.
+  assignPorts(vertices, hexes, options.docks);
 
   const edges: Record<EdgeId, EdgeNode> = {};
   for (const e of g.edges.values()) {
@@ -150,15 +229,18 @@ export function generateBoard(
 }
 
 /**
- * Standard 19-hex Catan board (radius 2) with shuffled terrain/tokens.
+ * Standard 19-hex Catan board (radius 2) with shuffled terrain/tokens,
+ * ringed by water so every coast dock sits at a land–sea vertex.
  * The desert is always the center hex.
  */
 export function generateStandardBoard(hexSize: number = GAME_HEX_SIZE): Board {
-  const layouts: HexLayout[] = assignStandardHexes(BOARD_RADIUS).map((h) => ({
-    coord: h.coord,
-    terrain: h.terrain,
-    rollNumber: h.rollNumber,
-  }));
+  const layouts: HexLayout[] = withWaterRing(
+    assignStandardHexes(BOARD_RADIUS).map((h) => ({
+      coord: h.coord,
+      terrain: h.terrain,
+      rollNumber: h.rollNumber,
+    }))
+  );
   return generateBoard(layouts, { generator: 'standard', hexSize });
 }
 

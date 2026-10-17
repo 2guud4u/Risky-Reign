@@ -1,5 +1,5 @@
 import type { DragEvent, Ref } from 'react';
-import { CubeCoord, Terrain, Board, ValidationResult } from 'common';
+import { CubeCoord, Terrain, Board, DockSpec, PortType, ValidationResult } from 'common';
 
 /**
  * A single placed hex in the board editor draft.
@@ -32,24 +32,29 @@ export interface BoardEditorProps {
   onRefreshMap: () => void;
 }
 
-/** A drag payload started from the editor toolbar (a terrain or a number). */
+/** A drag payload started from the editor sidebar (a terrain, a number, or a port type). */
 export interface ToolbarDrag {
-  kind: 'terrain' | 'number';
-  value: Terrain | number;
+  kind: 'terrain' | 'number' | 'port';
+  value: Terrain | number | PortType;
 }
 
 /** Which kind of in-canvas drag is in progress (drives dimming + preview). */
-export type CanvasDragKind = 'hex' | 'number';
+export type CanvasDragKind = 'hex' | 'number' | 'dock' | 'dockEnd' | 'dockAdd';
 
 /**
  * In-progress pointer drag inside the editor canvas. A press on empty space
- * pans; a press on a hex drags the hex; a press on its token drags the number.
+ * pans; a press on a hex drags the hex; a press on its token drags the number;
+ * a press on a dock marker moves the whole dock, on a dock end-grip drags
+ * that end (or the ghost extension handle of a 1-vertex dock).
  * `moved` flips true once the pointer travels past `PAN_THRESHOLD`.
  */
 export type CanvasDragState =
   | { kind: 'pan'; startX: number; startY: number; originX: number; originY: number; moved: boolean }
   | { kind: 'hex'; from: CubeCoord; startX: number; startY: number; moved: boolean }
-  | { kind: 'number'; from: CubeCoord; value: number; startX: number; startY: number; moved: boolean };
+  | { kind: 'number'; from: CubeCoord; value: number; startX: number; startY: number; moved: boolean }
+  | { kind: 'dock'; dockIndex: number; startX: number; startY: number; moved: boolean }
+  | { kind: 'dockEnd'; dockIndex: number; end: 0 | 1; startX: number; startY: number; moved: boolean }
+  | { kind: 'dockAdd'; coastIndex: number; startX: number; startY: number; moved: boolean };
 
 
 /** Props for the top bar (reset/regen buttons + validity summary). */
@@ -88,10 +93,26 @@ export interface NumberPaletteProps {
   onAssign: () => void;
 }
 
+/** Props for the docks palette (port types, randomize, delete selected). */
+export interface DockPaletteProps {
+  docks: DockSpec[];
+  /** Index into `docks` of the canvas-selected dock, else null. */
+  selectedDockIndex: number | null;
+  /** Port type used for newly added docks / highlighted in the palette. */
+  pendingPort: PortType;
+  onPortClick: (port: PortType) => void;
+  onPortDragStart: (e: DragEvent, port: PortType) => void;
+  onDragEnd: () => void;
+  onRandomize: () => void;
+  onRemoveDock: (dockIndex: number) => void;
+}
+
 /** Props for the save panel (applies the draft board to the room). */
 export interface SavePanelProps {
   roomId: string;
   map: EditorMap;
+  /** The editor's dock draft, saved alongside the layouts. */
+  docks: DockSpec[];
   validation: ValidationResult;
   missingNumbers: number;
 }
@@ -141,4 +162,21 @@ export interface BoardEditorCanvasProps {
   onPaint: (coord: CubeCoord) => void;
   paintMode: boolean;
   toolbarDrag: ToolbarDrag | null;
+  /** Angle-sorted coast ring in editor pixels (computeCoastRing). */
+  coast: { x: number; y: number }[];
+  /** Current dock draft (indices into coast). */
+  docks: DockSpec[];
+  /** Move a whole dock so its span starts at coast index `to` (keeps width). */
+  onMoveDock: (dockIndex: number, to: number) => void;
+  /** Drag a dock's span end (0/1) to coast index `to` (stretch/shrink/move). */
+  onStretchDock: (dockIndex: number, end: 0 | 1, to: number) => void;
+  /** True while the Docks tab is active: grips/selection/add-handles on. */
+  docksMode: boolean;
+  /** Canvas-selected dock index, else null. */
+  selectedDock: number | null;
+  onSelectDock: (dockIndex: number | null) => void;
+  /** Add a dock at coast index `to` (from a ghost handle or a port drop). */
+  onAddDock: (to: number) => void;
+  /** Remove a dock (trash drop). */
+  onRemoveDock: (dockIndex: number) => void;
 }

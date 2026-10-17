@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, createContext, useCon
 import { io, Socket } from 'socket.io-client';
 import {
   ClientToServerEvents,
+  DockSpec,
   HexLayout,
   Price,
   ResourceKey,
@@ -119,7 +120,7 @@ const actionSpec = {
   setSetupCities: (roomId: string, setupCities: number) => ({ roomId, setupCities }),
   setTurnTimer: (roomId: string, turnTimerMs: number) => ({ roomId, turnTimerMs }),
   setRulesLock: (roomId: string, locked: boolean) => ({ roomId, locked }),
-  editBoard: (roomId: string, layouts: HexLayout[]) => ({ roomId, layouts }),
+  editBoard: (roomId: string, layouts: HexLayout[], docks?: DockSpec[]) => ({ roomId, layouts, docks }),
   leaveGame: (roomId: string) => ({ roomId }),
   claimSeat: (roomId: string, name: string, lobbyPassword?: string) => ({
     roomId,

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Board, HexLayout, PublicGameRoom, TurnMode } from 'common';
+import { Board, DockSpec, extractDocks, HexLayout, PublicGameRoom, TurnMode } from 'common';
 
 /** A saved game preset: bundled rules + board layout (browser-local). */
 export interface GamePreset {
@@ -12,6 +12,8 @@ export interface GamePreset {
     turnTimerMs: number;
   };
   map: HexLayout[];
+  /** Dock placements (coast indices); absent on older presets = reroll. */
+  docks?: DockSpec[];
 }
 
 const STORAGE_KEY = 'rr.gamePresets.v1';
@@ -38,6 +40,7 @@ export function presetFromRoom(room: PublicGameRoom, name: string): GamePreset |
       turnTimerMs: room.turnTimerMs,
     },
     map: boardToLayouts(room.board),
+    docks: extractDocks(room.board),
   };
 }
 
