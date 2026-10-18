@@ -174,6 +174,25 @@ const NoticeRail: React.FC = () => {
         : `${winner} defeated the robber and must move it to an adjacent hex.`,
     });
   }
+  if (gameRoom.wallGate && gameRoom.wallGate.roll === null) {
+    const gate = gameRoom.wallGate;
+    const mineCrosser = gate.crosserName === currentPlayer.name;
+    const mineOwner = gate.wallOwnerName === currentPlayer.name;
+    // Whoever must act next gets the amber "yours" notice; everyone else (and
+    // the side waiting on them) gets the neutral waiting line.
+    notices.push({
+      key: 'wall-gate',
+      mine: (mineCrosser && gate.guess === null) || (mineOwner && gate.guess !== null),
+      text:
+        gate.guess === null
+          ? mineCrosser
+            ? `Your soldier is held at ${gate.wallOwnerName}'s wall — guess the die to try to cross.`
+            : `${gate.crosserName} is guessing at ${gate.wallOwnerName}'s wall gate`
+          : mineOwner
+            ? `${gate.crosserName} guessed ${gate.guess} — roll the gate die.`
+            : `Waiting for ${gate.wallOwnerName} to roll the wall gate`,
+    });
+  }
 
   const phase = gameRoom.turnState.phase;
   const showToast = toastVisible && isMyTurn;

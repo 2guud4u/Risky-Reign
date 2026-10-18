@@ -36,6 +36,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
     setTurnMode,
     setSetupCities,
     setTurnTimer,
+    setPiecesEnabled,
   } = useSocket();
   const mode = room.turnMode;
 
@@ -211,6 +212,33 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
         })()}
       </div>
 
+
+      {/* Pieces: which optional pieces the game allows (cannon upgrades,
+          wall fortification, ships). Each flips the matching room flag. */}
+      <div className={panel}>
+        <span className={heading}>Pieces</span>
+        {(
+          [
+            { key: 'cannons' as const, on: room.cannonsEnabled, label: 'Cannons', hint: 'Upgrade soldiers into stationed cannons that fire one intersection away.' },
+            { key: 'walls' as const, on: room.wallsEnabled, label: 'Walls', hint: 'Fortify roads into walls that gate enemy crossings.' },
+            { key: 'ships' as const, on: room.shipsEnabled, label: 'Ships', hint: 'Build ships on the coast, sail troops, and settle new shores.' },
+          ]
+        ).map(({ key, on, label, hint }) => (
+          <label key={key} className="flex items-start gap-2 text-[13px] cursor-pointer text-ink py-1">
+            <input
+              type="checkbox"
+              checked={on}
+              disabled={disabled}
+              onChange={(e) => setPiecesEnabled({ [key]: e.target.checked })}
+              className="mt-0.5 accent-gold"
+            />
+            <span>
+              <span className="font-semibold text-ink">{label}</span>
+              <span className="block text-[11px] text-ink-faint">{hint}</span>
+            </span>
+          </label>
+        ))}
+      </div>
       {disabled && (
         <p className="md:col-span-2 text-[12px] text-ink-faint flex items-center gap-1.5">
           <GameIcon name="lock" size={12} /> The host locked game customization — view only.

@@ -1,13 +1,20 @@
 import {
   Board,
+  GameRoom,
   HexId,
+  Player,
   PublicGameRoom,
   SoldierObj,
   TurnState,
   VertexId,
+  adjacentVertexIds,
+  canDisembarkSoldier,
   canKnightSpawnAt,
   canMoveRobberAdjacent,
+  canMoveShip,
   canPlaceRobberOn,
+  isWaterVertex,
+  shipAt,
 } from 'common';
 
 /**
@@ -40,7 +47,9 @@ export function soldierMovable(soldier: SoldierObj, room: PublicGameRoom): boole
   return (
     soldierCanAct(soldier, room.turnState) &&
     !room.turnState.soldiersHealedThisTurn.includes(soldier.id) &&
-    !(soldier.type === 'cannon' && soldier.stationed)
+    !(soldier.type === 'cannon' && soldier.stationed) &&
+    // Embarked troops ride the ship — they leave only via disembarkSoldier.
+    soldier.aboardShipId === null
   );
 }
 
@@ -137,6 +146,67 @@ export function soldierMoveTargets(board: Board, vertexId: VertexId): VertexId[]
     targets.push(edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId);
   }
   return targets;
+}
+
+/**
+ * BFS paths a ship may sail this Action phase: each reachable water vertex
+ * (sea or coast, no other ship) within `shipSteps` single-vertex hops, mapped
+ * to the hop list that gets it there — `moveShip` steps one adjacent vertex
+ * per call, so a sail is emitted hop-by-hop. Mirrors `canMoveShip`.
+ */
+export function sailPaths(
+  room: PublicGameRoom,
+  playerName: string,
+  shipId: string
+): Map<VertexId, VertexId[]> {
+  const out = new Map<VertexId, VertexId[]>();
+  const board = room.board;
+  const ship = board?.ships[shipId];
+  if (!board || !ship) return out;
+  const steps = room.turnState?.shipSteps?.[shipId] ?? 0;
+  if (steps <= 0) return out;
+  // The rule checks want the full GameRoom/Player; the public room + name
+  // carry every field the ship rules read.
+  const asRoom = room as unknown as GameRoom;
+  const asPlayer = { name: playerName } as Player;
+  let frontier = new Map<VertexId, VertexId[]>([[ship.vertexId, []]]);
+  const seen = new Set<VertexId>([ship.vertexId]);
+  for (let depth = 1; depth <= steps && frontier.size > 0; depth++) {
+    const next = new Map<VertexId, VertexId[]>();
+    for (const [at, path] of frontier) {
+      for (const to of adjacentVertexIds(board, at)) {
+        if (seen.has(to) || !isWaterVertex(board, to) || shipAt(board, to)) continue;
+        if (!canMoveShip(asRoom, asPlayer, shipId, to).allowed) continue;
+        seen.add(to);
+        const extended = [...path, to];
+        next.set(to, extended);
+        out.set(to, extended);
+      }
+    }
+    frontier = next;
+  }
+  return out;
+}
+
+/**
+ * Coast vertices an aboard soldier may disembark onto (the ship's own coast
+ * vertex or an adjacent coast vertex without a settlement), per
+ * `canDisembarkSoldier` — the same check the backend applies.
+ */
+export function disembarkTargets(
+  room: PublicGameRoom,
+  playerName: string,
+  soldierId: string
+): VertexId[] {
+  const board = room.board;
+  const soldier = board?.soldiers[soldierId];
+  const ship = soldier?.aboardShipId ? board!.ships[soldier.aboardShipId] : null;
+  if (!board || !soldier || !ship) return [];
+  const asRoom = room as unknown as GameRoom;
+  const asPlayer = { name: playerName } as Player;
+  return [ship.vertexId, ...adjacentVertexIds(board, ship.vertexId)].filter(
+    (vertexId) => canDisembarkSoldier(asRoom, asPlayer, soldierId, vertexId).allowed
+  );
 }
 
 /**

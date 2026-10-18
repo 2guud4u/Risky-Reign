@@ -6,7 +6,6 @@ import {
   CHECK_BADGE_COLOR,
   CHECK_BADGE_R_FRAC,
   CHECK_BADGE_Y_OFF,
-  CHECK_BADGE_Y_OFF_INJURED,
   SOLDIER_ART_HEIGHT,
   SOLDIER_ART_WIDTH,
   ACTION_BOLT_FILL,
@@ -17,6 +16,8 @@ import {
   ACTION_BOLT_Y_OFF,
 } from '../constants';
 import { GarrisonArmy } from '../utils/garrisonFormation';
+import { TROOP_SPRITES } from '../utils/tintedArt';
+import { TintedSprite } from './TintedSprite';
 
 interface SoldierGroupProps {
   /** The owner's garrison as a formation of ranks. */
@@ -62,17 +63,19 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
     const isSel = selectedSoldierIds?.has(s.id) ?? false;
     const canAct = canActSoldierIds?.has(s.id) ?? false;
     const draggable = draggableSoldierIds?.has(s.id) ?? false;
-    // Art size for this (possibly injured, smaller) soldier.
-    const aw = SOLDIER_ART_WIDTH * fs.scale;
-    const ah = SOLDIER_ART_HEIGHT * fs.scale;
-    const { x, y } = fs;
+    // Each troop's own art box (sized so the people match across sprites).
+    const { x, y, w: aw, h: ah } = fs;
+    // Badge/bolt size follows the person, not the sprite canvas: a cannon's
+    // box is mostly gun, so size those off a soldier.
+    const markerW = Math.min(aw, SOLDIER_ART_WIDTH);
+    const markerH = Math.min(ah, SOLDIER_ART_HEIGHT);
     // Energy bolt marking a soldier that can still act: a small zigzag pinned
     // to the soldier's upper-right. Drawn above the sprite, non-interactive,
     // scaled with the art (injured soldiers get a smaller bolt).
-    const bh = ah * ACTION_BOLT_H_FRAC;
+    const bh = markerH * ACTION_BOLT_H_FRAC;
     const bw = bh * ACTION_BOLT_W_FRAC;
-    const bx = x + aw * ACTION_BOLT_X_OFF;
-    const by = y - ah * ACTION_BOLT_Y_OFF;
+    const bx = x + markerW * ACTION_BOLT_X_OFF;
+    const by = y - markerH * ACTION_BOLT_Y_OFF;
     const boltPoints = [
       `${bx + bw * 0.3},${by - bh / 2}`,
       `${bx - bw * 0.35},${by + bh * 0.05}`,
@@ -81,11 +84,9 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
       `${bx + bw * 0.35},${by - bh * 0.05}`,
       `${bx + bw * 0.05},${by - bh * 0.05}`,
     ].join(' ');
-    // Selected-badge center: a gap above this soldier's head. The injured
-    // sprite is shorter, so its badge sits further up from the center (a
-    // different y offset than healthy soldiers).
-    const badgeCy =
-      y - ah / 2 - (s.injured ? CHECK_BADGE_Y_OFF_INJURED : CHECK_BADGE_Y_OFF) * SOLDIER_ART_HEIGHT;
+    // Selected-badge center: a gap above this troop's sprite top.
+    const badgeCy = y - ah / 2 - CHECK_BADGE_Y_OFF * SOLDIER_ART_HEIGHT;
+    const badgeR = markerW * CHECK_BADGE_R_FRAC;
     elements.push(
       <g
         key={`s-${s.id}`}
@@ -98,26 +99,21 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
         onPointerDown={onSoldierDragStart ? (e) => onSoldierDragStart(e, army.ownerName, s.id) : undefined}
         data-drag-handle={draggable ? true : undefined}
       >
-        <svg
+        <TintedSprite
+          art={TROOP_SPRITES[fs.art]}
+          color={playerColors?.[army.ownerName] ?? '#888'}
           x={x - aw / 2}
           y={y - ah / 2}
           width={aw}
           height={ah}
-          style={{ color: playerColors?.[army.ownerName] ?? '#888' }}
           transform={army.flip ? `translate(${2 * x}, 0) scale(-1, 1)` : undefined}
-        >
-          <use
-            href={s.injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
-            width={aw}
-            height={ah}
-          />
-        </svg>
+        />
         {canAct && (
           <polygon
             points={boltPoints}
             fill={ACTION_BOLT_FILL}
             stroke={ACTION_BOLT_STROKE}
-            strokeWidth={Math.max(1, fs.scale * 1.4)}
+            strokeWidth={1.4}
             strokeLinejoin="round"
             pointerEvents="none"
           />
@@ -126,12 +122,12 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
             never hidden by the sprite or the bolt. */}
         {isSel && (
           <g pointerEvents="none">
-            <circle cx={x} cy={badgeCy} r={aw * CHECK_BADGE_R_FRAC} fill={CHECK_BADGE_COLOR} stroke="#fff" strokeWidth={Math.max(1, fs.scale)} />
+            <circle cx={x} cy={badgeCy} r={badgeR} fill={CHECK_BADGE_COLOR} stroke="#fff" strokeWidth={1} />
             <path
-              d={`M ${x - aw * CHECK_BADGE_R_FRAC * 0.5} ${badgeCy} l ${aw * CHECK_BADGE_R_FRAC * 0.3} ${aw * CHECK_BADGE_R_FRAC * 0.35} l ${aw * CHECK_BADGE_R_FRAC * 0.5} ${-aw * CHECK_BADGE_R_FRAC * 0.55}`}
+              d={`M ${x - badgeR * 0.5} ${badgeCy} l ${badgeR * 0.3} ${badgeR * 0.35} l ${badgeR * 0.5} ${-badgeR * 0.55}`}
               fill="none"
               stroke="#fff"
-              strokeWidth={Math.max(1, aw * CHECK_BADGE_R_FRAC * 0.28)}
+              strokeWidth={Math.max(1, badgeR * 0.28)}
               strokeLinecap="round"
               strokeLinejoin="round"
             />

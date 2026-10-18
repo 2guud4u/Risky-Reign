@@ -34,13 +34,15 @@ export function groupPortVertices(base: BoardUIState | null): PortGroup[] {
   return groups;
 }
 
-/** Group soldiers by vertex, then by owner (for count badges). */
+/** Group soldiers by vertex, then by owner (for count badges). Troops aboard
+ *  a ship ride it — they count on the ship, not on a land vertex. */
 export function countSoldiersByVertexAndOwner(
   board: Board | null
 ): Map<string, Map<string, number>> {
   const map = new Map<string, Map<string, number>>();
   if (!board) return map;
   for (const s of Object.values(board.soldiers)) {
+    if (s.aboardShipId !== null) continue;
     let byOwner = map.get(s.vertexId);
     if (!byOwner) {
       byOwner = new Map();
@@ -58,6 +60,7 @@ export function countSoldiersByVertexAndOwner(
  */
 export function layerBoardInteraction(
   base: BoardUIState,
+  board: Board,
   selectedObject: SelectableObject | null,
   hoveredVertexId: string | null,
   hoveredEdgeId: string | null,
@@ -74,6 +77,7 @@ export function layerBoardInteraction(
     isSelected: e.id === (selectedObject?.type === 'edge' ? selectedObject.id : null),
     isHovered: e.id === hoveredEdgeId,
     ownerColor: colorOf(e.roadOwnerId),
+    isWall: !!(board.edges[e.id]?.roadId && board.roads[board.edges[e.id].roadId!]?.isWall),
   }));
   const hexes = Object.values(base.hexes);
   return { vertices, edges, hexes };

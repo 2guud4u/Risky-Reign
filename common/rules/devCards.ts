@@ -269,6 +269,7 @@ export function applyKnightSpawnSoldier(
     vertexId,
     type: 'infantry',
     stationed: true,
+    aboardShipId: null,
   };
   room.turnState.soldiersCreatedThisTurn.push(soldierId);
   room.turnState.soldiersActedThisTurn.push(soldierId);

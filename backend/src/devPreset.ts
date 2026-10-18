@@ -1,4 +1,4 @@
-import { Board, DevelopmentCardType, GameRoom, SoldierObj, validSettlementVertices } from 'common';
+import { Board, DevelopmentCardType, GameRoom, SoldierObj, isCoastVertex, validSettlementVertices } from 'common';
 
 /**
  * Dev-mode preset board: skip the SetUp phase and start round 1 with cities,
@@ -20,12 +20,43 @@ const PRESET_A_BATTLES_WON = 2;
 let devId = 0;
 const nextId = (prefix: string) => `dev_${prefix}_${++devId}`;
 
-function addSoldiers(board: Board, owner: string, vertexId: string, count: number, injured = false): void {
+interface SoldierOpts {
+  injured?: boolean;
+  type?: SoldierObj['type'];
+  stationed?: boolean;
+  aboardShipId?: string | null;
+}
+
+function addSoldiers(board: Board, owner: string, vertexId: string, count: number, opts: SoldierOpts = {}): void {
   for (let i = 0; i < count; i++) {
     const id = nextId('soldier');
-    const soldier: SoldierObj = { id, owner, injured, vertexId, type: 'infantry', stationed: true };
+    const soldier: SoldierObj = {
+      id,
+      owner,
+      injured: opts.injured ?? false,
+      vertexId,
+      type: opts.type ?? 'infantry',
+      stationed: opts.stationed ?? true,
+      aboardShipId: opts.aboardShipId ?? null,
+    };
     board.soldiers[id] = soldier;
   }
+}
+
+function addShip(board: Board, owner: string, vertexId: string): string {
+  const id = nextId('ship');
+  board.ships[id] = { id, vertexId, ownerId: owner };
+  return id;
+}
+
+/** The road (if any) on the edge connecting two vertices. */
+function roadBetween(board: Board, vertexAId: string, vertexBId: string) {
+  const edge = Object.values(board.edges).find(
+    (e) =>
+      (e.vertexAId === vertexAId && e.vertexBId === vertexBId) ||
+      (e.vertexAId === vertexBId && e.vertexBId === vertexAId),
+  );
+  return edge?.roadId ? board.roads[edge.roadId] : null;
 }
 
 function addSettlement(board: Board, owner: string, vertexId: string, level: 'settlement' | 'city'): void {
@@ -40,7 +71,7 @@ function addRoadFrom(board: Board, owner: string, vertexId: string): string | nu
     const edge = board.edges[edgeId];
     if (!edge || edge.roadId !== null) continue;
     const id = nextId('road');
-    board.roads[id] = { id, edgeId, ownerId: owner, builtAt: Date.now() };
+    board.roads[id] = { id, edgeId, ownerId: owner, builtAt: Date.now(), isWall: false };
     edge.roadId = id;
     for (const v of [edge.vertexAId, edge.vertexBId]) {
       if (!board.vertices[v].roadIds.includes(edgeId)) board.vertices[v].roadIds.push(edgeId);
@@ -106,6 +137,18 @@ function dealDevCards(room: GameRoom): void {
  *  - Counter-attack for B's turn: 3 B vs 2 A on B's city road end.
  *  - Conqueror: A starts with 2 battle wins; one more win claims it.
  *
+ * New pieces (each staged only when the room flag is on):
+ *  - Cannons: unstationed A cannon on A's city (station/fire from scratch),
+ *    stationed A cannon on A's contested road end (in range of B's troops),
+ *    stationed B cannon on B's city (fires back during B's turn; A's
+ *    blocked-capture soldier is in range for it).
+ *  - Walls: B's city->road-end edge is walled (A's soldier on the city can
+ *    open the wall gate; B's troops see it from their side). A's settlement
+ *    road is walled (own-wall free passage; capture flood-fill stops there).
+ *  - Ships: A's ship on a coast vertex near A's settlement carrying 2 troops
+ *    plus a stationed cannon (naval artillery). B's empty ship on another
+ *    coast vertex — anyone may sail it.
+ *
  * The turn starts at the first player's Dice phase (setup is skipped).
  */
 export function applyDevPreset(room: GameRoom): void {
@@ -149,7 +192,7 @@ export function applyDevPreset(room: GameRoom): void {
   const nextSpot = () => pool.shift() ?? null;
 
   if (a) {
-    if (cities[a]) addSoldiers(board, a, cities[a], 2, true); // heal
+    if (cities[a]) addSoldiers(board, a, cities[a], 2, { injured: true }); // heal
     if (robberHexId) {
       const robberVertex = Object.values(board.vertices).find(
         (v) => v.hexIds.includes(robberHexId) && !v.settlementId
@@ -172,7 +215,7 @@ export function applyDevPreset(room: GameRoom): void {
     const injuredFight = nextSpot();
     if (injuredFight) {
       addSoldiers(board, a, injuredFight, 2);
-      addSoldiers(board, b, injuredFight, 2, true);
+      addSoldiers(board, b, injuredFight, 2, { injured: true });
     }
     if (settlements[b]) addSoldiers(board, a, settlements[b], 1); // capture
     if (cities[b]) addSoldiers(board, a, cities[b], 1); // blocked capture
@@ -191,6 +234,82 @@ export function applyDevPreset(room: GameRoom): void {
     }
   }
 
+  // ── New-piece scenarios (cannons / walls / ships) ───────────────────────
+  // Each respects the room's piece toggles so a disabled piece simply isn't
+  // staged.
+
+  if (room.cannonsEnabled && a && cities[a]) {
+    // Cannon on A's city: unstationed, ready to station then fire.
+    addSoldiers(board, a, cities[a], 1, { type: 'cannon', stationed: false });
+    // A second cannon already stationed on the contested road end (in range
+    // of B's troops there) plus a fresh infantry so the upgrade flow is
+    // exercisable on A's city too.
+    if (roadEnds[a]) {
+      addSoldiers(board, a, roadEnds[a], 1, { type: 'cannon', stationed: true });
+    }
+  }
+  if (room.cannonsEnabled && b && cities[b]) {
+    // Stationed B cannon next to B's city — A's blocked-capture soldier can be
+    // targeted by it, and B can fire during its own Action phase.
+    addSoldiers(board, b, cities[b], 1, { type: 'cannon', stationed: true });
+  }
+
+  if (room.wallsEnabled && a && b) {
+    // Wall on B's road out of its city: A's blocked-capture soldier on the
+    // city can attempt the wall gate out, and B's counter-attack troops see
+    // it. The wall edge = B's city -> B's road end.
+    const wallRoad = roadEnds[b] ? roadBetween(board, cities[b], roadEnds[b]) : null;
+    if (wallRoad) wallRoad.isWall = true;
+    // Wall on A's settlement road: exercises own-wall free passage and the
+    // capture flood-fill stopping at walls.
+    const settleRoad =
+      settlements[a] &&
+      Object.values(board.roads).find(
+        (r) =>
+          r.ownerId === a &&
+          board.edges[r.edgeId] &&
+          (board.edges[r.edgeId].vertexAId === settlements[a] ||
+            board.edges[r.edgeId].vertexBId === settlements[a]),
+      );
+    if (settleRoad) settleRoad.isWall = true;
+  }
+
+  if (room.shipsEnabled && a && b) {
+    // A's ship on a coast vertex near A's settlement with troops + a stationed
+    // cannon aboard (naval artillery), plus an empty B ship anyone can sail.
+    const coasts = Object.values(board.vertices).filter(
+      (v) => isCoastVertex(board, v.id) && !v.settlementId,
+    );
+    const edgesTouching = (vid: string) =>
+      Object.values(board.edges).filter((e) => e.vertexAId === vid || e.vertexBId === vid);
+    const near = (vid: string, origin: string) =>
+      edgesTouching(origin).some((e) => (e.vertexAId === origin ? e.vertexBId : e.vertexAId) === vid);
+
+    // Prefer a coast vertex adjacent to A's settlement's road end so embarked
+    // troops and settle-conversion both make sense.
+    const aShipSpot =
+      (settlements[a] &&
+        coasts.find((v) => near(v.id, settlements[a]))) ||
+      (roadEnds[a] && coasts.find((v) => near(v.id, roadEnds[a]!))) ||
+      coasts[0];
+    if (aShipSpot) {
+      const shipId = addShip(board, a, aShipSpot.id);
+      // Two embarked troops (move with the ship, can't walk) + a cannon that
+      // can station aboard and fire one intersection from the ship.
+      addSoldiers(board, a, aShipSpot.id, 2, { aboardShipId: shipId, stationed: false });
+      if (room.cannonsEnabled) {
+        addSoldiers(board, a, aShipSpot.id, 1, {
+          type: 'cannon',
+          stationed: true,
+          aboardShipId: shipId,
+        });
+      }
+      // B's empty ship on a different coast vertex — anyone may commandeer it.
+      const bSpot = coasts.find((v) => v.id !== aShipSpot.id && !near(v.id, aShipSpot.id));
+      if (bSpot) addShip(board, b, bSpot.id);
+    }
+  }
+
   dealDevCards(room);
 
   // Skip setup: the same state `advanceTurn` leaves after the last setup turn.
@@ -205,7 +324,7 @@ export function applyDevPreset(room: GameRoom): void {
     soldiersActedThisTurn: [],
     soldiersCreatedThisTurn: [],
     soldiersHealedThisTurn: [],
-    robberFoughtThisPhase: [],
+    shipSteps: {},
     undoLog: [],
   };
   room.roll = { die1: null, die2: null };

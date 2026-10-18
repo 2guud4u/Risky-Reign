@@ -6,9 +6,9 @@
  * domains have their own files under `types/` (e.g. `types/board`).
  */
 
-/** A board object selected on the map (vertex, edge, or the robber). */
+/** A board object selected on the map (vertex, edge, ship, or the robber). */
 export interface SelectableObject {
-  type: 'vertex' | 'edge' | 'robber';
+  type: 'vertex' | 'edge' | 'ship' | 'robber';
   id: string;
 }
 

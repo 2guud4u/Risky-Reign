@@ -177,11 +177,16 @@ export function captureRoadTransfers(
     for (const edgeId of board.vertices[vertexId]?.roadIds ?? []) {
       const edge = board.edges[edgeId];
       if (!edge || edge.roadId === null || !board.roads[edge.roadId]) continue;
+      // Walls gate the flood-fill (Rules.md Walls): an enemy wall the fill
+      // reaches transfers with its road, but the fill stops there — the
+      // roads behind it stay theirs.
+      const road = board.roads[edge.roadId];
+      const enemyWall = !!road.isWall && road.ownerId !== capturingPlayer;
       const next = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
       const nextSettlement = board.vertices[next]?.settlementId;
       const enemyBuilt = !!nextSettlement && board.settlements[nextSettlement]?.ownerId !== capturingPlayer;
       if (!enemyBuilt) reached.add(edge.roadId);
-      if (visited.has(next) || nextSettlement) continue;
+      if (enemyWall || visited.has(next) || nextSettlement) continue;
       visited.add(next);
       queue.push(next);
     }

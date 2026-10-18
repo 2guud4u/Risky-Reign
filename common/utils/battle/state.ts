@@ -285,6 +285,7 @@ export function createRobberBattleState(
     vertexId,
     type: 'infantry',
     stationed: true,
+    aboardShipId: null,
   };
   return {
     attacker: playerName,

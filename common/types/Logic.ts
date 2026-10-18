@@ -43,6 +43,8 @@ export interface TurnState {
   soldiersHealedThisTurn: string[];
   /** Players who already fought the robber this Action phase (once per player per phase). */
   robberFoughtThisPhase: string[];
+  /** Remaining ship movement steps per ship id this Action phase (reset to ceil(roll/2)). */
+  shipSteps: Record<string, number>;
   /** Undoable actions taken by the acting player this phase (cleared on every advance). */
   undoLog: UndoEntry[];
 }
@@ -97,8 +99,98 @@ export type UndoEntry =
       soldierId: string;
       /** Roads that transferred to the capturer (ownership restored on undo). */
       roadTransfers: { roadId: string; originalOwnerId: string }[];
+    }
+  | {
+      kind: 'upgradeCannon';
+      soldierId: string;
+      /** The (infantry garrison) stationed flag before the upgrade (restored on undo). */
+      wasStationed: boolean;
+    }
+  | {
+      kind: 'downgradeCannon';
+      soldierId: string;
+      /** The stationed flag before the downgrade (restored on undo). */
+      wasStationed: boolean;
+    }
+  | {
+      kind: 'stationCannon';
+      soldierId: string;
+    }
+  | {
+      kind: 'unstationCannon';
+      soldierId: string;
+    }
+  | {
+      kind: 'cannonAttack';
+      soldierId: string;
+      /** Target soldier's injured flag before the attack (restored on undo). */
+      targetInjured: boolean;
+      /** Non-null when the target died (the soldier is restored on undo). */
+      targetKilled: SoldierObj | null;
+    }
+  | {
+      kind: 'cannonSplash';
+      soldierId: string;
+      /** Ore cost was paid (refunded on undo). */
+      paid: boolean;
+      /** Victims still on the board whose injured flag flips back on undo. */
+      victimsInjured: string[];
+      /** Victims killed by the splash (restored on undo). */
+      victimsKilled: SoldierObj[];
+    }
+  | {
+      kind: 'cannonAttackWall';
+      soldierId: string;
+      /** Edge whose wall was reverted to a road (isWall restored on undo); null on a miss. */
+      edgeId: string | null;
+    }
+  | {
+      kind: 'upgradeRoadToWall';
+      roadId: string;
+    }
+  | {
+      kind: 'wallGateCross';
+      soldierId: string;
+      /** The vertex the soldier was on before crossing (restored on undo). */
+      originalVertexId: string;
+    }
+  | {
+      kind: 'buildShip';
+      shipId: string;
+    }
+  | {
+      kind: 'moveShip';
+      shipId: string;
+      /** Ship position before the step (restored on undo). */
+      originalVertexId: string;
+      /** Owner before the step — an empty ship flips to the mover. */
+      originalOwnerId: string;
+      /** Soldiers that moved with the ship (vertexId restored on undo). */
+      troopMoves: { soldierId: string; originalVertexId: string }[];
+    }
+  | {
+      kind: 'embarkSoldier';
+      soldierId: string;
+      originalVertexId: string;
+    }
+  | {
+      kind: 'disembarkSoldier';
+      soldierId: string;
+      /** The ship the soldier left (restored on undo). */
+      shipId: string;
+    }
+  | {
+      kind: 'convertShipToSettlement';
+      shipId: string;
+      settlementId: string;
+      vertexId: string;
+      /** Troops that disembarked onto the new settlement vertex. */
+      troopIds: string[];
+      /** Troops that were stationed aboard (cannons) — restored on undo. */
+      stationedTroopIds?: string[];
+      /** Where the ship stood (it may settle an adjacent vertex) — restored on undo. */
+      shipVertexId?: string;
     };
-
 /** A pending resource trade between two players (or an open offer to anyone). */
 export interface TradeOffer {
   id: string;

@@ -227,6 +227,27 @@ export const ROOM_ACTIONS: Record<string, ActionEntry> = {
     },
   },
 
+  // Piece feature toggles (cannons/walls/ships). Customization-gated, while
+  // waiting; each flag is independently optional — only provided ones change.
+  setPiecesEnabled: {
+    run: (
+      room: GameRoom,
+      _player: Player,
+      { cannons, walls, ships }: { roomId: string; cannons?: boolean; walls?: boolean; ships?: boolean },
+      socketId: string
+    ) => {
+      if (room.gameStatus !== 'waiting') {
+        return { error: 'Can only change settings while waiting' };
+      }
+      const locked = rejectIfLockedOut(room, socketId);
+      if (locked) return { error: locked };
+      if (typeof cannons === 'boolean') room.cannonsEnabled = cannons;
+      if (typeof walls === 'boolean') room.wallsEnabled = walls;
+      if (typeof ships === 'boolean') room.shipsEnabled = ships;
+      return { broadcast: 'roomUpdate' };
+    },
+  },
+
   editBoard: {
     run: (
       room: GameRoom,

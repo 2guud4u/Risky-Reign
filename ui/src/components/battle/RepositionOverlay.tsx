@@ -8,6 +8,8 @@ import {
   REPOSITION_SOLDIER_H,
   REPOSITION_SOLDIER_W,
 } from '../../constants';
+import { TintedSprite } from '../TintedSprite';
+import { INJURED_SOLDIER_ART } from '../../utils/tintedArt';
 
 interface RepositionOverlayProps {
   board: Board;
@@ -58,9 +60,7 @@ const InjuredSprite: React.FC<{
       {selected && (
         <circle cx={at.x} cy={at.y} r={w * 0.62} fill="#fef3c7" stroke="#f59e0b" strokeWidth={3} className="blink-circle" />
       )}
-      <svg x={at.x - w / 2} y={at.y - h / 2} width={w} height={h} style={{ color }}>
-        <use href="/art/injuredSoldier.svg#injured-soldier-shape" width={w} height={h} />
-      </svg>
+      <TintedSprite art={INJURED_SOLDIER_ART} color={color} x={at.x - w / 2} y={at.y - h / 2} width={w} height={h} />
     </g>
   );
 };

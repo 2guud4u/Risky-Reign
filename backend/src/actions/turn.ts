@@ -6,6 +6,8 @@
  */
 import {
   addPrice,
+  CannonUpgradePrice,
+  cannonVertexId,
   canPlaceRobberOn,
   CityPrice,
   computePayouts,
@@ -18,8 +20,13 @@ import {
   RoadPrice,
   rollTotal,
   SettlementPrice,
+  ShipPrice,
+  ShipSettlePrice,
+  shipStepsForTurn,
   SoldierPrice,
   stealCard,
+  verticesAdjacent,
+  WallPrice,
   GameRoom,
   Player,
   type TurnState,
@@ -138,6 +145,7 @@ export const TURN_ACTIONS: Record<string, ActionEntry> = {
         return fail('Only the acting player can undo');
       }
       if (room.battleState) return fail('A battle is in progress');
+      if (room.wallGate) return fail('A wall crossing is in progress');
       const board = room.board;
       if (!board) return fail('Game board is not available');
       const turnState = room.turnState;
@@ -146,7 +154,12 @@ export const TURN_ACTIONS: Record<string, ActionEntry> = {
       // Build-phase actions undo only during Build; action-phase actions only
       // during Action. A mismatch means the acting player's turn has ended.
       const isBuildEntry =
-        entry.kind === 'buildSettlement' || entry.kind === 'buildRoad' || entry.kind === 'upgradeCity';
+        entry.kind === 'buildSettlement' ||
+        entry.kind === 'buildRoad' ||
+        entry.kind === 'upgradeCity' ||
+        entry.kind === 'upgradeRoadToWall' ||
+        entry.kind === 'buildShip' ||
+        entry.kind === 'convertShipToSettlement';
       if (turnState.phase !== (isBuildEntry ? 'Build' : 'Action')) {
         return fail('Cannot undo after the turn has ended');
       }
@@ -212,6 +225,181 @@ export const TURN_ACTIONS: Record<string, ActionEntry> = {
           turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
             (x) => x !== entry.soldierId,
           );
+          break;
+        }
+        case 'upgradeCannon': {
+          actingPlayer.resources = addPrice(actingPlayer.resources, CannonUpgradePrice);
+          const soldier = board.soldiers[entry.soldierId];
+          if (soldier) {
+            soldier.type = 'infantry';
+            soldier.stationed = entry.wasStationed;
+          }
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'downgradeCannon': {
+          const soldier = board.soldiers[entry.soldierId];
+          if (soldier) {
+            soldier.type = 'cannon';
+            soldier.stationed = entry.wasStationed;
+          }
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'stationCannon':
+        case 'unstationCannon': {
+          const soldier = board.soldiers[entry.soldierId];
+          if (soldier) soldier.stationed = entry.kind === 'unstationCannon';
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'cannonAttack': {
+          if (entry.targetKilled) {
+            board.soldiers[entry.targetKilled.id] = entry.targetKilled;
+          } else {
+            // The entry doesn't record a surviving target's id — the victim
+            // is the enemy soldier adjacent to the cannon's effective vertex
+            // whose injured flag differs from its pre-attack state.
+            const cannon = board.soldiers[entry.soldierId];
+            const from = cannon ? cannonVertexId(board, cannon) : null;
+            const target = from
+              ? Object.values(board.soldiers).find(
+                  (s) =>
+                    s.id !== entry.soldierId &&
+                    s.injured !== entry.targetInjured &&
+                    verticesAdjacent(board, from, s.vertexId),
+                )
+              : undefined;
+            if (target) target.injured = entry.targetInjured;
+          }
+          // The reveal panel describes the undone shot — drop it with it.
+          if (room.cannonShot?.cannonId === entry.soldierId) room.cannonShot = null;
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'cannonSplash': {
+          if (entry.paid) {
+            actingPlayer.resources = addPrice(actingPlayer.resources, {
+              Wood: 0,
+              Brick: 0,
+              Sheep: 0,
+              Wheat: 0,
+              Ore: 1,
+            });
+          }
+          for (const victim of entry.victimsKilled) board.soldiers[victim.id] = victim;
+          for (const id of entry.victimsInjured) {
+            const victim = board.soldiers[id];
+            if (victim) victim.injured = false;
+          }
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'cannonAttackWall': {
+          if (entry.edgeId) {
+            const edge = board.edges[entry.edgeId];
+            const road = edge?.roadId ? board.roads[edge.roadId] : undefined;
+            if (road) road.isWall = true;
+          }
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'upgradeRoadToWall': {
+          actingPlayer.resources = addPrice(actingPlayer.resources, WallPrice);
+          const road = board.roads[entry.roadId];
+          if (road) road.isWall = false;
+          break;
+        }
+        case 'wallGateCross': {
+          const soldier = board.soldiers[entry.soldierId];
+          if (soldier) soldier.vertexId = entry.originalVertexId;
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'buildShip': {
+          actingPlayer.resources = addPrice(actingPlayer.resources, ShipPrice);
+          delete board.ships[entry.shipId];
+          break;
+        }
+        case 'moveShip': {
+          const ship = board.ships[entry.shipId];
+          if (ship) {
+            ship.vertexId = entry.originalVertexId;
+            ship.ownerId = entry.originalOwnerId;
+          }
+          for (const m of entry.troopMoves) {
+            const troop = board.soldiers[m.soldierId];
+            if (troop) troop.vertexId = m.originalVertexId;
+          }
+          // Refund the spent step (clamped to this phase's allowance).
+          if (ship) {
+            const allowance = shipStepsForTurn(room.roll);
+            turnState.shipSteps[entry.shipId] = Math.min(
+              allowance,
+              (turnState.shipSteps[entry.shipId] ?? 0) + 1,
+            );
+          }
+          break;
+        }
+        case 'embarkSoldier': {
+          const soldier = board.soldiers[entry.soldierId];
+          if (soldier) {
+            soldier.vertexId = entry.originalVertexId;
+            soldier.aboardShipId = null;
+          }
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'disembarkSoldier': {
+          const soldier = board.soldiers[entry.soldierId];
+          if (soldier) soldier.aboardShipId = entry.shipId;
+          // The soldier's vertex is wherever the ship sits now — undoing a
+          // disembark re-boards it onto the ship's current vertex.
+          const ship = board.ships[entry.shipId];
+          if (soldier && ship) soldier.vertexId = ship.vertexId;
+          turnState.soldiersActedThisTurn = turnState.soldiersActedThisTurn.filter(
+            (id) => id !== entry.soldierId,
+          );
+          break;
+        }
+        case 'convertShipToSettlement': {
+          actingPlayer.resources = addPrice(actingPlayer.resources, ShipSettlePrice);
+          delete board.settlements[entry.settlementId];
+          const vertex = board.vertices[entry.vertexId];
+          if (vertex && vertex.settlementId === entry.settlementId) vertex.settlementId = null;
+          // The ship returns to where it stood, its troops re-embarked
+          // (stationed cannons re-stationed).
+          const shipVertexId = entry.shipVertexId ?? entry.vertexId;
+          board.ships[entry.shipId] = {
+            id: entry.shipId,
+            vertexId: shipVertexId,
+            ownerId: actingPlayer.name,
+          };
+          const stationed = new Set(entry.stationedTroopIds ?? []);
+          for (const id of entry.troopIds) {
+            const troop = board.soldiers[id];
+            if (troop) {
+              troop.vertexId = shipVertexId;
+              troop.aboardShipId = entry.shipId;
+              troop.stationed = stationed.has(id);
+            }
+          }
           break;
         }
       }

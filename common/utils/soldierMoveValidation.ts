@@ -39,6 +39,10 @@ export function canMoveSoldierTo(
     return { allowed: false, reason: 'A stationed cannon must be unstationed before moving' };
   }
 
+  // Soldiers embarked on a ship ride it — they leave only via disembarkSoldier.
+  if (soldier.aboardShipId !== null)
+    return { allowed: false, reason: 'This soldier is aboard a ship — disembark first' };
+
   const targetVertex = board.vertices[targetVertexId];
   if (!targetVertex) return { allowed: false, reason: 'Target vertex not found' };
 

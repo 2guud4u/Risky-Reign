@@ -11,6 +11,8 @@ import { freshResourceCount } from './store';
 import { getMeta } from './persistence/gameRepository';
 import { autosaveRoom } from './lifecycle';
 import { syncPhaseTimer } from './phaseTimer';
+import { syncWallGateTimer } from './wallGateTimer';
+import { syncCannonShotTimer } from './cannonShotTimer';
 /**
  * Sanitize the room for a single recipient identified by their socket id: the
  * shared dev-card deck order is hidden (only the count is public), every
@@ -95,10 +97,13 @@ export function broadcastRoom(
   } catch (err) {
     console.error(`Autosave failed for ${room.id}:`, err);
   }
-  // Phase timer syncs BEFORE emitting so the payload carries the corrected
-  // state — a battle-open broadcast must already show the frozen deadline,
-  // and a battle-close one the resumed deadline.
+  // Phase timer, wall-gate roll timer, and cannon-shot reveal timer sync
+  // BEFORE emitting so the payload carries the corrected state — a
+  // battle-open broadcast must already show the frozen deadline, a
+  // battle-close one the resumed.
   syncPhaseTimer(io, room);
+  syncCannonShotTimer(io, room);
+  syncWallGateTimer(io, room);
   const expiresAt = expiryFor(room.id);
   for (const p of room.players) {
     if (!p.id || !p.connected) continue;

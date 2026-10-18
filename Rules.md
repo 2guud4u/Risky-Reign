@@ -37,28 +37,24 @@ One action per action phase
 Place soldiers in a new settlement and city.
 You can sneak pass enemy soldiers
 Walls 
-You can now upgrade roads to walls with 1 clay and 2 rock. Flip roads 90 degrees. 
-Walls are only passable by enemy soldier by doing the following: they choose from numbers 1-6. Then you roll, if your roll number is a number they chose, they can pass. Each soldier can choose their own number. Ex. if person A’s 3 soldiers wants to cross person B’s wall, A assigns a roll number to each soldier. A1: 3, A2: 4, A3: 5. If B rolls 5, soldier A3 can cross. 
+Upgrade one of your roads to a wall during Build with 2 bricks. The road flips 90 degrees.
+Walls block enemy soldiers only — your own troops cross freely. An enemy soldier crossing opens the wall gate: the crosser picks a number 1-6, the wall owner rolls (auto-roll after 30s, or instantly if they're offline). Match = the soldier crosses; miss = the soldier stays and its action is spent. Ex. person A's soldier picks 5 crossing person B's wall; B rolls 5, the soldier crosses.
+A wall transfers with its road on capture and blocks the capture region's spread — roads behind an enemy wall stay theirs.
+A stationed cannon adjacent to a wall can attack it: roll 4+ breaks the wall back into a normal road (the road survives).
 
 
 
 
 
 Cannon
-Upgrade a soldier to cannon troop with 1 rock and 1 wood on your settlement. Cannon is unstationed starting out. You can downgrade back to troop on your settlement.
-Can attack from 1 intersection away
-Actions: Attack, station, move, unstation
-Can only move while unstationed
-Only one action per phase
-If lose roll from far attack, nothing happens
-Regular Attack: once can perform once stationed. Choose a soldier to target and roll to win.
-Splash Attack: use one rock before attacking to perform. Instead of choosing soldier to target, all soldiers in that area will be attacked by roll. Even your own!
-Can not be injured if lost roll, immediately die if smaller roll.
-Roll against wall to break a wall. Cannone must be stationed next to the wall.
-When rolling fight, cannon is in a completely separate roll space. Choose dice to be cannon roll before rolling and choose which opponent soldier to affect before rolling. 
-No home field advantage 
-You can downgrade cannon back to soldier
-Only shoot once per attack
+Upgrade a soldier to a cannon on your settlement/city with 1 rock and 1 wood. Starts unstationed. Downgrading back to soldier costs your action and works anywhere.
+Actions: ranged attack (direction aim, with an optional chain-shot toggle), wall attack, station, unstation, move — each costs the cannon's one action per phase.
+Can only move while unstationed. Can only attack while stationed.
+Ranged attack: stationed, aim by direction — Fire opens a compass chip per adjacent vertex holding a valid target; a vertex with more than one target asks you to pick the soldier. The cannon and the target each roll; win = margin rules on the target (>=2 kills, 1 injures; a target cannon dies on any loss), ties go to the cannon, lose = nothing happens. Everyone sees the resolved shot briefly.
+Chain shot (toggle inside Fire, replaces the old Splash attack): pay 1 rock to load. Firing with it on hits the whole vertex — the cannon rolls once against every soldier there, even your own — resolving each pair independently. The cannon itself is immune; losing rolls do nothing to it.
+Wall attack: stationed next to a wall, roll 4+ to break it back into a road.
+Melee: a cannon in a normal battle always pairs as its side's lowest roll — it faces the enemy's weakest die. It wins its ties (no home field advantage) and dies on ANY lost roll — cannons are never injured.
+On a ship: a cannon can station aboard and fire at targets 1 intersection from the ship's vertex (naval artillery).
 
 
 Knight Dev Card
@@ -70,9 +66,10 @@ Soldiers can get off at any road but not buildings
 No cannons
 Counts as one victory point
 Ships
-Build with 1 wood 1 sheep
-Can transport any number troops
-If cannon, it can attack. Station rules apply.
-Wind Movement: divide resource roll by 2 round up and thats movement in turn
-Can be used by anyone
-Can be turned into a settlement with wheat and ore. No spawning extra soldier
+Build with 1 wood 1 sheep during Build: click a coast vertex your road or settlement touches — the ship spawns on that vertex. Ships sit on coast and sea vertices.
+Can transport any number of troops. Boarding and landing each cost the soldier's action. Land on any coast vertex the ship touches (its own vertex or a land-adjacent one) — a ship in open sea can't unload.
+Wind Movement: each ship moves ceil(this turn's dice roll / 2) during your Action phase — a rolled 7 still gives 4. Moving the ship doesn't use the troops' actions.
+Empty ships can be sailed by anyone — whoever last moves one owns it. A ship with troops aboard answers only to its owner.
+Troops aboard can be attacked: an enemy in range boards them as a normal battle on that vertex.
+If cannon aboard, it can attack. Station rules apply.
+Can be turned into a settlement on an adjacent coast vertex with 1 wheat and 1 ore. The distance rule applies. No free garrison soldier.

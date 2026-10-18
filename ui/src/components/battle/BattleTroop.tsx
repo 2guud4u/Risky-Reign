@@ -2,16 +2,16 @@ import React from 'react';
 import { BattlePhase } from 'common';
 import { TroopSlot } from '../../types/battleModal';
 import { effDead, effInjured, FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
-import { TROOP_R } from '../../constants';
+import { TROOP_ART, TROOP_R } from '../../constants';
 import { GAME_ICONS } from '../ui/GameIcon';
+import { TintedSprite } from '../TintedSprite';
+import { TROOP_SPRITES } from '../../utils/tintedArt';
+import { troopArtKind } from '../../utils/garrisonFormation';
 import {
   DEAD_TROOP_OPACITY,
-  INJURED_TROOP_SCALE,
   ROBBER_ART,
-  SOLDIER_FIGURE_WIDTH_FRAC,
   SOLDIER_ICON_HEIGHT,
   SOLDIER_ICON_LIFT,
-  SOLDIER_ICON_WIDTH,
   TROOP_LABEL_OUTLINE,
   TROOP_LABEL_OUTLINE_WIDTH,
   TROOP_LABEL_SIZE,
@@ -52,7 +52,6 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
   const dead = effDead(s, phase);
   const injured = effInjured(s, phase);
   const opacity = dead ? DEAD_TROOP_OPACITY : 1;
-  const scale = injured ? INJURED_TROOP_SCALE : 1;
   const isRobber = s.soldier.owner === 'Robber';
   let label: React.ReactNode = '·';
   let labelSize = TROOP_LABEL_SIZE;
@@ -69,11 +68,19 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
   }
   // Both troops share one figure box, centered on (x, y): the soldier art's
   // drawn figure. The robber is scaled so its figure matches that height.
-  const figH = TROOP_R * SOLDIER_ICON_HEIGHT * scale;
-  const figTop = y - TROOP_R * SOLDIER_ICON_LIFT * scale;
-  const figW = isRobber
-    ? (figH * ROBBER_ART.w) / ROBBER_ART.h
-    : TROOP_R * SOLDIER_ICON_WIDTH * SOLDIER_FIGURE_WIDTH_FRAC * scale;
+  const figH = TROOP_R * SOLDIER_ICON_HEIGHT;
+  const figTop = y - TROOP_R * SOLDIER_ICON_LIFT;
+  const feetY = figTop + figH;
+  // Every troop sprite keeps the board's people-matched size ratio, scaled so
+  // a healthy soldier fills the figure height; injured and cannon troops
+  // stand on the same feet line.
+  const art = troopArtKind({ ...s.soldier, injured });
+  const artScale = figH / TROOP_ART.soldier.h;
+  const artW = TROOP_ART[art].w * artScale;
+  const artH = TROOP_ART[art].h * artScale;
+  const figW = isRobber ? (figH * ROBBER_ART.w) / ROBBER_ART.h : artW;
+  const boxTop = isRobber ? figTop : feetY - artH;
+  const boxH = isRobber ? figH : artH;
   // The robber image is the whole canvas; place it so its figure lands in the box.
   const robberScale = figH / ROBBER_ART.h;
   return (
@@ -87,9 +94,9 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
       {mine && (
         <rect
           x={x - figW / 2 - 4}
-          y={figTop - 4}
+          y={boxTop - 4}
           width={figW + 8}
-          height={figH + 8}
+          height={boxH + 8}
           rx={6}
           fill="transparent"
           pointerEvents="all"
@@ -106,22 +113,18 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
           pointerEvents="none"
         />
       ) : (
-        /* Soldier icon (red part tinted to the owner's color); injured uses the injured icon. */
-        <svg
-          x={x - TROOP_R * scale}
-          y={figTop}
-          width={TROOP_R * SOLDIER_ICON_WIDTH * scale}
-          height={figH}
-          style={{ color: colors[s.soldier.owner] ?? FALLBACK_OWNER_COLOR }}
-          pointerEvents="none"
-        >
-          <use
-            href={injured ? '/art/injuredSoldier.svg#injured-soldier-shape' : '/art/soldier.svg#soldier-shape'}
-            width={TROOP_R * SOLDIER_ICON_WIDTH * scale}
-            height={figH}
-            transform={x < centerX ? `translate(${TROOP_R * SOLDIER_ICON_WIDTH * scale}, 0) scale(-1, 1)` : undefined}
-          />
-        </svg>
+        /* Troop art (armor tinted to the owner's color), at the same
+           people-matched ratio as the board: injured, cannon and soldier
+           sprites stand on one ground line. */
+        <TintedSprite
+          art={TROOP_SPRITES[art]}
+          color={colors[s.soldier.owner] ?? FALLBACK_OWNER_COLOR}
+          x={x - artW / 2}
+          y={feetY - artH}
+          width={artW}
+          height={artH}
+          transform={x < centerX ? `translate(${2 * x}, 0) scale(-1, 1)` : undefined}
+        />
       )}
       {/* Dark disc behind a rolled number (or the roll cue) so it reads on any owner color. */}
       {!dead && !rolling && (s.rollNum !== null || mine) && (

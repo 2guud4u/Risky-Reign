@@ -67,20 +67,27 @@ export const ROLL_NUMBER_STROKE_W = 1;
 export const LIT_HEX_GOLD = '#FFD700';
 // ── MiniView ─────────────────────────────────────────────────────────────────
 
-/** Actual soldier-art width: the symbol viewBox (308.96 x 696.64) is letterboxed
- * into the 66-tall <use>, so the art is 66 * 308.96/696.64 wide. The
- * selection box must use this, not the 57-wide <use> viewport. */
-export const SOLDIER_ART_WIDTH = 29.27;
-/** Actual soldier-art height (the <use> viewport height). */
-export const SOLDIER_ART_HEIGHT = 66;
-/** Injured soldiers are drawn at this fraction of full size. */
-export const INJURED_SOLDIER_SCALE = 1;
+/**
+ * Drawn size (board px, before BOARD_SOLDIER_SCALE) of every troop sprite.
+ * Sized so the people match: each sprite is scaled until its face is the
+ * same height as the healthy soldier's, then its trimmed canvas gives the
+ * box. Pieces stand on a shared ground line (sprite bottom = feet).
+ */
+export const TROOP_ART = {
+  soldier: { w: 28.94, h: 66 },
+  injured: { w: 34.25, h: 46.33 },
+  cannonStationed: { w: 71.23, h: 69.56 },
+  cannonUnstationed: { w: 56.98, h: 47.74 },
+} as const;
+/** Healthy-soldier art size — the reference the formation grid is built on. */
+export const SOLDIER_ART_WIDTH = TROOP_ART.soldier.w;
+export const SOLDIER_ART_HEIGHT = TROOP_ART.soldier.h;
 
 // Garrison formation: each owner's soldiers stand in tidy ranks — healthy in
 // front, injured behind — with a count pill once the army is too big to draw.
 // Sized so two armies side by side stay inside one vertex spacing on the board.
-/** Soldiers per rank (row) in a formation. */
-export const FORMATION_COLS = 5;
+/** Slots per rank (row) in a formation: a cannon takes 2 slots, any other troop 1. */
+export const FORMATION_COLS = 4;
 /** Most soldiers drawn per army; bigger armies show their total in a count pill. */
 export const FORMATION_MAX_VISIBLE = 20;
 /** Horizontal distance between soldiers in a rank (about one art width). */
@@ -102,10 +109,8 @@ export const FORMATION_PILL_PAD = 8;
 export const FORMATION_LINE_GAP = 12;
 /** Selected-soldier check badge: radius as a fraction of the art width. */
 export const CHECK_BADGE_R_FRAC = 0.16;
-/** Selected-soldier check badge: center height above the sprite center (as a fraction of art height). */
+/** Selected-soldier check badge: gap above the sprite's top edge (as a fraction of soldier art height). */
 export const CHECK_BADGE_Y_OFF = 0.05;
-/** Selected-soldier check badge: center height above the sprite center (as a fraction of full art height), injured soldiers (shorter sprite, sits higher). */
-export const CHECK_BADGE_Y_OFF_INJURED = -.1;
 export const CHECK_BADGE_COLOR = '#16a34a';
 /** Energy bolt marking a soldier with an unspent action (mini-map). */
 /** Bolt height as a fraction of the soldier art height. */
@@ -165,10 +170,10 @@ export const SIDE_COL_MAX = 6;
 export const REPOSITION_ROW_SPACING = 44;
 /** Distance below the vertex center where the repositioning row sits. */
 export const REPOSITION_ROW_OFFSET_Y = 60;
-/** Rendered width of the injured-soldier icon in the repositioning view. */
-export const REPOSITION_SOLDIER_W = 40;
-/** Rendered height of the injured-soldier icon in the repositioning view. */
-export const REPOSITION_SOLDIER_H = 46;
+/** Injured-soldier icon in the repositioning view: the board's injured art box
+ *  scaled up (keeps the people-matched aspect, about 46 tall). */
+export const REPOSITION_SOLDIER_W = TROOP_ART.injured.w;
+export const REPOSITION_SOLDIER_H = TROOP_ART.injured.h;
 /** Neighbor vertex circle radius in the MiniView. */
 export const MINI_NEIGHBOR_R = 8;
 /** Selection ring radius in the MiniView. */

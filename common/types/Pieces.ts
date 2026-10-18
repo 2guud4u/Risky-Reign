@@ -13,7 +13,10 @@ export interface SoldierObj {
   injured: boolean;
   vertexId: VertexId;
   type: SoldierType;
+  /** Infantry: garrisoned at spawn (cleared on move). Cannon: emplaced (can attack, cannot move). */
   stationed: boolean;
+  /** Ship this soldier is embarked on (it moves with the ship); null on foot. */
+  aboardShipId: string | null;
 }
 
 export type DevCardType = 'Knight' | 'VictoryPoint' | 'RoadBuilding' | 'YearOfPlenty' | 'Monopoly';

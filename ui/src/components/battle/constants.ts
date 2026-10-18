@@ -10,22 +10,12 @@ export const BATTLE_MINI_MIN_VIEW_SIZE = 300;
 /** Opacity of a dead troop's icon. */
 export const DEAD_TROOP_OPACITY = 0.4;
 
-/** Injured troops render at 0.65x the size of a healthy troop. */
-export const INJURED_TROOP_SCALE = 0.65;
-
 /** Vertical lift of a soldier icon, as a multiple of TROOP_R. */
 export const SOLDIER_ICON_LIFT = 1.15;
 
-/** Soldier icon footprint, as a multiple of TROOP_R. */
-export const SOLDIER_ICON_WIDTH = 2;
+/** Healthy-soldier figure height, as a multiple of TROOP_R. Every other troop
+ *  sprite is sized relative to it by `TROOP_ART` (people-matched). */
 export const SOLDIER_ICON_HEIGHT = 2.3;
-
-/**
- * The soldier art fills only part of its box (its viewBox is tall and thin),
- * so the drawn figure is this fraction of SOLDIER_ICON_WIDTH wide. Used to
- * size the click target to the figure, not the empty box around it.
- */
-export const SOLDIER_FIGURE_WIDTH_FRAC = 0.5;
 
 /**
  * Bobbing finger beside the next troop to roll (👉 left of an attacker, 👈

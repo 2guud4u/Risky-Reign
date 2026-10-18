@@ -85,6 +85,57 @@ export interface DevCardChoice {
  */
 export type DiscardState = Record<string, number>;
 /**
+ * Pending wall-gate crossing. While set, a soldier trying to move across an
+ * enemy wall is held: the crosser first submits a 1-6 guess via `wallGuess`,
+ * then the wall owner resolves it with `rollWallGate` (server rolls a d6 —
+ * guess match = the soldier crosses, miss = it stays; the action is consumed
+ * either way).
+ */
+export interface WallGateState {
+  /** Soldier attempting the crossing. */
+  soldierId: string;
+  /** The walled edge being crossed. */
+  edgeId: string;
+  /** Where the soldier lands if the guess matches. */
+  targetVertexId: string;
+  /** The crosser's 1-6 guess (null until `wallGuess`). */
+  /** The crosser's 1-6 guess (null until `wallGuess`). */
+  guess: number | null;
+  /** The resolving roll once the owner (or the server) has rolled; a non-null
+      roll means the gate is resolved and lingers briefly so everyone sees the
+      outcome before it's cleared. */
+  roll: number | null;
+  /** Player moving the soldier (submits the guess). */
+  crosserName: string;
+  /** Owner of the wall (triggers the resolving roll). */
+  wallOwnerName: string;
+}
+/**
+ * A resolved single-target cannon shot, kept briefly so every client can show
+ * the duel panel (shooter vs victim, both dice, outcome). Cleared server-side
+ * after CANNON_SHOT_REVEAL_MS. Splash shots and wall attacks don't set it.
+ */
+export interface CannonShotState {
+  /** The firing cannon's soldier id. */
+  cannonId: string;
+  /** The shooter's player name. */
+  shooterName: string;
+  /** The soldier that was shot at (may already be deleted from the board). */
+  targetSoldierId: string;
+  /** The victim's player name. */
+  targetOwnerName: string;
+  /** The vertex the victim stood on. */
+  vertexId: string;
+  cannonRoll: number;
+  targetRoll: number;
+  /** 'kill' = destroyed, 'injure' = hit, 'miss' = the defender rolled higher. */
+  outcome: 'kill' | 'injure' | 'miss';
+  /** Whether chain shot (splash) was loaded — always false today; reserved. */
+  chained: boolean;
+  /** The victim's piece type — survives the target's deletion for the HUD. */
+  targetType: 'infantry' | 'cannon';
+}
+/**
  * Room lifecycle. 'waiting' lobbies are memory-only; 'playing', 'paused',
  * 'resuming' and 'finished' rooms have a DB row once autosaved or paused.
  * 'resuming' = a reopened lobby collecting the original seats before the
@@ -118,6 +169,13 @@ export interface GameRoom {
    * settlement (0 to MAX_SETUP_CITIES). The player picks which ones.
    */
   setupCities: number;
+  /**
+   * Feature toggles (waiting-lobby settings, host editable): when false the
+   * matching piece cannot be built/upgraded or used in this game.
+   */
+  cannonsEnabled: boolean;
+  wallsEnabled: boolean;
+  shipsEnabled: boolean;
   /**
    * Optional per-phase timer (ms; 0 = off). When set, Build and Action
    * phases auto-advance when `phaseTimerEndsAt` passes; an active battle
@@ -153,6 +211,14 @@ export interface GameRoom {
   devCardChoice: DevCardChoice | null;
   /** Pending 7-discards (players with 8+ resource cards hand in half). */
   discards: DiscardState;
+  /** Pending wall-gate crossing (crosser guesses, wall owner rolls). */
+  wallGate: WallGateState | null;
+  /**
+   * The last resolved single-target cannon shot, kept for a few seconds so
+   * every client can show the outcome panel (server-cleared). Splash shots
+   * and wall attacks don't set it.
+   */
+  cannonShot: CannonShotState | null;
   /**
    * The robber's bag: every resource card discarded by the 7 rule, plus the
    * resources produced by hexes the robber sits on.

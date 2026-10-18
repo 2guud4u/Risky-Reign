@@ -1,4 +1,4 @@
-import { BattleState, Board } from '../../index';
+import { BattleState, Board, SoldierBattleState } from '../../index';
 import { sideOf } from './state';
 import { activeSoldiersOf, allSoldiersRolled } from './rolls';
 
@@ -35,12 +35,16 @@ function resolvePairs(
   // Only the active front line (first MAX_PER_ROUND standing troops) that have
   // rolled take part in the matchup. Injured troops are out of the fight
   // (Rule 28); reserve troops beyond the front line haven't stepped up yet.
+  // Cannons always pair as their side's lowest roll (they fight last).
+  const byRollDescCannonLast = (a: SoldierBattleState, b: SoldierBattleState) =>
+    Number(a.soldier.type === 'cannon') - Number(b.soldier.type === 'cannon') ||
+    (b.rollNum || 0) - (a.rollNum || 0);
   const attackerSoldiers = activeSoldiersOf(battle, battle.attacker)
     .filter((s) => s.rollNum !== null)
-    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
+    .sort(byRollDescCannonLast);
   const defenderSoldiers = activeSoldiersOf(battle, battle.defender)
     .filter((s) => s.rollNum !== null)
-    .sort((a, b) => (b.rollNum || 0) - (a.rollNum || 0));
+    .sort(byRollDescCannonLast);
 
   const maxPairs = Math.min(attackerSoldiers.length, defenderSoldiers.length);
   for (let i = 0; i < maxPairs; i++) {
@@ -48,16 +52,27 @@ function resolvePairs(
     const def = defenderSoldiers[i];
     const attRoll = atk.rollNum || 0;
     const defRoll = def.rollNum || 0;
-    if (attRoll > defRoll) {
-      if (attRoll - defRoll >= 2) {
+    // Cannons never suffer injury: any outcome that would injure one kills it.
+    // A cannon in a pair wins its ties (a cannon-vs-cannon tie still goes to
+    // the defender — someone's die has to win).
+    const atkCannon = atk.soldier.type === 'cannon';
+    const defCannon = def.soldier.type === 'cannon';
+    const attWins = attRoll > defRoll || (attRoll === defRoll && atkCannon && !defCannon);
+    const defWins = defRoll > attRoll || (attRoll === defRoll && defCannon);
+    if (attWins) {
+      // Margin ≥2 kills, otherwise injures — a tied roll where the cannon
+      // wins counts as a win by 1.
+      const margin = Math.max(attRoll - defRoll, 1);
+      if (margin >= 2 || defCannon) {
         def.dead = true;
         deadSoldierIds.push(def.soldier.id);
       } else {
         def.injured = true;
         injuredSoldierIds.push(def.soldier.id);
       }
-    } else if (defRoll > attRoll) {
-      if (defRoll - attRoll >= 2) {
+    } else if (defWins) {
+      const margin = Math.max(defRoll - attRoll, 1);
+      if (margin >= 2 || atkCannon) {
         atk.dead = true;
         deadSoldierIds.push(atk.soldier.id);
       } else {
@@ -66,8 +81,13 @@ function resolvePairs(
       }
     } else {
       // Defender wins ties: an equal roll injures the attacker.
-      atk.injured = true;
-      injuredSoldierIds.push(atk.soldier.id);
+      if (atkCannon) {
+        atk.dead = true;
+        deadSoldierIds.push(atk.soldier.id);
+      } else {
+        atk.injured = true;
+        injuredSoldierIds.push(atk.soldier.id);
+      }
     }
   }
 }
@@ -198,6 +218,7 @@ export function escapeInjuredSurvivors(board: Board, battle: BattleState): void 
     if (dest !== null) {
       soldier.vertexId = dest;
       soldier.stationed = false;
+      soldier.aboardShipId = null; // escaping by road leaves any ship behind
     }
     // No road out: the injured soldier simply stays where the battle ended.
   }

@@ -5,6 +5,8 @@ import BoardView from './BoardView';
 import NoticeRail from './NoticeRail';
 import StealPrompt from './StealPrompt';
 import DiscardPrompt from './DiscardPrompt';
+import WallGatePrompt from './WallGatePrompt';
+import CannonShotModal from './CannonShotModal';
 import DevCardPrompt from './DevCardPrompt';
 import ResourceGainLayer from '../components/ResourceGainLayer';
 import ResourceSpendLayer from '../components/ResourceSpendLayer';
@@ -271,6 +273,12 @@ const Game: React.FC = () => {
 
       {/* 7-discard prompt: players with 8+ resource cards hand in half. */}
       <DiscardPrompt />
+
+      {/* Wall gate: the crosser guesses, then the wall owner rolls the die. */}
+      <WallGatePrompt />
+
+      {/* Cannon fire: everyone sees the resolved shot for a few seconds. */}
+      <CannonShotModal />
 
       {/* Development card choice: Year of Plenty / Monopoly. */}
       <DevCardPrompt />

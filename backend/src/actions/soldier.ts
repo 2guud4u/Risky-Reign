@@ -17,6 +17,7 @@ import {
   subtractPrice,
   healPriceFor,
   ResourceKey,
+  moveCrossesWall,
   GameRoom,
   Player,
 } from 'common';
@@ -35,12 +36,35 @@ export const SOLDIER_ACTIONS: Record<string, ActionEntry> = {
       if (!board) return fail('Game board is not available');
       const turnState = room.turnState;
 
+      // One crossing at a time: a new move would overwrite the open gate and
+      // let the held soldier skip its spent action (Rules.md Walls).
+      if (room.wallGate && room.wallGate.roll === null) return fail('A wall crossing is in progress');
+
       // Authoritative rules live in common (shared with the UI).
       const check = canMoveSoldierTo(board, turnState, currentPlayer.name, soldierId, targetVertexId);
       if (!check.allowed) return fail(check.reason ?? 'Cannot move soldier there');
 
-      // Move the soldier to the new vertex.
+      // Crossing an enemy wall doesn't move: it opens a wall gate — the
+      // crosser owes a guess, then the wall owner rolls. No action is
+      // consumed yet; the gate's roll consumes it either way.
       const soldier = board.soldiers[soldierId];
+      if (soldier && room.wallsEnabled) {
+        const gate = moveCrossesWall(board, soldier, targetVertexId);
+        if (gate) {
+          room.wallGate = {
+            soldierId,
+            edgeId: gate.edgeId,
+            targetVertexId,
+            guess: null,
+            roll: null,
+            crosserName: currentPlayer.name,
+            wallOwnerName: gate.wallOwnerName,
+          };
+          return;
+        }
+      }
+
+      // Move the soldier to the new vertex.
       if (soldier) {
         const originalVertexId = soldier.vertexId;
         soldier.vertexId = targetVertexId;

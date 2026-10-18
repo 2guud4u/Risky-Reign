@@ -1,4 +1,4 @@
-export type BuildType = 'settlement' | 'city' | 'road' | 'soldier';
+export type BuildType = 'settlement' | 'city' | 'road' | 'soldier' | 'ship' | 'wall';
 
 export interface BuildAnimationInfo {
   type: BuildType;

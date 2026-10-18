@@ -12,7 +12,7 @@ import { GameRoom, Player } from 'common';
  * a `migrate` arm when a rules change alters what must be persisted.
  */
 
-export const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 2;
 
 /** Persistent player: identity + game state + seat token (kept so a live
     socket's saved token still re-attaches after a server restart). Runtime
@@ -53,6 +53,13 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
     // Snapshots written before the lock existed are unlocked.
     rulesLocked: snap.rulesLocked ?? false,
     phaseTimerEndsAt: null,
+    // v1 → v2: cannons/walls/ships joined the rules; old rows get the
+    // feature flags on and every new field defaulted.
+    cannonsEnabled: snap.cannonsEnabled ?? true,
+    wallsEnabled: snap.wallsEnabled ?? true,
+    shipsEnabled: snap.shipsEnabled ?? true,
+    wallGate: snap.wallGate ?? null,
+    cannonShot: snap.cannonShot ?? null,
     phaseTimerRemainingMs: null,
     // Snapshots written before room passwords existed are open rooms.
     passwordHash: snap.passwordHash ?? null,
@@ -77,14 +84,31 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
 }
 
 /**
- * Upgrade a stored snapshot from `fromVersion` to `SNAPSHOT_VERSION`. v1 is
- * the only shape so far, so this is the identity map — the hook exists so a
- * future rules change can rewrite old rows instead of rejecting them.
+ * Upgrade a stored snapshot from `fromVersion` to `SNAPSHOT_VERSION`.
+ * v1 → v2 adds the pieces layer: roads gain `isWall`, the board gains
+ * `ships`, soldiers gain `aboardShipId`, the turn gains `shipSteps`, and the
+ * room gains the three feature flags + `wallGate`.
  */
 export function migrate(snapshot: unknown, fromVersion: number): GameSnapshot {
   if (fromVersion === SNAPSHOT_VERSION) return snapshot as GameSnapshot;
-  // No older versions exist yet. When SNAPSHOT_VERSION bumps, transform here.
-  return snapshot as GameSnapshot;
+  const snap = snapshot as GameSnapshot;
+  if (fromVersion <= 1) {
+    for (const road of Object.values(snap.board?.roads ?? {})) {
+      road.isWall ??= false;
+    }
+    if (snap.board) snap.board.ships ??= {};
+    for (const soldier of Object.values(snap.board?.soldiers ?? {})) {
+      soldier.aboardShipId ??= null;
+    }
+    if (snap.turnState) snap.turnState.shipSteps ??= {};
+    snap.cannonsEnabled ??= true;
+    snap.wallsEnabled ??= true;
+    snap.shipsEnabled ??= true;
+    snap.wallGate ??= null;
+    if (snap.wallGate) snap.wallGate.roll ??= null;
+    snap.cannonShot ??= null;
+  }
+  return snap;
 }
 
 /**

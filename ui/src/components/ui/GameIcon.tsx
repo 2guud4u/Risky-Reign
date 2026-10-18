@@ -5,6 +5,8 @@ import {
   ArrowRight,
   ArrowRightLeft,
   Bandage,
+  Bomb,
+  BrickWall,
   Castle,
   Check,
   CircleHelp,
@@ -133,6 +135,8 @@ export const GAME_ICONS = {
   move: Footprints,
   heal: Bandage,
   attack: Swords,
+  cannon: Bomb,
+  wall: BrickWall,
   capture: Flag,
   retreat: CornerUpLeft,
   // robber + cards
@@ -214,9 +218,17 @@ const GameIcon: React.FC<GameIconProps> = ({ name, size = 16, className, ...rest
         src={art}
         width={size}
         height={size}
+        // Preflight makes <img> display:block; callers pass `inline` here to
+        // keep art flowing with text (e.g. "2 [wheat], 3 [ore]").
+        className={className}
         alt={rest['aria-label'] ?? ''}
         aria-hidden={rest['aria-label'] ? undefined : true}
-        className={className}
+        // Size art by height, never clip: the painted files have wildly
+        // different aspect ratios (brick 1.71, wheat 0.63) and contain-fit
+        // letterboxes them into looking shrunken. A fixed height keeps every
+        // row aligned while wide art just runs wider. Tailwind's preflight
+        // `img { height: auto }` overrides the attribute, so pin via style.
+        style={{ height: size, width: 'auto' }}
         draggable={false}
       />
     );

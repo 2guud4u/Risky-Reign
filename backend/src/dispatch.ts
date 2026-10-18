@@ -29,6 +29,7 @@ import { TRADE_ACTIONS } from './actions/trade';
 import { TURN_ACTIONS } from './actions/turn';
 import { BATTLE_ACTIONS } from './actions/battle';
 import { ROOM_ACTIONS } from './actions/room';
+import { PIECE_ACTIONS } from './actions/pieces';
 import { broadcastPausedInfo } from './handlers/room/shared';
 /** What an action returns. `{ error }` short-circuits; effects run on success. */
 export interface ActionResult {
@@ -81,6 +82,7 @@ const ACTIONS: ActionTable = {
   ...TURN_ACTIONS,
   ...BATTLE_ACTIONS,
   ...ROOM_ACTIONS,
+  ...PIECE_ACTIONS,
 };
 
 /** Perform a returned effect on the wire. */

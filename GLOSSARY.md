@@ -34,6 +34,17 @@
 | Coast vertex | A board vertex touching exactly one land hex, its other neighbors water or empty — the only place a trade port (dock) may sit. |
 | Dock | One trade port on the board's coastline: a generic (3:1) or resource (2:1) harbor occupying a span of one or two adjacent coast vertices. |
 
+## Game pieces
+
+| Term | Meaning |
+|------|---------|
+| Cannon | A soldier upgraded on your settlement (1 wood + 1 ore). In melee it always pairs as its side's lowest roll (facing the enemy's weakest die); it cannot be injured — a lost roll kills it — and it wins its ties (no home-field advantage). |
+| Stationed | A cannon emplaced to fire: it can attack (range: one intersection away, or splash) but cannot move until unstationed. Distinct from a freshly-spawned infantry soldier's garrisoned state. |
+| Splash attack | A stationed cannon's area attack (costs 1 ore): one roll resolves independently against every soldier on the target vertex, including the firer's own troops — the cannon itself is immune. |
+| Wall | A road upgraded (2 bricks, flipped 90°) that blocks enemy soldiers. Crossing requires the wall gate; a stationed cannon adjacent to it breaks it on a roll of 4+. Walls travel with their road on capture and stop the capture region's spread. |
+| Wall gate | The dice challenge for crossing an enemy wall: the crosser picks a number 1–6 for each soldier attempting, the wall owner rolls; each soldier whose number matches crosses. A failed attempt still spends the soldier's action. |
+| Ship | A vessel (1 wood + 1 sheep) sitting on coast or sea vertices. Carries any number of embarked troops; each ship moves ceil(dice-roll total / 2) per Action phase. Empty ships can be commandeered by anyone; loaded ships obey only their owner. Converts into a settlement on an adjacent coast vertex for 1 wheat + 1 ore (no garrison soldier). |
+
 ## Engine architecture
 
 | Term | Meaning |

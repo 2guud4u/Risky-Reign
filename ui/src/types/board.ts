@@ -18,6 +18,8 @@ export interface BoardVertexRender extends BoardVertex {
 /** A BoardEdge plus the ephemeral interaction/owner state layered on at render time. */
 export interface BoardEdgeRender extends BoardEdge {
   ownerColor?: string;
+  /** The road on this edge is a wall (blocks enemy crossings). */
+  isWall?: boolean;
 }
 
 /**

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CityPrice, RoadPrice, SettlementPrice, SoldierPrice, ResourceKey, RESOURCES } from 'common';
+import { CityPrice, RoadPrice, SettlementPrice, ShipPrice, SoldierPrice, WallPrice, ResourceKey, RESOURCES } from 'common';
 import { useGameState } from '../contexts/GameContext';
 import { SPEND_DURATION, SPEND_STAGGER } from '../constants';
 import { emitEffect, onEffect } from '../effects';
@@ -21,6 +21,8 @@ const PRICE_BY_TYPE: Record<BuildType, Partial<Record<ResourceKey, number>>> = {
   city: CityPrice,
   road: RoadPrice,
   soldier: SoldierPrice,
+  ship: ShipPrice,
+  wall: WallPrice,
 };
 
 /**

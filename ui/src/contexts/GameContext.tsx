@@ -21,6 +21,12 @@ interface SelectionValue {
   selectedObject: SelectableObject | null;
   /** Soldiers picked (by tapping them on the map) for a group action on the selected vertex. */
   selectedSoldierIds: string[];
+  /** Sail pick-mode: this ship is waiting for a highlighted water vertex click. */
+  sailingShipId: string | null;
+  /** Disembark pick-mode: this aboard soldier is waiting for a landing vertex click. */
+  disembarkingSoldierId: string | null;
+  /** Fire flow: chain shot loads splash (1 ore, hits everyone on the vertex). */
+  chainShot: boolean;
 }
 
 interface ChromeValue {
@@ -33,6 +39,9 @@ interface GameActionsValue {
   setCurrentPlayer: React.Dispatch<React.SetStateAction<PublicPlayer | null>>;
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
   setSelectedSoldierIds: React.Dispatch<React.SetStateAction<string[]>>;
+  setSailingShipId: React.Dispatch<React.SetStateAction<string | null>>;
+  setDisembarkingSoldierId: React.Dispatch<React.SetStateAction<string | null>>;
+  setChainShot: React.Dispatch<React.SetStateAction<boolean>>;
   showToast: (message: string | null) => void;
   /** Drop the room + seat locally (leaving the game or a server "not in room" push). */
   clearRoomState: () => void;
@@ -48,20 +57,33 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentPlayer, setCurrentPlayer] = useState<PublicPlayer | null>(null);
   const [selectedObject, setSelectedObject] = useState<SelectableObject | null>(null);
   const [selectedSoldierIds, setSelectedSoldierIds] = useState<string[]>([]);
+  const [sailingShipId, setSailingShipId] = useState<string | null>(null);
+  const [disembarkingSoldierId, setDisembarkingSoldierId] = useState<string | null>(null);
+  const [chainShot, setChainShot] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const roomState = useMemo(() => ({ gameRoom, currentPlayer }), [gameRoom, currentPlayer]);
   const selection = useMemo(
-    () => ({ selectedObject, selectedSoldierIds }),
-    [selectedObject, selectedSoldierIds]
+    () => ({ selectedObject, selectedSoldierIds, sailingShipId, disembarkingSoldierId, chainShot }),
+    [selectedObject, selectedSoldierIds, sailingShipId, disembarkingSoldierId, chainShot]
   );
   const chrome = useMemo(() => ({ toast }), [toast]);
   const actions = useMemo<GameActionsValue>(
     () => ({
       setGameRoom,
       setCurrentPlayer,
-      setSelectedObject,
+      setSelectedObject: (next) => {
+        // A new selection cancels the sail/disembark pick modes and the
+        // chain-shot toggle with it.
+        setSailingShipId(null);
+        setDisembarkingSoldierId(null);
+        setChainShot(false);
+        setSelectedObject(next);
+      },
       setSelectedSoldierIds,
+      setSailingShipId,
+      setDisembarkingSoldierId,
+      setChainShot,
       showToast: setToast,
       clearRoomState: () => {
         setGameRoom(null);

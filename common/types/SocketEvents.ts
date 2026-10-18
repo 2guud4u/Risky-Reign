@@ -80,6 +80,23 @@ export interface ClientToServerEvents {
   recruitSoldier: (data: { roomId: string; vertexId: string }) => void;
   moveSoldier: (data: { roomId: string; soldierId: string; targetVertexId: string }) => void;
   captureSettlement: (data: { roomId: string; soldierId: string; vertexId: string }) => void;
+  upgradeCannon: (data: { roomId: string; soldierId: string }) => void;
+  downgradeCannon: (data: { roomId: string; soldierId: string }) => void;
+  stationCannon: (data: { roomId: string; soldierId: string }) => void;
+  unstationCannon: (data: { roomId: string; soldierId: string }) => void;
+  cannonAttack: (data: { roomId: string; soldierId: string; targetSoldierId: string }) => void;
+  cannonSplash: (data: { roomId: string; soldierId: string; vertexId: string }) => void;
+  cannonAttackWall: (data: { roomId: string; soldierId: string; edgeId: string }) => void;
+  upgradeRoadToWall: (data: { roomId: string; edgeId: string }) => void;
+  /** The crosser submits their 1-6 guess for a pending wall gate. */
+  wallGuess: (data: { roomId: string; guess: number }) => void;
+  /** The wall owner resolves the pending gate (server rolls the d6). */
+  rollWallGate: (data: { roomId: string }) => void;
+  buildShip: (data: { roomId: string; vertexId: string }) => void;
+  moveShip: (data: { roomId: string; shipId: string; vertexId: string }) => void;
+  embarkSoldier: (data: { roomId: string; soldierId: string; shipId: string }) => void;
+  disembarkSoldier: (data: { roomId: string; soldierId: string; vertexId: string }) => void;
+  convertShipToSettlement: (data: { roomId: string; shipId: string; vertexId: string }) => void;
   fightRobber: (data: { roomId: string; soldierId: string; vertexId: string }) => void;
   moveRobber: (data: { roomId: string; hexId: string }) => void;
   chooseSteal: (data: { roomId: string; victimName: string; cardIndex: number }) => void;
@@ -115,6 +132,8 @@ export interface ClientToServerEvents {
   setSetupCities: (data: { roomId: string; setupCities: number }) => void;
   /** Host only: per-phase turn timer in ms (0 = off). Waiting-lobby setting. */
   setTurnTimer: (data: { roomId: string; turnTimerMs: number }) => void;
+  /** Feature toggles; each flag is independently optional — only provided ones change. */
+  setPiecesEnabled: (data: { roomId: string; cannons?: boolean; walls?: boolean; ships?: boolean }) => void;
   editBoard: (data: { roomId: string; layouts: HexLayout[]; docks?: DockSpec[] }) => void;
   /** Host-only: gate who may change rules/board while waiting (customization lock). */
   setRulesLock: (data: { roomId: string; locked: boolean }) => void;

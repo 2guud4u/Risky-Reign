@@ -137,11 +137,15 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
       soldiersCreatedThisTurn: [],
       soldiersHealedThisTurn: [],
       robberFoughtThisPhase: [],
+      shipSteps: {},
       undoLog: [],
     },
     gameStatus: 'waiting',
     pausedAt: null,
     pointsToWin: DEFAULT_POINTS_TO_WIN,
+    cannonsEnabled: true,
+    wallsEnabled: true,
+    shipsEnabled: true,
     turnMode: TURN_MODE_PRESETS.expanded,
     setupCities: 0,
     turnTimerMs: 0,
@@ -159,6 +163,8 @@ export function createGameRoom(roomId: string, firstPlayerName: string): GameRoo
     steal: null,
     devCardChoice: null,
     discards: {},
+    wallGate: null,
+    cannonShot: null,
     robberBag: freshResourceCount(0),
     bankSupply: freshBankSupply(),
     bonuses: emptyBonuses(),
@@ -194,6 +200,7 @@ export function resetRoom(room: GameRoom): void {
     soldiersCreatedThisTurn: [],
     soldiersHealedThisTurn: [],
     robberFoughtThisPhase: [],
+    shipSteps: {},
     undoLog: [],
   };
   room.winner = null;
@@ -206,6 +213,7 @@ export function resetRoom(room: GameRoom): void {
   room.steal = null;
   room.devCardChoice = null;
   room.discards = {};
+  room.wallGate = null;
   room.robberBag = freshResourceCount(0);
   room.bankSupply = freshBankSupply();
   room.bonuses = emptyBonuses();

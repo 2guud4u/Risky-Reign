@@ -33,6 +33,7 @@ const newSoldier = (owner: string, vertexId: string) => ({
   vertexId,
   type: 'infantry' as const,
   stationed: true,
+  aboardShipId: null,
 });
 
 /** Setup auto-advance: both pieces placed ⇒ the next setup turn begins. */
@@ -130,6 +131,7 @@ export const BUILD_ACTIONS: Record<string, ActionEntry> = {
         edgeId,
         ownerId: player.name,
         builtAt: Date.now(),
+        isWall: false,
       };
       edge.roadId = newRoadId;
       // The generator already lists every adjacent edge in roadIds; only add

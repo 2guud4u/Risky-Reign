@@ -6,7 +6,9 @@ interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;
   onHover: (edgeId: string | null) => void;
   ownerColor?: string;
-}
+  /** The road is a wall (gates enemy crossings). */
+  isWall?: boolean;
+};
 
 const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   id,
@@ -19,6 +21,7 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   onClick,
   onHover,
   ownerColor,
+  isWall,
 }) => {
   const handleClick = () => {
     if (isSelectable) {
@@ -44,7 +47,7 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   };
 
   const getStrokeWidth = () => {
-    if (hasRoad) return 8;
+    if (hasRoad) return isWall ? 10 : 8;
     return 4;
   };
 
@@ -105,6 +108,41 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
         strokeLinecap="round"
         opacity={isSelectable ? 1 : 0.5}
       />
+      {/* Wall: the extracted fortress sprite, rotated to sit perpendicular
+          across the road. Three baked orientations cover the hex edges;
+          we pick the nearest and rotate the small remainder. */}
+      {hasRoad && isWall && length > 0 && (() => {
+        const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+        // Wall sprites were captured perpendicular to their edge in the
+        // source hex (edges at ~30/90/150 degrees); bucket to the closest.
+        const buckets = [30, 90, 150];
+        const norm = ((angleDeg % 180) + 180) % 180; // [0,180)
+        const bucket = buckets.reduce((a, b) =>
+          Math.min(Math.abs(norm - a), 180 - Math.abs(norm - a)) <=
+          Math.min(Math.abs(norm - b), 180 - Math.abs(norm - b))
+            ? a
+            : b,
+        );
+        const sprite = { 30: '/art/pieces/wall_30.png', 90: '/art/pieces/wall_90.png', 150: '/art/pieces/wall_150.png' }[bucket];
+        // Sprite is stored horizontal; rotate to perpendicular to the road.
+        const rotate = angleDeg + 90;
+        const w = length * 0.72;
+        const h = w * 0.3;
+        const mx = (start.x + end.x) / 2;
+        const my = (start.y + end.y) / 2;
+        return (
+          <image
+            href={sprite}
+            x={-w / 2}
+            y={-h / 2}
+            width={w}
+            height={h}
+            transform={`translate(${mx},${my}) rotate(${rotate})`}
+            preserveAspectRatio="xMidYMid meet"
+            pointerEvents="none"
+          />
+        );
+      })()}
 
       {/* Red dotted selection outline */}
       {isSelected && (

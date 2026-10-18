@@ -151,6 +151,7 @@ export const BATTLE_ACTIONS: Record<string, ActionEntry> = {
       }
       soldier.vertexId = targetVertexId;
       soldier.stationed = false;
+      soldier.aboardShipId = null; // stepping off by road leaves any ship behind
       room.battleState.injuredSettled = { ...room.battleState.injuredSettled, [soldierId]: targetVertexId };
     },
   },

@@ -50,7 +50,11 @@ export const BoardSoldiers = React.memo(function BoardSoldiers({
   onSoldierClick,
   onSoldierDragStart,
 }: BoardSoldiersProps) {
-  const vertexIds = new Set(Object.values(board.soldiers ?? {}).map((s) => s.vertexId));
+  const vertexIds = new Set(
+    Object.values(board.soldiers ?? {})
+      .filter((s) => s.aboardShipId === null)
+      .map((s) => s.vertexId)
+  );
   return (
     <>
       {[...vertexIds].map((vertexId) => {

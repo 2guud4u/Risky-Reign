@@ -44,6 +44,18 @@ export const SoldierPrice: Price = { Wood: 0, Brick: 0, Sheep: 1, Wheat: 1, Ore:
 export const CityPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 2, Ore: 3 };
 /** Cost to buy a development card (standard Catan price). */
 export const DevelopmentCardPrice: Price = { Wood: 0, Brick: 0, Sheep: 1, Wheat: 1, Ore: 1 };
+/** Cannon upgrade cost (paid on top of the existing soldier). */
+export const CannonUpgradePrice: Price = { Wood: 1, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1 };
+/** Wall upgrade cost (paid on top of the existing road). */
+export const WallPrice: Price = { Wood: 0, Brick: 2, Sheep: 0, Wheat: 0, Ore: 0 };
+/** Ship build cost. */
+export const ShipPrice: Price = { Wood: 1, Brick: 0, Sheep: 1, Wheat: 0, Ore: 0 };
+/** Ship-to-settlement conversion cost. */
+export const ShipSettlePrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 1, Ore: 1 };
+/** Cannon splash attack cost (per shot). */
+export const SplashPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1 };
+/** Wall-gate roll needed for a cannon to breach a wall (4+ on a d6). */
+export const CANNON_WALL_HIT = 4;
 
 /**
  * Healing cost (Rules.md "Soldier"): the player pays one card of either Wheat

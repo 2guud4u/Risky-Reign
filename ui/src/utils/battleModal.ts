@@ -181,15 +181,20 @@ export function computeDiceMatchup(
     // next round starts, so only this round's rollers hold one. That keeps
     // the final round's dice on screen once the battle is over, even though
     // their casualties are committed by then.
-    const aList = attackerSoldiers
-      .filter((s) => s.rollNum !== null)
-      .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
-    const dList = defenderSoldiers
-      .filter((s) => s.rollNum !== null)
-      .sort((x, y) => (y.rollNum ?? 0) - (x.rollNum ?? 0));
+    // Mirror resolvePairs: in a normal fight cannons pair as their side's
+    // lowest roll, win their ties (cannon-vs-cannon goes to the defender),
+    // and die on any lost roll.
+    const isCannon = (s: SoldierBattleState) => s.soldier.type === 'cannon';
+    const byRoll = (x: SoldierBattleState, y: SoldierBattleState) =>
+      (!battle.injuredFight && (isCannon(x) ? 1 : isCannon(y) ? -1 : 0)) ||
+      (y.rollNum ?? 0) - (x.rollNum ?? 0);
+    const aList = attackerSoldiers.filter((s) => s.rollNum !== null).sort(byRoll);
+    const dList = defenderSoldiers.filter((s) => s.rollNum !== null).sort(byRoll);
     for (let i = 0; i < Math.min(aList.length, dList.length); i++) {
       const ar = aList[i].rollNum ?? 0;
       const dr = dList[i].rollNum ?? 0;
+      const atkCannon = isCannon(aList[i]);
+      const defCannon = isCannon(dList[i]);
       let text: string;
       let cls: string;
       if (battle.injuredFight) {
@@ -200,13 +205,13 @@ export function computeDiceMatchup(
         } else {
           [text, cls] = ['Defender killed', 'text-red-600'];
         }
-      } else if (ar > dr) {
-        [text, cls] = ar - dr >= 2 ? ['Defender killed', 'text-red-600'] : ['Defender injured', 'text-amber-600'];
-      } else if (dr > ar) {
-        [text, cls] = dr - ar >= 2 ? ['Attacker killed', 'text-red-600'] : ['Attacker injured', 'text-amber-600'];
+      } else if (ar > dr || (ar === dr && atkCannon && !defCannon)) {
+        [text, cls] =
+          ar - dr >= 2 || defCannon ? ['Defender killed', 'text-red-600'] : ['Defender injured', 'text-amber-600'];
       } else {
-        // Defender wins ties: an equal roll injures the attacker.
-        [text, cls] = ['Attacker injured', 'text-amber-600'];
+        // Defender wins ties (a cannon dies on any lost roll).
+        [text, cls] =
+          dr - ar >= 2 || atkCannon ? ['Attacker killed', 'text-red-600'] : ['Attacker injured', 'text-amber-600'];
       }
       matchup.push({ a: ar, d: dr, text, cls });
     }

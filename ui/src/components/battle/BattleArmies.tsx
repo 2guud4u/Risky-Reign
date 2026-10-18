@@ -1,15 +1,10 @@
 import React from 'react';
 import { BattlePhase, PixelCoord, SoldierBattleState } from 'common';
 import { TroopSlot } from '../../types/battleModal';
-import { TROOP_R } from '../../constants';
+import { TROOP_ART, TROOP_R } from '../../constants';
+import { troopArtKind } from '../../utils/garrisonFormation';
 import { BattleTroop } from './BattleTroop';
-import {
-  INJURED_TROOP_SCALE,
-  ROLL_FINGER_GAP,
-  ROLL_FINGER_SIZE,
-  SOLDIER_FIGURE_WIDTH_FRAC,
-  SOLDIER_ICON_WIDTH,
-} from './constants';
+import { ROLL_FINGER_GAP, ROLL_FINGER_SIZE, SOLDIER_ICON_HEIGHT } from './constants';
 
 interface BattleArmiesProps {
   /** The battle vertex's mini-map position. */
@@ -49,8 +44,9 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
   );
   // Attackers stand left of the clash line, so their open side is the left.
   const fromLeft = !!next && next.x < center.x;
+  // Half the next troop's drawn art width (same people-matched sizing as BattleTroop).
   const halfFigW = next
-    ? (TROOP_R * SOLDIER_ICON_WIDTH * SOLDIER_FIGURE_WIDTH_FRAC * (next.s.injured ? INJURED_TROOP_SCALE : 1)) / 2
+    ? (TROOP_ART[troopArtKind(next.s.soldier)].w * (TROOP_R * SOLDIER_ICON_HEIGHT)) / TROOP_ART.soldier.h / 2
     : 0;
   return (
     <>

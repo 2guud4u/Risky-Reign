@@ -150,6 +150,9 @@ const PortDockInner: React.FC<{
         y={y - r * 0.18 - glyphSize / 2}
         width={glyphSize}
         height={glyphSize}
+        // Same uniform-box rule as GameIcon: the painted arts have different
+        // aspect ratios; contain keeps every medallion glyph aligned.
+        preserveAspectRatio="xMidYMid meet"
       />
       <text
         x={x}

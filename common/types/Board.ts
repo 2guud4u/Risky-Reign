@@ -56,6 +56,15 @@ export interface RoadObj {
   edgeId: EdgeId;
   ownerId: string;
   builtAt: number;
+  /** A wall on a road gates enemy soldiers crossing its edge (wallGate pending). */
+  isWall: boolean;
+}
+
+/** A ship on a sea/coast vertex; troops aboard move with it (aboardShipId). */
+export interface ShipObj {
+  id: string;
+  vertexId: VertexId;
+  ownerId: string;
 }
 
 export interface Board {
@@ -65,6 +74,7 @@ export interface Board {
   settlements: Record<SettlementId, SettlementObj>;
   roads: Record<RoadId, RoadObj>;
   soldiers: Record<string, SoldierObj>;
+  ships: Record<string, ShipObj>;
   metadata: {
     id: string;
     version: number;

@@ -47,7 +47,7 @@ const DevCardPrompt: React.FC = () => {
   const isYearOfPlenty = card === 'year_of_plenty';
   if (card === 'knight') {
     const options = [
-      { effect: 'robber', icon: 'robber', title: 'Move robber', sub: 'and steal a card' },
+      { effect: 'robber', icon: 'robber', title: 'Move robber', sub: 'no steal' },
       { effect: 'spawn', icon: 'knight', title: 'Spawn soldier', sub: 'where you have one' },
     ] as const;
     return (

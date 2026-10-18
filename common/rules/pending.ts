@@ -24,7 +24,9 @@ export type PendingActionKind =
   /** A 7 landed: each named player must hand in half their resources. */
   | 'discards'
   /** A battle is in progress: the Action phase is suspended. */
-  | 'battle';
+  | 'battle'
+  /** A soldier is held at an enemy wall: the crosser owes a guess, then the wall owner a roll. */
+  | 'wallGate';
 
 /** One outstanding resolution, normalized across the wire fields. */
 export interface PendingAction {
@@ -48,6 +50,15 @@ export function pendingActions(room: GameRoom): PendingAction[] {
   if (room.devCardChoice) out.push({ kind: 'devCardChoice', player: room.devCardChoice.player });
   for (const player of Object.keys(room.discards)) {
     out.push({ kind: 'discards', player });
+  }
+  if (room.wallGate && room.wallGate.roll === null) {
+    // Until the guess lands it is the crosser's prompt; afterwards the wall
+    // owner owes the resolving roll. A resolved gate (roll set) isn't a
+    // pending — it just lingers so clients can show the outcome.
+    out.push({
+      kind: 'wallGate',
+      player: room.wallGate.guess === null ? room.wallGate.crosserName : room.wallGate.wallOwnerName,
+    });
   }
   return out;
 }
@@ -114,6 +125,9 @@ export function pendingBlock(
     case 'endTurn':
       if (room.battleState) {
         return 'A battle is in progress';
+      }
+      if (room.wallGate && room.wallGate.roll === null) {
+        return 'A wall crossing is in progress';
       }
       if (
         room.turnState.phase === 'Action' &&
