@@ -28,10 +28,11 @@ import {
 } from 'common';
 import { passKnockedOutTurn } from '../turn';
 import type { ActionEntry } from '../dispatch';
+import { freezeWhileBusy } from './piece';
 
 const fail = (error: string) => ({ error });
 
-export const BATTLE_ACTIONS: Record<string, ActionEntry> = {
+export const BATTLE_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
   // Begin an attack on a vertex (or a robber fight): creates the battle
   // state and moves the room into battle.
   startAttack: {
@@ -52,8 +53,8 @@ export const BATTLE_ACTIONS: Record<string, ActionEntry> = {
       if (turnState.phase !== 'Action' || turnState.player !== currentPlayer.name) {
         return fail('You can only start a battle on your turn in the Action phase');
       }
-      // A battle can only be started if no battle is already in progress.
-      if (room.battleState) return fail('A battle is already in progress');
+      // Only one battle at a time: the board freeze (battle / open wall
+      // gate) is enforced by freezeWhileBusy around this table.
 
       // Authoritative rules live in common (shared with the UI).
       const check = canStartBattle(room, currentPlayer.name, soldierIds, targetVertexId, defenderName);
@@ -251,4 +252,4 @@ export const BATTLE_ACTIONS: Record<string, ActionEntry> = {
       applyMoveRobberAfterWin(room, hexId);
     },
   },
-};
+}, ['startAttack']);

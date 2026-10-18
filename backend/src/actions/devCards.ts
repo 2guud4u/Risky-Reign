@@ -21,8 +21,9 @@ import {
   Player,
 } from 'common';
 import type { ActionEntry } from '../dispatch';
+import { freezeWhileBusy } from './piece';
 
-export const DEVCARD_ACTIONS: Record<string, ActionEntry> = {
+export const DEVCARD_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
   // Draw a development card from the shared deck. Costs 1 wheat, 1 sheep
   // and 1 ore (DevelopmentCardPrice) — the standard Catan price.
   drawDevelopmentCard: {
@@ -99,4 +100,4 @@ export const DEVCARD_ACTIONS: Record<string, ActionEntry> = {
       applyKnightSpawnSoldier(room, player, vertexId);
     },
   },
-};
+}, ['knightSpawnSoldier']);

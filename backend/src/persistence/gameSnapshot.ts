@@ -12,7 +12,7 @@ import { GameRoom, Player } from 'common';
  * a `migrate` arm when a rules change alters what must be persisted.
  */
 
-export const SNAPSHOT_VERSION = 2;
+export const SNAPSHOT_VERSION = 3;
 
 /** Persistent player: identity + game state + seat token (kept so a live
     socket's saved token still re-attaches after a server restart). Runtime
@@ -88,6 +88,11 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
  * v1 → v2 adds the pieces layer: roads gain `isWall`, the board gains
  * `ships`, soldiers gain `aboardShipId`, the turn gains `shipSteps`, and the
  * room gains the three feature flags + `wallGate`.
+ * v2 → v3 reshapes undo entries (cannon shots became final; boarding, ship
+ * moves and wall crossings record different fields), so a saved undo log is
+ * dropped — it only ever covers the current phase. It also strips road ids
+ * that the old road builder pushed into `vertex.roadIds`, which holds the
+ * board's edge ids.
  */
 export function migrate(snapshot: unknown, fromVersion: number): GameSnapshot {
   if (fromVersion === SNAPSHOT_VERSION) return snapshot as GameSnapshot;
@@ -107,6 +112,15 @@ export function migrate(snapshot: unknown, fromVersion: number): GameSnapshot {
     snap.wallGate ??= null;
     if (snap.wallGate) snap.wallGate.roll ??= null;
     snap.cannonShot ??= null;
+  }
+  if (fromVersion <= 2) {
+    if (snap.turnState) snap.turnState.undoLog = [];
+    const board = snap.board;
+    if (board) {
+      for (const vertex of Object.values(board.vertices)) {
+        vertex.roadIds = vertex.roadIds.filter((id) => !!board.edges[id]);
+      }
+    }
   }
   return snap;
 }

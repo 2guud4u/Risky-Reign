@@ -133,6 +133,8 @@ export function canCaptureSettlementAt(
     return { allowed: false, reason: 'This soldier is not on that vertex' };
   if (soldier.injured)
     return { allowed: false, reason: 'Injured soldiers cannot capture' };
+  if (soldier.aboardShipId !== null)
+    return { allowed: false, reason: 'Land your troops before capturing' };
 
   const vertex = board.vertices[vertexId];
   if (!vertex || !vertex.settlementId)
@@ -152,14 +154,15 @@ export function canCaptureSettlementAt(
 }
 
 /**
- * Authoritative capture road transfer (Rules.md "capture settlement/city"):
- * when a player captures a settlement/city, every road reachable from the
- * captured vertex through empty vertices becomes the capturer's — the whole
- * road region the captured building anchors, including dead-end spurs (a
- * sandwiched chain may itself be a dead end). One exception: a road whose
- * far end is an enemy building stays the enemy's — capture never steals a
- * road up to their walls. Any building (mine or enemy) ends a chain. Roads
- * the capturer already owns are kept as-is. Returns the roads to transfer
+ * Authoritative capture spread (GLOSSARY "Capture spread"): the roads — walls
+ * included — that change hands when a settlement/city is captured.
+ *
+ * The road network reachable from the captured vertex through empty vertices
+ * splits into chains: runs of road between nodes, where a node is a building,
+ * a junction (an empty vertex with 3+ roads) or a dead end. Each chain is
+ * judged on its own: it transfers unless one of its ends is another player's
+ * building, whoever owned the roads on it. Walls are just roads here. Roads
+ * the capturer already owns are left as-is. Returns the roads to transfer
  * with their current owners (so a capture undo can restore them).
  */
 export function captureRoadTransfers(
@@ -167,28 +170,48 @@ export function captureRoadTransfers(
   capturingPlayer: string,
   capturedVertexId: string
 ): { roadId: string; originalOwnerId: string }[] {
-  // BFS over the road graph: walk any road, but never through a vertex that
-  // holds a building — that building anchors its own region.
+  const roadEdgesAt = (vertexId: string) =>
+    (board.vertices[vertexId]?.roadIds ?? []).filter((edgeId) => {
+      const edge = board.edges[edgeId];
+      return !!edge && edge.roadId !== null && !!board.roads[edge.roadId];
+    });
+  // The captured building already counts as the capturer's.
+  const isEmpty = (vertexId: string) => vertexId !== capturedVertexId && !board.vertices[vertexId]?.settlementId;
+  const foreignBuilding = (vertexId: string) => {
+    if (vertexId === capturedVertexId) return false;
+    const settlementId = board.vertices[vertexId]?.settlementId;
+    return !!settlementId && board.settlements[settlementId]?.ownerId !== capturingPlayer;
+  };
+
   const reached = new Set<string>();
-  const visited = new Set<string>([capturedVertexId]);
+  const seenEdges = new Set<string>();
+  const seenNodes = new Set<string>([capturedVertexId]);
   const queue: string[] = [capturedVertexId];
   while (queue.length > 0) {
-    const vertexId = queue.shift()!;
-    for (const edgeId of board.vertices[vertexId]?.roadIds ?? []) {
-      const edge = board.edges[edgeId];
-      if (!edge || edge.roadId === null || !board.roads[edge.roadId]) continue;
-      // Walls gate the flood-fill (Rules.md Walls): an enemy wall the fill
-      // reaches transfers with its road, but the fill stops there — the
-      // roads behind it stay theirs.
-      const road = board.roads[edge.roadId];
-      const enemyWall = !!road.isWall && road.ownerId !== capturingPlayer;
-      const next = edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
-      const nextSettlement = board.vertices[next]?.settlementId;
-      const enemyBuilt = !!nextSettlement && board.settlements[nextSettlement]?.ownerId !== capturingPlayer;
-      if (!enemyBuilt) reached.add(edge.roadId);
-      if (enemyWall || visited.has(next) || nextSettlement) continue;
-      visited.add(next);
-      queue.push(next);
+    const node = queue.shift()!;
+    for (const first of roadEdgesAt(node)) {
+      if (seenEdges.has(first)) continue;
+      // Walk one chain: carry on through empty vertices with exactly one
+      // onward road; stop at a building, junction or dead end.
+      const chain: string[] = [];
+      let at = node;
+      let edgeId = first;
+      for (;;) {
+        seenEdges.add(edgeId);
+        const edge = board.edges[edgeId];
+        chain.push(edge.roadId!);
+        at = edge.vertexAId === at ? edge.vertexBId : edge.vertexAId;
+        if (!isEmpty(at)) break;
+        const onward = roadEdgesAt(at).filter((id) => id !== edgeId);
+        if (onward.length !== 1 || seenEdges.has(onward[0])) break;
+        edgeId = onward[0];
+      }
+      if (!foreignBuilding(at)) for (const roadId of chain) reached.add(roadId);
+      // Junctions open further chains; any building ends the network there.
+      if (isEmpty(at) && !seenNodes.has(at)) {
+        seenNodes.add(at);
+        queue.push(at);
+      }
     }
   }
 

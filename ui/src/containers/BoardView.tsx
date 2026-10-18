@@ -6,7 +6,7 @@ import { useOnEffect } from '../effects';
 import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
 import { playerColorMap } from '../utils/soldierPlacement';
-import { actableSoldierIds, disembarkTargets, knightSpawnTargets, movableSoldierIds, robberPlacementTargets, robberTargets, sailPaths } from '../board/selectors';
+import { actableSoldierIds, knightSpawnTargets, movableSoldierIds, robberPlacementTargets, robberTargets, sailPaths } from '../board/selectors';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { ShipLayer } from '../components/board/ShipLayer';
@@ -50,9 +50,9 @@ import {
  */
 const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   const { gameRoom, currentPlayer } = useGameState();
-  const { selectedObject, selectedSoldierIds, sailingShipId, disembarkingSoldierId } = useSelection();
+  const { selectedObject, selectedSoldierIds, sailingShipId } = useSelection();
   const { setSelectedObject, setSelectedSoldierIds } = useGameActions();
-  const { moveSoldier, moveRobber, moveRobberAfterWin, moveShip, disembarkSoldier } = useSocket();
+  const { moveSoldier, moveRobber, moveRobberAfterWin, moveShip } = useSocket();
 
   const [hoveredVertexId, setHoveredVertexId] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
@@ -161,17 +161,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     return sailPaths(gameRoom, currentPlayer.name, sailingShipId);
   }, [gameRoom, currentPlayer, sailingShipId]);
 
-  // Disembark pick-mode: the legal landing vertices for the picked aboard
-  // soldier (the ship's coast vertex or an adjacent coast vertex).
-  const landTargetIds = useMemo(() => {
-    if (!gameRoom || !currentPlayer || !disembarkingSoldierId) return new Set<string>();
-    return new Set(disembarkTargets(gameRoom, currentPlayer.name, disembarkingSoldierId));
-  }, [gameRoom, currentPlayer, disembarkingSoldierId]);
-
   // Clicking a vertex or edge selects it and glides the board in, centered on
-  // it (an edge centers on its midpoint). During a pick-mode the click first
-  // resolves the pending sail/disembark, then clears the selection (which
-  // also exits the mode). The waiting-room preview board stays static.
+  // it (an edge centers on its midpoint). During sail pick-mode the click
+  // first resolves the pending sail, then clears the selection (which also
+  // exits the mode). The waiting-room preview board stays static.
   const handleVertexClick = useCallback(
     (vertexId: string) => {
       if (sailingShipId) {
@@ -180,16 +173,11 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         setSelectedObject(null);
         return;
       }
-      if (disembarkingSoldierId) {
-        if (landTargetIds.has(vertexId)) disembarkSoldier(disembarkingSoldierId, vertexId);
-        setSelectedObject(null);
-        return;
-      }
       setSelectedObject({ type: 'vertex', id: vertexId });
       const v = base?.vertices[vertexId];
       if (v && isPlaying) focusOn(v.position, SELECT_FOCUS_ZOOM);
     },
-    [setSelectedObject, base, isPlaying, focusOn, sailingShipId, disembarkingSoldierId, sailTargetPaths, landTargetIds, moveShip, disembarkSoldier]
+    [setSelectedObject, base, isPlaying, focusOn, sailingShipId, sailTargetPaths, moveShip]
   );
 
   // Clicking a ship selects it (its bubbles offer Sail / Settle / Disembark).
@@ -419,16 +407,6 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               targets={[...sailTargetPaths.keys()].map((id) => ({ id, position: board.vertices[id].position }))}
               onSelect={handleVertexClick}
               label="Sail here"
-              tone="blue"
-            />
-          )}
-          {/* Disembark targets: legal landing vertices for the picked aboard
-              soldier (blue rings). */}
-          {disembarkingSoldierId && landTargetIds.size > 0 && (
-            <SpawnTargetLayer
-              targets={[...landTargetIds].map((id) => ({ id, position: board.vertices[id].position }))}
-              onSelect={handleVertexClick}
-              label="Land here"
               tone="blue"
             />
           )}

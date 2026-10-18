@@ -79,6 +79,19 @@ export function knightSpawnPending(room: GameRoom, playerName: string): boolean 
 }
 
 /**
+ * The board freeze (GLOSSARY "Wall gate"): while a battle or an open wall
+ * gate is in progress, no piece action may run for anyone — moving,
+ * attacking, capturing, healing, cannons, ships, walls, Knight spawns,
+ * building pieces. Only the battle's and gate's own actions resolve it.
+ * Returns the user-facing error, or null when the board is free.
+ */
+export function boardBusy(room: GameRoom): string | null {
+  if (room.battleState) return 'A battle is in progress';
+  if (room.wallGate && room.wallGate.roll === null) return 'A wall crossing is in progress';
+  return null;
+}
+
+/**
  * The one table: does a pending action block this event for this player?
  * Returns the user-facing error message to emit, or null when the action may
  * proceed. Every action handler asks this instead of hand-checking fields.
@@ -90,9 +103,8 @@ export function knightSpawnPending(room: GameRoom, playerName: string): boolean 
  *   caller, so the check is room-scoped.
  * - Playing a development card is blocked only by that player's own
  *   pending robber move or card choice.
- * - endTurn is blocked by an active battle or a robberDefeatedBy owed by
- *   the acting player (checked by the endTurn action itself for phase
- *   scoping — it returns its own message).
+ * - endTurn is blocked by a frozen board (`boardBusy`: battle or open wall
+ *   gate) or a robberDefeatedBy owed by the acting player.
  */
 export function pendingBlock(
   room: GameRoom,
@@ -122,13 +134,9 @@ export function pendingBlock(
         return 'Resolve your card choice before playing another card';
       }
       return null;
-    case 'endTurn':
-      if (room.battleState) {
-        return 'A battle is in progress';
-      }
-      if (room.wallGate && room.wallGate.roll === null) {
-        return 'A wall crossing is in progress';
-      }
+    case 'endTurn': {
+      const busy = boardBusy(room);
+      if (busy) return busy;
       if (
         room.turnState.phase === 'Action' &&
         room.robberDefeatedBy &&
@@ -137,5 +145,6 @@ export function pendingBlock(
         return 'Move the robber to an adjacent hex before ending the Action phase';
       }
       return null;
+    }
   }
 }

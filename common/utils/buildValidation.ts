@@ -33,6 +33,8 @@ export function canBuildSettlementAt(
   const vertex = board.vertices[vertexId];
   if (!vertex) return { allowed: false, reason: 'Vertex not found' };
   if (vertex.settlementId !== null) return { allowed: false, reason: 'Vertex already occupied' };
+  if (Object.values(board.ships ?? {}).some((s) => s.vertexId === vertexId))
+    return { allowed: false, reason: 'A ship occupies that vertex' };
   // Official piece-pool limit: a city is an upgraded settlement, so both
   // share the 5-settlement pool.
   if (playerSettlementVertexIds(board, playerName).length >= MAX_SETTLEMENTS)

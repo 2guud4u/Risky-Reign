@@ -45,12 +45,13 @@ import {
   rollDie,
 } from 'common';
 import type { ActionEntry } from '../dispatch';
+import { freezeWhileBusy } from './piece';
 
 const fail = (error: string) => ({ error });
 const newId = (prefix: string) =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-export const PIECE_ACTIONS: Record<string, ActionEntry> = {
+export const PIECE_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
   // --- Cannons (Action phase; the can* carry the phase/turn/seat gates) ---
   upgradeCannon: {
     run: (room: GameRoom, player: Player, { soldierId }: { roomId: string; soldierId: string }) => {
@@ -200,4 +201,18 @@ export const PIECE_ACTIONS: Record<string, ActionEntry> = {
       applyConvertShipToSettlement(room, player, shipId, vertexId, newId('s'));
     },
   },
-};
+}, [
+  'upgradeCannon',
+  'downgradeCannon',
+  'stationCannon',
+  'unstationCannon',
+  'cannonAttack',
+  'cannonSplash',
+  'cannonAttackWall',
+  'upgradeRoadToWall',
+  'buildShip',
+  'moveShip',
+  'embarkSoldier',
+  'disembarkSoldier',
+  'convertShipToSettlement',
+]);

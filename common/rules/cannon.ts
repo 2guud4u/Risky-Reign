@@ -92,6 +92,7 @@ export function canUpgradeCannon(room: GameRoom, player: Player, soldierId: stri
   if (!gate.check.allowed || !gate.soldier || !room.board) return gate.check;
   const soldier = gate.soldier;
   if (soldier.type === 'cannon') return fail('This soldier is already a cannon');
+  if (soldier.injured) return fail('Heal this soldier before upgrading it to a cannon');
   if (soldier.aboardShipId !== null)
     return fail('A soldier aboard a ship cannot be upgraded — disembark first');
   const settlementId = room.board.vertices[soldier.vertexId]?.settlementId;
@@ -203,14 +204,11 @@ export function applyCannonAttack(
 ): CannonAttackResult {
   const board = room.board!;
   const target = board.soldiers[targetSoldierId];
-  const targetInjured = target.injured;
-  let targetKilled: SoldierObj | null = null;
   let outcome: CannonAttackResult['outcome'] = 'miss';
   if (cannonRoll >= targetRoll) {
     // Cannon wins ties. Win by >=2 kills outright, otherwise injures —
     // except cannons, which die on any loss.
     if (cannonRoll - targetRoll >= 2 || target.type === 'cannon') {
-      targetKilled = { ...target };
       delete board.soldiers[targetSoldierId];
       outcome = 'kill';
     } else {
@@ -219,12 +217,9 @@ export function applyCannonAttack(
     }
   }
   room.turnState.soldiersActedThisTurn.push(soldierId);
-  room.turnState.undoLog.push({
-    kind: 'cannonAttack',
-    soldierId,
-    targetInjured,
-    targetKilled,
-  });
+  // A shot is final (GLOSSARY "Cannon"): its dice are public, so neither it
+  // nor anything before it this phase can be undone.
+  room.turnState.undoLog = [];
   // Record the shot so every client can show the duel panel; it self-clears
   // after CANNON_SHOT_REVEAL_MS via the cannon-shot reveal timer.
   room.cannonShot = {
@@ -243,8 +238,9 @@ export function applyCannonAttack(
 }
 
 /**
- * Splash check: stationed cannon, target vertex exactly one intersection
- * away holding at least one soldier, and 1 ore to pay for the shot.
+ * Splash check: stationed cannon; the target vertex is the cannon's own
+ * vertex or exactly one intersection away, holds at least one soldier other
+ * than the cannon, and you pay 1 ore for the shot.
  */
 export function canCannonSplash(
   room: GameRoom,
@@ -254,9 +250,10 @@ export function canCannonSplash(
 ): BuildCheck {
   const gate = stationedCannonGate(room, player, soldierId);
   if (!gate.check.allowed || !gate.soldier || !room.board) return gate.check;
-  if (!verticesAdjacent(room.board, cannonVertexId(room.board, gate.soldier), vertexId))
-    return fail('Target must be exactly one intersection away');
-  if (!Object.values(room.board.soldiers).some((s) => s.vertexId === vertexId))
+  const from = cannonVertexId(room.board, gate.soldier);
+  if (vertexId !== from && !verticesAdjacent(room.board, from, vertexId))
+    return fail('Target must be this vertex or one intersection away');
+  if (!Object.values(room.board.soldiers).some((s) => s.vertexId === vertexId && s.id !== soldierId))
     return fail('No soldiers on that vertex');
   if (!canAfford(player.resources, { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1 }))
     return fail('Not enough ore for a splash shot');
@@ -292,31 +289,24 @@ export function applyCannonSplash(
     Wheat: 0,
     Ore: 1,
   });
-  const victimsInjured: string[] = [];
-  const victimsKilled: SoldierObj[] = [];
+  const injured: string[] = [];
+  const kills: string[] = [];
   for (const victim of Object.values(board.soldiers)) {
     if (victim.vertexId !== vertexId || victim.id === soldierId) continue;
     const roll = victimRolls[victim.id] ?? 0;
     if (cannonRoll < roll) continue;
     if (cannonRoll - roll >= 2 || victim.type === 'cannon') {
-      victimsKilled.push({ ...victim });
+      kills.push(victim.id);
       delete board.soldiers[victim.id];
     } else {
-      // Only a fresh injury is logged: undo clears it, so a victim that was
-      // already injured must not be healed by undoing the shot.
-      if (!victim.injured) victimsInjured.push(victim.id);
+      if (!victim.injured) injured.push(victim.id);
       victim.injured = true;
     }
   }
   room.turnState.soldiersActedThisTurn.push(soldierId);
-  room.turnState.undoLog.push({
-    kind: 'cannonSplash',
-    soldierId,
-    paid: true,
-    victimsInjured,
-    victimsKilled,
-  });
-  return { cannonRoll, kills: victimsKilled.map((s) => s.id), injured: victimsInjured };
+  // A shot is final: neither it nor anything before it can be undone.
+  room.turnState.undoLog = [];
+  return { cannonRoll, kills, injured };
 }
 
 /**
@@ -358,10 +348,7 @@ export function applyCannonAttackWall(
   const breached = !!road && roll >= CANNON_WALL_HIT;
   if (breached) road!.isWall = false;
   room.turnState.soldiersActedThisTurn.push(soldierId);
-  room.turnState.undoLog.push({
-    kind: 'cannonAttackWall',
-    soldierId,
-    edgeId: breached ? edgeId : null,
-  });
+  // A wall shot is final: neither it nor anything before it can be undone.
+  room.turnState.undoLog = [];
   return { roll, breached };
 }

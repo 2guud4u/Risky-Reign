@@ -121,30 +121,6 @@ export type UndoEntry =
       soldierId: string;
     }
   | {
-      kind: 'cannonAttack';
-      soldierId: string;
-      /** Target soldier's injured flag before the attack (restored on undo). */
-      targetInjured: boolean;
-      /** Non-null when the target died (the soldier is restored on undo). */
-      targetKilled: SoldierObj | null;
-    }
-  | {
-      kind: 'cannonSplash';
-      soldierId: string;
-      /** Ore cost was paid (refunded on undo). */
-      paid: boolean;
-      /** Victims still on the board whose injured flag flips back on undo. */
-      victimsInjured: string[];
-      /** Victims killed by the splash (restored on undo). */
-      victimsKilled: SoldierObj[];
-    }
-  | {
-      kind: 'cannonAttackWall';
-      soldierId: string;
-      /** Edge whose wall was reverted to a road (isWall restored on undo); null on a miss. */
-      edgeId: string | null;
-    }
-  | {
       kind: 'upgradeRoadToWall';
       roadId: string;
     }
@@ -153,6 +129,8 @@ export type UndoEntry =
       soldierId: string;
       /** The vertex the soldier was on before crossing (restored on undo). */
       originalVertexId: string;
+      /** The stationed flag before crossing (crossing clears it; restored on undo). */
+      wasStationed: boolean;
     }
   | {
       kind: 'buildShip';
@@ -165,13 +143,15 @@ export type UndoEntry =
       originalVertexId: string;
       /** Owner before the step — an empty ship flips to the mover. */
       originalOwnerId: string;
-      /** Soldiers that moved with the ship (vertexId restored on undo). */
-      troopMoves: { soldierId: string; originalVertexId: string }[];
     }
   | {
       kind: 'embarkSoldier';
       soldierId: string;
-      originalVertexId: string;
+      shipId: string;
+      /** Ship owner before boarding — boarding an empty ship claims it. */
+      originalOwnerId: string;
+      /** The soldier's garrison flag before boarding (restored on undo). */
+      wasStationed: boolean;
     }
   | {
       kind: 'disembarkSoldier';

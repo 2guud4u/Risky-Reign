@@ -1,13 +1,13 @@
 /**
  * Ship rules — the full rule, not just the check half.
  *
- * Ships live on water vertices (coast = 1 land hex, sea = 0). They move
- * stepwise along adjacent water vertices during the Action phase, spending
- * `turnState.shipSteps[shipId]` — set by the server when the Action phase
- * opens to `shipStepsForTurn(roll)`. Troops embark from an adjacent land
- * vertex and ride the ship (`aboardShipId`); disembarking lands them on a
- * coast vertex the ship touches (its own or an adjacent one). A loaded ship answers only
- * to its owner; an empty ship belongs to whoever moves it.
+ * Ships live on water vertices (coast = 1 land hex, sea = 0), possibly over a
+ * settlement. They move stepwise along adjacent water vertices during their
+ * owner's Action phase, spending `turnState.shipSteps[shipId]` — set by the
+ * server whenever an Action phase opens to `shipStepsForTurn(roll)`. Troops
+ * board and land only on the ship's own coast vertex and ride it
+ * (`aboardShipId`). An empty ship belongs to whoever sails or boards it; a
+ * crewed ship answers only to its owner and can't be boarded by others.
  */
 import type { Board, EdgeId, VertexId } from '../types/Board';
 import type { BuildCheck, RollResult } from '../types/Logic';
@@ -81,9 +81,9 @@ export function applyBuildShip(
 
 /**
  * Move check: Action phase, your turn; the ship steps to an adjacent water
- * vertex with no other ship on it and has a step left this phase. A loaded
- * ship moves only for its owner; an empty ship may be moved by anyone (and
- * changes hands).
+ * vertex (a settlement there is fine — the ship docks over it) with no other
+ * ship on it and has a step left this phase. A crewed ship moves only for its
+ * owner; an empty ship may be moved by anyone (and changes hands).
  */
 export function canMoveShip(room: GameRoom, player: Player, shipId: string, vertexId: VertexId): BuildCheck {
   if (!room.shipsEnabled) return fail('Ships are disabled in this game');
@@ -96,38 +96,40 @@ export function canMoveShip(room: GameRoom, player: Player, shipId: string, vert
   const crew = troopsAboard(board, shipId);
   if (crew.length > 0 && ship.ownerId !== player.name)
     return fail('Only the owner can move a crewed ship');
-  if ((turn.shipSteps[shipId] ?? 0) <= 0) return fail('This ship has no movement left this phase');
   if (!board.vertices[vertexId]) return fail('Vertex not found');
   if (!isWaterVertex(board, vertexId)) return fail('Ships can only sail to sea or coast vertices');
   if (!adjacentVertexIds(board, ship.vertexId).includes(vertexId))
     return fail('Ships move one adjacent vertex at a time');
   if (shipAt(board, vertexId)) return fail('A ship already occupies that vertex');
+  if ((turn.shipSteps[shipId] ?? 0) <= 0) return fail('This ship has no movement left this phase');
   return pass;
+}
+
+/** Keep the crew on the ship's vertex (they ride it). */
+export function moveCrewWithShip(board: Board, shipId: string): void {
+  const ship = board.ships[shipId];
+  for (const s of troopsAboard(board, shipId)) s.vertexId = ship.vertexId;
 }
 
 export function applyMoveShip(room: GameRoom, player: Player, shipId: string, vertexId: VertexId): void {
   const board = room.board!;
   const ship = board.ships[shipId];
-  const troopMoves = troopsAboard(board, shipId).map((s) => ({
-    soldierId: s.id,
-    originalVertexId: s.vertexId,
-  }));
   room.turnState.undoLog.push({
     kind: 'moveShip',
     shipId,
     originalVertexId: ship.vertexId,
     originalOwnerId: ship.ownerId,
-    troopMoves,
   });
   ship.vertexId = vertexId;
   ship.ownerId = player.name; // an empty ship changes hands; the owner's stays
-  for (const m of troopMoves) board.soldiers[m.soldierId].vertexId = vertexId;
+  moveCrewWithShip(board, shipId);
   room.turnState.shipSteps[shipId] = (room.turnState.shipSteps[shipId] ?? 0) - 1;
 }
 
 /**
  * Embark check: Action phase; one of your soldiers (action still free)
- * standing on a vertex adjacent to the ship's vertex boards it.
+ * standing on the ship's own coast vertex boards it. The ship must be yours
+ * or empty — boarding an empty ship claims it.
  */
 export function canEmbarkSoldier(
   room: GameRoom,
@@ -154,8 +156,9 @@ export function canEmbarkSoldier(
     return fail('A stationed cannon must be unstationed before moving');
   const ship = board.ships[shipId];
   if (!ship) return fail('Ship not found');
-  if (!adjacentVertexIds(board, ship.vertexId).includes(soldier.vertexId))
-    return fail('The soldier must stand on a vertex adjacent to the ship');
+  if (ship.ownerId !== player.name && troopsAboard(board, shipId).length > 0)
+    return fail('You can’t board another player’s crewed ship');
+  if (soldier.vertexId !== ship.vertexId) return fail('Soldiers board from the ship’s own vertex');
   return pass;
 }
 
@@ -171,19 +174,20 @@ export function applyEmbarkSoldier(
   room.turnState.undoLog.push({
     kind: 'embarkSoldier',
     soldierId,
-    originalVertexId: soldier.vertexId,
+    shipId,
+    originalOwnerId: ship.ownerId,
+    wasStationed: soldier.stationed,
   });
-  soldier.vertexId = ship.vertexId;
   soldier.aboardShipId = shipId;
   soldier.stationed = false; // leaving a garrison clears the flag
+  ship.ownerId = soldier.owner; // boarding an empty ship claims it
   room.turnState.soldiersActedThisTurn.push(soldierId);
 }
 
 /**
- * Disembark check: Action phase; your aboard soldier lands on a coast vertex
- * the ship touches — its own coast vertex or an adjacent coast vertex — that
- * holds no settlement (enemy troops are fine; combat is separate). A ship
- * with no coast vertex in reach (open sea) can't unload.
+ * Disembark check: Action phase; your aboard soldier lands on the ship's own
+ * vertex, which must be a coast vertex (a ship in open sea can't unload).
+ * Landing onto a settlement is fine — capturing it is a separate action.
  */
 export function canDisembarkSoldier(
   room: GameRoom,
@@ -206,12 +210,9 @@ export function canDisembarkSoldier(
     return fail('A stationed cannon must be unstationed before moving');
   const ship = board.ships[soldier.aboardShipId];
   if (!ship) return fail('Ship not found');
-  const vertex = board.vertices[vertexId];
-  if (!vertex) return fail('Vertex not found');
-  if (!isCoastVertex(board, vertexId)) return fail('Soldiers can only land on coast vertices');
-  if (vertexId !== ship.vertexId && !adjacentVertexIds(board, ship.vertexId).includes(vertexId))
-    return fail('Soldiers land on the ship’s vertex or one adjacent to it');
-  if (vertex.settlementId !== null) return fail('A settlement already stands there');
+  if (!board.vertices[vertexId]) return fail('Vertex not found');
+  if (vertexId !== ship.vertexId) return fail('Soldiers land on the ship’s own vertex');
+  if (!isCoastVertex(board, vertexId)) return fail('The ship must be at the coast to unload');
   return pass;
 }
 
@@ -233,7 +234,7 @@ export function applyDisembarkSoldier(
 /**
  * Convert check: Build phase, your turn, your ship on or next to the target;
  * the target must be a coast vertex eligible for a settlement (distance rule,
- * empty, no ship, below the settlement cap), and you pay 1 wheat + 1 ore.
+ * empty, no other ship, below the settlement cap), and you pay 1 wheat + 1 ore.
  */
 export function canConvertShipToSettlement(
   room: GameRoom,
@@ -255,7 +256,8 @@ export function canConvertShipToSettlement(
   if (vertexId !== ship.vertexId && !adjacentVertexIds(board, ship.vertexId).includes(vertexId))
     return fail('The ship must be on or next to that coast vertex');
   if (vertex.settlementId !== null) return fail('Vertex already occupied');
-  if (shipAt(board, vertexId)) return fail('A ship occupies that vertex');
+  const other = shipAt(board, vertexId);
+  if (other && other.id !== shipId) return fail('A ship occupies that vertex');
   if (playerSettlementVertexIds(board, player.name).length >= MAX_SETTLEMENTS)
     return fail(`You already have the maximum ${MAX_SETTLEMENTS} settlements (including cities)`);
   const hasAdjacentSettlement = vertex.roadIds.some((edgeId: EdgeId) => {

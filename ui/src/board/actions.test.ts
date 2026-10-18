@@ -3,13 +3,13 @@ import { boardActions, type BoardActionEmit } from './actions';
 import type { Board, PublicGameRoom, PublicPlayer, SoldierObj } from 'common';
 
 /**
- * Minimal sea board: a ship sits on sea vertex S, next to coast vertex C
- * (one land hex → a legal landing). Everything the catalog reads for the
- * ship selection lives here; extra fields fall back to the cast.
+ * Minimal coast board: the ship sits on coast vertex S (one land hex → a
+ * legal berth and landing). Everything the catalog reads for the ship
+ * selection lives here; extra fields fall back to the cast.
  */
 const board = {
   vertices: {
-    S: { id: 'S', position: { x: 0, y: 0 }, roadIds: ['SC'], hexIds: [], settlementId: null },
+    S: { id: 'S', position: { x: 0, y: 0 }, roadIds: ['SC'], hexIds: ['H'], settlementId: null },
     C: { id: 'C', position: { x: 60, y: 0 }, roadIds: ['SC'], hexIds: ['H'], settlementId: null },
   },
   edges: {
@@ -62,7 +62,7 @@ const emit = new Proxy({} as BoardActionEmit, {
   get: () => () => {},
 });
 
-const shipActions = () =>
+const catalog = (over: Partial<BoardActionEmit> = {}) =>
   boardActions({
     board,
     room,
@@ -71,7 +71,7 @@ const shipActions = () =>
     selectedSoldierIds: [],
     chainShot: false,
     coachKey: null,
-    emit,
+    emit: { ...emit, ...over },
   });
 
 describe('disembark bubble', () => {
@@ -81,7 +81,7 @@ describe('disembark bubble', () => {
       s2: troop('s2'),
       s3: troop('s3'),
     };
-    const disembark = shipActions().find((a) => a.key === 'disembark');
+    const disembark = catalog().find((a) => a.key === 'disembark');
     expect(disembark?.label).toBe('Disembark 3');
     // Two identical soldiers would render as two indistinguishable "Land
     // soldier" chips — one chip per kind with a count instead.
@@ -95,7 +95,7 @@ describe('disembark bubble', () => {
       s2: troop('s2', { injured: true }),
       s3: troop('s3', { type: 'cannon' }),
     };
-    const disembark = shipActions().find((a) => a.key === 'disembark');
+    const disembark = catalog().find((a) => a.key === 'disembark');
     expect(disembark?.choices?.map((c) => c.label)).toEqual([
       'Land soldier',
       'Land injured soldier',
@@ -103,27 +103,19 @@ describe('disembark bubble', () => {
     ]);
   });
 
-  it('names the kind it actually lands', () => {
-    // First of the kind is spent → the chip runs the next eligible one.
+  it('lands the first unspent troop of the kind at the ship', () => {
+    // First of the kind already acted → the chip lands the next one.
     room.turnState.soldiersActedThisTurn = ['s1'];
     board.soldiers = { s1: troop('s1'), s2: troop('s2') };
-    const disembark = shipActions().find((a) => a.key === 'disembark');
+    const landed: string[] = [];
+    const disembark = catalog({
+      disembarkSoldier: (id: string, v: string) => {
+        landed.push(`${id}@${v}`);
+      },
+    }).find((a) => a.key === 'disembark');
     expect(disembark?.choices).toHaveLength(1);
-    let landed: string | null = null;
-    const spy = { ...emit, setDisembarkingSoldierId: (id: string) => (landed = id) };
-    boardActions({
-      board,
-      room,
-      me,
-      selection: { type: 'ship', id: 'ship1' },
-      selectedSoldierIds: [],
-      chainShot: false,
-      coachKey: null,
-      emit: spy as BoardActionEmit,
-    })
-      .find((a) => a.key === 'disembark')
-      ?.choices?.[0].run();
-    expect(landed).toBe('s2');
+    disembark?.choices?.[0].run();
+    expect(landed).toEqual(['s2@S']);
     room.turnState.soldiersActedThisTurn = [];
   });
 });

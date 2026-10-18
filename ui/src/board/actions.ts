@@ -58,7 +58,7 @@ import { useGameActions, useGameState, useSelection } from '../contexts/GameCont
 import { useSocket } from '../contexts/SocketContext';
 import { useSetupCoach } from '../hooks/useSetupCoach';
 import { emitEffect } from '../effects';
-import { actableSoldierIds, disembarkTargets, robberTargets } from './selectors';
+import { actableSoldierIds, robberTargets } from './selectors';
 import { directionAngleOf, directionOf, hexDirectionOf, moveDirectionsFrom } from '../utils/direction';
 import { RESOURCE_ICONS } from '../utils/resourceIcons';
 import { PriceText } from '../utils/price';
@@ -103,8 +103,6 @@ export interface BoardActionEmit {
   convertShipToSettlement: (shipId: string, vertexId: string) => void;
   /** Enter sail pick-mode for this ship (BoardView highlights the targets). */
   setSailingShipId: (shipId: string | null) => void;
-  /** Enter disembark pick-mode for this aboard soldier. */
-  setDisembarkingSoldierId: (soldierId: string | null) => void;
   /** Fire flow: toggles chain shot (splash mode) on/off. */
   setChainShot: (on: boolean) => void;
 }
@@ -686,7 +684,25 @@ const soldierActions = (
       const fireChoices: BubbleAction[] = stationed.flatMap((cannonId) => {
         const from = board.vertices[cannonVertexId(board, board.soldiers[cannonId])];
         if (!from) return [];
-        return adjacentVertexIds(board, from.id).flatMap((vid): BubbleAction[] => {
+        // Chain shot can also land on the cannon's own vertex (the cannon is
+        // immune; everyone else there takes a roll).
+        const here: BubbleAction[] = chain
+          ? [
+              {
+                key: `fire-${cannonId}-${from.id}`,
+                icon: 'cannon' as const,
+                label: 'Chain shot here',
+                costText: React.createElement(PriceText, { price: SplashPrice }),
+                check: rules.cannonSplashCheck(cannonId, from.id),
+                run: () => {
+                  emit.cannonSplash(cannonId, from.id);
+                  clearPicks();
+                },
+                eligible: rules.cannonSplashCheck(cannonId, from.id).allowed,
+              },
+            ]
+          : [];
+        return here.concat(adjacentVertexIds(board, from.id).flatMap((vid): BubbleAction[] => {
           const to = board.vertices[vid];
           const dir = to ? directionOf(from, to) : '';
           const angle = to ? directionAngleOf(from, to) : 0;
@@ -760,7 +776,7 @@ const soldierActions = (
               choices: targets.map(pick),
             },
           ];
-        });
+        }));
       });
       // The chain-shot toggle rides at the head of the pill; it stays shown
       // (greyed) when 1 ore isn't affordable so its price is discoverable.
@@ -854,51 +870,33 @@ const soldierActions = (
     });
   }
 
-  // Board ship: a picked soldier on foot may embark on a ship standing on an
-  // adjacent vertex. One chip per adjacent ship.
+  // Board ship: a picked soldier on foot boards the ship docked on this very
+  // vertex (yours, or an empty one — boarding claims it).
   if (room.shipsEnabled) {
-    const adjacentShips = adjacentVertexIds(board, vertex.id)
-      .map((vid) => board.ships && Object.values(board.ships).find((s) => s.vertexId === vid))
-      .filter((s): s is ShipObj => !!s);
-    if (adjacentShips.length > 0 && group.some((id) => board.soldiers[id]?.aboardShipId === null)) {
-      const boardChoices: BubbleAction[] = adjacentShips.map((ship) => {
-        const boarders = group.filter((id) => rules.embarkCheck(id, ship.id).allowed);
-        const firstCheck = group.length > 0 ? rules.embarkCheck(group[0], ship.id) : { allowed: false, reason: 'No soldier picked' };
-        return {
-          key: `embark-${ship.id}`,
-          icon: 'ship' as const,
-          label: `${ship.ownerId}'s ship`,
-          costText: '1 action each',
-          check: boarders.length > 0 ? ALLOWED : firstCheck,
-          run: () => {
-            for (const id of boarders) emit.embarkSoldier(id, ship.id);
-            clearPicks();
-          },
-          eligible: boarders.length > 0,
-          color: room.players.find((p) => p.name === ship.ownerId)?.color,
-        };
-      });
-      const anyBoard = boardChoices.some((c) => c.eligible);
+    const ship = board.ships && Object.values(board.ships).find((s) => s.vertexId === vertex.id);
+    if (ship && group.some((id) => board.soldiers[id]?.aboardShipId === null)) {
+      const boarders = group.filter((id) => rules.embarkCheck(id, ship.id).allowed);
       actions.push({
         key: 'embark',
         icon: 'ship',
-        label: 'Board Ship',
-        costText: 'Pick a ship',
-        check: anyBoard ? ALLOWED : boardChoices[0]?.check ?? { allowed: false, reason: 'No ship in reach' },
-        run: () => {},
-        choices: boardChoices,
+        label: boarders.length > 1 ? `Board Ship (${boarders.length})` : 'Board Ship',
+        costText: '1 action each',
+        check: boarders.length > 0 ? ALLOWED : rules.embarkCheck(group[0], ship.id),
+        run: () => {
+          for (const id of boarders) emit.embarkSoldier(id, ship.id);
+          clearPicks();
+        },
         family: 'troops',
       });
     }
 
-    // Disembark: a picked soldier aboard a ship lands on a highlighted coast
-    // vertex (pick-mode on the map).
+    // Disembark: a picked soldier aboard the ship lands on its vertex.
     const aboard = group.flatMap((id) => {
       const s = board.soldiers[id];
       return s && s.aboardShipId !== null ? [s] : [];
     });
     if (aboard.length > 0) {
-      actions.push(disembarkAction(input, rules, aboard, vertex.id, 'troops'));
+      actions.push(disembarkAction(input, rules, aboard, 'troops'));
     }
   }
 
@@ -1080,32 +1078,33 @@ const robberActions = (
 /**
  * The Disembark bubble for troops aboard a ship: one chip per kind of troop
  * (type + health — identical troops are interchangeable, so "Land infantry"
- * twice would be noise), each landing the first such troop that can land
- * via the vertex pick-mode. `fromVertexId` is where the rule check probes
- * for the blocked reason.
+ * twice would be noise). Troops land on the ship's own vertex, so each chip
+ * lands the first such troop straight away.
  */
 const disembarkAction = (
   input: BoardActionsInput,
   rules: BoardRules,
   troops: SoldierObj[],
-  fromVertexId: string,
   family: 'troops' | 'ship'
 ): BubbleAction => {
-  const { room, me, emit } = input;
+  const { board, emit } = input;
   const kinds = new Map<string, SoldierObj[]>();
   for (const s of troops) {
     const k = `${s.type === 'cannon' ? 'cannon' : s.injured ? 'injured soldier' : 'soldier'}`;
     kinds.set(k, [...(kinds.get(k) ?? []), s]);
   }
+  const landingAt = (s: SoldierObj) => board.ships[s.aboardShipId!]?.vertexId ?? s.vertexId;
   const choices: BubbleAction[] = [...kinds].map(([kind, group]) => {
-    const lander = group.find((s) => disembarkTargets(room, me.name, s.id).length > 0);
+    const lander = group.find((s) => rules.disembarkCheck(s.id, landingAt(s)).allowed);
     return {
       key: `land-${group[0].id}`,
       icon: 'move' as const,
       label: group.length > 1 ? `Land ${kind} (${group.length})` : `Land ${kind}`,
-      costText: '1 action · pick a glowing vertex',
-      check: lander ? ALLOWED : rules.disembarkCheck(group[0].id, fromVertexId),
-      run: () => emit.setDisembarkingSoldierId((lander ?? group[0]).id),
+      costText: '1 action',
+      check: lander ? ALLOWED : rules.disembarkCheck(group[0].id, landingAt(group[0])),
+      run: () => {
+        if (lander) emit.disembarkSoldier(lander.id, landingAt(lander));
+      },
       eligible: !!lander,
     };
   });
@@ -1114,7 +1113,7 @@ const disembarkAction = (
     key: 'disembark',
     icon: 'ship',
     label: `Disembark ${troops.length}`,
-    costText: 'Pick who lands, then a vertex',
+    costText: 'Pick who lands',
     check: anyLand ? ALLOWED : choices[0].check,
     run: () => {},
     choices,
@@ -1124,8 +1123,8 @@ const disembarkAction = (
 
 /**
  * Bubbles for a selected ship: sail it (pick-mode over reachable water
- * vertices), convert it to a settlement in Build phase, land troops via
- * pick-mode, plus the aboard soldiers' own group actions (station/fire)
+ * vertices), convert it to a settlement in Build phase, land troops on the
+ * ship's vertex, plus the aboard soldiers' own group actions (station/fire)
  * produced by `soldierActions` on the ship's vertex.
  */
 const shipActions = (
@@ -1191,11 +1190,11 @@ const shipActions = (
     });
   }
 
-  // Disembark: each troop aboard lands via the vertex pick-mode (own turn,
+  // Disembark: each troop aboard lands on the ship's vertex (own turn,
   // Action phase — the rule check decides the rest).
   if (room.shipsEnabled && phase === 'Action' && crew.length > 0) {
     const own = crew.filter((s) => s.owner === me.name);
-    if (own.length > 0) actions.push(disembarkAction(input, rules, own, ship.vertexId, 'ship'));
+    if (own.length > 0) actions.push(disembarkAction(input, rules, own, 'ship'));
   }
   return actions;
 };
@@ -1293,7 +1292,7 @@ export function boardActions(input: BoardActionsInput): BubbleAction[] {
 export function useBoardActions(): { actions: BubbleAction[]; resetKey: string } | null {
   const { gameRoom, currentPlayer } = useGameState();
   const { selectedObject, selectedSoldierIds, chainShot } = useSelection();
-  const { setSelectedSoldierIds, setSailingShipId, setDisembarkingSoldierId, setChainShot } = useGameActions();
+  const { setSelectedSoldierIds, setSailingShipId, setChainShot } = useGameActions();
   const socket = useSocket();
   const coach = useSetupCoach(gameRoom?.board ?? null);
 
@@ -1353,7 +1352,6 @@ export function useBoardActions(): { actions: BubbleAction[]; resetKey: string }
     disembarkSoldier: socket.disembarkSoldier,
     convertShipToSettlement: socket.convertShipToSettlement,
     setSailingShipId,
-    setDisembarkingSoldierId,
     setChainShot,
   };
   const actions = boardActions({

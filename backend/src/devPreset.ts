@@ -1,4 +1,4 @@
-import { Board, DevelopmentCardType, GameRoom, SoldierObj, isCoastVertex, validSettlementVertices } from 'common';
+import { Board, DevelopmentCardType, GameRoom, SoldierObj, isCoastVertex, isLandVertex, validSettlementVertices } from 'common';
 
 /**
  * Dev-mode preset board: skip the SetUp phase and start round 1 with cities,
@@ -182,11 +182,18 @@ export function applyDevPreset(room: GameRoom): void {
     if (v && name !== b) addSoldiers(board, name, v, 1);
   }
 
-  // Free battleground vertices: no building, not a road end, off the robber's
-  // hex. Deterministic order; each scenario takes the next one.
+  // Free battleground vertices: on land (soldiers on foot never stand at
+  // sea), no building, not a road end, off the robber's hex. Deterministic
+  // order; each scenario takes the next one.
   const reserved = new Set(Object.values(roadEnds).filter((v): v is string => !!v));
   const pool = Object.values(board.vertices)
-    .filter((v) => !v.settlementId && !reserved.has(v.id) && (!robberHexId || !v.hexIds.includes(robberHexId)))
+    .filter(
+      (v) =>
+        isLandVertex(board, v.id) &&
+        !v.settlementId &&
+        !reserved.has(v.id) &&
+        (!robberHexId || !v.hexIds.includes(robberHexId))
+    )
     .map((v) => v.id)
     .sort();
   const nextSpot = () => pool.shift() ?? null;

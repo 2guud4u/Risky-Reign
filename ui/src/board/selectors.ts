@@ -8,7 +8,6 @@ import {
   TurnState,
   VertexId,
   adjacentVertexIds,
-  canDisembarkSoldier,
   canKnightSpawnAt,
   canMoveRobberAdjacent,
   canMoveShip,
@@ -186,27 +185,6 @@ export function sailPaths(
     frontier = next;
   }
   return out;
-}
-
-/**
- * Coast vertices an aboard soldier may disembark onto (the ship's own coast
- * vertex or an adjacent coast vertex without a settlement), per
- * `canDisembarkSoldier` — the same check the backend applies.
- */
-export function disembarkTargets(
-  room: PublicGameRoom,
-  playerName: string,
-  soldierId: string
-): VertexId[] {
-  const board = room.board;
-  const soldier = board?.soldiers[soldierId];
-  const ship = soldier?.aboardShipId ? board!.ships[soldier.aboardShipId] : null;
-  if (!board || !soldier || !ship) return [];
-  const asRoom = room as unknown as GameRoom;
-  const asPlayer = { name: playerName } as Player;
-  return [ship.vertexId, ...adjacentVertexIds(board, ship.vertexId)].filter(
-    (vertexId) => canDisembarkSoldier(asRoom, asPlayer, soldierId, vertexId).allowed
-  );
 }
 
 /**

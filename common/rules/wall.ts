@@ -8,7 +8,7 @@
  * soldier's action is spent either way). The owner's own soldiers cross
  * freely.
  */
-import type { Board, EdgeId, RoadId, VertexId } from '../types/Board';
+import type { Board, EdgeId, VertexId } from '../types/Board';
 import type { BuildCheck } from '../types/Logic';
 import type { Player } from '../types/Player';
 import type { GameRoom } from '../types/Room';
@@ -19,16 +19,6 @@ import { subtractPrice } from '../utils/trade';
 
 const pass: BuildCheck = { allowed: true, reason: null };
 const fail = (reason: string): BuildCheck => ({ allowed: false, reason });
-
-/**
- * The road on `edgeId` when it is an enemy wall to `playerName`, else null.
- * Shared by the move layer (does this edge gate?) and the capture flood-fill.
- */
-export function enemyWallRoadAt(board: Board, edgeId: EdgeId, playerName: string): RoadId | null {
-  const edge = board.edges[edgeId];
-  const road = edge?.roadId ? board.roads[edge.roadId] : undefined;
-  return road?.isWall && road.ownerId !== playerName ? road.id : null;
-}
 
 /**
  * Does moving `soldier` onto `targetVertexId` cross an enemy wall? Returns
@@ -109,6 +99,7 @@ export function canRollWallGate(room: GameRoom, player: Player): BuildCheck {
   if (!gate) return fail('No wall gate is pending');
   if (gate.wallOwnerName !== player.name) return fail('Only the wall owner rolls the gate');
   if (gate.roll !== null) return fail('The gate already resolved');
+  if (gate.guess === null) return fail('Wait for the crosser to guess first');
   return pass;
 }
 
@@ -142,6 +133,7 @@ export function applyRollWallGate(
       kind: 'wallGateCross',
       soldierId: soldier.id,
       originalVertexId: soldier.vertexId,
+      wasStationed: soldier.stationed,
     });
     soldier.vertexId = gate.targetVertexId;
     soldier.stationed = false; // crossing out of a garrison clears the flag

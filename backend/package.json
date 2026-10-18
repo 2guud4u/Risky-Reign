@@ -8,7 +8,7 @@
     "dev": "NODE_ENV=development nodemon --exec ts-node src/index.ts",
     "start": "NODE_ENV=production node dist/index.js",
     "pretest": "npm --prefix .. run build:common && npm run build",
-    "test": "node --test test/persistence.unit.test.mjs test/persistence.e2e.test.mjs test/quickplay.unit.test.mjs test/phaseTimer.unit.test.mjs"
+    "test": "node --test test/persistence.unit.test.mjs test/persistence.e2e.test.mjs test/quickplay.unit.test.mjs test/phaseTimer.unit.test.mjs test/pieces.unit.test.mjs"
   },
   "dependencies": {
     "common": "1.0.0",

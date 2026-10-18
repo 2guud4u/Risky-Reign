@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { GameRoom, applyBonuses } from 'common';
+import { GameRoom, applyBonuses, boardBusy } from 'common';
 import { advanceTurn } from './turn';
 import { broadcastRoom } from './broadcast';
 import { getRoom } from './store';
@@ -10,11 +10,12 @@ import { getRoom } from './store';
 // the first sync after hydrate).
 const timers = new Map<string, NodeJS.Timeout>();
 
-/** A phase is timed while the game plays, no battle is open, and it's Build or Action. */
+/** A phase is timed while the game plays, the board isn't frozen (battle or
+ *  open wall gate — GLOSSARY "Wall gate"), and it's Build or Action. */
 function isTimedPhase(room: GameRoom): boolean {
   return (
     room.gameStatus === 'playing' &&
-    !room.battleState &&
+    !boardBusy(room) &&
     room.turnTimerMs > 0 &&
     (room.turnState.phase === 'Build' || room.turnState.phase === 'Action')
   );
@@ -30,11 +31,11 @@ function isTimedPhase(room: GameRoom): boolean {
 export function syncPhaseTimer(io: Server, room: GameRoom): void {
   const timed = isTimedPhase(room);
   if (!timed) {
-    // Not in a timed window. A live battle keeps `phaseTimerRemainingMs` so
-    // the clock resumes where it left off when the fight closes; everything
-    // else (setup, dice, waiting, finished, timer turned off) resets clean.
+    // Not in a timed window. A frozen board (battle / wall gate) keeps
+    // `phaseTimerRemainingMs` so the clock resumes where it left off;
+    // everything else (setup, dice, waiting, finished, timer off) resets.
     disarm(room);
-    if (!room.battleState) room.phaseTimerRemainingMs = null;
+    if (!boardBusy(room)) room.phaseTimerRemainingMs = null;
     return;
   }
   if (room.phaseTimerEndsAt === null) {
@@ -71,8 +72,8 @@ function arm(io: Server, room: GameRoom): void {
 }
 
 function disarm(room: GameRoom): void {
-  // Battle open mid-timed-phase: freeze the clock, keep what's left.
-  if (room.battleState && room.phaseTimerEndsAt !== null) {
+  // Board frozen mid-timed-phase: stop the clock, keep what's left.
+  if (boardBusy(room) && room.phaseTimerEndsAt !== null) {
     room.phaseTimerRemainingMs = Math.max(0, room.phaseTimerEndsAt - Date.now());
     room.phaseTimerEndsAt = null;
   } else {

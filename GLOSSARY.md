@@ -38,12 +38,13 @@
 
 | Term | Meaning |
 |------|---------|
-| Cannon | A soldier upgraded on your settlement (1 wood + 1 ore). In melee it always pairs as its side's lowest roll (facing the enemy's weakest die); it cannot be injured — a lost roll kills it — and it wins its ties (no home-field advantage). |
+| Cannon | A healthy soldier upgraded on your settlement (1 wood + 1 ore); injured soldiers must heal first. In melee it always pairs as its side's lowest roll (facing the enemy's weakest die); it cannot be injured — a lost roll kills it — and it wins its ties (no home-field advantage). |
 | Stationed | A cannon emplaced to fire: it can attack (range: one intersection away, or splash) but cannot move until unstationed. Distinct from a freshly-spawned infantry soldier's garrisoned state. |
-| Splash attack | A stationed cannon's area attack (costs 1 ore): one roll resolves independently against every soldier on the target vertex, including the firer's own troops — the cannon itself is immune. |
-| Wall | A road upgraded (2 bricks, flipped 90°) that blocks enemy soldiers. Crossing requires the wall gate; a stationed cannon adjacent to it breaks it on a roll of 4+. Walls travel with their road on capture and stop the capture region's spread. |
-| Wall gate | The dice challenge for crossing an enemy wall: the crosser picks a number 1–6 for each soldier attempting, the wall owner rolls; each soldier whose number matches crosses. A failed attempt still spends the soldier's action. |
-| Ship | A vessel (1 wood + 1 sheep) sitting on coast or sea vertices. Carries any number of embarked troops; each ship moves ceil(dice-roll total / 2) per Action phase. Empty ships can be commandeered by anyone; loaded ships obey only their owner. Converts into a settlement on an adjacent coast vertex for 1 wheat + 1 ore (no garrison soldier). |
+| Splash attack | A stationed cannon's area attack (costs 1 ore) at the vertex one intersection away or its own vertex: one roll resolves independently against every soldier there, including the firer's own troops — the cannon itself is immune. |
+| Wall | A road upgraded (2 bricks, flipped 90°) that blocks enemy soldiers. Crossing requires the wall gate; a stationed cannon adjacent to it breaks it on a roll of 4+. On capture a wall changes hands exactly like the road it sits on. |
+| Capture spread | The roads (and walls) that change hands when a settlement is captured: every road whose chain, after the capture, runs only between the capturer's buildings and dead ends, whoever owned it. A road on a chain that reaches any other player's building keeps its owner. |
+| Wall gate | The dice challenge for crossing an enemy wall: the crosser picks a number 1–6, the wall owner rolls; a match crosses. Either side that doesn't act within 30s has its number picked for it. A failed attempt still spends the soldier's action. The whole board waits while a gate (or a battle) is in progress. |
+| Ship | A vessel (1 wood + 1 sheep) sitting on coast or sea vertices, possibly over a settlement. Carries any number of embarked troops, who board and land only on the ship's own coast vertex; troops aboard can be attacked anywhere but must land before they capture or start a fight. Each ship moves ceil(dice-roll total / 2) in its owner's Action phase. An empty ship is claimed by whoever sails or boards it; a crewed ship answers only to its owner and can't be boarded by others. Converts into a settlement on its own or an adjacent coast vertex for 1 wheat + 1 ore (no garrison soldier). |
 
 ## Engine architecture
 

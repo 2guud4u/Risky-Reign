@@ -68,6 +68,11 @@ export function canStartBattle(
     if (turnState.soldiersCreatedThisTurn.includes(soldierId)) {
       return { allowed: false, reason: 'Soldier was just created and cannot attack this turn' };
     }
+
+    // GLOSSARY "Ship": troops aboard must land before they start a fight.
+    if (soldier.aboardShipId !== null) {
+      return { allowed: false, reason: 'Land your troops before attacking' };
+    }
   }
 
   // Target vertex must exist
@@ -148,6 +153,9 @@ export function canFightRobber(
   // Rule 24: Cannot create and move/attack on same turn
   if (turnState.soldiersCreatedThisTurn.includes(soldierId)) {
     return { allowed: false, reason: 'A just-created soldier cannot fight the robber this turn' };
+  }
+  if (soldier.aboardShipId !== null) {
+    return { allowed: false, reason: 'Land your troops before fighting the robber' };
   }
   // Once per player per entire Action phase
   if (turnState.robberFoughtThisPhase.includes(playerName)) {

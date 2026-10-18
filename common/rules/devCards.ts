@@ -251,7 +251,9 @@ export function canKnightSpawnSoldierAt(
 
 /**
  * Apply: a free soldier joins the vertex. Like a recruit it can't move or
- * act this turn (Rule 24), and the held knight is consumed.
+ * act this turn (Rule 24), and the held knight is consumed. Where the
+ * player's troops there are all aboard a ship, the new soldier joins them
+ * aboard — soldiers on foot only ever stand on land.
  * Assumes `canKnightSpawnSoldierAt` passed.
  */
 export function applyKnightSpawnSoldier(
@@ -262,14 +264,17 @@ export function applyKnightSpawnSoldier(
   const choice = room.devCardChoice!;
   const board = room.board!;
   const soldierId = `soldier_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const mine = Object.values(board.soldiers).filter((s) => s.vertexId === vertexId && s.owner === player.name);
+  const onFoot = mine.some((s) => s.aboardShipId === null);
+  const shipId = onFoot ? null : (mine[0]?.aboardShipId ?? null);
   board.soldiers[soldierId] = {
     id: soldierId,
     owner: player.name,
     injured: false,
     vertexId,
     type: 'infantry',
-    stationed: true,
-    aboardShipId: null,
+    stationed: shipId === null,
+    aboardShipId: shipId,
   };
   room.turnState.soldiersCreatedThisTurn.push(soldierId);
   room.turnState.soldiersActedThisTurn.push(soldierId);

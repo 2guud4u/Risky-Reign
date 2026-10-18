@@ -22,10 +22,11 @@ import {
   Player,
 } from 'common';
 import type { ActionEntry } from '../dispatch';
+import { freezeWhileBusy } from './piece';
 
 const fail = (error: string) => ({ error });
 
-export const SOLDIER_ACTIONS: Record<string, ActionEntry> = {
+export const SOLDIER_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
   moveSoldier: {
     run: (
       room: GameRoom,
@@ -36,9 +37,8 @@ export const SOLDIER_ACTIONS: Record<string, ActionEntry> = {
       if (!board) return fail('Game board is not available');
       const turnState = room.turnState;
 
-      // One crossing at a time: a new move would overwrite the open gate and
-      // let the held soldier skip its spent action (Rules.md Walls).
-      if (room.wallGate && room.wallGate.roll === null) return fail('A wall crossing is in progress');
+      // One action at a time: the board freeze (battle / open wall gate)
+      // is enforced by freezeWhileBusy around this table.
 
       // Authoritative rules live in common (shared with the UI).
       const check = canMoveSoldierTo(board, turnState, currentPlayer.name, soldierId, targetVertexId);
@@ -186,4 +186,4 @@ export const SOLDIER_ACTIONS: Record<string, ActionEntry> = {
       turnState.soldiersActedThisTurn.push(soldierId);
     },
   },
-};
+}, ['moveSoldier', 'captureSettlement', 'healSoldier', 'fightRobber']);

@@ -23,6 +23,7 @@ import {
 import { advanceTurn } from '../turn';
 import { GameRoom, Player } from 'common';
 import type { ActionEntry } from '../dispatch';
+import { freezeWhileBusy } from './piece';
 
 const fail = (error: string) => ({ error });
 
@@ -42,7 +43,7 @@ function advanceIfSetupComplete(room: Parameters<typeof advanceTurn>[0]): void {
   if (t.phase === 'SetUp' && t.placedSettlement && t.placedRoad) advanceTurn(room);
 }
 
-export const BUILD_ACTIONS: Record<string, ActionEntry> = {
+export const BUILD_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
   buildSettlement: {
     run: (room: GameRoom, player: Player, { vertexId, asCity }: { roomId: string; vertexId: string; asCity?: boolean }) => {
       const board = room.board;
@@ -133,13 +134,9 @@ export const BUILD_ACTIONS: Record<string, ActionEntry> = {
         builtAt: Date.now(),
         isWall: false,
       };
+      // `vertex.roadIds` is the board's fixed edge adjacency (edge ids) — a
+      // road is just `edge.roadId`, so the vertices need no update.
       edge.roadId = newRoadId;
-      // The generator already lists every adjacent edge in roadIds; only add
-      // if missing so repeated road builds can't create duplicate entries.
-      for (const vid of [edge.vertexAId, edge.vertexBId]) {
-        const v = board.vertices[vid];
-        if (v && !v.roadIds.includes(newRoadId)) v.roadIds.push(newRoadId);
-      }
 
       turnState.placedRoad = true;
       turnState.undoLog.push({
@@ -216,4 +213,4 @@ export const BUILD_ACTIONS: Record<string, ActionEntry> = {
       turnState.undoLog.push({ kind: 'recruitSoldier', soldierId: s.id });
     },
   },
-};
+}, ['buildSettlement', 'buildRoad', 'upgradeSettlementToCity', 'recruitSoldier']);

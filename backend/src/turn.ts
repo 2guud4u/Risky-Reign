@@ -36,17 +36,10 @@ export function advanceTurn(room: GameRoom): void {
     room.roll = { die1: null, die2: null };
   } else if (next.phase === 'Action' && from !== 'Action') {
     // A new Action phase begins (from Build, or from the second roll):
-    // reset the per-soldier action count and grant each ship its steps
-    // for the phase (half the dice total, rounded up).
+    // reset the per-soldier action count.
     room.turnState.soldiersActedThisTurn = [];
     room.turnState.robberFoughtThisPhase = [];
-    const steps = shipStepsForTurn(room.roll);
-    room.turnState.shipSteps = Object.fromEntries(
-      Object.keys(room.board?.ships ?? {}).map((id) => [id, steps])
-    );
   } else if (from === 'Action') {
-    // Ship steps belong to the Action phase they were granted in.
-    room.turnState.shipSteps = {};
     // A lingering cannon-shot reveal belongs to the phase it was fired in.
     room.cannonShot = null;
     // The robber-move option belongs to the Action phase it was won in.
@@ -60,6 +53,13 @@ export function advanceTurn(room: GameRoom): void {
       for (const p of room.players) p.devCardsBoughtThisTurn = 0;
     }
   }
+  // Ship steps belong to one player's Action phase: every Action phase that
+  // begins — including the next player's in an around-the-table round —
+  // grants each ship half the dice total, rounded up; leaving Action clears them.
+  room.turnState.shipSteps =
+    next.phase === 'Action'
+      ? Object.fromEntries(Object.keys(room.board?.ships ?? {}).map((id) => [id, shipStepsForTurn(room.roll)]))
+      : {};
   // Turn timer: a fresh countdown starts each time a Build or Action phase
   // begins (any other phase clears it). Battle suspension/resume is handled
   // by syncPhaseTimer off the broadcast.
