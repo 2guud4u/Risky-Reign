@@ -1,10 +1,8 @@
 import React from 'react';
 import { BoardVertex as BoardVertexType } from 'common';
-import { darkenColor } from '../utils/color';
 import { VERTEX_HIT_SCALE } from '../constants';
 import { TintedSprite } from './TintedSprite';
-import { CITY_ART } from '../utils/tintedArt';
-
+import { CITY_ART, SETTLEMENT_ART } from '../utils/tintedArt';
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
   onHover: (vertexId: string | null) => void;
@@ -49,17 +47,19 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
     return '#999';
   };
   
-  // House art sizing, in multiples of the vertex dot size. The art's viewBox
-  // is cropped to the visible piece, so width/height match the drawn house
-  // and the center offset positions it slightly above the vertex. The numbers
-  // reproduce the board's look from before the art was cropped.
+  // Piece art sizing, in multiples of the vertex dot size. The art is cropped
+  // to the visible piece and the sprite is contained in the box (aspect kept),
+  // so the center offset positions it slightly above the vertex. The numbers
+  // match the pre-crop board look; the village (settlement) is larger than a
+  // single house but clearly smaller than a city.
   const isCity = settlementLevel === 'city';
-  const houseW = size * (isCity ? 12.9 : 5.85);
-  const houseH = size * (isCity ? 13.61 : 5.99);
-  const houseCx = position.x + size * (isCity ? 0.31 : 0.04);
-  const houseCy = position.y - size * (isCity ? 2.41 : 1.15);
+  const houseW = size * (isCity ? 12.9 : 8.0);
+  const houseH = size * (isCity ? 13.61 : 8.14);
+  const houseCx = position.x + size * (isCity ? 0.31 : 0);
+  const houseCy = position.y - size * (isCity ? 2.41 : 2.5);
   return (
     <g
+      data-vertex-id={id}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -79,27 +79,17 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
         opacity={isSelectable ? 1 : 0.5}
       />
 
-      {/* Settlement: multi-color house art; the medium-gray layer is the
-          owner's color (via currentColor). */}
+      {/* Settlement: whole-village art; the thatched roofs are tinted to the
+          owner's color. */}
       {hasSettlement && !isCity && (
-        <svg
+        <TintedSprite
+          art={SETTLEMENT_ART}
+          color={ownerColor ?? '#999'}
           x={houseCx - houseW / 2}
           y={houseCy - houseH / 2}
           width={houseW}
           height={houseH}
-          style={{
-            color: ownerColor ?? '#999',
-            // Darker tone for the shadow layer; falls back to the SVG's #6b6c68
-            // when there is no owner color.
-            ['--settlement-dark' as string]: ownerColor ? darkenColor(ownerColor) : undefined,
-          }}
-        >
-          <use
-            href="/art/settlement.svg#settlement-shape"
-            width={houseW}
-            height={houseH}
-          />
-        </svg>
+        />
       )}
       {/* City: pre-baked raster; the roof is tinted to the owner's color. */}
       {hasSettlement && isCity && (

@@ -20,6 +20,7 @@ export const INJURED_SOLDIER_ART: TintArt = {
   maskHref: '/art/injuredSoldier_mask.png',
 };
 export const SHIP_ART: TintArt = { href: '/art/pieces/ship.png', maskHref: '/art/pieces/ship_mask.png' };
+export const SETTLEMENT_ART: TintArt = { href: '/art/settlement.png', maskHref: '/art/settlement_mask.png' };
 export const CITY_ART: TintArt = { href: '/art/city.png', maskHref: '/art/city_mask.png' };
 export const CANNON_STATIONED_ART: TintArt = {
   href: '/art/pieces/cannon_stationed.png',

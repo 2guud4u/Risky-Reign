@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PLAYER_COLORS, normalizeColor, playerColorError } from 'common';
-import { darkenColor } from '../utils/color';
 import GameIcon from './ui/GameIcon';
 import { TintedImg } from './TintedSprite';
-import { SOLDIER_ART, CITY_ART } from '../utils/tintedArt';
-
+import { SOLDIER_ART, CITY_ART, SETTLEMENT_ART } from '../utils/tintedArt';
 interface OtherPlayer {
   name: string;
   color: string;
@@ -22,25 +20,14 @@ const CUSTOM_COMMIT_DELAY_MS = 250;
 
 const same = (a: string, b: string) => normalizeColor(a) === normalizeColor(b);
 
-/**
- * Preview frame sizes (px). The piece art is cropped to its visible shape, so
- * each frame matches its art's aspect ratio and a plain flex row centers them.
- */
-const PREVIEW_PIECES = [
-  { href: '/art/settlement.svg#settlement-shape', w: 39, h: 40 },
-] as const;
+
 
 /** Your pieces tinted with `color` — the same art and tinting as the board. */
 const PiecePreview: React.FC<{ color: string; label: string }> = ({ color, label }) => (
   <div
     className="flex items-center justify-center gap-5 h-24 rounded-lg bg-gradient-to-b from-sky-50 to-emerald-100 border border-emerald-200"
-    style={{ color, ['--settlement-dark' as string]: darkenColor(color) }}
   >
-    {PREVIEW_PIECES.map((p) => (
-      <svg key={p.href} width={p.w} height={p.h} aria-hidden="true">
-        <use href={p.href} width={p.w} height={p.h} />
-      </svg>
-    ))}
+    <TintedImg art={SETTLEMENT_ART} color={color} width={42} height={43} />
     <TintedImg art={CITY_ART} color={color} width={47} height={56} />
     <TintedImg art={SOLDIER_ART} color={color} width={27} height={62} />
     <span className="sr-only">{label}</span>
