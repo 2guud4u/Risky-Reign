@@ -3,7 +3,7 @@ import { PLAYER_COLORS, normalizeColor, playerColorError } from 'common';
 import { darkenColor } from '../utils/color';
 import GameIcon from './ui/GameIcon';
 import { TintedImg } from './TintedSprite';
-import { SOLDIER_ART } from '../utils/tintedArt';
+import { SOLDIER_ART, CITY_ART } from '../utils/tintedArt';
 
 interface OtherPlayer {
   name: string;
@@ -28,7 +28,6 @@ const same = (a: string, b: string) => normalizeColor(a) === normalizeColor(b);
  */
 const PREVIEW_PIECES = [
   { href: '/art/settlement.svg#settlement-shape', w: 39, h: 40 },
-  { href: '/art/city.svg#city-shape', w: 53, h: 56 },
 ] as const;
 
 /** Your pieces tinted with `color` — the same art and tinting as the board. */
@@ -42,6 +41,7 @@ const PiecePreview: React.FC<{ color: string; label: string }> = ({ color, label
         <use href={p.href} width={p.w} height={p.h} />
       </svg>
     ))}
+    <TintedImg art={CITY_ART} color={color} width={47} height={56} />
     <TintedImg art={SOLDIER_ART} color={color} width={27} height={62} />
     <span className="sr-only">{label}</span>
   </div>

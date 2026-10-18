@@ -2,6 +2,8 @@ import React from 'react';
 import { BoardVertex as BoardVertexType } from 'common';
 import { darkenColor } from '../utils/color';
 import { VERTEX_HIT_SCALE } from '../constants';
+import { TintedSprite } from './TintedSprite';
+import { CITY_ART } from '../utils/tintedArt';
 
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
@@ -79,7 +81,7 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
 
       {/* Settlement: multi-color house art; the medium-gray layer is the
           owner's color (via currentColor). */}
-      {hasSettlement && (
+      {hasSettlement && !isCity && (
         <svg
           x={houseCx - houseW / 2}
           y={houseCy - houseH / 2}
@@ -93,11 +95,22 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
           }}
         >
           <use
-            href={isCity ? '/art/city.svg#city-shape' : '/art/settlement.svg#settlement-shape'}
+            href="/art/settlement.svg#settlement-shape"
             width={houseW}
             height={houseH}
           />
         </svg>
+      )}
+      {/* City: pre-baked raster; the roof is tinted to the owner's color. */}
+      {hasSettlement && isCity && (
+        <TintedSprite
+          art={CITY_ART}
+          color={ownerColor ?? '#999'}
+          x={houseCx - houseW / 2}
+          y={houseCy - houseH / 2}
+          width={houseW}
+          height={houseH}
+        />
       )}
 
       {/* Selection ring */}
