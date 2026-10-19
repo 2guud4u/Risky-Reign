@@ -22,7 +22,7 @@ import {
   ShipPrice,
   ShipSettlePrice,
   moveCrewWithShip,
-  shipStepsForTurn,
+  sailAllowance,
   SoldierPrice,
   stealCard,
   WallPrice,
@@ -285,9 +285,10 @@ export const TURN_ACTIONS: Record<string, ActionEntry> = {
             // Only troops still aboard sail back; anyone who left the ship
             // since (e.g. repositioned after a battle) stays where they are.
             moveCrewWithShip(board, entry.shipId);
-            // Refund the spent step (clamped to this phase's allowance).
+            // Refund the spent step (clamped to this phase's allowance, which
+            // includes The Admiral's bonus while they still own the ship).
             turnState.shipSteps[entry.shipId] = Math.min(
-              shipStepsForTurn(room.roll),
+              sailAllowance(room, room.roll, ship),
               (turnState.shipSteps[entry.shipId] ?? 0) + 1,
             );
           }

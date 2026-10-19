@@ -142,6 +142,10 @@ export const LONGEST_ROAD_MIN = 5;
 export const LARGEST_ARMY_MIN = 3;
 /** Minimum battles won for the Conqueror bonus. */
 export const CONQUEROR_MIN = 3;
+/** Minimum fleet size for The Admiral bonus. */
+export const ADMIRAL_MIN = 3;
+/** Victory points The Admiral awards (1 — less than the other bonuses). */
+export const ADMIRAL_VP = 1;
 /** Victory points awarded by each bonus. */
 export const BONUS_VP = 2;
 /** Victory points needed to win the game (standard Catan: first to 10 VP on your turn). */

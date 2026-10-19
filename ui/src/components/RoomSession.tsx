@@ -3,7 +3,7 @@ import { PausedGameInfo, PublicGameRoom, PublicPlayer, RejoinSeat } from 'common
 import { useChrome, useGameActions, useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ConnectionBanner from './ConnectionBanner';
-import GamePage from '../pages/Game';
+import RoomPage from '../pages/Room';
 import LobbyPage from '../pages/Lobby';
 import RejoinPicker from '../pages/RejoinPicker';
 import PausedScreen from '../pages/PausedScreen';
@@ -26,15 +26,16 @@ function syncCurrentPlayer(
 }
 
 /**
- * Top-level router. Subscribes to the server's roomUpdate / gameUpdate /
- * error events, mirrors the room into the GameRoom context, and switches
- * between the Lobby (no room) and the Game (room joined) views.
+ * Top-level router + session orchestrator. Subscribes to the server's
+ * roomUpdate / gameUpdate / error events, mirrors the room into the
+ * GameRoom context, and switches between the Lobby (no room) and the Room
+ * (joined) views.
  *
  * Also handles session persistence: on socket connect it auto-rejoins the
  * saved room (so a reload doesn't kick you back to the lobby), and clears
  * the saved session if you end up no longer in the room.
  */
-const GameLogic: React.FC = () => {
+const RoomSession: React.FC = () => {
   // Server-sent errors surface as a transient banner (below) so they are
   // visible in-game too, and also passed to the pages that can show them inline.
   const [error, setError] = useState<string | null>(null);
@@ -210,7 +211,7 @@ const GameLogic: React.FC = () => {
       ) : paused ? (
         <PausedScreen info={paused} onBack={() => setPaused(null)} />
       ) : gameRoom ? (
-        <GamePage error={error} onCustomizeGame={() => setView('customizeGame')} />
+        <RoomPage error={error} onCustomizeGame={() => setView('customizeGame')} />
       ) : rejoin ? (
         <RejoinPicker roomId={rejoin.roomId} seats={rejoin.seats} onBack={() => setRejoin(null)} />
       ) : (
@@ -220,4 +221,4 @@ const GameLogic: React.FC = () => {
   );
 };
 
-export default GameLogic;
+export default RoomSession;

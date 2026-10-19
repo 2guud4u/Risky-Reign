@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameRoomProvider } from './contexts/GameContext';
 import { SocketProvider } from './contexts/SocketContext';
-import GameLogic from './components/GameLogic';
+import RoomSession from './components/RoomSession';
 
 /**
  * Catches render errors from server-pushed room state (a malformed payload,
@@ -48,7 +48,7 @@ class ErrorBoundary extends React.Component<
 
 /**
  * Root component. Layers the providers (game room state + socket) and hands
- * off to GameLogic, which routes between the Lobby and the Game. An error
+ * off to RoomSession, which routes between the Lobby and the Game. An error
  * boundary wraps the tree so a single bad render degrades gracefully.
  */
 function App() {
@@ -56,7 +56,7 @@ function App() {
     <ErrorBoundary>
       <GameRoomProvider>
         <SocketProvider>
-          <GameLogic />
+          <RoomSession />
         </SocketProvider>
       </GameRoomProvider>
     </ErrorBoundary>

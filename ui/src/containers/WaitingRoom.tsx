@@ -3,9 +3,7 @@ import { LOBBY_HEX_SIZE, MIN_PLAYERS } from 'common';
 import { useGameActions, useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import ColorPicker from '../components/ColorPicker';
-import BoardView from '../containers/BoardView';
-import Game from '../containers/Game';
-import VictoryOverlay from '../containers/VictoryOverlay';
+import BoardView from './BoardView';
 import GameIcon from '../components/ui/GameIcon';
 import { readSavedSession, saveSession, clearSavedSession } from '../utils/session';
 import Button from '../components/ui/Button';
@@ -13,7 +11,6 @@ import { Settings, Link2, Check, LogOut } from 'lucide-react';
 
 const inputClass =
   'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
-
 
 /** Bottom-left menu (gear) shared by the waiting room: leave the lobby. */
 const LobbyMenu: React.FC<{
@@ -25,22 +22,23 @@ const LobbyMenu: React.FC<{
   <div className="fixed bottom-3 left-3 z-50">
     {open && (
       <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl border border-ink-faint/40 bg-canvas-raised shadow-pop p-2 text-ink">
-        <div className="px-2 py-1.5 text-[13px] font-semibold text-ink-soft">Room {roomId}</div>
-        <Button variant="danger" size="sm" onClick={onLeave} icon={<LogOut size={14} />} className="w-full !justify-start">
-          Leave game
-        </Button>
+        <button
+          onClick={onLeave}
+          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-semibold hover:bg-ink-faint/10 text-left"
+        >
+          <LogOut size={15} /> Leave lobby
+        </button>
       </div>
     )}
     <Button
       variant="icon"
       onClick={onToggle}
-      className="!p-2"
-      title="Menu"
-      aria-label="Menu"
-      aria-expanded={open}
+      aria-label="Lobby menu"
+      title="Lobby menu"
     >
-      <Settings size={20} />
+      <Settings size={18} />
     </Button>
+    <span className="sr-only">{roomId}</span>
   </div>
 );
 
@@ -54,14 +52,22 @@ function fallbackCopyText(text: string): boolean {
     document.body.appendChild(ta);
     ta.select();
     const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
+    ta.remove();
     return ok;
   } catch {
     return false;
   }
 }
 
-const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }> = ({ error, onCustomizeGame }) => {
+/**
+ * The waiting room: players gather, confirm a name, pick a color, and the
+ * host starts the game (or opens Customize Game). Shown by the room shell
+ * (pages/Room) while `gameStatus === 'waiting'`.
+ */
+const WaitingRoom: React.FC<{ error: string | null; onCustomizeGame?: () => void }> = ({
+  error,
+  onCustomizeGame,
+}) => {
   const { gameRoom, currentPlayer } = useGameState();
   const { clearRoomState } = useGameActions();
   const {
@@ -70,16 +76,18 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
     setRoomPassword: onSetRoomPassword,
     updatePlayerName: onUpdatePlayerName,
     leaveGame: emitLeaveGame,
-    joinRoom: onJoinRoom,
   } = useSocket();
 
   const [nameInput, setNameInput] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [roomPassword, setRoomPassword] = useState('');
+
+  if (!gameRoom || !currentPlayer) return null;
+
   const handleSetName = () => {
     const name = nameInput.trim();
-    if (!name || !gameRoom || !currentPlayer) return;
+    if (!name) return;
     onUpdatePlayerName(name);
     // Keep the seat token so a reload re-attaches to this same player.
     const saved = readSavedSession();
@@ -91,13 +99,12 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
     });
   };
   const leaveLobby = () => {
-    if (gameRoom) emitLeaveGame();
+    emitLeaveGame();
     clearSavedSession();
     clearRoomState();
     setMenuOpen(false);
   };
   const copyJoinLink = async () => {
-    if (!gameRoom) return;
     const url = `${window.location.origin}/join?id=${gameRoom.id}`;
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
@@ -109,88 +116,53 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
     window.setTimeout(() => setLinkCopied(false), 1600);
   };
 
-  if (!gameRoom) {
-    return <p className="text-center text-gray-500">Loading game...</p>;
-  }
-
-  // Spectating (no seat): a started game renders read-only; if the room was
-  // reset back to the lobby, offer to join it as a new player.
-  if (!currentPlayer) {
-    if (gameRoom.gameStatus !== 'waiting') return gameRoom.gameStatus === 'finished' ? <><Game /><VictoryOverlay /></> : <Game />;
+  // Name-first: join is name-optional, so ask for the name before the color.
+  if (!currentPlayer.name.trim()) {
     return (
-      <div className="flex items-center justify-center min-h-dvh w-full p-4">
-        <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px] text-center flex flex-col gap-3">
-          <h1 className="text-xl font-bold m-0 text-ink">The game went back to the lobby</h1>
-          <Button
-            variant="primary"
-            onClick={() => {
-              const kept = readSavedSession();
-              saveSession({
-                roomId: gameRoom.id,
-                playerName: '',
-                ...(kept?.roomId === gameRoom.id ? { password: kept.password } : {}),
-              });
-              onJoinRoom('', gameRoom.id);
+      <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4">
+        <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px]">
+          <h1 className="text-2xl font-bold text-center mb-2 text-ink">Risky Reign</h1>
+          <p className="text-center text-ink-soft mb-4">Room {gameRoom.id}</p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSetName();
             }}
+            className="flex flex-col gap-4"
           >
-            Join as a player
-          </Button>
-          <Button variant="ghost" size="sm" onClick={leaveLobby}>
-            <GameIcon name="arrowLeft" size={13} className="inline -mt-0.5" /> Back to lobby
-          </Button>
+            <div>
+              <label className="block text-[13px] font-semibold mb-1.5 text-ink">Your Name</label>
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Enter your name"
+                required
+                className={inputClass}
+              />
+            </div>
+            <Button variant="primary" type="submit" disabled={!nameInput.trim()}>
+              Confirm
+            </Button>
+          </form>
         </div>
+        <LobbyMenu
+          open={menuOpen}
+          onToggle={() => setMenuOpen((o) => !o)}
+          onLeave={leaveLobby}
+          roomId={gameRoom.id}
+        />
       </div>
     );
   }
 
-  // Waiting room: players gather, pick their color, then the host starts the game.
-  if (gameRoom.gameStatus === 'waiting') {
-    // Name-first: join is name-optional, so ask for the name before the color.
-    if (!currentPlayer.name.trim()) {
-      return (
-        <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4">
-          <div className="bg-canvas-raised rounded-xl shadow-card p-6 w-full max-w-[420px]">
-            <h1 className="text-2xl font-bold text-center mb-2 text-ink">Risky Reign</h1>
-            <p className="text-center text-ink-soft mb-4">Room {gameRoom.id}</p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSetName();
-              }}
-              className="flex flex-col gap-4"
-            >
-              <div>
-                <label className="block text-[13px] font-semibold mb-1.5 text-ink">Your Name</label>
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  placeholder="Enter your name"
-                  required
-                  className={inputClass}
-                />
-              </div>
-              <Button variant="primary" type="submit" disabled={!nameInput.trim()}>
-                Confirm
-              </Button>
-            </form>
-          </div>
-          <LobbyMenu
-            open={menuOpen}
-            onToggle={() => setMenuOpen((o) => !o)}
-            onLeave={leaveLobby}
-            roomId={gameRoom.id}
-          />
-        </div>
-      );
-    }
-    const canStart =
-      gameRoom.players[0]?.id === currentPlayer.id && gameRoom.players.length >= MIN_PLAYERS;
-    return (
-      <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
-          <div className="hidden lg:block" />
-          <div className="bg-canvas-raised rounded-xl shadow-card p-4 w-full max-w-[520px] justify-self-center">
+  const canStart =
+    gameRoom.players[0]?.id === currentPlayer.id && gameRoom.players.length >= MIN_PLAYERS;
+  return (
+    <div className="flex items-start lg:items-center justify-center min-h-dvh w-full p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-start gap-4 w-full">
+        <div className="hidden lg:block" />
+        <div className="bg-canvas-raised rounded-xl shadow-card p-4 w-full max-w-[520px] justify-self-center">
           <h1 className="text-2xl font-bold text-center mb-4 text-ink">Waiting for Players</h1>
           <p className="text-center text-ink-soft">
             Current Room ID: <strong>{gameRoom.id}</strong>
@@ -308,29 +280,15 @@ const GamePage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
             })()}
           </div>
         </div>
-        </div>
-        <LobbyMenu
-          open={menuOpen}
-          onToggle={() => setMenuOpen((o) => !o)}
-          onLeave={leaveLobby}
-          roomId={gameRoom.id}
-        />
       </div>
-    );
-  }
-
-  // Game over: the first player to reach WIN_VP victory points wins.
-  // Shown as an overlay on top of the board (the board stays visible behind).
-  if (gameRoom.gameStatus === 'finished') {
-    return (
-      <>
-        <Game />
-        <VictoryOverlay />
-      </>
-    );
-  }
-
-  return <Game />;
+      <LobbyMenu
+        open={menuOpen}
+        onToggle={() => setMenuOpen((o) => !o)}
+        onLeave={leaveLobby}
+        roomId={gameRoom.id}
+      />
+    </div>
+  );
 };
 
-export default GamePage;
+export default WaitingRoom;

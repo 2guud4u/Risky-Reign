@@ -1,19 +1,12 @@
 import React from 'react';
-import { Board, PublicPlayer } from 'common';
+import { Board, PublicPlayer, RoomBonuses } from 'common';
 import Chip from '../../components/ui/Chip';
 import GameIcon from '../../components/ui/GameIcon';
 
 interface PlayersListProps {
   players: PublicPlayer[];
   board?: Board | null;
-  bonuses?: {
-    longestRoad: Record<string, number>;
-    largestArmy: Record<string, number>;
-    hasLongestRoad: Record<string, boolean>;
-    hasLargestArmy: Record<string, boolean>;
-    battlesWon: Record<string, number>;
-    hasConqueror: Record<string, boolean>;
-  };
+  bonuses?: RoomBonuses;
   currentPlayerId?: string;
 }
 
@@ -31,6 +24,8 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         const roadLen = bonuses?.longestRoad?.[player.name] ?? 0;
         const hasWar = bonuses?.hasConqueror?.[player.name] ?? false;
         const battlesWon = bonuses?.battlesWon?.[player.name] ?? 0;
+        const hasAdmiral = bonuses?.hasAdmiral?.[player.name] ?? false;
+        const fleetSize = bonuses?.fleetSize?.[player.name] ?? 0;
         // Opponents' hands are masked server-side; the public total is all we show.
         const totalResources =
           player.id === currentPlayerId
@@ -62,6 +57,11 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
                 {hasWar && (
                   <span className="text-orange-700 font-semibold" title={`Conqueror: ${battlesWon} battles won (+2 VP)`}>
                     <GameIcon name="crown" size={12} />
+                  </span>
+                )}
+                {hasAdmiral && (
+                  <span className="text-sky-700 font-semibold" title={`The Admiral: ${fleetSize} ships (+1 VP, +1 sail step per ship)`}>
+                    <GameIcon name="ship" size={12} className="inline" />{fleetSize}
                   </span>
                 )}
                 {battlesWon > 0 && (

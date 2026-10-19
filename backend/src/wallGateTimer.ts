@@ -11,6 +11,7 @@ import {
 } from 'common';
 import { broadcastRoom } from './broadcast';
 import { getRoom } from './store';
+import { armRoomTimer, armedRoomTimer, disarmRoomTimer } from './roomTimer';
 
 /**
  * Wall-gate timers (GLOSSARY "Wall gate": either side that doesn't act
@@ -29,8 +30,6 @@ export const WALL_GATE_ROLL_MS = 30_000;
 
 type Step = 'guess' | 'roll' | 'reveal';
 
-/** Live timer handles and the gate/step they were armed for (staleness guard). */
-const timers = new Map<string, { handle: NodeJS.Timeout; gate: object; step: Step }>();
 
 /**
  * Reconcile the room's wall-gate timer with its current state. Runs at the
@@ -39,7 +38,7 @@ const timers = new Map<string, { handle: NodeJS.Timeout; gate: object; step: Ste
 export function syncWallGateTimer(io: Server, room: GameRoom): void {
   const gate = room.wallGate;
   if (room.gameStatus !== 'playing' || !gate) {
-    disarm(room.id);
+    disarmRoomTimer(room.id, 'wallGate');
     return;
   }
   const step: Step = gate.roll !== null ? 'reveal' : gate.guess === null ? 'guess' : 'roll';
@@ -47,28 +46,18 @@ export function syncWallGateTimer(io: Server, room: GameRoom): void {
     const seat = room.players.find((p) => p.name === (step === 'guess' ? gate.crosserName : gate.wallOwnerName));
     // An absent seat is answered right away rather than burning the clock.
     if (!seat || !seat.connected) {
-      disarm(room.id);
+      disarmRoomTimer(room.id, 'wallGate');
       act(io, room, step);
       return;
     }
   }
-  const armed = timers.get(room.id);
+  const armed = armedRoomTimer(room.id, 'wallGate') as { gate: object; step: Step } | undefined;
   if (armed?.gate === gate && armed.step === step) return;
-  disarm(room.id);
   const delay = step === 'reveal' ? WALL_GATE_REVEAL_MS : WALL_GATE_ROLL_MS;
-  const handle = setTimeout(() => onTimer(io, room.id, gate, step), delay);
-  // A timer must never keep the process alive.
-  handle.unref?.();
-  timers.set(room.id, { handle, gate, step });
-}
-
-function disarm(roomId: string): void {
-  clearTimeout(timers.get(roomId)?.handle);
-  timers.delete(roomId);
+  armRoomTimer(room.id, 'wallGate', delay, { gate, step }, () => onTimer(io, room.id, gate, step));
 }
 
 function onTimer(io: Server, roomId: string, gate: object, step: Step): void {
-  timers.delete(roomId);
   const room = getRoom(roomId);
   // Stale-proof: still the gate (and step) this timer armed for.
   if (!room || room.wallGate !== gate) return;

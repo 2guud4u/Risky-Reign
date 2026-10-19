@@ -3,12 +3,8 @@ import { GameRoom, applyBonuses, boardBusy } from 'common';
 import { advanceTurn } from './turn';
 import { broadcastRoom } from './broadcast';
 import { getRoom } from './store';
+import { armRoomTimer, disarmRoomTimer } from './roomTimer';
 
-// Live setTimeout handles per room. Only the state on the room
-// (`phaseTimerEndsAt` / `phaseTimerRemainingMs`) is broadcast; the handle is
-// runtime-only (a deadline that passed while the server was down fires on
-// the first sync after hydrate).
-const timers = new Map<string, NodeJS.Timeout>();
 
 /** A phase is timed while the game plays, the board isn't frozen (battle or
  *  open wall gate — GLOSSARY "Wall gate"), and it's Build or Action. */
@@ -61,14 +57,10 @@ export function setPhaseDeadline(room: GameRoom): void {
 
 function arm(io: Server, room: GameRoom): void {
   const delay = Math.max(0, (room.phaseTimerEndsAt ?? 0) - Date.now());
-  clearTimeout(timers.get(room.id));
   // Stale-proof: the deadline is captured so a callback can't fire against a
   // newer timer the sync already armed (e.g. manual endTurn + timer race).
   const deadline = room.phaseTimerEndsAt;
-  const handle = setTimeout(() => onExpire(io, room.id, deadline), delay);
-  // A timer must never keep the process alive.
-  handle.unref?.();
-  timers.set(room.id, handle);
+  armRoomTimer(room.id, 'phase', delay, deadline, () => onExpire(io, room.id, deadline));
 }
 
 function disarm(room: GameRoom): void {
@@ -79,13 +71,12 @@ function disarm(room: GameRoom): void {
   } else {
     room.phaseTimerEndsAt = null;
   }
-  clearTimeout(timers.get(room.id));
-  timers.delete(room.id);
+  disarmRoomTimer(room.id, 'phase');
 }
 
 function onExpire(io: Server, roomId: string, deadline: number | null): void {
-  timers.delete(roomId);
   const room = getRoom(roomId);
+  // Stale-proof: still the deadline this timer armed for.
   if (!room || deadline === null || room.phaseTimerEndsAt !== deadline) return;
   if (!isTimedPhase(room)) return;
   // Time ran out: skip the phase exactly as endTurn would. The robber-win

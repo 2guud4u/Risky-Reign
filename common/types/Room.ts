@@ -18,10 +18,13 @@ import type { ChatMessage } from './SocketEvents';
  *  - `largestArmy`      : the player with the most soldiers (≥ 3) earns 2 VP.
  *  - `battlesWon`       : the player with the most battles won (≥ 3) holds
  *                          Conqueror and earns 2 VP.
- *  - `hasLongestRoad` / `hasLargestArmy` / `hasConqueror` : whether this
- *                          player currently holds that bonus (at most one
- *                          holder each; a tie keeps it with the current
- *                          holder — you must strictly beat them).
+ *  - `fleetSize`        : the ships a player owns (empty or crewed). The
+ *                          largest fleet (≥ 3 ships) holds The Admiral:
+ *                          1 VP and +1 sail step per ship per Action phase.
+ *  - `hasLongestRoad` / `hasLargestArmy` / `hasConqueror` / `hasAdmiral` :
+ *                          whether this player currently holds that bonus
+ *                          (at most one holder each; a tie keeps it with the
+ *                          current holder — you must strictly beat them).
  */
 export interface RoomBonuses {
   /** Longest continuous road chain per player (0 when the player has no roads). */
@@ -36,6 +39,10 @@ export interface RoomBonuses {
   battlesWon: Record<string, number>;
   /** Players currently holding the Conqueror bonus (2 VP). */
   hasConqueror: Record<string, boolean>;
+  /** Ships owned per player (0 when the player has no ships). */
+  fleetSize: Record<string, number>;
+  /** Players currently holding The Admiral bonus (1 VP). */
+  hasAdmiral: Record<string, boolean>;
   /** Victory points from settlements (1 VP) and cities (2 VP), per player. */
   settlementVp: Record<string, number>;
 }

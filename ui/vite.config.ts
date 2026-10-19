@@ -27,9 +27,16 @@ import checker from 'vite-plugin-checker';
 const restartOnCommonRebuild = (): Plugin => ({
   name: 'restart-on-common-rebuild',
   configureServer(server) {
+    // A rebuild writes every dist file → one 'change' each. Restart once per
+    // rebuild, not per file: back-to-back server.restart() calls collide on
+    // the port (the previous listener hasn't released yet → strictPort kills
+    // the process).
+    let timer: NodeJS.Timeout | undefined;
     server.watcher.add('../common/dist');
     server.watcher.on('all', (event: string, file: string) => {
-      if (event === 'change' && file.includes(`${sep}common${sep}dist${sep}`)) server.restart();
+      if (event !== 'change' || !file.includes(`${sep}common${sep}dist${sep}`)) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => server.restart(), 400);
     });
   },
 });

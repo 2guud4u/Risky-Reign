@@ -35,6 +35,15 @@ export function shipStepsForTurn(roll: RollResult): number {
   return Math.ceil(rollTotal(roll.die1 ?? 0, roll.die2 ?? 0) / 2);
 }
 
+/**
+ * Sailing allowance granted to `ship` when an Action phase opens: the dice
+ * steps plus The Admiral's +1 per ship the holder owns. Undoing a sail
+ * refunds against the same allowance, so a granted bonus step is never lost.
+ */
+export function sailAllowance(room: GameRoom, roll: RollResult, ship: { ownerId: string }): number {
+  return shipStepsForTurn(roll) + (room.bonuses?.hasAdmiral?.[ship.ownerId] ? 1 : 0);
+}
+
 /** Soldiers embarked on the given ship. */
 export function troopsAboard(board: Board, shipId: string): SoldierObj[] {
   return Object.values(board.soldiers).filter((s) => s.aboardShipId === shipId);

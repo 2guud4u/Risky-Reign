@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mask Painter</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; font: 13px system-ui, sans-serif; background: #2b2b2b; color: #eee; }
+      body { display: flex; flex-direction: column; }
+      #bar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 8px 12px; background: #1d1d1d; border-bottom: 1px solid #444; }
+      #bar label { display: flex; align-items: center; gap: 6px; }
+      #bar .group { display: flex; gap: 4px; }
+      button { background: #3a3a3a; color: #eee; border: 1px solid #555; border-radius: 5px; padding: 4px 10px; cursor: pointer; font: inherit; }
+      button.on { background: #2563eb; border-color: #2563eb; }
+      button:disabled { opacity: 0.5; cursor: default; }
+      #save { background: #16a34a; border-color: #16a34a; }
+      #stage { flex: 1; position: relative; overflow: hidden; }
+      #view { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: none; }
+      #status { margin-left: auto; color: #aaa; }
+      #help { position: absolute; left: 10px; bottom: 10px; background: #000a; padding: 6px 10px; border-radius: 6px; color: #ccc; line-height: 1.5; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <select id="piece"></select>
+      <div class="group">
+        <button id="layer-mask" class="on" title="1">Roof mask</button>
+        <button id="layer-sil" title="2">Silhouette</button>
+      </div>
+      <div class="group">
+        <button id="mode-paint" class="on" title="B">Paint</button>
+        <button id="mode-erase" title="E">Erase</button>
+      </div>
+      <label>Size <input id="size" type="range" min="2" max="200" value="30" /><span id="size-v"></span></label>
+      <label>Hardness <input id="hard" type="range" min="0" max="100" value="60" /></label>
+      <label>Overlay <input id="overlay" type="range" min="0" max="100" value="55" /></label>
+      <button id="preview" title="Tab">Preview</button>
+      <label>Color <input id="color" type="color" value="#e6194b" /></label>
+      <div class="group" id="swatches"></div>
+      <button id="undo" title="⌘Z">Undo</button>
+      <button id="redo" title="⇧⌘Z">Redo</button>
+      <button id="save" title="⌘S">Save</button>
+      <span id="status">loading…</span>
+    </div>
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <div id="help">
+        Pen pressure = brush size · pen eraser end erases · Space+drag or middle-drag pans · wheel / pinch zooms<br />
+        1/2 layer · B/E paint/erase · [ ] size · Tab preview · ⌘Z / ⇧⌘Z undo/redo · ⌘S save · 0 fit
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

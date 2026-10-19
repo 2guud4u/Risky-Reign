@@ -21,7 +21,7 @@ import {
   Player,
 } from 'common';
 import type { ActionEntry } from '../dispatch';
-import { freezeWhileBusy } from './piece';
+import { freezeWhileBusy } from './boardFreeze';
 
 export const DEVCARD_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
   // Draw a development card from the shared deck. Costs 1 wheat, 1 sheep

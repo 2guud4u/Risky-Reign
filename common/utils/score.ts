@@ -1,14 +1,17 @@
 import { Board } from '../types/Board';
 import { GameRoom } from '../types/Room';
-import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, CONQUEROR_MIN, BONUS_VP } from '../Constant';
+import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, CONQUEROR_MIN, ADMIRAL_MIN, ADMIRAL_VP, BONUS_VP } from '../Constant';
 
 /**
- * Room scoring bonuses: Longest Road, Largest Army (standard Catan rules) and
- * Conqueror.
+ * Room scoring bonuses: Longest Road, Largest Army (standard Catan rules),
+ * Conqueror and The Admiral.
  *  - Longest Road: a single continuous chain of at least 5 roads earns 2 VP.
  *  - Largest Army: having at least 3 soldiers earns 2 VP (soldier count is
  *    simply how many soldiers a player has on the board).
  *  - Conqueror: winning at least 3 player-vs-player battles earns 2 VP.
+ *  - The Admiral: owning the largest fleet (at least 3 ships; eliminated
+ *    players' ships count for nobody) earns 1 VP, and each ship the holder
+ *    owns gains one extra sail step per Action phase.
  *
  * diffs the freshly computed state against `room.bonuses` and adjusts each
  * player's `victoryPoints` by the delta only. It then runs the win check
@@ -112,14 +115,35 @@ function pickBonusHolder(
  */
 export function applyBonuses(room: GameRoom): void {
   const names = room.players.map((p) => p.name);
+  // Knock out every player left with no settlements/cities and no soldiers
+  // (injured soldiers still count). Not during setup — nobody has pieces yet.
+  // Computed FIRST: The Admiral's standings exclude eliminated players, and
+  // undoing a capture still restores the victim on the next broadcast.
+  const board = room.board;
+  for (const p of room.players) {
+    p.eliminated =
+      !!board &&
+      room.gameStatus !== 'waiting' &&
+      room.turnState.phase !== 'SetUp' &&
+      !Object.values(board.settlements).some((s) => s.ownerId === p.name) &&
+      !Object.values(board.soldiers).some((s) => s.owner === p.name);
+  }
+
   const road: Record<string, number> = {};
   const army: Record<string, number> = {};
+  const fleet: Record<string, number> = {};
   const settlementVp: Record<string, number> = {};
   const battles: Record<string, number> = {};
-  for (const name of names) {
-    road[name] = room.board ? longestRoadLength(room.board, name) : 0;
-    army[name] = room.board ? countSoldiers(room.board, name) : 0;
-    settlementVp[name] = room.board ? countSettlementVp(room.board, name) : 0;
+  const shipsOn = room.shipsEnabled !== false;
+  for (const p of room.players) {
+    const name = p.name;
+    road[name] = board ? longestRoadLength(board, name) : 0;
+    army[name] = board ? countSoldiers(board, name) : 0;
+    fleet[name] =
+      board && shipsOn && !p.eliminated
+        ? Object.values(board.ships).filter((s) => s.ownerId === name).length
+        : 0;
+    settlementVp[name] = board ? countSettlementVp(board, name) : 0;
     battles[name] = room.battlesWon?.[name] ?? 0;
   }
 
@@ -127,14 +151,17 @@ export function applyBonuses(room: GameRoom): void {
   const roadHolder = pickBonusHolder(road, names, LONGEST_ROAD_MIN, prev?.hasLongestRoad);
   const armyHolder = pickBonusHolder(army, names, LARGEST_ARMY_MIN, prev?.hasLargestArmy);
   const warHolder = pickBonusHolder(battles, names, CONQUEROR_MIN, prev?.hasConqueror);
+  const admiralHolder = pickBonusHolder(fleet, names, ADMIRAL_MIN, prev?.hasAdmiral);
 
   const hasLongestRoad: Record<string, boolean> = {};
   const hasLargestArmy: Record<string, boolean> = {};
   const hasConqueror: Record<string, boolean> = {};
+  const hasAdmiral: Record<string, boolean> = {};
   for (const name of names) {
     hasLongestRoad[name] = name === roadHolder;
     hasLargestArmy[name] = name === armyHolder;
     hasConqueror[name] = name === warHolder;
+    hasAdmiral[name] = name === admiralHolder;
   }
 
   for (const p of room.players) {
@@ -144,6 +171,8 @@ export function applyBonuses(room: GameRoom): void {
     const isArmy = hasLargestArmy[p.name] ?? false;
     const wasWar = prev?.hasConqueror?.[p.name] ?? false;
     const isWar = hasConqueror[p.name] ?? false;
+    const wasAdmiral = prev?.hasAdmiral?.[p.name] ?? false;
+    const isAdmiral = hasAdmiral[p.name] ?? false;
     const wasSettlement = prev?.settlementVp?.[p.name] ?? 0;
     const isSettlement = settlementVp[p.name] ?? 0;
     p.victoryPoints +=
@@ -153,6 +182,8 @@ export function applyBonuses(room: GameRoom): void {
       (wasArmy ? BONUS_VP : 0) +
       (isWar ? BONUS_VP : 0) -
       (wasWar ? BONUS_VP : 0) +
+      (isAdmiral ? ADMIRAL_VP : 0) -
+      (wasAdmiral ? ADMIRAL_VP : 0) +
       (isSettlement - wasSettlement);
   }
 
@@ -163,20 +194,10 @@ export function applyBonuses(room: GameRoom): void {
     hasLargestArmy,
     battlesWon: battles,
     hasConqueror,
+    fleetSize: fleet,
+    hasAdmiral,
     settlementVp,
   };
-  // Knock out every player left with no settlements/cities and no soldiers
-  // (injured soldiers still count). Not during setup — nobody has pieces yet.
-  // Derived each time so undoing a capture restores the victim.
-  const board = room.board;
-  for (const p of room.players) {
-    p.eliminated =
-      !!board &&
-      room.gameStatus !== 'waiting' &&
-      room.turnState.phase !== 'SetUp' &&
-      !Object.values(board.settlements).some((s) => s.ownerId === p.name) &&
-      !Object.values(board.soldiers).some((s) => s.owner === p.name);
-  }
   checkWinCondition(room);
 }
 

@@ -4,7 +4,7 @@ import React from 'react';
  * Slim banner shown while the socket is disconnected, so a dropped connection
  * mid-game is visible instead of leaving the board silently frozen. Socket.io
  * retries with backoff on its own — "Retry now" forces an attempt immediately,
- * and on reconnect the client re-joins the room automatically (GameLogic).
+ * and on reconnect the client re-joins the room automatically (RoomSession).
  */
 const ConnectionBanner: React.FC<{ hidden: boolean; message?: string; onRetry?: () => void }> = ({
   hidden,

@@ -8,7 +8,7 @@
 | Turn timeline | The dropdown under the phase button: current + next 25 turns as colored nodes; ~5 visible, rest scroll horizontally. |
 | Action bubbles | The contextual buttons docked as a vertical column on the right edge when a vertex/edge/robber is selected on the board. |
 | Players panel | The scrollable column of player chips opened by the 👤 button on the map's left edge. |
-| Player chip | One compact row per player: color dot, name, bonus glyphs (🛤️⚔️👑), ⭐VP, 🃏cards. |
+| Player chip | One compact row per player: color dot, name, bonus glyphs (🛤️⚔️👑⛵), ⭐VP, 🃏cards. |
 | Hand tray | The wood-grain bar along the bottom edge: resource cards fanned left, dev cards right with a Buy tile; collapses to a pull tab on phones. |
 
 ## Design language
@@ -45,6 +45,8 @@
 | Capture spread | The roads (and walls) that change hands when a settlement is captured: every road whose chain, after the capture, runs only between the capturer's buildings and dead ends, whoever owned it. A road on a chain that reaches any other player's building keeps its owner. |
 | Wall gate | The dice challenge for crossing an enemy wall: the crosser picks a number 1–6, the wall owner rolls; a match crosses. Either side that doesn't act within 30s has its number picked for it. A failed attempt still spends the soldier's action. The whole board waits while a gate (or a battle) is in progress. |
 | Ship | A vessel (1 wood + 1 sheep) sitting on coast or sea vertices, possibly over a settlement. Carries any number of embarked troops, who board and land only on the ship's own coast vertex; troops aboard can be attacked anywhere but must land before they capture or start a fight. Each ship moves ceil(dice-roll total / 2) in its owner's Action phase. An empty ship is claimed by whoever sails or boards it; a crewed ship answers only to its owner and can't be boarded by others. Converts into a settlement on its own or an adjacent coast vertex for 1 wheat + 1 ore (no garrison soldier). |
+| Fleet | The ships a player owns at a moment — every ship showing that player's color, empty or crewed, at sea or docked over a settlement. Building a ship grows it; sailing or boarding an empty ship moves it between fleets; settling a ship shrinks it. An eliminated player's ships are part of no fleet and don't count in the Admiral standings. |
+| The Admiral | The held bonus for the largest fleet: the one player owning at least 3 ships and strictly more than every other eligible player — everyone else needs at least 4 to take it at 3, since the holder keeps it through ties. Worth 1 victory point, and each ship the holder owns gains one extra sailing step in every Action phase (steps already granted that phase are kept even if the title is lost mid-phase). No one holds it in a game without ships. |
 
 ## Engine architecture
 

@@ -1,6 +1,6 @@
 /**
  * Display constants for the battle window's troops and mini-map. Layout
- * constants (spacing, radii, drop thresholds) live in `constants.ts`; these
+ * constants (spacing, radii, drop thresholds) live in `src/constants/`; these
  * are local to the battle window's SVG art.
  */
 

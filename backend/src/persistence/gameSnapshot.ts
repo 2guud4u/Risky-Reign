@@ -70,6 +70,10 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
         snap.bonuses?.hasConqueror ??
         (snap.bonuses as { hasWarmonger?: Record<string, boolean> } | undefined)?.hasWarmonger ??
         {},
+      // Snapshots written before The Admiral lack these; applyBonuses
+      // recomputes every bonus on the first broadcast, so empty maps suffice.
+      fleetSize: snap.bonuses?.fleetSize ?? {},
+      hasAdmiral: snap.bonuses?.hasAdmiral ?? {},
     },
     id,
     players: snap.players.map((p) => ({

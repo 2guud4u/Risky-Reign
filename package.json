@@ -13,7 +13,8 @@
     "dev:backend": "npm run build:common && npm run dev -w backend",
     "dev:ui": "npm run build:common && npm run start -w ui",
     "build": "npm run build:common && npm run build -w backend && npm run build -w ui",
-    "pretty": "prettier --write \"**/src/**/*.{ts,tsx}\""
+    "pretty": "prettier --write \"**/src/**/*.{ts,tsx}\"",
+    "mask-painter": "vite --config tools/mask-painter/vite.config.ts"
   },
   "devDependencies": {
     "prettier": "^3.4.2",

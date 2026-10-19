@@ -13,6 +13,8 @@ import {
   SettlementPrice,
   SoldierPrice,
   CONQUEROR_MIN,
+  ADMIRAL_MIN,
+  ADMIRAL_VP,
   WIN_VP,
 } from 'common';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
@@ -67,6 +69,7 @@ const ACHIEVEMENTS: { icon: IconName; name: string; vp: number; note: string }[]
   { icon: 'road', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
   { icon: 'knight', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
   { icon: 'crown', name: 'Conqueror', vp: BONUS_VP, note: `Most battles won against players, at least ${CONQUEROR_MIN}.` },
+  { icon: 'ship', name: 'The Admiral', vp: ADMIRAL_VP, note: `Largest fleet, at least ${ADMIRAL_MIN} ships; each of your ships gains +1 sail step.` },
 ];
 
 /** The cost as one icon chip per card (e.g. 2 wheat, 3 ore). */

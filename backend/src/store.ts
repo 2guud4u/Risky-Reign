@@ -39,6 +39,8 @@ export function emptyBonuses() {
     hasLargestArmy: {},
     battlesWon: {},
     hasConqueror: {},
+    fleetSize: {},
+    hasAdmiral: {},
     settlementVp: {},
   };
 }

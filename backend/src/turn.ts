@@ -1,4 +1,4 @@
-import { GameRoom, nextTurnPosition, shipStepsForTurn } from 'common';
+import { GameRoom, nextTurnPosition, sailAllowance } from 'common';
 import { setPhaseDeadline } from './phaseTimer';
 
 /**
@@ -55,10 +55,13 @@ export function advanceTurn(room: GameRoom): void {
   }
   // Ship steps belong to one player's Action phase: every Action phase that
   // begins — including the next player's in an around-the-table round —
-  // grants each ship half the dice total, rounded up; leaving Action clears them.
+  // grants each ship half the dice total, rounded up (plus one for each
+  // ship The Admiral owns); leaving Action clears them.
   room.turnState.shipSteps =
     next.phase === 'Action'
-      ? Object.fromEntries(Object.keys(room.board?.ships ?? {}).map((id) => [id, shipStepsForTurn(room.roll)]))
+      ? Object.fromEntries(
+          Object.values(room.board?.ships ?? {}).map((ship) => [ship.id, sailAllowance(room, room.roll, ship)])
+        )
       : {};
   // Turn timer: a fresh countdown starts each time a Build or Action phase
   // begins (any other phase clears it). Battle suspension/resume is handled

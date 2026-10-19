@@ -69,3 +69,16 @@ The project should now be able to run properly with these changes.
 - Individual soldier SVGs render only at 4× zoom or higher; below that the board shows soldier count badges. Tune `DETAIL_ZOOM_IN` in `ui/src/constants.ts`.
 - The resource panel's bottom arrow opens development cards; the top arrow returns to resources.
 - In the development-card view, click **Buy Dev Card** to expand its action bubble and show the cost, then click again to purchase. Unavailable purchases stay visible and expand to explain why they are blocked.
+
+## Editing piece tint masks
+
+Player-colored pieces are drawn from an art PNG plus a mask PNG (white = takes the player color). To repaint the settlement roof mask with a pen tablet:
+
+```bash
+npm run mask-painter   # http://localhost:5199
+```
+
+- **Roof mask** layer (`1`): paint where the player color goes. **Silhouette** layer (`2`): keep/remove pixels of the paper background (pre-filled automatically).
+- Pen pressure sets brush size; the pen's eraser end (or `E`) erases. `[`/`]` size, Hardness slider softens the edge, `Tab` previews the tinted result in the swatch color, Space+drag pans, wheel zooms, `⌘Z`/`⇧⌘Z` undo/redo.
+- `⌘S` saves the re-editable layers to `art-src/settlement.{mask,silhouette}.png` and rebuilds `ui/public/art/settlement.png` + `settlement_mask.png` from the untouched source `art-src/settlement.jpg` (cropped, long side 512).
+- Add another piece by giving it a source in `art-src/` and an entry in `tools/mask-painter/pieces.ts`.

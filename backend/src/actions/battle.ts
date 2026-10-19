@@ -28,7 +28,7 @@ import {
 } from 'common';
 import { passKnockedOutTurn } from '../turn';
 import type { ActionEntry } from '../dispatch';
-import { freezeWhileBusy } from './piece';
+import { freezeWhileBusy } from './boardFreeze';
 
 const fail = (error: string) => ({ error });
 

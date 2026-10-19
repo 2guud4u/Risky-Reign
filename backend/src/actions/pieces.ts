@@ -45,7 +45,7 @@ import {
   rollDie,
 } from 'common';
 import type { ActionEntry } from '../dispatch';
-import { freezeWhileBusy } from './piece';
+import { freezeWhileBusy } from './boardFreeze';
 
 const fail = (error: string) => ({ error });
 const newId = (prefix: string) =>

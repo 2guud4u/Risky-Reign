@@ -76,3 +76,4 @@ Troops aboard can be attacked like any troops on that vertex, but they must land
 If cannon aboard, it can attack. Station rules apply.
 A Knight spawned where your troops are all aboard a ship joins them aboard.
 Can be turned into a settlement on its own or an adjacent coast vertex with 1 wheat and 1 ore. The distance rule applies. No free garrison soldier. A settlement can't be built under a ship.
+The Admiral: own the largest fleet (at least 3 ships, strictly more than every rival — the holder keeps it on a tie). Worth 1 victory point, and each ship the holder owns gets +1 movement per Action phase.
