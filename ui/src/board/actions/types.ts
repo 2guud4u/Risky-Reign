@@ -40,7 +40,7 @@ export interface BoardActionEmit {
   unstationCannon: (soldierId: string) => void;
   cannonAttack: (soldierId: string, targetSoldierId: string) => void;
   cannonSplash: (soldierId: string, vertexId: string) => void;
-  cannonAttackWall: (soldierId: string, edgeId: string) => void;
+  cannonAttackWall: (soldierId: string, edgeId: string, explosive?: boolean) => void;
   upgradeRoadToWall: (edgeId: string) => void;
   buildShip: (vertexId: string) => void;
   moveShip: (shipId: string, vertexId: string) => void;
@@ -49,8 +49,6 @@ export interface BoardActionEmit {
   convertShipToSettlement: (shipId: string, vertexId: string) => void;
   /** Enter sail pick-mode for this ship (BoardView highlights the targets). */
   setSailingShipId: (shipId: string | null) => void;
-  /** Fire flow: toggles chain shot (splash mode) on/off. */
-  setChainShot: (on: boolean) => void;
 }
 
 /** One snapshot of everything the action catalog reads. */
@@ -61,8 +59,6 @@ export interface BoardActionsInput {
   me: PublicPlayer;
   selection: SelectableObject;
   selectedSoldierIds: string[];
-  /** Whether chain shot is armed (splash mode for the Fire flow). */
-  chainShot: boolean;
   /** The setup coach's current step, so its bubble can show the finger. */
   coachKey: 'settlement' | 'road' | null;
   emit: BoardActionEmit;

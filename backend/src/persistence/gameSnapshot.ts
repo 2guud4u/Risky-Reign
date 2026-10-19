@@ -74,6 +74,8 @@ export function fromSnapshot(id: string, snap: GameSnapshot): GameRoom {
       // recomputes every bonus on the first broadcast, so empty maps suffice.
       fleetSize: snap.bonuses?.fleetSize ?? {},
       hasAdmiral: snap.bonuses?.hasAdmiral ?? {},
+      wallRun: snap.bonuses?.wallRun ?? {},
+      hasGreatWall: snap.bonuses?.hasGreatWall ?? {},
     },
     id,
     players: snap.players.map((p) => ({

@@ -54,7 +54,7 @@ export interface BoardRules {
   unstationCannonCheck: (soldierId: string) => BuildCheck;
   cannonAttackCheck: (soldierId: string, targetSoldierId: string) => BuildCheck;
   cannonSplashCheck: (soldierId: string, vertexId: string) => BuildCheck;
-  cannonWallCheck: (soldierId: string, edgeId: string) => BuildCheck;
+  cannonWallCheck: (soldierId: string, edgeId: string, explosive?: boolean) => BuildCheck;
   wallCheck: (edgeId: string) => BuildCheck;
   buildShipCheck: (vertexId: string) => BuildCheck;
   moveShipCheck: (shipId: string, vertexId: string) => BuildCheck;
@@ -107,8 +107,8 @@ export const makeRules = (room: PublicGameRoom, board: Board, me: PublicPlayer):
       canCannonAttack(asRoom, asMe, soldierId, targetSoldierId),
     cannonSplashCheck: (soldierId, vertexId) =>
       canCannonSplash(asRoom, asMe, soldierId, vertexId),
-    cannonWallCheck: (soldierId, edgeId) =>
-      canCannonAttackWall(asRoom, asMe, soldierId, edgeId),
+    cannonWallCheck: (soldierId, edgeId, explosive) =>
+      canCannonAttackWall(asRoom, asMe, soldierId, edgeId, explosive),
     wallCheck: (edgeId) => canUpgradeRoadToWall(asRoom, asMe, edgeId),
     buildShipCheck: (vertexId) => canBuildShip(asRoom, asMe, vertexId),
     moveShipCheck: (shipId, vertexId) => canMoveShip(asRoom, asMe, shipId, vertexId),

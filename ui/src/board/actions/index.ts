@@ -67,8 +67,8 @@ export function boardActions(input: BoardActionsInput): BubbleAction[] {
  */
 export function useBoardActions(): { actions: BubbleAction[]; resetKey: string } | null {
   const { gameRoom, currentPlayer } = useGameState();
-  const { selectedObject, selectedSoldierIds, chainShot } = useSelection();
-  const { setSelectedSoldierIds, setSailingShipId, setChainShot } = useGameActions();
+  const { selectedObject, selectedSoldierIds } = useSelection();
+  const { setSelectedSoldierIds, setSailingShipId } = useGameActions();
   const socket = useSocket();
   const coach = useSetupCoach(gameRoom?.board ?? null);
 
@@ -128,7 +128,6 @@ export function useBoardActions(): { actions: BubbleAction[]; resetKey: string }
     disembarkSoldier: socket.disembarkSoldier,
     convertShipToSettlement: socket.convertShipToSettlement,
     setSailingShipId,
-    setChainShot,
   };
   const actions = boardActions({
     board,
@@ -136,7 +135,6 @@ export function useBoardActions(): { actions: BubbleAction[]; resetKey: string }
     me: currentPlayer,
     selection: selectedObject,
     selectedSoldierIds,
-    chainShot,
     coachKey: coach?.key ?? null,
     emit,
   });

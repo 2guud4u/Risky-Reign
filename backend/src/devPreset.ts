@@ -1,4 +1,4 @@
-import { Board, DevelopmentCardType, GameRoom, SoldierObj, isCoastVertex, isLandVertex, validSettlementVertices } from 'common';
+import { Board, DevelopmentCardType, GameRoom, SoldierObj, adjacentVertexIds, isCoastVertex, isLandVertex, validSettlementVertices } from 'common';
 
 /**
  * Dev-mode preset board: skip the SetUp phase and start round 1 with cities,
@@ -77,6 +77,27 @@ function addRoadFrom(board: Board, owner: string, vertexId: string): string | nu
       if (!board.vertices[v].roadIds.includes(edgeId)) board.vertices[v].roadIds.push(edgeId);
     }
     return edge.vertexAId === vertexId ? edge.vertexBId : edge.vertexAId;
+  }
+  return null;
+}
+
+/**
+ * Lay a wall on the first free edge out of `fromId` whose far end is
+ * unsettled (a building there would sever the run); returns the far vertex.
+ */
+function addWallRoad(board: Board, owner: string, fromId: string): string | null {
+  for (const edgeId of board.vertices[fromId].roadIds) {
+    const edge = board.edges[edgeId];
+    if (!edge || edge.roadId !== null) continue;
+    const far = edge.vertexAId === fromId ? edge.vertexBId : edge.vertexAId;
+    if (board.vertices[far]?.settlementId) continue;
+    const id = nextId('road');
+    board.roads[id] = { id, edgeId, ownerId: owner, builtAt: Date.now(), isWall: true };
+    edge.roadId = id;
+    for (const v of [edge.vertexAId, edge.vertexBId]) {
+      if (!board.vertices[v].roadIds.includes(edgeId)) board.vertices[v].roadIds.push(edgeId);
+    }
+    return far;
   }
   return null;
 }
@@ -316,6 +337,102 @@ export function applyDevPreset(room: GameRoom): void {
       if (bSpot) addShip(board, b, bSpot.id);
     }
   }
+
+  // ── Bonus races (Great Wall / Admiral / Longest Road) ─────────────────
+  // A opens holding both new bonuses so the badges, the buff and the
+  // contest path are all one click away; B trails close enough to take
+  // either title with a single build.
+
+  if (room.wallsEnabled && a && b) {
+    // The Great Wall: A's settlement road plus two more walls on a chain =
+    // a 3-wall run. B gets a 2-run — one more wall ties (holder stays),
+    // a fourth wall run wins it. A's other (detached) walls stay buffed.
+    const roadOn = (vid: string, owner: string) =>
+      Object.values(board.roads).find(
+        (r) =>
+          r.ownerId === owner &&
+          (board.edges[r.edgeId]?.vertexAId === vid || board.edges[r.edgeId]?.vertexBId === vid),
+      );
+    const farEnd = (vid: string, edgeId: string) => {
+      const e = board.edges[edgeId];
+      return e ? (e.vertexAId === vid ? e.vertexBId : e.vertexAId) : null;
+    };
+    const aSettleRoad = settlements[a] ? roadOn(settlements[a], a) : null;
+    if (aSettleRoad && settlements[a]) {
+      let tip = farEnd(settlements[a], aSettleRoad.edgeId);
+      for (let i = 0; i < 2 && tip; i++) tip = addWallRoad(board, a, tip);
+    }
+    const bSettleRoad = settlements[b] ? roadOn(settlements[b], b) : null;
+    if (bSettleRoad && settlements[b]) {
+      const tip = farEnd(settlements[b], bSettleRoad.edgeId);
+      if (tip) addWallRoad(board, b, tip);
+    }
+    // Breach targets in range of both staged cannons: B walls the last edge
+    // of A's contested road end (A's stationed cannon can test a plain 4+
+    // shot), and A walls the last edge of B's city (B's cannon faces the
+    // 5+ Great Wall threshold — the buff, live).
+    if (roadEnds[a]) {
+      const target = roadBetween(board, cities[a], roadEnds[a]!);
+      if (target) target.isWall = true;
+      else {
+        const edgeId = board.vertices[roadEnds[a]!].roadIds.find((id) => !board.edges[id]?.roadId);
+        if (edgeId) {
+          const id = nextId('road');
+          board.roads[id] = { id, edgeId, ownerId: b, builtAt: Date.now(), isWall: true };
+          board.edges[edgeId]!.roadId = id;
+        }
+      }
+    }
+    if (roadEnds[b]) {
+      const aWallEdge = board.vertices[roadEnds[b]!].roadIds.find(
+        (id) => !board.edges[id]?.roadId,
+      );
+      if (aWallEdge) {
+        const id = nextId('road');
+        board.roads[id] = { id, edgeId: aWallEdge, ownerId: a, builtAt: Date.now(), isWall: true };
+        board.edges[aWallEdge]!.roadId = id;
+      }
+    }
+  }
+
+  if (room.shipsEnabled && a) {
+    // The Admiral: A holds 3 ships (the preset ship + two empty hulls on
+    // other coasts) against B's 1 — the title, the badge and the +1 sail
+    // step are live from turn one. B flips it by claiming one of A's empty
+    // ships or building two.
+    const taken = new Set(Object.values(board.ships).map((s) => s.vertexId));
+    const freeCoasts = Object.values(board.vertices).filter(
+      (v) => isCoastVertex(board, v.id) && !v.settlementId && !taken.has(v.id),
+    );
+    for (const spot of freeCoasts.slice(0, 2)) addShip(board, a, spot.id);
+    // Attack-the-crew: a B soldier standing next to A's crewed ship can
+    // board-fight the embarked troops on B's turn.
+    if (b) {
+      const crewed = Object.values(board.ships).find(
+        (s) => s.ownerId === a && Object.values(board.soldiers).some((t) => t.aboardShipId === s.id),
+      );
+      const landing =
+        crewed &&
+        adjacentVertexIds(board, crewed.vertexId).find(
+          (v) => isLandVertex(board, v) && !board.vertices[v].settlementId,
+        );
+      if (landing) addSoldiers(board, b, landing, 1);
+    }
+  }
+
+  // A live open trade offer from B (anyone may take it): tests the trade
+  // badge, open-offer flow and accept/decline path without setup.
+  if (b) {
+    room.tradeOffers.push({
+      id: nextId('trade'),
+      from: b,
+      to: null,
+      give: { Wood: 1, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 },
+      want: { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1 },
+      status: 'pending',
+    });
+  }
+
 
   dealDevCards(room);
 

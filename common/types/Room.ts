@@ -1,6 +1,6 @@
 import { Player } from './Player';
 import { BattleState, TradeOffer, TurnState, RollResult, ResourceCount, TurnMode } from './Logic';
-import { Board } from './Board';
+import { Board, EdgeId } from './Board';
 import { DevelopmentCardType } from './DevelopmentCard';
 import type { ChatMessage } from './SocketEvents';
 
@@ -43,6 +43,10 @@ export interface RoomBonuses {
   fleetSize: Record<string, number>;
   /** Players currently holding The Admiral bonus (1 VP). */
   hasAdmiral: Record<string, boolean>;
+  /** Longest contiguous wall run per player (0 when the player has no walls). */
+  wallRun: Record<string, number>;
+  /** Players currently holding The Great Wall bonus (1 VP; their walls break on 5+). */
+  hasGreatWall: Record<string, boolean>;
   /** Victory points from settlements (1 VP) and cities (2 VP), per player. */
   settlementVp: Record<string, number>;
 }
@@ -120,9 +124,10 @@ export interface WallGateState {
 /**
  * A resolved single-target cannon shot, kept briefly so every client can show
  * the duel panel (shooter vs victim, both dice, outcome). Cleared server-side
- * after CANNON_SHOT_REVEAL_MS. Splash shots and wall attacks don't set it.
+ * after CANNON_SHOT_REVEAL_MS. Splash shots don't set it.
  */
-export interface CannonShotState {
+export interface CannonDuelShot {
+  kind?: 'duel';
   /** The firing cannon's soldier id. */
   cannonId: string;
   /** The shooter's player name. */
@@ -142,6 +147,35 @@ export interface CannonShotState {
   /** The victim's piece type — survives the target's deletion for the HUD. */
   targetType: 'infantry' | 'cannon';
 }
+/**
+ * A wall shot on the table (GLOSSARY "Wall" breach): while set, every client
+ * shows the breach modal. A Single shot first sits with `roll: null` — the
+ * shooter owes the breach roll (`rollWallShot`; the server rolls for them
+ * after WALL_SHOT_ROLL_MS or instantly on disconnect) and the board freezes
+ * like a wall gate. Once rolled, or for a guaranteed Explosive shot, the
+ * record lingers CANNON_SHOT_REVEAL_MS so everyone sees BREACHED / HELD.
+ */
+export interface CannonWallShot {
+  kind: 'wall';
+  /** The firing cannon's soldier id. */
+  cannonId: string;
+  /** The shooter's player name. */
+  shooterName: string;
+  /** The walled edge under fire. */
+  edgeId: EdgeId;
+  /** The wall's owner (whose troops it blocks). */
+  wallOwnerName: string;
+  /** The breach die — null while the shooter still owes the click. */
+  roll: number | null;
+  /** Explosive shot (1 ore): guaranteed breach, no die is rolled. */
+  explosive: boolean;
+  /** The roll needed to breach (4, or 5 when the owner holds The Great Wall). */
+  threshold: number;
+  /** Whether the wall fell (already applied to the road when roll lands). */
+  breached: boolean;
+}
+/** A cannon shot on the table: a resolved duel, or a pending/resolved wall shot. */
+export type CannonShotState = CannonDuelShot | CannonWallShot;
 /**
  * Room lifecycle. 'waiting' lobbies are memory-only; 'playing', 'paused',
  * 'resuming' and 'finished' rooms have a DB row once autosaved or paused.

@@ -7,6 +7,7 @@ import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
 import { playerColorMap } from '../utils/soldierPlacement';
 import { actableSoldierIds, knightSpawnTargets, movableSoldierIds, robberPlacementTargets, robberTargets, sailPaths } from '../board/selectors';
+import { mouseToSvgPoint, nearestWithin } from '../utils/boardInteraction';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
 import { ShipLayer } from '../components/board/ShipLayer';
@@ -25,6 +26,8 @@ import {
   BOARD_VIEWBOX_MARGIN,
   PROJ_SIZE,
   ROBBER_Y_OFFSET_FRACTION,
+  SAIL_CLICK_DRIFT_PX,
+  SAIL_FIT_PADDING,
   SELECT_FOCUS_ZOOM,
 } from '../constants';
 import { BoardViewProps } from '../types/board';
@@ -145,50 +148,152 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
     dragActiveRef,
   });
 
-  const { focusOn, restoreView, fitView } = viewport;
-  // Clearing the selection (the ✕ bubble or Escape) glides back to the view
-  // from before the click-to-focus.
-  useEffect(() => {
-    if (!selectedObject) restoreView();
-  }, [selectedObject, restoreView]);
-  // An action asking for the whole board (the robber's Move bubble) glides
-  // out to the fit view so every highlighted target hex is on screen.
-  useOnEffect('boardFit', fitView);
+  const { focusOn, restoreView, fitView, zoomToFit, forgetView } = viewport;
+
   // Sail pick-mode: the reachable water vertices (BFS within shipSteps) and
   // their hop paths. A click emits one moveShip per hop along the path.
   const sailTargetPaths = useMemo(() => {
     if (!gameRoom || !currentPlayer || !sailingShipId) return new Map<string, string[]>();
     return sailPaths(gameRoom, currentPlayer.name, sailingShipId);
   }, [gameRoom, currentPlayer, sailingShipId]);
+  // The target the path preview snaps to — the reachable vertex nearest the
+  // cursor, so the route is drawn while the pointer is merely close.
+  const [sailHoverId, setSailHoverId] = useState<string | null>(null);
+  const sailHoverPath = sailHoverId ? sailTargetPaths.get(sailHoverId) : undefined;
+  // Remember sail mode across the clear so its zoomed-out view isn't
+  // unwound by the selection-clear restore below.
+  const wasSailingRef = useRef(false);
+  // One commit per press: a vertex click and its bubbled svg click both fire.
+  const sailCommittedRef = useRef(false);
+  // Entering pick mode zooms out to frame the ship with every reachable
+  // vertex (once per ship — later room updates don't re-frame).
+  const sailFittedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sailingShipId || !board) {
+      sailFittedRef.current = null;
+      setSailHoverId(null);
+      return;
+    }
+    if (sailFittedRef.current === sailingShipId) return;
+    sailFittedRef.current = sailingShipId;
+    const ship = board.ships[sailingShipId];
+    const points = [...sailTargetPaths.keys()]
+      .map((id) => board.vertices[id]?.position)
+      .filter((p): p is { x: number; y: number } => !!p);
+    if (ship) points.unshift(board.vertices[ship.vertexId]?.position ?? { x: 0, y: 0 });
+    zoomToFit(points, SAIL_FIT_PADDING);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref-gated: fits only on entering the mode
+  }, [sailingShipId, board, sailTargetPaths, zoomToFit]);
+
+  /** Commit the sail to `targetId` (one moveShip per hop) and exit pick-mode. */
+  const commitSail = useCallback(
+    (targetId: string | null) => {
+      if (sailCommittedRef.current || !sailingShipId) return;
+      const path = targetId ? sailTargetPaths.get(targetId) : undefined;
+      if (!path) return;
+      sailCommittedRef.current = true;
+      for (const hop of path) moveShip(sailingShipId, hop);
+      setSelectedObject(null);
+      setTimeout(() => {
+        sailCommittedRef.current = false;
+      }, 0);
+    },
+    [sailingShipId, sailTargetPaths, moveShip, setSelectedObject]
+  );
+
+  /** The reachable sail target nearest a board-space point, or null. */
+  const nearestSailTarget = useCallback(
+    (pos: { x: number; y: number } | null): string | null => {
+      if (!pos || !base) return null;
+      return nearestWithin(
+        sailTargetPaths.keys(),
+        pos,
+        Number.POSITIVE_INFINITY,
+        (id) => base.vertices[id]?.position ?? null
+      );
+    },
+    [base, sailTargetPaths]
+  );
+
+  // Mouse (and only mouse) reports the pointer; touch taps carry no hover.
+  const lastPointerTypeRef = useRef<string>('mouse');
+  const boardDownRef = useRef<{ x: number; y: number } | null>(null);
+  const handleBoardPointerDown = useCallback((e: React.PointerEvent) => {
+    lastPointerTypeRef.current = e.pointerType;
+    boardDownRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+  const handleBoardPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      handlePointerMove(e);
+      if (sailingShipId) {
+        const id = nearestSailTarget(mouseToSvgPoint(e, svgRef.current));
+        if (id !== sailHoverId) setSailHoverId(id);
+      }
+    },
+    [handlePointerMove, sailingShipId, nearestSailTarget, sailHoverId]
+  );
+  // Any board click commits the previewed sail — except pan-drags (drift)
+  // and touch taps away from a ring (they may be abandoned pans).
+  const handleBoardClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!sailingShipId || lastPointerTypeRef.current === 'touch') return;
+      const down = boardDownRef.current;
+      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > SAIL_CLICK_DRIFT_PX) return;
+      commitSail(nearestSailTarget(mouseToSvgPoint(e, svgRef.current)));
+    },
+    [sailingShipId, nearestSailTarget, commitSail]
+  );
+  const handleBoardContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!sailingShipId) return;
+      e.preventDefault();
+      setSelectedObject(null);
+    },
+    [sailingShipId, setSelectedObject]
+  );
+
+  // Clearing the selection (the ✕ bubble or Escape) glides back to the view
+  // from before the click-to-focus — except after sail pick-mode, which
+  // keeps its zoomed-out frame.
+  useEffect(() => {
+    if (!selectedObject) (wasSailingRef.current ? forgetView : restoreView)();
+  }, [selectedObject, restoreView, forgetView]);
+  useEffect(() => {
+    wasSailingRef.current = wasSailingRef.current || !!sailingShipId;
+  }, [sailingShipId]);
+  // An action asking for the whole board (the robber's Move bubble) glides
+  // out to the fit view so every highlighted target hex is on screen.
+  useOnEffect('boardFit', fitView);
 
   // Clicking a vertex or edge selects it and glides the board in, centered on
-  // it (an edge centers on its midpoint). During sail pick-mode the click
-  // first resolves the pending sail, then clears the selection (which also
-  // exits the mode). The waiting-room preview board stays static.
+  // it (an edge centers on its midpoint). During sail pick-mode any mouse
+  // click commits the snapped sail (touch ignores taps outside the rings).
+  // The waiting-room preview board stays static.
   const handleVertexClick = useCallback(
     (vertexId: string) => {
       if (sailingShipId) {
-        const path = sailTargetPaths.get(vertexId);
-        if (path) for (const hop of path) moveShip(sailingShipId, hop);
-        setSelectedObject(null);
+        if (lastPointerTypeRef.current === 'touch') return;
+        commitSail(nearestSailTarget(base?.vertices[vertexId]?.position ?? null));
         return;
       }
       setSelectedObject({ type: 'vertex', id: vertexId });
       const v = base?.vertices[vertexId];
       if (v && isPlaying) focusOn(v.position, SELECT_FOCUS_ZOOM);
     },
-    [setSelectedObject, base, isPlaying, focusOn, sailingShipId, sailTargetPaths, moveShip]
+    [setSelectedObject, base, isPlaying, focusOn, sailingShipId, nearestSailTarget, commitSail]
   );
 
   // Clicking a ship selects it (its bubbles offer Sail / Settle / Disembark).
+  // During sail pick-mode the click resolves the pending sail instead.
   const handleShipClick = useCallback(
     (shipId: string) => {
+      if (sailingShipId) return;
       setSelectedObject({ type: 'ship', id: shipId });
       const ship = board?.ships[shipId];
       const v = ship ? base?.vertices[ship.vertexId] : null;
       if (v && isPlaying) focusOn(v.position, SELECT_FOCUS_ZOOM);
     },
-    [setSelectedObject, board, base, isPlaying, focusOn]
+    [setSelectedObject, board, base, isPlaying, focusOn, sailingShipId]
   );
 
   // Clicking a soldier badge or sprite behaves like clicking its vertex
@@ -401,14 +506,38 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           />
 
           {/* Sail targets: every water vertex the sailing ship can reach
-              within its remaining steps (blue rings). */}
+              within its remaining steps (blue rings, badged with the hop
+              count; hovering previews the route). */}
           {sailingShipId && sailTargetPaths.size > 0 && (
-            <SpawnTargetLayer
-              targets={[...sailTargetPaths.keys()].map((id) => ({ id, position: board.vertices[id].position }))}
-              onSelect={handleVertexClick}
-              label="Sail here"
-              tone="blue"
-            />
+            <>
+              {sailHoverPath && board.ships[sailingShipId] && (
+                <polyline
+                  points={[board.ships[sailingShipId].vertexId, ...sailHoverPath]
+                    .map((id) => board.vertices[id]?.position)
+                    .filter(Boolean)
+                    .map((p) => `${p!.x},${p!.y}`)
+                    .join(' ')}
+                  fill="none"
+                  stroke="#0284c7"
+                  strokeWidth={4}
+                  strokeDasharray="10 8"
+                  strokeLinecap="round"
+                  opacity={0.8}
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+              <SpawnTargetLayer
+                targets={[...sailTargetPaths].map(([id, path]) => ({
+                  id,
+                  position: board.vertices[id].position,
+                  badge: path.length,
+                }))}
+                onSelect={handleVertexClick}
+                onHover={setSailHoverId}
+                label="Sail here"
+                tone="blue"
+              />
+            </>
           )}
 
 

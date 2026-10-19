@@ -1,6 +1,6 @@
 import { Board } from '../types/Board';
 import { GameRoom } from '../types/Room';
-import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, CONQUEROR_MIN, ADMIRAL_MIN, ADMIRAL_VP, BONUS_VP } from '../Constant';
+import { LONGEST_ROAD_MIN, LARGEST_ARMY_MIN, CONQUEROR_MIN, ADMIRAL_MIN, ADMIRAL_VP, GREAT_WALL_MIN, GREAT_WALL_VP, BONUS_VP } from '../Constant';
 
 /**
  * Room scoring bonuses: Longest Road, Largest Army (standard Catan rules),
@@ -88,6 +88,48 @@ export function longestRoadLength(board: Board, playerName: string): number {
 }
 
 /**
+ * Longest contiguous wall run for a player: walls linked end-to-end through
+ * vertices that are empty or hold that player's buildings — an enemy
+ * settlement/city on the link vertex severs the run (same sever rule as
+ * `longestRoadLength`, restricted to wall edges). Returns 0 with no walls.
+ */
+export function wallRunLength(board: Board, playerName: string): number {
+  const adjacency = new Map<string, Set<string>>();
+  for (const edge of Object.values(board.edges)) {
+    if (edge.roadId === null) continue;
+    const road = board.roads[edge.roadId];
+    if (!road?.isWall || road.ownerId !== playerName) continue;
+    if (!adjacency.has(edge.vertexAId)) adjacency.set(edge.vertexAId, new Set());
+    if (!adjacency.has(edge.vertexBId)) adjacency.set(edge.vertexBId, new Set());
+    adjacency.get(edge.vertexAId)!.add(edge.vertexBId);
+    adjacency.get(edge.vertexBId)!.add(edge.vertexAId);
+  }
+  const passable = (vertexId: string): boolean => {
+    const settlementId = board.vertices[vertexId]?.settlementId;
+    if (!settlementId) return true;
+    return board.settlements[settlementId]?.ownerId === playerName;
+  };
+  let best = 0;
+  const dfs = (vertex: string, depth: number, visited: Set<string>): void => {
+    best = Math.max(best, depth);
+    for (const next of adjacency.get(vertex) ?? []) {
+      if (visited.has(next)) continue;
+      visited.add(next);
+      if (passable(next)) {
+        dfs(next, depth + 1, visited);
+      } else {
+        best = Math.max(best, depth + 1);
+      }
+      visited.delete(next);
+    }
+  };
+  for (const start of adjacency.keys()) {
+    dfs(start, 0, new Set([start]));
+  }
+  return best;
+}
+
+/**
  * Pick the single holder of a contested bonus (Longest Road / Largest Army).
  * Standard Catan: the current holder keeps it while they still qualify and
  * nobody strictly beats them — a tie never takes it away. A challenger must
@@ -132,9 +174,11 @@ export function applyBonuses(room: GameRoom): void {
   const road: Record<string, number> = {};
   const army: Record<string, number> = {};
   const fleet: Record<string, number> = {};
+  const wallRun: Record<string, number> = {};
   const settlementVp: Record<string, number> = {};
   const battles: Record<string, number> = {};
   const shipsOn = room.shipsEnabled !== false;
+  const wallsOn = room.wallsEnabled !== false;
   for (const p of room.players) {
     const name = p.name;
     road[name] = board ? longestRoadLength(board, name) : 0;
@@ -143,6 +187,7 @@ export function applyBonuses(room: GameRoom): void {
       board && shipsOn && !p.eliminated
         ? Object.values(board.ships).filter((s) => s.ownerId === name).length
         : 0;
+    wallRun[name] = board && wallsOn && !p.eliminated ? wallRunLength(board, name) : 0;
     settlementVp[name] = board ? countSettlementVp(board, name) : 0;
     battles[name] = room.battlesWon?.[name] ?? 0;
   }
@@ -152,16 +197,19 @@ export function applyBonuses(room: GameRoom): void {
   const armyHolder = pickBonusHolder(army, names, LARGEST_ARMY_MIN, prev?.hasLargestArmy);
   const warHolder = pickBonusHolder(battles, names, CONQUEROR_MIN, prev?.hasConqueror);
   const admiralHolder = pickBonusHolder(fleet, names, ADMIRAL_MIN, prev?.hasAdmiral);
+  const wallHolder = pickBonusHolder(wallRun, names, GREAT_WALL_MIN, prev?.hasGreatWall);
 
   const hasLongestRoad: Record<string, boolean> = {};
   const hasLargestArmy: Record<string, boolean> = {};
   const hasConqueror: Record<string, boolean> = {};
   const hasAdmiral: Record<string, boolean> = {};
+  const hasGreatWall: Record<string, boolean> = {};
   for (const name of names) {
     hasLongestRoad[name] = name === roadHolder;
     hasLargestArmy[name] = name === armyHolder;
     hasConqueror[name] = name === warHolder;
     hasAdmiral[name] = name === admiralHolder;
+    hasGreatWall[name] = name === wallHolder;
   }
 
   for (const p of room.players) {
@@ -173,6 +221,8 @@ export function applyBonuses(room: GameRoom): void {
     const isWar = hasConqueror[p.name] ?? false;
     const wasAdmiral = prev?.hasAdmiral?.[p.name] ?? false;
     const isAdmiral = hasAdmiral[p.name] ?? false;
+    const wasWall = prev?.hasGreatWall?.[p.name] ?? false;
+    const isWall = hasGreatWall[p.name] ?? false;
     const wasSettlement = prev?.settlementVp?.[p.name] ?? 0;
     const isSettlement = settlementVp[p.name] ?? 0;
     p.victoryPoints +=
@@ -184,6 +234,8 @@ export function applyBonuses(room: GameRoom): void {
       (wasWar ? BONUS_VP : 0) +
       (isAdmiral ? ADMIRAL_VP : 0) -
       (wasAdmiral ? ADMIRAL_VP : 0) +
+      (isWall ? GREAT_WALL_VP : 0) -
+      (wasWall ? GREAT_WALL_VP : 0) +
       (isSettlement - wasSettlement);
   }
 
@@ -197,6 +249,8 @@ export function applyBonuses(room: GameRoom): void {
     fleetSize: fleet,
     hasAdmiral,
     settlementVp,
+    wallRun,
+    hasGreatWall,
   };
   checkWinCondition(room);
 }

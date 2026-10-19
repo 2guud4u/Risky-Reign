@@ -41,6 +41,8 @@ export function emptyBonuses() {
     hasConqueror: {},
     fleetSize: {},
     hasAdmiral: {},
+    wallRun: {},
+    hasGreatWall: {},
     settlementVp: {},
   };
 }

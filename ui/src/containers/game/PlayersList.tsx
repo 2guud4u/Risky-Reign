@@ -26,6 +26,8 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
         const battlesWon = bonuses?.battlesWon?.[player.name] ?? 0;
         const hasAdmiral = bonuses?.hasAdmiral?.[player.name] ?? false;
         const fleetSize = bonuses?.fleetSize?.[player.name] ?? 0;
+        const hasWall = bonuses?.hasGreatWall?.[player.name] ?? false;
+        const wallRun = bonuses?.wallRun?.[player.name] ?? 0;
         // Opponents' hands are masked server-side; the public total is all we show.
         const totalResources =
           player.id === currentPlayerId
@@ -62,6 +64,11 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
                 {hasAdmiral && (
                   <span className="text-sky-700 font-semibold" title={`The Admiral: ${fleetSize} ships (+1 VP, +1 sail step per ship)`}>
                     <GameIcon name="ship" size={12} className="inline" />{fleetSize}
+                  </span>
+                )}
+                {hasWall && (
+                  <span className="text-stone-700 font-semibold" title={`The Great Wall: ${wallRun} connected walls (+1 VP, walls break on 5+)`}>
+                    <GameIcon name="wall" size={12} className="inline" />{wallRun}
                   </span>
                 )}
                 {battlesWon > 0 && (

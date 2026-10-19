@@ -1,105 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import {
-  BONUS_VP,
-  CityPrice,
-  DevelopmentCardPrice,
-  HealSoldierAmount,
-  HealSoldierResources,
-  LARGEST_ARMY_MIN,
-  LONGEST_ROAD_MIN,
-  Price,
-  RESOURCES,
-  RoadPrice,
-  SettlementPrice,
-  SoldierPrice,
-  CONQUEROR_MIN,
-  ADMIRAL_MIN,
-  ADMIRAL_VP,
-  WIN_VP,
-} from 'common';
-import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import Modal from '../ui/Modal';
 import MapIconButton from '../ui/MapIconButton';
 import { Info } from 'lucide-react';
-import GameIcon, { IconName } from '../ui/GameIcon';
+import { useGameState } from '../../contexts/GameContext';
+import {
+  AchievementsPanel,
+  BattlesPanel,
+  CardsPanel,
+  CapturePanel,
+  PieceFlag,
+  PiecesPanel,
+  RecipesPanel,
+  TradePanel,
+  TurnsPanel,
+} from './infoContent';
 
-/** One build recipe: what it is, what it costs, and what it gets you. */
-interface Recipe {
-  icon: IconName;
-  name: string;
-  /** Fixed cost; omitted for recipes with a choice of payment (healing). */
-  price?: Price;
-  /** Free-form cost for recipes `price` can't express (heal: pick Wheat or Sheep). */
-  cost?: React.ReactNode;
-  note: string;
-}
-
-/** Every recipe, read from the shared `common` price constants. */
-const RECIPES: Recipe[] = [
-  { icon: 'road', name: 'Road', price: RoadPrice, note: 'Connects your settlements; counts toward Longest Road.' },
-  { icon: 'settlement', name: 'Settlement', price: SettlementPrice, note: '1 VP. Collects resources from adjacent hexes.' },
-  { icon: 'city', name: 'City', price: CityPrice, note: 'Upgrade a settlement. 2 VP; collects double resources.' },
-  { icon: 'attack', name: 'Soldier', price: SoldierPrice, note: 'Garrisons a vertex; fights battles and the robber.' },
-  {
-    icon: 'heal',
-    name: 'Heal soldier',
-    cost: (
-      <>
-        {HealSoldierResources.map((r, i) => (
-          <React.Fragment key={r}>
-            {i > 0 && ' or '}
-            {HealSoldierAmount} <GameIcon name={RESOURCE_ICONS[r]} size={13} className="inline -mt-0.5" />
-          </React.Fragment>
-        ))}
-      </>
-    ),
-    note: 'Restores one injured soldier.',
-  },
-  { icon: 'cards', name: 'Development card', price: DevelopmentCardPrice, note: 'Draw a random development card.' },
-];
-
-/**
- * Every way to earn victory points, read from the shared scoring constants
- * (see `applyBonuses`). Bonuses have one holder; a tie keeps the current one.
- */
-const ACHIEVEMENTS: { icon: IconName; name: string; vp: number; note: string }[] = [
-  { icon: 'settlement', name: 'Settlement', vp: 1, note: 'Each settlement you own.' },
-  { icon: 'city', name: 'City', vp: 2, note: 'Each city you own.' },
-  { icon: 'star', name: 'Victory Point card', vp: 1, note: 'Counted as soon as you draw it.' },
-  { icon: 'road', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
-  { icon: 'knight', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
-  { icon: 'crown', name: 'Conqueror', vp: BONUS_VP, note: `Most battles won against players, at least ${CONQUEROR_MIN}.` },
-  { icon: 'ship', name: 'The Admiral', vp: ADMIRAL_VP, note: `Largest fleet, at least ${ADMIRAL_MIN} ships; each of your ships gains +1 sail step.` },
-];
-
-/** The cost as one icon chip per card (e.g. 2 wheat, 3 ore). */
-const CostChips: React.FC<{ price: Price }> = ({ price }) => (
-  <span className="flex flex-wrap gap-1">
-    {RESOURCES.filter((k) => price[k] > 0).map((k) => (
-      <span
-        key={k}
-        title={`${price[k]} ${k}`}
-        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 text-[13px]"
-      >
-        {price[k]} <GameIcon name={RESOURCE_ICONS[k]} size={14} />
-      </span>
-    ))}
-  </span>
-);
-
-/** Info modal tabs, in display order. */
+/** Info modal tabs, in display order (learn → reference). */
 const TABS = [
+  { key: 'pieces', label: 'Pieces' },
+  { key: 'turns', label: 'Turns' },
+  { key: 'battles', label: 'Battles' },
+  { key: 'trade', label: 'Trade' },
+  { key: 'cards', label: 'Cards' },
+  { key: 'capture', label: 'Capture' },
   { key: 'recipes', label: 'Recipes' },
   { key: 'achievements', label: 'Achievements' },
 ] as const;
 
 /**
  * ⓘ button on the map (under the 🔄 trade button). Opens a tabbed info modal:
- * every build recipe and its cost, and every way to earn victory points.
+ * how each piece works, how a turn runs, battle and capture rules, trade
+ * rates, the dev-card deck, every build recipe, and every way to earn
+ * victory points. Flagged content hides when the room disables that piece.
  */
 const RecipesButton: React.FC = () => {
+  const { gameRoom } = useGameState();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('recipes');
+  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('pieces');
+  const enabled = (flag?: PieceFlag) =>
+    !flag ||
+    (flag === 'cannons' ? gameRoom?.cannonsEnabled : flag === 'walls' ? gameRoom?.wallsEnabled : gameRoom?.shipsEnabled) === true;
 
   // Escape closes the window (stopPropagation keeps the board's Escape
   // handler from also clearing the map selection).
@@ -121,7 +61,7 @@ const RecipesButton: React.FC = () => {
         onClick={() => setOpen(true)}
         onMouseDown={(e) => e.stopPropagation()}
         title="Info"
-        aria-label="Show recipes and achievements"
+        aria-label="Show game info"
         className="top-16 left-[max(0.5rem,env(safe-area-inset-left))]"
       />
 
@@ -129,10 +69,10 @@ const RecipesButton: React.FC = () => {
         open={open}
         onClose={() => setOpen(false)}
         title="Info"
-        aria-label="Recipes and achievements"
+        aria-label="Game info"
         width="max-w-[440px]"
       >
-        <div role="tablist" className="flex gap-1 mb-3 border-b border-gray-200">
+        <div role="tablist" className="flex flex-wrap gap-1 mb-3 border-b border-gray-200">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -150,46 +90,16 @@ const RecipesButton: React.FC = () => {
             </button>
           ))}
         </div>
-        {tab === 'recipes' ? (
-          <ul role="tabpanel" className="m-0 p-0 list-none flex flex-col gap-2">
-            {RECIPES.map((r) => (
-              <li key={r.name} className="border border-gray-200 rounded-md p-2 bg-white">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[14px] font-semibold text-gray-800">
-                    <GameIcon name={r.icon} size={14} className="inline -mt-0.5" /> {r.name}
-                  </span>
-                  {r.price ? (
-                    <CostChips price={r.price} />
-                  ) : (
-                    <span className="text-[13px]">{r.cost}</span>
-                  )}
-                </div>
-                <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div role="tabpanel">
-            <p className="text-[12px] text-gray-500 m-0 mb-2">
-              First to {WIN_VP} VP wins. Bonuses go to one player; a tie keeps the current holder.
-            </p>
-            <ul className="m-0 p-0 list-none flex flex-col gap-2">
-              {ACHIEVEMENTS.map((a) => (
-                <li key={a.name} className="border border-gray-200 rounded-md p-2 bg-white">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] font-semibold text-gray-800">
-                      <GameIcon name={a.icon} size={14} className="inline -mt-0.5" /> {a.name}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-[12px] font-bold text-amber-800">
-                      +{a.vp} VP
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-gray-500 m-0 mt-1">{a.note}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div role="tabpanel">
+          {tab === 'pieces' && <PiecesPanel enabled={enabled} />}
+          {tab === 'turns' && <TurnsPanel turnMode={gameRoom?.turnMode} />}
+          {tab === 'battles' && <BattlesPanel />}
+          {tab === 'trade' && <TradePanel />}
+          {tab === 'cards' && <CardsPanel />}
+          {tab === 'capture' && <CapturePanel />}
+          {tab === 'recipes' && <RecipesPanel enabled={enabled} />}
+          {tab === 'achievements' && <AchievementsPanel enabled={enabled} />}
+        </div>
       </Modal>
     </>
   );

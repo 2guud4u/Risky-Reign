@@ -15,15 +15,19 @@ const TONES = {
  * sail destinations and disembark landings (blue). Clicking a ring selects
  * that vertex — the click handler decides what it means (spawn, sail hop,
  * landing). Drawn above the soldiers so the rings stay visible and clickable.
+ * `badge` stamps a small count on the ring (sail: the hop distance), and
+ * `onHover` reports the hovered target (sail: previews the route).
  */
 export const SpawnTargetLayer = React.memo(function SpawnTargetLayer({
   targets,
   onSelect,
+  onHover,
   label = 'Spawn the knight\'s soldier here',
   tone = 'green',
 }: {
-  targets: { id: string; position: PixelCoord }[];
+  targets: { id: string; position: PixelCoord; badge?: string | number }[];
   onSelect: (vertexId: string) => void;
+  onHover?: (vertexId: string | null) => void;
   /** aria-label/title for each ring. */
   label?: string;
   tone?: keyof typeof TONES;
@@ -40,6 +44,8 @@ export const SpawnTargetLayer = React.memo(function SpawnTargetLayer({
           style={{ cursor: 'pointer' }}
           // Keep the press from starting a board pan.
           onMouseDown={(e) => e.stopPropagation()}
+          onMouseEnter={onHover ? () => onHover(t.id) : undefined}
+          onMouseLeave={onHover ? () => onHover(null) : undefined}
           onClick={(e) => {
             e.stopPropagation();
             onSelect(t.id);
@@ -58,6 +64,30 @@ export const SpawnTargetLayer = React.memo(function SpawnTargetLayer({
             strokeWidth={3}
             className="blink-circle"
           />
+          {t.badge !== undefined && (
+            <>
+              <circle
+                cx={t.position.x + r}
+                cy={t.position.y - r}
+                r={r * 0.55}
+                fill="#fff"
+                stroke={colors.ring}
+                strokeWidth={2}
+              />
+              <text
+                x={t.position.x + r}
+                y={t.position.y - r}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={r * 0.75}
+                fontWeight={700}
+                fill={colors.ring}
+                style={{ pointerEvents: 'none' }}
+              >
+                {t.badge}
+              </text>
+            </>
+          )}
         </g>
       ))}
     </>

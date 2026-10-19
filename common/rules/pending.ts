@@ -88,6 +88,9 @@ export function knightSpawnPending(room: GameRoom, playerName: string): boolean 
 export function boardBusy(room: GameRoom): string | null {
   if (room.battleState) return 'A battle is in progress';
   if (room.wallGate && room.wallGate.roll === null) return 'A wall crossing is in progress';
+  // A wall breach is on the table from fire to the end of its reveal —
+  // like the gate, the whole board waits out the shot.
+  if (room.cannonShot?.kind === 'wall') return 'A wall breach is in progress';
   return null;
 }
 

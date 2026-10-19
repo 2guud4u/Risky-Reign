@@ -11,7 +11,7 @@
  */
 import {
   applyCannonAttack,
-  applyCannonAttackWall,
+  applyFireWallShot,
   applyCannonSplash,
   applyConvertShipToSettlement,
   applyDowngradeCannon,
@@ -20,6 +20,7 @@ import {
   applyEmbarkSoldier,
   applyMoveShip,
   applyRollWallGate,
+  applyRollWallShot,
   applyStationCannon,
   applyUnstationCannon,
   applyUpgradeCannon,
@@ -35,6 +36,7 @@ import {
   canEmbarkSoldier,
   canMoveShip,
   canRollWallGate,
+  canRollWallShot,
   canStationCannon,
   canUnstationCannon,
   canUpgradeCannon,
@@ -112,11 +114,23 @@ export const PIECE_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
     run: (
       room: GameRoom,
       player: Player,
-      { soldierId, edgeId }: { roomId: string; soldierId: string; edgeId: string }
+      { soldierId, edgeId, explosive }: { roomId: string; soldierId: string; edgeId: string; explosive?: boolean }
     ) => {
-      const check = canCannonAttackWall(room, player, soldierId, edgeId);
+      const check = canCannonAttackWall(room, player, soldierId, edgeId, explosive === true);
       if (!check.allowed) return fail(check.reason ?? 'Cannot fire on that wall');
-      applyCannonAttackWall(room, player, soldierId, edgeId, rollDie());
+      // Committed on fire: a Single shot opens pending (the breach lands in
+      // rollWallShot), an Explosive shot resolves on the spot.
+      applyFireWallShot(room, player, soldierId, edgeId, explosive === true);
+    },
+  },
+  // Pending participant: the shooter rolls their breach die on the pending
+  // Single shot (canRollWallShot checks the seat on room.cannonShot). The
+  // server also rolls for them after WALL_SHOT_ROLL_MS (cannonShotTimer).
+  rollWallShot: {
+    run: (room: GameRoom, player: Player) => {
+      const check = canRollWallShot(room, player);
+      if (!check.allowed) return fail(check.reason ?? 'Cannot roll now');
+      applyRollWallShot(room, player, rollDie());
     },
   },
 

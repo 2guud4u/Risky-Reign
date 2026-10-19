@@ -23,8 +23,6 @@ interface SelectionValue {
   selectedSoldierIds: string[];
   /** Sail pick-mode: this ship is waiting for a highlighted water vertex click. */
   sailingShipId: string | null;
-  /** Fire flow: chain shot loads splash (1 ore, hits everyone on the vertex). */
-  chainShot: boolean;
 }
 
 interface ChromeValue {
@@ -38,7 +36,6 @@ interface GameActionsValue {
   setSelectedObject: React.Dispatch<React.SetStateAction<SelectableObject | null>>;
   setSelectedSoldierIds: React.Dispatch<React.SetStateAction<string[]>>;
   setSailingShipId: React.Dispatch<React.SetStateAction<string | null>>;
-  setChainShot: React.Dispatch<React.SetStateAction<boolean>>;
   showToast: (message: string | null) => void;
   /** Drop the room + seat locally (leaving the game or a server "not in room" push). */
   clearRoomState: () => void;
@@ -55,13 +52,12 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [selectedObject, setSelectedObject] = useState<SelectableObject | null>(null);
   const [selectedSoldierIds, setSelectedSoldierIds] = useState<string[]>([]);
   const [sailingShipId, setSailingShipId] = useState<string | null>(null);
-  const [chainShot, setChainShot] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const roomState = useMemo(() => ({ gameRoom, currentPlayer }), [gameRoom, currentPlayer]);
   const selection = useMemo(
-    () => ({ selectedObject, selectedSoldierIds, sailingShipId, chainShot }),
-    [selectedObject, selectedSoldierIds, sailingShipId, chainShot]
+    () => ({ selectedObject, selectedSoldierIds, sailingShipId }),
+    [selectedObject, selectedSoldierIds, sailingShipId]
   );
   const chrome = useMemo(() => ({ toast }), [toast]);
   const actions = useMemo<GameActionsValue>(
@@ -69,15 +65,12 @@ export const GameRoomProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setGameRoom,
       setCurrentPlayer,
       setSelectedObject: (next) => {
-        // A new selection cancels the sail pick mode and the chain-shot
-        // toggle with it.
+        // A new selection cancels sail pick mode.
         setSailingShipId(null);
-        setChainShot(false);
         setSelectedObject(next);
       },
       setSelectedSoldierIds,
       setSailingShipId,
-      setChainShot,
       showToast: setToast,
       clearRoomState: () => {
         setGameRoom(null);

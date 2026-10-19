@@ -69,7 +69,6 @@ const catalog = (over: Partial<BoardActionEmit> = {}) =>
     me,
     selection: { type: 'ship', id: 'ship1' },
     selectedSoldierIds: [],
-    chainShot: false,
     coachKey: null,
     emit: { ...emit, ...over },
   });

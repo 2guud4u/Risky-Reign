@@ -351,6 +351,115 @@ test("cannon shots and wall attacks cannot be undone (nor anything before them)"
   }
 });
 
+test("single wall shot: fire opens a pending shot, the shooter rolls to breach", () => {
+  const room = freshRoom();
+  const [v, w] = inlandPath(room, 2);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const edge = edgeBetween(room, v, w);
+  road(room, "B", v, w, true);
+  assert.equal(
+    run(room, "cannonAttackWall", "A", { soldierId: cannon.id, edgeId: edge.id }).error,
+    undefined,
+  );
+  // Fire commits the action but doesn't breach — the wall awaits the roll.
+  const shot = room.cannonShot;
+  assert.equal(shot.kind, "wall");
+  assert.equal(shot.roll, null);
+  assert.equal(room.board.roads[edge.roadId].isWall, true);
+  assert.ok(room.turnState.soldiersActedThisTurn.includes(cannon.id));
+  // Someone else can't roll it; the shooter rolls 4+ → wall → road.
+  assert.equal(run(room, "rollWallShot", "B").error, "Only the shooter rolls the breach die");
+  assert.equal(withRoll(4, () => run(room, "rollWallShot", "A")).error, undefined);
+  assert.equal(shot.roll, 4);
+  assert.equal(shot.breached, true);
+  assert.equal(room.board.roads[edge.roadId].isWall, false);
+});
+
+test("single wall shot: a roll below the threshold leaves the wall up", () => {
+  const room = freshRoom();
+  const [v, w] = inlandPath(room, 2);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const edge = edgeBetween(room, v, w);
+  road(room, "B", v, w, true);
+  run(room, "cannonAttackWall", "A", { soldierId: cannon.id, edgeId: edge.id });
+  assert.equal(withRoll(3, () => run(room, "rollWallShot", "A")).error, undefined);
+  assert.equal(room.cannonShot.breached, false);
+  assert.equal(room.board.roads[edge.roadId].isWall, true);
+});
+
+test("explosive shot breaches on fire — no die, 1 ore spent", () => {
+  const room = freshRoom();
+  const [v, w] = inlandPath(room, 2);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const edge = edgeBetween(room, v, w);
+  road(room, "B", v, w, true);
+  assert.equal(
+    run(room, "cannonAttackWall", "A", { soldierId: cannon.id, edgeId: edge.id, explosive: true }).error,
+    undefined,
+  );
+  assert.equal(room.board.roads[edge.roadId].isWall, false);
+  assert.equal(P(room, "A").resources.Ore, 8);
+  assert.equal(room.cannonShot.explosive, true);
+  assert.equal(room.cannonShot.breached, true);
+  // Nothing left to roll.
+  assert.equal(run(room, "rollWallShot", "A").error, "That shot is already resolved");
+});
+
+test("explosive shot needs the ore", () => {
+  const room = freshRoom();
+  const [v, w] = inlandPath(room, 2);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const edge = edgeBetween(room, v, w);
+  road(room, "B", v, w, true);
+  P(room, "A").resources.Ore = 0;
+  assert.equal(
+    run(room, "cannonAttackWall", "A", { soldierId: cannon.id, edgeId: edge.id, explosive: true }).error,
+    "Not enough ore for an explosive shot",
+  );
+  assert.equal(room.cannonShot, null);
+  assert.equal(room.board.roads[edge.roadId].isWall, true);
+});
+
+test("a wall shot freezes the board from fire through the reveal", () => {
+  const room = freshRoom();
+  const [v, w] = inlandPath(room, 2);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const mover = soldier(room, "A", v);
+  const step = neighbors(room, v).find((n) => n !== w);
+  road(room, "A", v, step);
+  const edge = edgeBetween(room, v, w);
+  road(room, "B", v, w, true);
+  run(room, "cannonAttackWall", "A", { soldierId: cannon.id, edgeId: edge.id });
+  assert.equal(
+    run(room, "moveSoldier", "A", { soldierId: mover.id, targetVertexId: step }).error,
+    "A wall breach is in progress",
+  );
+  withRoll(4, () => run(room, "rollWallShot", "A"));
+  // The breach stays on the table through its reveal — the board waits it
+  // out, same as a wall gate's resolve.
+  assert.equal(
+    run(room, "moveSoldier", "A", { soldierId: mover.id, targetVertexId: step }).error,
+    "A wall breach is in progress",
+  );
+});
+
+test("shooter silent: the cannon-shot timer rolls the breach die for them", async () => {
+  const { syncCannonShotTimer } = await import("../dist/cannonShotTimer.js");
+  const room = freshRoom();
+  store.putRoom(room);
+  const [v, w] = inlandPath(room, 2);
+  settlement(room, "B", w);
+  settlement(room, "C", inlandPath(room, 6)[5]);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const edge = edgeBetween(room, v, w);
+  road(room, "B", v, w, true);
+  const io = { to: () => ({ emit: () => {} }) };
+  run(room, "cannonAttackWall", "A", { soldierId: cannon.id, edgeId: edge.id });
+  P(room, "A").connected = false;
+  syncCannonShotTimer(io, room);
+  assert.notEqual(room.cannonShot.roll, null, "server rolled for the absent shooter");
+});
+
 // ── ships ───────────────────────────────────────────────────────────────
 test("every player gets ship steps in their own Action phase", () => {
   const room = freshRoom();
@@ -671,6 +780,7 @@ function keepAlive(room) {
   soldier(room, "B", path[1]);
   settlement(room, "C", path[2]);
   soldier(room, "C", path[2]);
+  return path;
 }
 
 test("The Admiral: strictly most ships at ≥3; ties keep the holder", () => {
@@ -789,4 +899,102 @@ test("undoing a sail refunds against the Admiral allowance", () => {
   assert.equal(room.turnState.shipSteps[sh.id], 4);
   assert.equal(run(room, "undoBuild", "A").error, undefined);
   assert.equal(room.turnState.shipSteps[sh.id], 5); // refunded to the Admiral allowance, not 4
+});
+
+// ── The Great Wall ──────────────────────────────────────────────────────
+/** A run of `length` edge-linked vertices avoiding `used` (greedy DFS). */
+function chainPath(room, length, used = new Set()) {
+  for (const start of vertices(room, () => true)) {
+    if (used.has(start)) continue;
+    const go = (path) => {
+      if (path.length === length) return path;
+      for (const n of neighbors(room, path.at(-1))) {
+        if (used.has(n) || path.includes(n)) continue;
+        const out = go([...path, n]);
+        if (out) return out;
+      }
+      return null;
+    };
+    const out = go([start]);
+    if (out) return out;
+  }
+  throw new Error("no chain path");
+}
+
+test("The Great Wall: longest wall run ≥3; enemy settlements sever; ties keep the holder", () => {
+  const room = freshRoom();
+  const seed = new Set(keepAlive(room));
+  const pa = chainPath(room, 4, seed);
+  const used = new Set([...seed, ...pa]);
+  const pb = chainPath(room, 5, used);
+  // A's run of 3: pa[0]-pa[1]-pa[2]-pa[3].
+  road(room, "A", pa[0], pa[1], true);
+  road(room, "A", pa[1], pa[2], true);
+  road(room, "A", pa[2], pa[3], true);
+  let b = bonuses(room);
+  assert.equal(b.hasGreatWall["A"], true);
+  assert.equal(b.wallRun["A"], 3);
+  const vp = P(room, "A").victoryPoints;
+  // B's walls on the two links either side of A's settlement on pb[2]:
+  // two runs of 2 — the enemy building severs, so B can't reach 3.
+  settlement(room, "A", pb[2]);
+  road(room, "B", pb[0], pb[1], true);
+  road(room, "B", pb[1], pb[2], true);
+  road(room, "B", pb[2], pb[3], true);
+  road(room, "B", pb[3], pb[4], true);
+  b = bonuses(room);
+  assert.equal(b.wallRun["B"], 2);
+  assert.equal(b.hasGreatWall["A"], true);
+  // B extends to a clean run of 3 elsewhere: tied 3-3, the holder stays.
+  const pb2 = chainPath(room, 4, new Set([...used, ...pb]));
+  road(room, "B", pb2[0], pb2[1], true);
+  road(room, "B", pb2[1], pb2[2], true);
+  road(room, "B", pb2[2], pb2[3], true);
+  b = bonuses(room);
+  assert.equal(b.wallRun["B"], 3);
+  assert.equal(b.hasGreatWall["A"], true);
+  // A detached wall still counts toward A's run only — extend B to 4 → title moves.
+  road(room, "B", pb2[3], neighbors(room, pb2[3]).find((n) => !pb2.includes(n) && !used.has(n) && !pb2.includes(n)), true);
+  b = bonuses(room);
+  assert.equal(b.hasGreatWall["B"], true);
+  assert.equal(b.hasGreatWall["A"], false);
+  assert.equal(P(room, "A").victoryPoints, vp); // −1 Great Wall, +1 for the settlement at pb[2]
+});
+
+test("The Great Wall buff: the holder's walls need 5+ to breach", () => {
+  const room = freshRoom();
+  const seed = new Set(keepAlive(room));
+  const pa = chainPath(room, 4, seed);
+  road(room, "A", pa[0], pa[1], true);
+  road(room, "A", pa[1], pa[2], true);
+  road(room, "A", pa[2], pa[3], true);
+  // A detached wall far from the run — still buffed ("all their walls").
+  const pc = chainPath(room, 2, new Set([...seed, ...pa]));
+  const detached = road(room, "A", pc[0], pc[1], true);
+  bonuses(room);
+  assert.equal(room.bonuses.hasGreatWall["A"], true);
+  // B's stationed cannon shoots the detached wall: a 4 misses, a 5 breaches.
+  phase(room, "Action", "B");
+  const cannon = soldier(room, "B", pc[0], { type: "cannon", stationed: true });
+  const edge = edgeBetween(room, pc[0], pc[1]);
+  assert.equal(
+    run(room, "cannonAttackWall", "B", { soldierId: cannon.id, edgeId: edge.id }).error,
+    undefined,
+  );
+  assert.equal(
+    withRoll(4, () => run(room, "rollWallShot", "B")).error,
+    undefined,
+  );
+  assert.equal(room.board.roads[detached.id].isWall, true); // held
+  room.turnState.soldiersActedThisTurn = [];
+  room.cannonShot = null;
+  assert.equal(
+    run(room, "cannonAttackWall", "B", { soldierId: cannon.id, edgeId: edge.id }).error,
+    undefined,
+  );
+  assert.equal(
+    withRoll(5, () => run(room, "rollWallShot", "B")).error,
+    undefined,
+  );
+  assert.equal(room.board.roads[detached.id].isWall, false); // breached on 5+
 });

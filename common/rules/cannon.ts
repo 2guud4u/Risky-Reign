@@ -16,7 +16,7 @@ import type { BuildCheck } from '../types/Logic';
 import type { SoldierObj } from '../types/Pieces';
 import type { Player } from '../types/Player';
 import type { GameRoom } from '../types/Room';
-import { CannonUpgradePrice, CANNON_WALL_HIT } from '../Constant';
+import { CannonUpgradePrice, ExplosiveShotPrice, CANNON_WALL_HIT, GREAT_WALL_HIT } from '../Constant';
 import { canAfford } from '../utils/logic';
 import { subtractPrice } from '../utils/trade';
 import { verticesAdjacent } from '../utils/water';
@@ -311,13 +311,15 @@ export function applyCannonSplash(
 
 /**
  * Wall-attack check: stationed cannon adjacent to a walled edge (the wall's
- * edge touches the cannon's effective vertex).
+ * edge touches the cannon's effective vertex). `explosive` also requires 1
+ * ore — the guaranteed breach (GLOSSARY "Explosive shot").
  */
 export function canCannonAttackWall(
   room: GameRoom,
   player: Player,
   soldierId: string,
-  edgeId: EdgeId
+  edgeId: EdgeId,
+  explosive = false
 ): BuildCheck {
   const gate = stationedCannonGate(room, player, soldierId);
   if (!gate.check.allowed || !gate.soldier || !room.board) return gate.check;
@@ -328,27 +330,82 @@ export function canCannonAttackWall(
   const from = cannonVertexId(room.board, gate.soldier);
   if (edge.vertexAId !== from && edge.vertexBId !== from)
     return fail('The cannon must be adjacent to the wall');
+  if (explosive && !canAfford(player.resources, ExplosiveShotPrice))
+    return fail('Not enough ore for an explosive shot');
   return pass;
 }
 
 /**
- * Apply a wall shot: a roll of CANNON_WALL_HIT or higher reverts the wall to
- * a normal road; a lower roll does nothing. Either way the cannon's action is
- * spent.
+ * The die value a wall shot must reach to breach: CANNON_WALL_HIT normally,
+ * GREAT_WALL_HIT while the wall's current owner holds The Great Wall —
+ * capturing a holder's wall instantly drops it back to 4+.
  */
-export function applyCannonAttackWall(
+export function wallHitTarget(room: Pick<GameRoom, 'bonuses'>, road: { ownerId: string }): number {
+  return room.bonuses?.hasGreatWall?.[road.ownerId] ? GREAT_WALL_HIT : CANNON_WALL_HIT;
+}
+
+/**
+ * Open a wall shot. The cannon's action is spent and the shot is final the
+ * moment it fires (undo log cleared — pending input is ceremony, not a
+ * choice). A Single shot leaves `roll: null` on the record — the breach
+ * itself lands in applyRollWallShot when the shooter clicks the die (or the
+ * cannon-shot timer rolls for them). An Explosive shot pays 1 ore and
+ * breaches on the spot — no die is ever rolled for it.
+ */
+export function applyFireWallShot(
   room: GameRoom,
-  _player: Player,
+  player: Player,
   soldierId: string,
   edgeId: EdgeId,
-  roll: number
-): { roll: number; breached: boolean } {
-  const edge = room.board!.edges[edgeId];
-  const road = edge?.roadId ? room.board!.roads[edge.roadId] : undefined;
-  const breached = !!road && roll >= CANNON_WALL_HIT;
-  if (breached) road!.isWall = false;
+  explosive: boolean
+): void {
+  const edge = room.board!.edges[edgeId]!;
+  const road = edge.roadId ? room.board!.roads[edge.roadId] : undefined;
+  const threshold = road ? wallHitTarget(room, road) : CANNON_WALL_HIT;
+  if (explosive) {
+    player.resources = subtractPrice(player.resources, ExplosiveShotPrice);
+    if (road) road.isWall = false;
+  }
   room.turnState.soldiersActedThisTurn.push(soldierId);
-  // A wall shot is final: neither it nor anything before it can be undone.
+  // A shot is final: neither it nor anything before it can be undone.
   room.turnState.undoLog = [];
-  return { roll, breached };
+  room.cannonShot = {
+    kind: 'wall',
+    cannonId: soldierId,
+    shooterName: player.name,
+    edgeId,
+    wallOwnerName: road?.ownerId ?? '',
+    roll: null,
+    explosive,
+    threshold,
+    breached: explosive,
+  };
+}
+
+/**
+ * The shooter's breach-roll check: the pending wall shot is theirs, still
+ * unrolled, and not an Explosive shot (which never rolls).
+ */
+export function canRollWallShot(room: GameRoom, player: Player): BuildCheck {
+  const shot = room.cannonShot;
+  if (!shot || shot.kind !== 'wall') return fail('No wall shot is in progress');
+  if (shot.explosive || shot.roll !== null) return fail('That shot is already resolved');
+  if (shot.shooterName !== player.name) return fail('Only the shooter rolls the breach die');
+  return pass;
+}
+
+/**
+ * Roll the breach die on a pending Single shot: a roll meeting `threshold`
+ * reverts the wall to a normal road; a lower roll does nothing (the cannon's
+ * action was already spent on fire). The rolled record lingers for the
+ * cannon-shot reveal timer.
+ */
+export function applyRollWallShot(room: GameRoom, _player: Player, roll: number): void {
+  const shot = room.cannonShot;
+  if (!shot || shot.kind !== 'wall') return;
+  const edge = room.board!.edges[shot.edgeId];
+  const road = edge?.roadId ? room.board!.roads[edge.roadId] : undefined;
+  shot.roll = roll;
+  shot.breached = !!road && roll >= shot.threshold;
+  if (shot.breached) road!.isWall = false;
 }

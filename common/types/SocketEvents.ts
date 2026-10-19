@@ -86,7 +86,9 @@ export interface ClientToServerEvents {
   unstationCannon: (data: { roomId: string; soldierId: string }) => void;
   cannonAttack: (data: { roomId: string; soldierId: string; targetSoldierId: string }) => void;
   cannonSplash: (data: { roomId: string; soldierId: string; vertexId: string }) => void;
-  cannonAttackWall: (data: { roomId: string; soldierId: string; edgeId: string }) => void;
+  cannonAttackWall: (data: { roomId: string; soldierId: string; edgeId: string; explosive?: boolean }) => void;
+  /** The shooter rolls the breach die on their pending wall shot. */
+  rollWallShot: (data: { roomId: string }) => void;
   upgradeRoadToWall: (data: { roomId: string; edgeId: string }) => void;
   /** The crosser submits their 1-6 guess for a pending wall gate. */
   wallGuess: (data: { roomId: string; guess: number }) => void;

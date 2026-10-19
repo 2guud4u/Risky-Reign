@@ -2,6 +2,7 @@ import React from 'react';
 import type { BuildCheck, VertexNode } from 'common';
 import {
   CannonUpgradePrice,
+  ExplosiveShotPrice,
   HealSoldierAmount,
   HealSoldierResources,
   SplashPrice,
@@ -9,12 +10,14 @@ import {
   canMoveSoldierTo,
   cannonVertexId,
   moveCrossesWall,
+  wallHitTarget,
 } from 'common';
 import { BubbleAction } from '../../components/board/ActionBubbles';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import { PriceText } from '../../utils/price';
 import { directionAngleOf, directionOf, moveDirectionsFrom } from '../../utils/direction';
 import { BoardActionsInput, ALLOWED } from './types';
+import { firstAllowed, choiceGroup } from './helpers';
 import { BoardRules } from './rules';
 import { disembarkAction } from './ship';
 
@@ -91,17 +94,19 @@ export const soldierActions = (
     });
     // The heal bubble always shows while an injured soldier is picked; when
     // no resource is usable it is greyed with the reason instead.
-    const anyEligible = choices.some((c) => c.eligible);
-    actions.push({
-      key: 'heal',
-      icon: 'heal',
-      label: `Heal ${injured.length}`,
-      costText: `${HealSoldierAmount} each (pick resource)`,
-      check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'Nothing to heal with' },
-      run: () => {}, // expanded bubble: a choice is picked instead
-      choices,
-      family: 'troops',
-    });
+    actions.push(
+      choiceGroup(
+        {
+          key: 'heal',
+          icon: 'heal',
+          label: `Heal ${injured.length}`,
+          costText: `${HealSoldierAmount} each (pick resource)`,
+          family: 'troops',
+        },
+        choices,
+        { allowed: false, reason: 'Nothing to heal with' }
+      )
+    );
   }
 
   // Move: the bubble shows while any picked soldier is movable; its pill
@@ -148,18 +153,20 @@ export const soldierActions = (
         },
       ];
     });
-    const anyEligible = choices.some((c) => c.eligible);
-    actions.push({
-      key: 'move',
-      icon: 'move',
-      label: `Move ${movable.length}`,
-      costText: 'Pick a direction',
-      // No road out of this vertex means no direction at all to offer.
-      check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'No road leads out of here' },
-      run: () => {}, // expanded bubble: a direction is picked instead
-      choices,
-      family: 'troops',
-    });
+    actions.push(
+      choiceGroup(
+        {
+          key: 'move',
+          icon: 'move',
+          label: `Move ${movable.length}`,
+          costText: 'Pick a direction',
+          family: 'troops',
+        },
+        choices,
+        // No road out of this vertex means no direction at all to offer.
+        { allowed: false, reason: 'No road leads out of here' }
+      )
+    );
   }
 
   // Attack: one bubble that expands into a column of the enemies garrisoned
@@ -188,34 +195,35 @@ export const soldierActions = (
         color: room.players.find((p) => p.name === defender)?.color,
       };
     });
-    const anyEligible = choices.some((c) => c.eligible);
-    actions.push({
-      key: 'attack',
-      icon: 'attack',
-      label: `Attack with ${group.length}`,
-      costText: 'Pick who to attack',
-      check: anyEligible ? ALLOWED : choices[0]?.check ?? { allowed: false, reason: 'No enemy to attack here' },
-      run: () => {}, // expanded bubble: an enemy is picked instead
-      choices,
-      family: 'combat',
-    });
+    actions.push(
+      choiceGroup(
+        {
+          key: 'attack',
+          icon: 'attack',
+          label: `Attack with ${group.length}`,
+          costText: 'Pick who to attack',
+          family: 'combat',
+        },
+        choices,
+        { allowed: false, reason: 'No enemy to attack here' }
+      )
+    );
   }
 
   // Capture: a settlement/city here that isn't yours. A capture takes one
   // soldier, so the first picked soldier that may capture goes.
   const settlement = vertex.settlementId ? board.settlements[vertex.settlementId] : null;
   if (settlement && settlement.ownerId !== me.name) {
-    const checks = group.map((id) => ({ id, check: rules.captureCheck(id, vertex.id) }));
-    const capturer = checks.find((c) => c.check.allowed);
+    const capturer = firstAllowed(group, (id) => rules.captureCheck(id, vertex.id));
     actions.push({
       key: 'capture',
       icon: 'capture',
       label: `Capture ${settlement.level}`,
       costText: '1 soldier',
-      check: capturer ? ALLOWED : checks[0].check,
+      check: capturer.check,
       run: () => {
-        if (!capturer) return;
-        emit.captureSettlement(capturer.id, vertex.id);
+        if (!capturer.candidate) return;
+        emit.captureSettlement(capturer.candidate, vertex.id);
         clearPicks();
       },
       family: 'combat',
@@ -224,17 +232,16 @@ export const soldierActions = (
 
   // Robber: a 1v1 fight, so the first picked soldier that may fight goes.
   if (vertex.hexIds.some((id) => board.hexes[id]?.robber)) {
-    const checks = group.map((id) => ({ id, check: rules.fightRobberCheck(id, vertex.id) }));
-    const fighter = checks.find((c) => c.check.allowed);
+    const fighter = firstAllowed(group, (id) => rules.fightRobberCheck(id, vertex.id));
     actions.push({
       key: 'robber',
       icon: 'robber',
       label: 'Fight the robber',
       costText: '1 soldier',
-      check: fighter ? ALLOWED : checks[0].check,
+      check: fighter.check,
       run: () => {
-        if (!fighter) return;
-        emit.fightRobber(fighter.id, vertex.id);
+        if (!fighter.candidate) return;
+        emit.fightRobber(fighter.candidate, vertex.id);
         clearPicks();
       },
       family: 'combat',
@@ -248,13 +255,14 @@ export const soldierActions = (
   if (room.cannonsEnabled) {
     const infantry = group.filter((id) => board.soldiers[id]?.type === 'infantry');
     if (infantry.length > 0) {
+      const upgrader = firstAllowed(infantry, rules.upgradeCannonCheck);
       const checks = infantry.map((id) => ({ id, check: rules.upgradeCannonCheck(id) }));
       actions.push({
         key: 'upgrade-cannon',
         icon: 'cannon',
         label: 'Upgrade to Cannon',
         costText: React.createElement(PriceText, { price: CannonUpgradePrice }),
-        check: checks.find((c) => c.check.allowed)?.check ?? checks[0].check,
+        check: upgrader.check,
         run: () => {
           for (const c of checks.filter((c) => c.check.allowed)) emit.upgradeCannon(c.id);
           clearPicks();
@@ -267,16 +275,16 @@ export const soldierActions = (
   // Cannon orders, per picked cannon — a shot spends its action, so the
   // first picked cannon allowed to do it fires.
   const cannons = group.filter((id) => board.soldiers[id]?.type === 'cannon');
-  const firstOk = (
-    runCheck: (soldierId: string) => BuildCheck
-  ): { id: string | null; check: BuildCheck } => {
-    const checks = cannons.map((id) => ({ id, check: runCheck(id) }));
-    const ok = checks.find((c) => c.check.allowed);
-    return { id: ok?.id ?? null, check: ok?.check ?? checks[0]?.check ?? { allowed: false, reason: 'No cannon picked' } };
+  const firstCannon = (runCheck: (soldierId: string) => BuildCheck) => {
+    const { candidate, check } = firstAllowed(cannons, runCheck, {
+      allowed: false,
+      reason: 'No cannon picked',
+    });
+    return { id: candidate, check };
   };
   if (room.cannonsEnabled && cannons.length > 0) {
     // Station / unstation toggles the emplaced state (emplaced = can fire).
-    const station = firstOk((id) => rules.stationCannonCheck(id));
+    const station = firstCannon((id) => rules.stationCannonCheck(id));
     if (cannons.some((id) => !board.soldiers[id]?.stationed)) {
       actions.push({
         key: 'station',
@@ -291,7 +299,7 @@ export const soldierActions = (
         family: 'artillery',
       });
     }
-    const unstation = firstOk((id) => rules.unstationCannonCheck(id));
+    const unstation = firstCannon((id) => rules.unstationCannonCheck(id));
     if (cannons.some((id) => board.soldiers[id]?.stationed)) {
       actions.push({
         key: 'unstation',
@@ -307,61 +315,20 @@ export const soldierActions = (
       });
     }
 
-    // Fire: direction-first aiming like Move — the pill opens with a chain-
-    // shot toggle plus one compass chip per adjacent vertex that holds a
-    // valid target. Single mode aims only at enemies (cannon wins ties);
-    // chain mode loads splash (1 ore) and hits every soldier on the vertex.
-    // A vertex with more than one shootable target opens a second chip level
-    // to pick the soldier.
+    // Fire: shot-type submenu first — a level-2 "Single shot" or "Chain
+    // shot" chip opens a level-3 aim stack. Single aims a compass chip per
+    // target kind (enemies only; the cannon wins ties), one leaf per kind of
+    // soldier in that direction. Chain (1 ore) aims at the vertex — here or
+    // one intersection away — and hits every soldier there.
     const stationed = cannons.filter((id) => board.soldiers[id]?.stationed);
     if (stationed.length > 0) {
-      const chain = input.chainShot;
-      const fireChoices: BubbleAction[] = stationed.flatMap((cannonId) => {
+      const singleChips: BubbleAction[] = stationed.flatMap((cannonId) => {
         const from = board.vertices[cannonVertexId(board, board.soldiers[cannonId])];
         if (!from) return [];
-        // Chain shot can also land on the cannon's own vertex (the cannon is
-        // immune; everyone else there takes a roll).
-        const here: BubbleAction[] = chain
-          ? [
-              {
-                key: `fire-${cannonId}-${from.id}`,
-                icon: 'cannon' as const,
-                label: 'Chain shot here',
-                costText: React.createElement(PriceText, { price: SplashPrice }),
-                check: rules.cannonSplashCheck(cannonId, from.id),
-                run: () => {
-                  emit.cannonSplash(cannonId, from.id);
-                  clearPicks();
-                },
-                eligible: rules.cannonSplashCheck(cannonId, from.id).allowed,
-              },
-            ]
-          : [];
-        return here.concat(adjacentVertexIds(board, from.id).flatMap((vid): BubbleAction[] => {
+        return adjacentVertexIds(board, from.id).flatMap((vid): BubbleAction[] => {
           const to = board.vertices[vid];
           const dir = to ? directionOf(from, to) : '';
           const angle = to ? directionAngleOf(from, to) : 0;
-          if (chain) {
-            // Chain shot: one shot into the whole vertex, friendlies
-            // included — every soldier there takes a paired roll.
-            const check = rules.cannonSplashCheck(cannonId, vid);
-            return [
-              {
-                key: `fire-${cannonId}-${vid}`,
-                icon: 'cannon' as const,
-                label: `Chain shot ${dir}`,
-                costText: React.createElement(PriceText, { price: SplashPrice }),
-                check,
-                run: () => {
-                  emit.cannonSplash(cannonId, vid);
-                  clearPicks();
-                },
-                eligible: check.allowed,
-                direction: dir,
-                angle,
-              },
-            ];
-          }
           const shootable = Object.values(board.soldiers).filter(
             (t) => t.vertexId === vid && rules.cannonAttackCheck(cannonId, t.id).allowed
           );
@@ -376,121 +343,185 @@ export const soldierActions = (
             if (seen) seen.count++;
             else kinds.set(k, { first: t, count: 1 });
           }
-          const targets = [...kinds.values()];
-          if (targets.length === 0) return [];
-          const pick = ({ first: t, count }: (typeof targets)[number]): BubbleAction => ({
+          return [...kinds.values()].map(({ first: t, count }) => ({
             key: `fire-${cannonId}-${t.id}`,
             icon: 'cannon' as const,
             label: count > 1 ? `${kindOf(t)} (${count})` : kindOf(t),
-            costText: '1 action',
+            costText: `${dir} · 1 action`,
             check: rules.cannonAttackCheck(cannonId, t.id),
             run: () => {
               emit.cannonAttack(cannonId, t.id);
               clearPicks();
             },
             eligible: true,
+            direction: dir,
+            angle,
             color: room.players.find((p) => p.name === t.owner)?.color,
-          });
-          if (targets.length === 1) {
-            // One kind of target in that direction: fire it straight off the
-            // direction chip, naming what it hits.
-            const only = pick(targets[0]);
-            return [{ ...only, label: `Fire ${dir}`, costText: `${only.label} · 1 action`, direction: dir, angle }];
-          }
-          return [
-            {
-              key: `fire-${cannonId}-${vid}`,
-              icon: 'cannon' as const,
-              label: `Aim ${dir}`,
-              costText: `${targets.length} kinds of target`,
-              check: ALLOWED,
-              run: () => {},
-              eligible: true,
-              direction: dir,
-              angle,
-              choices: targets.map(pick),
-            },
-          ];
-        }));
+          }));
+        });
       });
-      // The chain-shot toggle rides at the head of the pill; it stays shown
-      // (greyed) when 1 ore isn't affordable so its price is discoverable.
-      const canAffordChain = (me.resources.Ore ?? 0) >= SplashPrice.Ore;
-      const chainToggle: BubbleAction = {
-        key: 'fire-chain-shot',
-        icon: 'cannon',
-        label: 'Chain shot',
-        costText: React.createElement(PriceText, { price: SplashPrice }),
-        check: canAffordChain
-          ? ALLOWED
-          : { allowed: false, reason: 'Need 1 ore to load chain shot' },
-        run: () => emit.setChainShot(!chain),
-        eligible: canAffordChain,
-        pinned: true,
-        keepsOpen: true,
-        active: chain,
-        instant: true,
-      };
-      const choices = [chainToggle, ...fireChoices];
-      const anyFire = fireChoices.some((c) => c.eligible);
+      const chainChips: BubbleAction[] = stationed.flatMap((cannonId) => {
+        const from = board.vertices[cannonVertexId(board, board.soldiers[cannonId])];
+        if (!from) return [];
+        // Chain shot can also land on the cannon's own vertex (the cannon is
+        // immune; everyone else there takes a roll).
+        const aims = [from.id, ...adjacentVertexIds(board, from.id)];
+        return aims.map((vid): BubbleAction => {
+          const to = board.vertices[vid];
+          const dir = vid === from.id ? 'here' : to ? directionOf(from, to) : '';
+          const angle = to && vid !== from.id ? directionAngleOf(from, to) : undefined;
+          const check = rules.cannonSplashCheck(cannonId, vid);
+          return {
+            key: `fire-${cannonId}-chain-${vid}`,
+            icon: 'cannon' as const,
+            label: `Chain shot ${dir}`,
+            costText: React.createElement(PriceText, { price: SplashPrice }),
+            check,
+            run: () => {
+              emit.cannonSplash(cannonId, vid);
+              clearPicks();
+            },
+            eligible: check.allowed,
+            direction: vid === from.id ? undefined : dir,
+            angle,
+          };
+        });
+      });
+      // Menu chips: a chip opens its aim stack only when its check allows —
+      // when no aim is usable it stays a greyed pinned chip whose click
+      // shows the first leaf's reason (ore short, no targets, action spent).
+      const shotTypes: BubbleAction[] = [
+        {
+          key: 'fire-single',
+          icon: 'cannon',
+          label: 'Single shot',
+          costText: 'duel one target · 1 action',
+          check: singleChips.length > 0 ? ALLOWED : { allowed: false, reason: 'No target in range' },
+          run: () => {},
+          eligible: true,
+          pinned: true,
+          choices: singleChips,
+        },
+        {
+          key: 'fire-chain',
+          icon: 'cannon',
+          label: 'Chain shot',
+          costText: React.createElement(PriceText, { price: SplashPrice }),
+          check: chainChips.find((c) => c.check.allowed)?.check ?? chainChips[0]?.check ?? ALLOWED,
+          run: () => {},
+          eligible: true,
+          pinned: true,
+          choices: chainChips,
+        },
+      ];
+      const anyFire = singleChips.length > 0 || chainChips.some((c) => c.check.allowed);
       actions.push({
         key: 'fire',
         icon: 'cannon',
         label: 'Fire Cannon',
-        costText: 'Aim one intersection away',
+        costText: 'Pick a shot',
         check: anyFire ? ALLOWED : { allowed: false, reason: 'No valid target in range' },
         run: () => {},
-        choices,
-        family: 'combat',
+        choices: shotTypes,
+        family: 'artillery',
       });
     }
 
-    // Wall attack: a walled edge touching the cannon's effective vertex.
-    const wallChoices: BubbleAction[] = stationed.flatMap((cannonId) => {
+    // Wall attack: same shot-type shape — "Single shot" rolls to breach,
+    // "Explosive shot" (1 ore) breaks the wall outright, no die needed.
+    const walledEdges = (cannonId: string) => {
       const from = cannonVertexId(board, board.soldiers[cannonId]);
-        return (board.vertices[from]?.roadIds ?? [])
-          .filter((edgeId) => {
-            const edge = board.edges[edgeId];
-            const road = edge?.roadId ? board.roads[edge.roadId] : undefined;
-            return !!road?.isWall;
-          })
-          .map((edgeId) => {
-            const edge = board.edges[edgeId];
-            const other = edge.vertexAId === from ? edge.vertexBId : edge.vertexAId;
-            const to = board.vertices[other];
-            const dir = to ? directionOf(board.vertices[from], to) : '';
-            return {
-              key: `wall-attack-${cannonId}-${edgeId}`,
-              icon: 'wall' as const,
-              label: `Breach wall ${dir}`,
-              costText: '1 action · roll 4+',
-              check: rules.cannonWallCheck(cannonId, edgeId),
-              run: () => {
-                emit.cannonAttackWall(cannonId, edgeId);
-                clearPicks();
-              },
-              eligible: rules.cannonWallCheck(cannonId, edgeId).allowed,
-              direction: dir,
-              angle: to ? directionAngleOf(board.vertices[from], to) : 0,
-            };
-          });
+      return (board.vertices[from]?.roadIds ?? []).flatMap((edgeId) => {
+        const edge = board.edges[edgeId];
+        const road = edge?.roadId ? board.roads[edge.roadId] : undefined;
+        if (!road?.isWall) return [];
+        const other = edge.vertexAId === from ? edge.vertexBId : edge.vertexAId;
+        const to = board.vertices[other];
+        return [{ edgeId, road, dir: to ? directionOf(board.vertices[from], to) : '', angle: to ? directionAngleOf(board.vertices[from], to) : 0 }];
       });
-      const anyWall = wallChoices.some((c) => c.eligible);
-      if (wallChoices.length > 0) {
-        actions.push({
-          key: 'attack-wall',
-          icon: 'wall',
-          label: 'Attack Wall',
-          costText: '1 action · roll 4+ to breach',
-          check: anyWall ? ALLOWED : wallChoices[0].check,
-          run: () => {},
-          family: 'artillery',
-          choices: wallChoices,
-        });
-      }
+    };
+    const singleWallChips: BubbleAction[] = stationed.flatMap((cannonId) =>
+      walledEdges(cannonId).map(({ edgeId, road, dir, angle }) => {
+        const check = rules.cannonWallCheck(cannonId, edgeId);
+        return {
+          key: `wall-single-${cannonId}-${edgeId}`,
+          icon: 'wall' as const,
+          label: `Breach ${dir}`,
+          costText: `roll ${wallHitTarget(room, road)}+ · 1 action`,
+          check,
+          run: () => {
+            emit.cannonAttackWall(cannonId, edgeId, false);
+            clearPicks();
+          },
+          eligible: check.allowed,
+          direction: dir,
+          angle,
+        };
+      })
+    );
+    const explosiveWallChips: BubbleAction[] = stationed.flatMap((cannonId) =>
+      walledEdges(cannonId).map(({ edgeId, dir, angle }) => {
+        const check = rules.cannonWallCheck(cannonId, edgeId, true);
+        return {
+          key: `wall-explosive-${cannonId}-${edgeId}`,
+          icon: 'wall' as const,
+          label: `Blast ${dir}`,
+          costText: React.createElement(PriceText, { price: ExplosiveShotPrice }),
+          check,
+          run: () => {
+            emit.cannonAttackWall(cannonId, edgeId, true);
+            clearPicks();
+          },
+          eligible: check.allowed,
+          direction: dir,
+          angle,
+        };
+      })
+    );
+    if (singleWallChips.length > 0 || explosiveWallChips.length > 0) {
+      actions.push(
+        choiceGroup(
+          {
+            key: 'attack-wall',
+            icon: 'wall',
+            label: 'Attack Wall',
+            costText: 'Pick a shot',
+            family: 'artillery',
+          },
+          [
+            {
+              key: 'wall-shot-single',
+              icon: 'cannon',
+              label: 'Single shot',
+              costText: 'roll to breach · 1 action',
+              check: singleWallChips.find((c) => c.check.allowed)?.check ?? singleWallChips[0]?.check ?? ALLOWED,
+              run: () => {},
+              eligible: true,
+              pinned: true,
+              choices: singleWallChips,
+            },
+            {
+              key: 'wall-shot-explosive',
+              icon: 'cannon',
+              label: 'Explosive shot',
+              costText: React.createElement(PriceText, { price: ExplosiveShotPrice }),
+              check:
+                explosiveWallChips.find((c) => c.check.allowed)?.check ??
+                explosiveWallChips[0]?.check ??
+                ALLOWED,
+              run: () => {},
+              eligible: true,
+              pinned: true,
+              choices: explosiveWallChips,
+            },
+          ],
+          { allowed: false, reason: 'No wall in range' }
+        )
+      );
+    }
 
     // Downgrade back to infantry (anywhere, costs the action).
-    const downgrade = firstOk((id) => rules.downgradeCannonCheck(id));
+    const downgrade = firstCannon((id) => rules.downgradeCannonCheck(id));
     actions.push({
       key: 'downgrade-cannon',
       icon: 'recruit',
@@ -510,13 +541,14 @@ export const soldierActions = (
   if (room.shipsEnabled) {
     const ship = board.ships && Object.values(board.ships).find((s) => s.vertexId === vertex.id);
     if (ship && group.some((id) => board.soldiers[id]?.aboardShipId === null)) {
+      const boarder = firstAllowed(group, (id) => rules.embarkCheck(id, ship.id));
       const boarders = group.filter((id) => rules.embarkCheck(id, ship.id).allowed);
       actions.push({
         key: 'embark',
         icon: 'ship',
         label: boarders.length > 1 ? `Board Ship (${boarders.length})` : 'Board Ship',
         costText: '1 action each',
-        check: boarders.length > 0 ? ALLOWED : rules.embarkCheck(group[0], ship.id),
+        check: boarder.check,
         run: () => {
           for (const id of boarders) emit.embarkSoldier(id, ship.id);
           clearPicks();

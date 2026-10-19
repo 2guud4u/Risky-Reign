@@ -54,6 +54,15 @@ export const ShipPrice: Price = { Wood: 1, Brick: 0, Sheep: 1, Wheat: 0, Ore: 0 
 export const ShipSettlePrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 1, Ore: 1 };
 /** Cannon splash attack cost (per shot). */
 export const SplashPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1 };
+/** Explosive wall shot cost (per shot) — the guaranteed breach. */
+export const ExplosiveShotPrice: Price = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1 };
+
+/**
+ * How long a pending wall-shot breach roll waits for the shooter's click
+ * before the server rolls the die for them (mirrors the wall gate's 30s
+ * input windows, shortened for a one-side prompt).
+ */
+export const WALL_SHOT_ROLL_MS = 10_000;
 /** Wall-gate roll needed for a cannon to breach a wall (4+ on a d6). */
 export const CANNON_WALL_HIT = 4;
 
@@ -146,6 +155,12 @@ export const CONQUEROR_MIN = 3;
 export const ADMIRAL_MIN = 3;
 /** Victory points The Admiral awards (1 — less than the other bonuses). */
 export const ADMIRAL_VP = 1;
+/** Minimum connected wall run for The Great Wall bonus. */
+export const GREAT_WALL_MIN = 3;
+/** Victory points The Great Wall awards. */
+export const GREAT_WALL_VP = 1;
+/** Cannon roll needed to breach a Great Wall holder's walls. */
+export const GREAT_WALL_HIT = 5;
 /** Victory points awarded by each bonus. */
 export const BONUS_VP = 2;
 /** Victory points needed to win the game (standard Catan: first to 10 VP on your turn). */
