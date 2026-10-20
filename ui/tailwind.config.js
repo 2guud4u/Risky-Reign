@@ -30,17 +30,30 @@ export default {
           soft: '#d98f72',
           pale: '#fbe8de',
         },
-        // Moss — warm green for success/go states.
+        // Moss — bright green for success/go states.
         moss: {
-          DEFAULT: '#6b8e4e',
-          soft: '#8fae6f',
-          pale: '#eef4e4',
+          DEFAULT: '#57f800ff',
+          soft: '#59ff00ff',
+          pale: '#eef7e3',
         },
         // Sky — warm blue for info/neutral accents.
         sky: {
           DEFAULT: '#4a7ea8',
           soft: '#6f9fc4',
           pale: '#e3f0f8',
+        },
+        // Phase accents — saturated standouts for the turn status bar so the
+        // current phase reads at a glance. Same hue families, hotter tone.
+        phase: {
+          setup: '#2f9ee0',
+          dice: '#f2ad1f',
+          build: '#4fbd29',
+          action: '#e06334',
+        },
+        // Alert — notification badges (chat, trade counts). Bright, urgent red.
+        alert: {
+          DEFAULT: '#e5342a',
+          soft: '#f56b60',
         },
       },
       borderRadius: {

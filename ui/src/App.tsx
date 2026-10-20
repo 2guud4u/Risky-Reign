@@ -2,6 +2,7 @@ import React from 'react';
 import { GameRoomProvider } from './contexts/GameContext';
 import { SocketProvider } from './contexts/SocketContext';
 import RoomSession from './components/RoomSession';
+import Button from './components/ui/Button';
 
 /**
  * Catches render errors from server-pushed room state (a malformed payload,
@@ -26,18 +27,19 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-dvh bg-gray-100">
-          <div className="bg-white rounded-lg shadow p-8 max-w-[480px] w-full text-center">
+        <div className="flex items-center justify-center min-h-dvh bg-canvas-sunken">
+          <div className="bg-canvas-raised rounded-lg shadow p-8 max-w-[480px] w-full text-center">
             <h1 className="text-2xl font-bold mb-3">Something went wrong</h1>
-            <p className="text-gray-600 mb-5">
+            <p className="text-ink-soft mb-5">
               The game hit an unexpected state. Reload to rejoin your room.
             </p>
-            <button
+            <Button
+              variant="unstyled"
               onClick={() => window.location.reload()}
-              className="w-full py-2 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer"
+              className="w-full py-2 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-sky"
             >
               Reload
-            </button>
+            </Button>
           </div>
         </div>
       );

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { BOARD_RADIUS, domainToPresentation, BoardUIState } from 'common';
-import { useGameActions, useGameState, useSelection } from '../contexts/GameContext';
+import { useGameActions, useGameState, usePlayers, useSelection } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
+import Button from '../components/ui/Button';
 import { useOnEffect } from '../effects';
 import { SoldierBadges } from '../components/SoldierBadges';
 import { BoardSoldiers } from '../components/board/BoardSoldiers';
@@ -10,6 +11,7 @@ import { actableSoldierIds, knightSpawnTargets, movableSoldierIds, robberPlaceme
 import { mouseToSvgPoint, nearestWithin } from '../utils/boardInteraction';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
+import BuildAnimationLayer from '../components/board/BuildAnimationLayer';
 import { ShipLayer } from '../components/board/ShipLayer';
 import { PortLayer } from '../components/board/PortLayer';
 import { RobberBagPopup } from '../components/board/RobberBagPopup';
@@ -182,7 +184,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
       .filter((p): p is { x: number; y: number } => !!p);
     if (ship) points.unshift(board.vertices[ship.vertexId]?.position ?? { x: 0, y: 0 });
     zoomToFit(points, SAIL_FIT_PADDING);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref-gated: fits only on entering the mode
+     
   }, [sailingShipId, board, sailTargetPaths, zoomToFit]);
 
   /** Commit the sail to `targetId` (one moveShip per hop) and exit pick-mode. */
@@ -256,7 +258,11 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // from before the click-to-focus — except after sail pick-mode, which
   // keeps its zoomed-out frame.
   useEffect(() => {
-    if (!selectedObject) (wasSailingRef.current ? forgetView : restoreView)();
+    if (!selectedObject) {
+      const wasSailing = wasSailingRef.current;
+      wasSailingRef.current = false;
+      (wasSailing ? forgetView : restoreView)();
+    }
   }, [selectedObject, restoreView, forgetView]);
   useEffect(() => {
     wasSailingRef.current = wasSailingRef.current || !!sailingShipId;
@@ -307,11 +313,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // player's color. Memoized so the layer components (React.memo) get a
   // stable function reference and don't re-render on pan/zoom. Null-safe so it
   // can run before the early return below.
-  const colorOf = useCallback(
-    (ownerId: string | null): string | undefined =>
-      !ownerId ? undefined : gameRoom?.players.find((p) => p.name === ownerId)?.color,
-    [gameRoom?.players]
-  );
+  const { colorOf } = usePlayers();
 
   // Owner -> color as a plain map, for the zoomed-in soldier sprites.
   const playerColors = useMemo(() => playerColorMap(gameRoom), [gameRoom]);
@@ -360,13 +362,23 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
   const handleEdgeClick = useCallback(
     (edgeId: string) => {
+      if (sailingShipId) {
+        if (lastPointerTypeRef.current === 'touch') return;
+        const e2 = base?.edges[edgeId];
+        commitSail(
+          nearestSailTarget(
+            e2 ? { x: (e2.start.x + e2.end.x) / 2, y: (e2.start.y + e2.end.y) / 2 } : null
+          )
+        );
+        return;
+      }
       setSelectedObject({ type: 'edge', id: edgeId });
       const e = base?.edges[edgeId];
       if (e && isPlaying) {
         focusOn({ x: (e.start.x + e.end.x) / 2, y: (e.start.y + e.end.y) / 2 }, SELECT_FOCUS_ZOOM);
       }
     },
-    [setSelectedObject, base, isPlaying, focusOn]
+    [setSelectedObject, base, isPlaying, focusOn, sailingShipId, nearestSailTarget, commitSail]
   );
 
   const onRobberHover = useCallback(
@@ -424,7 +436,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
   // `board` is non-null whenever `base` is (the memo derives from it). This
   // early return must stay below every hook call above.
   if (!base || !gameRoom || !board || !layered) {
-    return <div className="text-center text-gray-500">Loading board...</div>;
+    return <div className="text-center text-ink-faint">Loading board...</div>;
   }
   const { vertices, edges, hexes } = layered;
   const robberHex = hexes.find((h) => h.hasRobber);
@@ -448,14 +460,14 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
         className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden bg-ocean"
       >
         {viewport.isDirty && (
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={viewport.reset}
-            className="absolute top-2 right-2 z-10 px-2.5 py-1 text-[12px] font-semibold rounded-md bg-white border border-gray-300 shadow cursor-pointer text-gray-600 hover:text-gray-900"
+            className="absolute top-2 right-2 z-10"
             title="Reset zoom and position"
           >
             Reset
-          </button>
+          </Button>
         )}
         <svg
           ref={svgRef}
@@ -463,12 +475,15 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
           width={isPlaying ? '100%' : renderSize}
           height={isPlaying ? '100%' : renderSize}
           viewBox={viewport.viewBox}
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'none', cursor: sailingShipId ? 'crosshair' : undefined }}
           onDragStart={(e) => e.preventDefault()}
-          onPointerMove={handlePointerMove}
+          onPointerDown={handleBoardPointerDown}
+          onPointerMove={handleBoardPointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={cancelDrag}
           onPointerLeave={cancelDrag}
+          onClick={handleBoardClick}
+          onContextMenu={handleBoardContextMenu}
           onMouseDown={viewport.onMouseDown}
           onDoubleClick={viewport.onDoubleClick}
         >
@@ -495,6 +510,10 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
 
           {/* Vertices layer */}
           <VertexLayer vertices={vertices} onClick={handleVertexClick} onHover={setHoveredVertexId} />
+
+          {/* Build animations: piece pops/grow/smoke replayed from board
+              diffs; cosmetic only, claims the real piece while playing. */}
+          <BuildAnimationLayer base={base} colorOf={colorOf} />
 
           {/* Ships on their water vertices (above the vertex layer so a
               click reaches the ship first). */}
@@ -532,8 +551,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                   position: board.vertices[id].position,
                   badge: path.length,
                 }))}
-                onSelect={handleVertexClick}
-                onHover={setSailHoverId}
+                onSelect={(id) => commitSail(id)}
                 label="Sail here"
                 tone="blue"
               />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardEdge as BoardEdgeType } from 'common';
 import { ROAD_HIT_WIDTH } from '../constants';
+import { usePieceHidden } from './board/buildFx';
 
 interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;
@@ -39,15 +40,18 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
     onHover(null);
   };
 
+  // Hidden while a build animation stands in for the road (buildFx).
+  const pieceHidden = usePieceHidden(id);
+  const roadDrawn = hasRoad && !pieceHidden;
   const getStrokeColor = () => {
     if (isHovered) return '#FFA500';
-    if (hasRoad) return ownerColor ?? '#8B4513';
+    if (roadDrawn) return ownerColor ?? '#8B4513';
     if (!isSelectable) return '#999';
     return '#383636';
   };
 
   const getStrokeWidth = () => {
-    if (hasRoad) return isWall ? 10 : 8;
+    if (roadDrawn) return isWall ? 10 : 8;
     return 4;
   };
 
@@ -111,7 +115,7 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
       {/* Wall: the extracted fortress sprite, rotated to sit perpendicular
           across the road. Three baked orientations cover the hex edges;
           we pick the nearest and rotate the small remainder. */}
-      {hasRoad && isWall && length > 0 && (() => {
+      {roadDrawn && isWall && length > 0 && (() => {
         const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
         // Wall sprites were captured perpendicular to their edge in the
         // source hex (edges at ~30/90/150 degrees); bucket to the closest.

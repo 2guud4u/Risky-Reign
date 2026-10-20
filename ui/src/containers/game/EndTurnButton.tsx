@@ -5,6 +5,7 @@ import { nothingBuildable } from '../../board/actions';
 import { actableSoldierIds } from '../../board/selectors';
 import { useTutorialHints } from '../../utils/tutorial';
 import GameIcon from '../../components/ui/GameIcon';
+import Button from '../../components/ui/Button';
 
 /**
  * Turn controls. SetUp and Dice phases advance automatically (setup once the
@@ -79,7 +80,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
         className={
           snack
             ? 'text-[13px] font-semibold'
-            : 'px-4 py-2 text-sm rounded-md border border-blue-200 bg-blue-50 text-blue-800'
+            : 'px-4 py-2 text-sm rounded-md border border-sky-soft/60 bg-sky-pale text-sky'
         }
       >
         {isMyTurn ? (
@@ -87,7 +88,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
             <>
               Place ({setupRound}/2): {needs.join(' + ')}
               {!snack && (
-                <span className="block text-xs text-blue-600 mt-0.5">
+                <span className="block text-xs text-sky mt-0.5">
                   Setup places two settlements + two roads per player
                   {setupRound === 2 ? ' — this is your last one.' : '.'}
                 </span>
@@ -112,7 +113,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
         className={
           snack
             ? 'text-[13px] font-semibold'
-            : 'px-4 py-2 text-sm rounded-md border border-blue-200 bg-blue-50 text-blue-800'
+            : 'px-4 py-2 text-sm rounded-md border border-sky-soft/60 bg-sky-pale text-sky'
         }
       >
         {isMyTurn ? (
@@ -120,7 +121,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
             <>
               Move the robber to continue
               {!snack && (
-                <span className="block text-xs text-blue-600 mt-0.5">
+                <span className="block text-xs text-sky mt-0.5">
                   You rolled a 7 — drag the black robber to a hex on the board.
                 </span>
               )}
@@ -129,7 +130,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
             <>
               {gameRoom.turnState.offset === 1 ? 'Second roll: roll both dice' : 'Roll both dice to continue'}
               {!snack && (
-                <span className="block text-xs text-blue-600 mt-0.5">
+                <span className="block text-xs text-sky mt-0.5">
                   The phase ends automatically once both dice are rolled.
                 </span>
               )}
@@ -147,8 +148,8 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
 
   const buttonClass =
     variant === 'snackbar'
-      ? 'px-3 py-3 md:py-1.5 text-[13px] font-bold rounded-md bg-white text-gray-900 cursor-pointer hover:bg-white/90'
-      : 'w-full px-4 py-2 text-sm text-center rounded-md border border-gray-300 bg-blue-600 text-white cursor-pointer';
+      ? 'px-3 py-3 md:py-1.5 text-[13px] font-bold rounded-md bg-canvas-raised text-ink cursor-pointer hover:bg-canvas-sunken'
+      : 'w-full px-4 py-2 text-sm text-center rounded-md border border-ink-faint/50 bg-sky text-white cursor-pointer';
 
   return (
     <div className="flex flex-col gap-1">
@@ -158,8 +159,8 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
         <div
           className={
             snack
-              ? 'flex items-center justify-center gap-1.5 text-[13px] font-bold text-amber-200'
-              : 'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[13px] font-bold rounded-md border border-amber-300 bg-amber-50 text-amber-800'
+              ? 'flex items-center justify-center gap-1.5 text-[13px] font-bold text-gold-soft'
+              : 'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[13px] font-bold rounded-md border border-gold bg-gold-pale text-gold-deep'
           }
         >
           <span className="pointer-finger inline-flex" aria-hidden="true">
@@ -173,21 +174,21 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
           className={
             snack
               ? 'text-[13px] font-bold'
-              : 'w-full px-4 py-2 text-sm text-center rounded-md border border-gray-300 bg-gray-200 text-gray-500'
+              : 'w-full px-4 py-2 text-sm text-center rounded-md border border-ink-faint/50 bg-canvas-sunken text-ink-faint'
           }
         >
           Move the robber to an adjacent hex first
         </div>
       ) : isMyTurn ? (
-        <button onClick={handleClick} className={buttonClass}>
+        <Button variant="unstyled" onClick={handleClick} className={buttonClass}>
           {phaseText(gameRoom.turnState.phase)}
-        </button>
+        </Button>
       ) : (
         <div
           className={
             snack
               ? 'text-[13px] font-semibold'
-              : 'px-4 py-2 text-sm text-center rounded-md border border-gray-300 bg-gray-200 text-gray-500'
+              : 'px-4 py-2 text-sm text-center rounded-md border border-ink-faint/50 bg-canvas-sunken text-ink-faint'
           }
         >
           Waiting on {gameRoom.turnState.player}
@@ -197,8 +198,8 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
         <div
           className={
             snack
-              ? 'text-[11px] font-semibold text-amber-200'
-              : 'px-2 py-1 text-xs text-center rounded border border-amber-200 bg-amber-50 text-amber-800'
+              ? 'text-[11px] font-semibold text-gold-soft'
+              : 'px-2 py-1 text-xs text-center rounded border border-gold-soft bg-gold-pale text-gold-deep'
           }
         >
           <GameIcon name="warning" size={11} className="inline -mt-0.5" /> {soldiersWithActionsLeft} soldier{soldiersWithActionsLeft > 1 ? 's' : ''} can still act
@@ -209,7 +210,7 @@ const EndTurnButton: React.FC<{ variant?: 'panel' | 'snackbar' }> = ({ variant =
           className={
             snack
               ? 'text-[11px] font-semibold'
-              : 'px-2 py-1 text-xs text-center rounded border border-gray-200 bg-gray-50 text-gray-600'
+              : 'px-2 py-1 text-xs text-center rounded border border-ink-faint/40 bg-canvas-sunken text-ink-soft'
           }
         >
           ⏱ {Math.floor(secsLeft / 60)}:{String(secsLeft % 60).padStart(2, '0')} left this phase

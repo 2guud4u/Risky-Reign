@@ -3,9 +3,9 @@ import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
-import Dice from '../components/Dice';
+import Dice from '../components/ui/Dice';
 import GameIcon from '../components/ui/GameIcon';
-import { playerColorMap } from '../utils/soldierPlacement';
+import { usePlayers } from '../contexts/GameContext';
 import { TintedImg } from '../components/TintedSprite';
 import { CANNON_UNSTATIONED_ART, INJURED_SOLDIER_ART, SOLDIER_ART } from '../utils/tintedArt';
 
@@ -26,7 +26,7 @@ const WallGatePrompt: React.FC = () => {
 
   const gate = gameRoom?.wallGate ?? null;
   const open = !!gate;
-  const colors = gameRoom ? playerColorMap(gameRoom) : {};
+  const { colorOf } = usePlayers();
 
   const me = currentPlayer?.name;
   const isCrosser = gate?.crosserName === me;
@@ -36,7 +36,7 @@ const WallGatePrompt: React.FC = () => {
   const NameChip: React.FC<{ name: string }> = ({ name }) => (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white"
-      style={{ backgroundColor: colors[name] ?? '#64748b' }}
+      style={{ backgroundColor: colorOf(name) ?? "#64748b" }}
     >
       {name}{name === me ? ' (you)' : ''}
     </span>
@@ -49,27 +49,27 @@ const WallGatePrompt: React.FC = () => {
           {/* Versus header, battle-HUD style: crosser vs wall owner. */}
           <div className="flex items-center justify-center gap-2">
             <NameChip name={gate.crosserName} />
-            <GameIcon name="wall" size={18} className="text-gray-500" />
+            <GameIcon name="wall" size={18} className="text-ink-faint" />
             <NameChip name={gate.wallOwnerName} />
           </div>
 
           {/* The piece under dispute: the crossing soldier in its owner's
               color, held at the extracted wall sprite. */}
-          <div className="flex items-center justify-center gap-6 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+          <div className="flex items-center justify-center gap-6 rounded-lg bg-canvas-sunken border border-ink-faint/40 px-4 py-3">
             <div className="flex flex-col items-center gap-1">
               {soldier?.type === 'cannon' ? (
                 // Only an unstationed cannon can move, so it crosses as the
                 // gunner carrying its ammo crate.
-                <TintedImg art={CANNON_UNSTATIONED_ART} color={colors[gate.crosserName] ?? '#64748b'} width={86} height={72} />
+                <TintedImg art={CANNON_UNSTATIONED_ART} color={colorOf(gate.crosserName) ?? "#64748b"} width={86} height={72} />
               ) : (
                 <TintedImg
                   art={soldier?.injured ? INJURED_SOLDIER_ART : SOLDIER_ART}
-                  color={colors[gate.crosserName] ?? '#64748b'}
+                  color={colorOf(gate.crosserName) ?? "#64748b"}
                   width={56}
                   height={72}
                 />
               )}
-              <span className="text-[11px] font-semibold text-gray-600">
+              <span className="text-[11px] font-semibold text-ink-soft">
                 {soldier?.type === 'cannon' ? 'Cannon' : 'Soldier'}
               </span>
             </div>
@@ -84,26 +84,26 @@ const WallGatePrompt: React.FC = () => {
           {/* Dice line: guess on the left, resolving roll on the right. */}
           <div className="flex items-center justify-center gap-4">
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+              <span className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold">
                 Guess
               </span>
               {gate.guess !== null ? (
                 <Dice value={gate.guess} size={40} circle />
               ) : (
-                <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 grid place-items-center text-gray-300 text-lg font-bold">
+                <div className="w-10 h-10 rounded-full border-2 border-dashed border-ink-faint/50 grid place-items-center text-ink-faint text-lg font-bold">
                   ?
                 </div>
               )}
             </div>
-            <span className="text-gray-400 text-lg font-bold">vs</span>
+            <span className="text-ink-faint text-lg font-bold">vs</span>
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+              <span className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold">
                 Roll
               </span>
               {gate.roll !== null ? (
                 <Dice value={gate.roll} size={40} circle />
               ) : (
-                <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 grid place-items-center text-gray-300 text-lg font-bold">
+                <div className="w-10 h-10 rounded-full border-2 border-dashed border-ink-faint/50 grid place-items-center text-ink-faint text-lg font-bold">
                   ?
                 </div>
               )}
@@ -115,8 +115,8 @@ const WallGatePrompt: React.FC = () => {
             <div
               className={`text-center rounded-md py-1.5 font-extrabold text-[15px] ${
                 gate.guess === gate.roll
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-moss-pale text-moss'
+                  : 'bg-clay-pale text-clay'
               }`}
             >
               {gate.guess === gate.roll ? 'CROSSED — the soldier slips through' : 'HELD — the wall stands'}
@@ -127,26 +127,26 @@ const WallGatePrompt: React.FC = () => {
           {gate.roll === null && gate.guess === null && (
             isCrosser ? (
               <>
-                <p className="m-0 text-[13px] text-gray-600 text-center">
+                <p className="m-0 text-[13px] text-ink-soft text-center">
                   Guess {gate.wallOwnerName}&rsquo;s roll — match and your soldier crosses;
                   miss and its action is spent anyway.
                 </p>
                 <div className="flex gap-2 flex-wrap justify-center">
                   {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <button
+                    <Button
                       key={n}
-                      type="button"
+                      variant="unstyled"
                       onClick={() => wallGuess(n)}
-                      className="cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform"
+                      className="hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform"
                       title={`Guess ${n}`}
                     >
                       <Dice value={n} size={44} circle />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="m-0 text-[13px] text-gray-500 text-center italic">
+              <p className="m-0 text-[13px] text-ink-faint text-center italic">
                 Waiting for {gate.crosserName} to guess the roll…
               </p>
             )
@@ -154,18 +154,15 @@ const WallGatePrompt: React.FC = () => {
           {gate.roll === null && gate.guess !== null && (
             isOwner ? (
               <>
-                <p className="m-0 text-[13px] text-gray-600 text-center">
+                <p className="m-0 text-[13px] text-ink-soft text-center">
                   {gate.crosserName} guessed — roll the gate die to see if your wall holds.
                 </p>
-                <Button
-                  onClick={() => rollWallGate()}
-                  className="w-full !bg-blue-600 !text-white !font-semibold hover:!bg-blue-700"
-                >
+                <Button variant="primary" onClick={() => rollWallGate()} className="w-full">
                   Roll the gate die
                 </Button>
               </>
             ) : (
-              <p className="m-0 text-[13px] text-gray-500 text-center italic">
+              <p className="m-0 text-[13px] text-ink-faint text-center italic">
                 Waiting for {gate.wallOwnerName} to roll the gate die…
               </p>
             )

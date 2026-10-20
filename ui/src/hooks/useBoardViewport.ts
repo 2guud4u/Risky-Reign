@@ -203,6 +203,42 @@ export function useBoardViewport(
     markDirty(false);
   }, [animateTo, markDirty]);
 
+  /**
+   * Glide to the smallest view containing every `point` (board coords) plus
+   * `pad` units of margin — sail pick mode frames the ship with all its
+   * reachable targets. Zooms out (or in) exactly to the box, and the saved
+   * pre-focus view is left untouched.
+   */
+  const zoomToFit = useCallback(
+    (points: { x: number; y: number }[], pad = 0) => {
+      if (points.length === 0) return;
+      const xs = points.map((p) => p.x);
+      const ys = points.map((p) => p.y);
+      const { halfW: hw, halfH: hh } = extentRef.current;
+      const zoom = Math.min(
+        MAX_ZOOM,
+        hw / Math.max((Math.max(...xs) - Math.min(...xs)) / 2 + pad, 1e-6),
+        hh / Math.max((Math.max(...ys) - Math.min(...ys)) / 2 + pad, 1e-6)
+      );
+      // Instant (not the eased animateTo): entering pick mode shouldn't be
+      // cancellable by an in-flight focus animation or a stalled frame loop.
+      cancelAnim();
+      zoomRef.current = zoom;
+      centerRef.current = {
+        x: (Math.min(...xs) + Math.max(...xs)) / 2,
+        y: (Math.min(...ys) + Math.max(...ys)) / 2,
+      };
+      applyViewBox();
+      markDirty(true);
+    },
+    [applyViewBox, cancelAnim, markDirty]
+  );
+
+  /** Drop the remembered pre-focus view — sail pick mode keeps its zoomed-out frame. */
+  const forgetView = useCallback(() => {
+    savedViewRef.current = null;
+  }, []);
+
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.shiftKey) reset();
@@ -381,6 +417,8 @@ export function useBoardViewport(
     focusOn,
     restoreView,
     fitView,
+    zoomToFit,
+    forgetView,
     onMouseDown,
   };
 }

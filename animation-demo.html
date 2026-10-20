@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Build animations demo</title>
+<style>
+  :root {
+    --fg: #e8e6e1;
+    --muted: #9a958c;
+    --surface: #26241f;
+    --bg: #1a1916;
+    --piece: #e67e22;
+    --piece-dark: #b95f10;
+    --smoke: #c9c4bb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    font: 14px/1.4 system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+    display: flex; flex-direction: column; align-items: center; gap: 24px;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  .hint { color: var(--muted); margin: 0; }
+  .row { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .card {
+    background: var(--surface); border-radius: 12px; padding: 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    cursor: pointer; user-select: none;
+    border: 1px solid #3a3833;
+  }
+  .card:hover { border-color: #55524a; }
+  .card .label { font-weight: 600; }
+  .card .sub { color: var(--muted); font-size: 12px; }
+  .controls { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  svg { display: block; }
+
+  /* ---------- pieces ---------- */
+  .vertex-dot { fill: #55524a; }
+
+  /* ---------- settlement pop: 450ms squash-bounce ---------- */
+  .pop-piece { transform-origin: var(--ox) var(--oy); }
+  .playing .pop-piece {
+    animation: pop 450ms cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes pop {
+    0%   { transform: scale(0, 0); }
+    55%  { transform: scale(1.18, 0.82); }
+    78%  { transform: scale(0.94, 1.06); }
+    100% { transform: scale(1, 1); }
+  }
+
+  /* ---------- road grow: 350ms draw along the edge ---------- */
+  .road-stroke {
+    fill: none; stroke: var(--piece); stroke-width: 13; stroke-linecap: round;
+    stroke-dasharray: var(--len); stroke-dashoffset: 0;
+  }
+  .playing .road-stroke {
+    stroke-dashoffset: var(--len);
+    animation: grow 350ms ease-out forwards;
+  }
+  @keyframes grow { to { stroke-dashoffset: 0; } }
+
+  /* ---------- city upgrade: ~800ms ---------- */
+  .old-piece { transform-origin: var(--ox) var(--oy); }
+  .playing .old-piece { animation: sink 200ms ease-in forwards; }
+  @keyframes sink { to { transform: scale(0.85, 0.4); opacity: 0; } }
+
+  .city-piece { transform-origin: var(--ox) var(--oy); opacity: 0; }
+  .playing .city-piece {
+    animation: pop 320ms cubic-bezier(.34,1.56,.64,1) 560ms both;
+  }
+
+  .puff {
+    fill: var(--smoke); opacity: 0;
+    transform-origin: var(--ox) var(--oy);
+  }
+  .playing .puff { animation: puff 620ms ease-out forwards; }
+  .p1 { animation-delay: 60ms  !important; }
+  .p2 { animation-delay: 140ms !important; }
+  .p3 { animation-delay: 220ms !important; }
+  .p4 { animation-delay: 300ms !important; }
+  .p5 { animation-delay: 180ms !important; }
+  @keyframes puff {
+    0%   { opacity: 0;   transform: translate(0, 0)      scale(0.3); }
+    25%  { opacity: 0.85; }
+    100% { opacity: 0;   transform: translate(var(--dx), -46px) scale(1.35); }
+  }
+
+  /* ---------- instant mode ---------- */
+  .instant .pop-piece, .instant .city-piece,
+  .instant .road-stroke, .instant .old-piece, .instant .puff {
+    animation: none !important;
+  }
+  .instant .city-piece { opacity: 1; }
+  .instant .old-piece  { opacity: 0; }
+  .instant .road-stroke { stroke-dashoffset: 0; }
+</style>
+</head>
+<body>
+  <h1>Build animations — proposed look</h1>
+  <p class="hint">Click a card to replay. Same timings as the design: road 350ms · settlement 450ms · city ~900ms.</p>
+  <label class="controls">
+    <input type="checkbox" id="skip"> Skip animations (what players feel if we cut them / reduced-motion)
+  </label>
+  <div class="row" id="row">
+
+    <div class="card" data-demo="road">
+      <svg width="240" height="160" viewBox="0 0 240 160">
+        <!-- ground edge -->
+        <line x1="55" y1="115" x2="185" y2="65" stroke="#3a3833" stroke-width="4"/>
+        <circle class="vertex-dot" cx="55"  cy="115" r="5"/>
+        <circle class="vertex-dot" cx="185" cy="65"  r="5"/>
+        <!-- the road, drawn as a stroke that grows A→B -->
+        <path class="road-stroke" d="M55 115 L185 65" style="--len: 139.3"/>
+      </svg>
+      <div class="label">Road</div>
+      <div class="sub">grows along the edge · 350ms</div>
+    </div>
+
+    <div class="card" data-demo="settle">
+      <svg width="240" height="160" viewBox="0 0 240 160">
+        <circle class="vertex-dot" cx="120" cy="118" r="5"/>
+        <g class="pop-piece" style="--ox:120px; --oy:118px">
+          <!-- house: body + gable roof -->
+          <rect x="103" y="92" width="34" height="24" rx="2" fill="var(--piece)"/>
+          <path d="M98 94 L120 74 L142 94 Z" fill="var(--piece-dark)"/>
+        </g>
+      </svg>
+      <div class="label">Settlement</div>
+      <div class="sub">squash-bounce pop · 450ms</div>
+    </div>
+
+    <div class="card" data-demo="city">
+      <svg width="240" height="160" viewBox="0 0 240 160">
+        <circle class="vertex-dot" cx="120" cy="124" r="5"/>
+        <!-- settlement being upgraded -->
+        <g class="old-piece" style="--ox:120px; --oy:124px">
+          <rect x="105" y="100" width="30" height="22" rx="2" fill="var(--piece)"/>
+          <path d="M101 102 L120 84 L139 102 Z" fill="var(--piece-dark)"/>
+        </g>
+        <!-- smoke puffs -->
+        <circle class="puff p1" style="--ox:120px; --oy:100px; --dx:-14px" cx="120" cy="100" r="13"/>
+        <circle class="puff p2" style="--ox:112px; --oy:96px;  --dx:-24px" cx="112" cy="96"  r="10"/>
+        <circle class="puff p3" style="--ox:128px; --oy:96px;  --dx:20px"  cx="128" cy="96"  r="11"/>
+        <circle class="puff p4" style="--ox:120px; --oy:90px;  --dx:6px"   cx="120" cy="90"  r="9"/>
+        <circle class="puff p5" style="--ox:106px; --oy:104px; --dx:-30px" cx="106" cy="104" r="8"/>
+        <!-- city revealed by the pop -->
+        <g class="city-piece" style="--ox:120px; --oy:124px">
+          <rect x="99" y="98" width="30" height="24" rx="2" fill="var(--piece)"/>
+          <path d="M95 100 L114 80 L133 100 Z" fill="var(--piece-dark)"/>
+          <rect x="126" y="106" width="20" height="16" rx="2" fill="var(--piece)"/>
+          <path d="M123 108 L136 92 L149 108 Z" fill="var(--piece-dark)"/>
+        </g>
+      </svg>
+      <div class="label">City upgrade</div>
+      <div class="sub">smoke out the old → city pops · ~900ms</div>
+    </div>
+
+  </div>
+
+<script>
+  const row = document.getElementById('row');
+  const skip = document.getElementById('skip');
+
+  function play(card) {
+    card.classList.remove('playing', 'instant');
+    void card.getBoundingClientRect();          // restart CSS animations
+    card.classList.add(skip.checked ? 'instant' : 'playing');
+  }
+
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => play(card));
+    play(card);                                  // auto-play on load
+  });
+
+  // Re-run everything when toggling instant mode.
+  skip.addEventListener('change', () =>
+    document.querySelectorAll('.card').forEach(play));
+</script>
+</body>
+</html>

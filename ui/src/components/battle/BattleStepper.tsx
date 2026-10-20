@@ -41,14 +41,14 @@ export const BattleStepper: React.FC<{ phase: BattlePhase; retreatPending: boole
         const state = i < current ? 'done' : i === current ? 'now' : 'next';
         return (
           <React.Fragment key={s.key}>
-            {i > 0 && <span className={`w-6 h-0.5 ${i <= current ? 'bg-red-500' : 'bg-gray-200'}`} aria-hidden="true" />}
+            {i > 0 && <span className={`w-6 h-0.5 ${i <= current ? 'bg-clay' : 'bg-canvas-sunken'}`} aria-hidden="true" />}
             <li
               className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full font-semibold ${
                 state === 'now'
-                  ? 'bg-red-600 text-white'
+                  ? 'bg-clay text-white'
                   : state === 'done'
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-clay-pale text-clay'
+                  : 'bg-canvas-sunken text-ink-faint'
               }`}
               aria-current={state === 'now' ? 'step' : undefined}
             >

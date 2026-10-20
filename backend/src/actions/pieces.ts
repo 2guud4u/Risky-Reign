@@ -10,9 +10,9 @@
  * turn.
  */
 import {
-  applyCannonAttack,
+  applyFireRangedShot,
   applyFireWallShot,
-  applyCannonSplash,
+  applyRollCannonShot,
   applyConvertShipToSettlement,
   applyDowngradeCannon,
   applyBuildShip,
@@ -37,6 +37,7 @@ import {
   canMoveShip,
   canRollWallGate,
   canRollWallShot,
+  canRollCannonShot,
   canStationCannon,
   canUnstationCannon,
   canUpgradeCannon,
@@ -91,7 +92,10 @@ export const PIECE_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
     ) => {
       const check = canCannonAttack(room, player, soldierId, targetSoldierId);
       if (!check.allowed) return fail(check.reason ?? 'Cannot fire on that target');
-      applyCannonAttack(room, player, soldierId, targetSoldierId, rollDie(), rollDie());
+      // Committed on fire: the duel opens pending — the shooter rolls the
+      // cannon die and the victim's owner rolls theirs via rollCannonShot.
+      const vertexId = room.board!.soldiers[targetSoldierId]!.vertexId;
+      applyFireRangedShot(room, player, soldierId, [targetSoldierId], vertexId, false);
     },
   },
   cannonSplash: {
@@ -102,12 +106,11 @@ export const PIECE_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
     ) => {
       const check = canCannonSplash(room, player, soldierId, vertexId);
       if (!check.allowed) return fail(check.reason ?? 'Cannot splash that vertex');
-      // One server-rolled d6 per victim on the target vertex.
-      const victimRolls: Record<string, number> = {};
-      for (const s of Object.values(room.board?.soldiers ?? {})) {
-        if (s.vertexId === vertexId && s.id !== soldierId) victimRolls[s.id] = rollDie();
-      }
-      applyCannonSplash(room, player, soldierId, vertexId, rollDie(), victimRolls);
+      // Every soldier on the vertex (the firing cannon excluded) owes a die.
+      const victimIds = Object.values(room.board!.soldiers)
+        .filter((s) => s.vertexId === vertexId && s.id !== soldierId)
+        .map((s) => s.id);
+      applyFireRangedShot(room, player, soldierId, victimIds, vertexId, true);
     },
   },
   cannonAttackWall: {
@@ -131,6 +134,18 @@ export const PIECE_ACTIONS: Record<string, ActionEntry> = freezeWhileBusy({
       const check = canRollWallShot(room, player);
       if (!check.allowed) return fail(check.reason ?? 'Cannot roll now');
       applyRollWallShot(room, player, rollDie());
+    },
+  },
+
+  // Pending participant: a die on the open ranged shot — `soldierId` null is
+  // the cannon's die (shooter only), otherwise that victim's die (owner
+  // only). The server also rolls owed dice after the cannon-shot deadline.
+  rollCannonShot: {
+    run: (room: GameRoom, player: Player, { soldierId }: { roomId: string; soldierId?: string | null }) => {
+      const target = soldierId ?? null;
+      const check = canRollCannonShot(room, player, target);
+      if (!check.allowed) return fail(check.reason ?? 'Cannot roll now');
+      applyRollCannonShot(room, player, target, rollDie());
     },
   },
 

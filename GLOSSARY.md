@@ -12,6 +12,7 @@
 | Hand tray | The wood-grain bar along the bottom edge: resource cards fanned left, dev cards right with a Buy tile; collapses to a pull tab on phones. |
 | Info modal | The tabbed dialog from the ⓘ button on the map's left edge: Pieces, Recipes, Achievements. Every tab shows only what the room's piece flags enable. |
 | Pieces tab | The Info modal's first tab: one card per piece (Soldier, Robber, Cannon, Wall, Ship) with cost and ability bullets; a sidebar (chips on narrow screens) anchor-jumps between cards. |
+| Players-online badge | The top-right pill on the Lobby page: live total of connected clients (in rooms or not), pushed by the server on every connect/disconnect (`onlineCount` event). Hidden while disconnected. |
 
 ## Design language
 
@@ -42,7 +43,7 @@
 |------|---------|
 | Cannon | A healthy soldier upgraded on your settlement (1 wood + 1 ore); injured soldiers must heal first. In melee it always pairs as its side's lowest roll (facing the enemy's weakest die); it cannot be injured — a lost roll kills it — and it wins its ties (no home-field advantage). |
 | Stationed | A cannon emplaced to fire: it can attack (range: one intersection away, or splash) but cannot move until unstationed. Distinct from a freshly-spawned infantry soldier's garrisoned state. |
-| Splash attack | A stationed cannon's area attack (costs 1 ore) at the vertex one intersection away or its own vertex: one roll resolves independently against every soldier there, including the firer's own troops — the cannon itself is immune. |
+| Splash attack | A stationed cannon's area attack (costs 1 ore) at the vertex one intersection away or its own vertex: the cannon's die and every soldier's die are rolled by their owners like a battle — including the firer's own troops — the cannon itself is immune and each roll resolves independently. |
 | Wall | A road upgraded (2 bricks, flipped 90°) that blocks enemy soldiers. Crossing requires the wall gate; a stationed cannon adjacent to it breaks it on a roll of 4+ (5+ while its owner holds The Great Wall) or outright with an Explosive shot. On capture a wall changes hands exactly like the road it sits on. |
 | Explosive shot | A stationed cannon's paid wall attack (1 ore) offered beside the free breach roll: it breaks the wall back into a road outright — no die is rolled, The Great Wall's 5+ doesn't apply. Committed (action spent, undo cleared) the moment it fires. |
 | Wall run | A chain of wall-edges owned by one player, linked end-to-end through vertices that are empty or hold that player's own buildings — an enemy settlement or city on the link vertex severs the run. Length is counted in walls. |
@@ -65,6 +66,7 @@
 | Board selectors | `ui/src/board/selectors.ts`: the UI's one read-model for "who can do what on the board" — actable/movable soldier sets, robber targets, knight spawn targets. Wraps `common`'s authoritative validators; never re-derives rules. |
 | Board actions | `ui/src/board/actions/`: the catalog producing `BubbleAction` descriptors for the Action bubbles — a gate decides which bubbles appear, `check` delegates to `common`'s validators (a shown bubble can still be greyed with the server's reason), `run` emits through the room-bound socket. Choice bubbles expand into per-option chips where the first eligible option wins. The bubbles themselves are pure renderers. |
 | Effect channel | `ui/src/effects.ts`: typed client-side bus (buildAnimation, openTrade, boardFit, tutorial hints) replacing ad-hoc `window.dispatchEvent` channels. |
+| Build animation | `ui/src/components/board/BuildAnimationLayer.tsx` + `buildFx.ts`: cosmetic layer inside the board SVG that replays builds on every client by diffing consecutive presentation boards (`ui/src/utils/buildDiff.ts`). Settlement = scale-pop (~450ms), road = stroke grow along the edge (~350ms), city = smoke puffs then city pop (~880ms). While an animation runs it claims the location in `buildFx` so `BoardVertex`/`BoardEdge` hide the real piece; claims release on finish, unmount, or watchdog — a claim can never outlive its animation. Skipped entirely under `prefers-reduced-motion`. |
 
 ## Map marketplace
 

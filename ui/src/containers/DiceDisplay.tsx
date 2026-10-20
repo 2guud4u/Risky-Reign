@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
-import Dice from '../components/Dice';
+import Dice from '../components/ui/Dice';
 import { DICE_RESULT_LINGER_MS } from '../constants';
 
 /** The side length (px) of the giant dice. */

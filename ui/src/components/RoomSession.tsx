@@ -194,15 +194,18 @@ const RoomSession: React.FC = () => {
   const showOceanBg = view !== 'customizeGame';
 
   return (
-    <div className={`min-h-dvh flex flex-col items-center p-4${showOceanBg ? ' bg-ocean' : ''}`}>
+    <div className={`min-h-dvh flex flex-col items-center${showOceanBg ? ' bg-ocean' : ''}`}>
+      {/* No p-4 on this wrapper: every child page declares its own min-h-dvh +
+          padding, and content-box padding on a min-h-dvh wrapper overflows
+          the viewport by 32px — a permanent scrollbar. */}
       <ConnectionBanner hidden={isConnected} onRetry={() => socket?.connect()} />
       {toast && (
-        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] bg-red-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-[100] bg-clay text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
           {toast}
         </div>
       )}
       {notice && (
-        <div className="fixed bottom-[max(3.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-1/2 -translate-x-1/2 z-[100] bg-amber-600 text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
+        <div className="fixed bottom-[max(3.5rem,calc(1rem+env(safe-area-inset-bottom)))] left-1/2 -translate-x-1/2 z-[100] bg-gold-deep text-white text-[13px] font-semibold px-4 py-2 rounded-md shadow-lg">
           {notice}
         </div>
       )}

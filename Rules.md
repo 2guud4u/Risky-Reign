@@ -49,11 +49,10 @@ A stationed cannon adjacent to a wall can attack it: roll 4+ breaks the wall bac
 
 Cannon
 Upgrade a healthy soldier to a cannon on your settlement/city with 1 rock and 1 wood (an injured soldier must heal first). Starts unstationed. Downgrading back to soldier costs your action and works anywhere.
-Actions: ranged attack (direction aim, with an optional chain-shot toggle), wall attack, station, unstation, move — each costs the cannon's one action per phase.
+Actions: ranged attack, wall attack, station, unstation, move — each costs the cannon's one action per phase. Fire opens a shot-type menu before aiming.
 Can only move while unstationed. Can only attack while stationed.
-Ranged attack: stationed, aim by direction — Fire opens a compass chip per adjacent vertex holding a valid target; a vertex with more than one target asks you to pick the soldier. The cannon and the target each roll; win = margin rules on the target (>=2 kills, 1 injures; a target cannon dies on any loss), ties go to the cannon, lose = nothing happens. Everyone sees the resolved shot briefly.
-Chain shot (toggle inside Fire, replaces the old Splash attack): pay 1 rock to load. Aim at a vertex one intersection away or the cannon's own vertex. Firing with it on hits the whole vertex — the cannon rolls once against every soldier there, even your own — resolving each pair independently. The cannon itself is immune; losing rolls do nothing to it.
-Wall attack: stationed next to a wall, roll 4+ to break it back into a road.
+Ranged attack: stationed — Fire offers Single shot (aim by direction, one compass chip per valid target) or Chain shot (1 rock: aim at a vertex one intersection away or the cannon's own vertex, the cannon immune). Firing opens a duel panel like a battle: the shooter rolls the cannon's die and each targeted soldier's owner rolls that die; the shot resolves when every die is in — win = margin rules on the target, ties go to the cannon, lose = nothing happens. A silent roller is rolled for after 10s. Everyone sees the resolved shot briefly.
+Wall attack: stationed next to a wall — Single shot rolls 4+ (5+ against a Great Wall holder's wall) to break it back into a road; Explosive shot pays 1 rock and breaks it outright, no die. A fired wall shot is committed: the board waits on the table while the breach die is owed, then through its short reveal.
 Shots are final: a ranged attack, chain shot or wall attack can't be undone, and neither can anything you did before it that phase.
 Melee: a cannon in a normal battle always pairs as its side's lowest roll — it faces the enemy's weakest die. It wins its ties (no home field advantage) and dies on ANY lost roll — cannons are never injured.
 On a ship: a cannon can station aboard and fire at targets 1 intersection from the ship's vertex (naval artillery).
@@ -77,3 +76,4 @@ If cannon aboard, it can attack. Station rules apply.
 A Knight spawned where your troops are all aboard a ship joins them aboard.
 Can be turned into a settlement on its own or an adjacent coast vertex with 1 wheat and 1 ore. The distance rule applies. No free garrison soldier. A settlement can't be built under a ship.
 The Admiral: own the largest fleet (at least 3 ships, strictly more than every rival — the holder keeps it on a tie). Worth 1 victory point, and each ship the holder owns gets +1 movement per Action phase.
+The Great Wall: own the longest run of connected walls (at least 3 in a row — an enemy settlement on a junction breaks the run; the holder keeps it on a tie). Worth 1 victory point, and every wall the holder owns needs a roll of 5+ to break instead of 4+.

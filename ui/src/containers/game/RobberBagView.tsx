@@ -17,19 +17,19 @@ const RobberBagView: React.FC = () => {
   const total = RESOURCES.reduce((sum, r) => sum + bag[r], 0);
 
   return (
-    <div className="p-2.5 bg-white flex flex-col gap-1.5 rounded-lg">
+    <div className="p-2.5 bg-canvas-raised flex flex-col gap-1.5 rounded-lg">
       <div className="text-sm font-semibold">Robber's Bag</div>
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-ink-faint">
         {total} card{total === 1 ? '' : 's'}
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {RESOURCES.filter((r) => bag[r] > 0).map((r) => (
           <div
             key={r}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-gray-200 bg-gray-50"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-ink-faint/40 bg-canvas-sunken"
           >
             <GameIcon name={RESOURCE_ICONS[r]} size={18} />
-            <span className="text-sm font-semibold text-gray-700">{bag[r]}</span>
+            <span className="text-sm font-semibold text-ink-soft">{bag[r]}</span>
           </div>
         ))}
       </div>

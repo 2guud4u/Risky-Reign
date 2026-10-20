@@ -3,6 +3,8 @@ import { BoardVertex as BoardVertexType } from 'common';
 import { VERTEX_HIT_SCALE } from '../constants';
 import { TintedSprite } from './TintedSprite';
 import { CITY_ART, SETTLEMENT_ART } from '../utils/tintedArt';
+import { houseFrame } from '../utils/boardPresentation';
+import { usePieceHidden } from './board/buildFx';
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
   onHover: (vertexId: string | null) => void;
@@ -47,16 +49,10 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
     return '#999';
   };
   
-  // Piece art sizing, in multiples of the vertex dot size. The art is cropped
-  // to the visible piece and the sprite is contained in the box (aspect kept),
-  // so the center offset positions it slightly above the vertex. The numbers
-  // match the pre-crop board look; the village (settlement) is larger than a
-  // single house but clearly smaller than a city.
+  // Hidden while a build animation stands in for the piece (buildFx).
+  const pieceHidden = usePieceHidden(id);
   const isCity = settlementLevel === 'city';
-  const houseW = size * (isCity ? 12.9 : 8.0);
-  const houseH = size * (isCity ? 13.61 : 8.14);
-  const houseCx = position.x + size * (isCity ? 0.31 : 0);
-  const houseCy = position.y - size * (isCity ? 2.41 : 2.5);
+  const frame = houseFrame(isCity, position, size);
   return (
     <g
       data-vertex-id={id}
@@ -80,26 +76,26 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
       />
 
       {/* Settlement: whole-village art; the thatched roofs are tinted to the
-          owner's color. */}
-      {hasSettlement && !isCity && (
+          owner's color. Hidden while the build animation stands in. */}
+      {hasSettlement && !isCity && !pieceHidden && (
         <TintedSprite
           art={SETTLEMENT_ART}
           color={ownerColor ?? '#999'}
-          x={houseCx - houseW / 2}
-          y={houseCy - houseH / 2}
-          width={houseW}
-          height={houseH}
+          x={frame.x}
+          y={frame.y}
+          width={frame.w}
+          height={frame.h}
         />
       )}
       {/* City: pre-baked raster; the roof is tinted to the owner's color. */}
-      {hasSettlement && isCity && (
+      {hasSettlement && isCity && !pieceHidden && (
         <TintedSprite
           art={CITY_ART}
           color={ownerColor ?? '#999'}
-          x={houseCx - houseW / 2}
-          y={houseCy - houseH / 2}
-          width={houseW}
-          height={houseH}
+          x={frame.x}
+          y={frame.y}
+          width={frame.w}
+          height={frame.h}
         />
       )}
 

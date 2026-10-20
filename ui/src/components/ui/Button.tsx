@@ -1,6 +1,6 @@
 import React from 'react';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'icon' | 'outline' | 'unstyled';
 type Size = 'sm' | 'md' | 'lg';
 
 const variantClass: Record<Variant, string> = {
@@ -14,6 +14,12 @@ const variantClass: Record<Variant, string> = {
     'bg-transparent text-ink-soft hover:bg-canvas-sunken font-semibold',
   icon:
     'bg-canvas-raised text-ink-soft border border-ink-faint/40 hover:bg-canvas-sunken shadow-card',
+  // Sky-outline action — the "Assign …" / confirm-less action in palettes.
+  outline:
+    'bg-sky-pale text-sky border border-sky font-semibold hover:bg-sky-soft/40',
+  // No chrome at all — for wrappers around rich content (dice, card faces,
+  // drag chips) that style themselves.
+  unstyled: '',
 };
 
 const sizeClass: Record<Size, string> = {
@@ -37,7 +43,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       type="button"
-      className={`inline-flex items-center justify-center gap-1.5 transition-all duration-fast cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none ${variantClass[variant]} ${sizeClass[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 transition-all duration-fast cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none ${variantClass[variant]} ${variant === 'unstyled' ? '' : sizeClass[size]} ${className}`}
       {...rest}
     >
       {icon}

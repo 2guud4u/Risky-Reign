@@ -1,6 +1,7 @@
 import React from 'react';
 import { BattleState } from 'common';
 import GameIcon from '../ui/GameIcon';
+import Button from '../ui/Button';
 
 interface BetweenRoundsControlsProps {
   battle: BattleState;
@@ -29,7 +30,7 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
   const bothStanding = attackerAlive && defenderAlive;
   if (!canContinue) {
     return (
-      <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-[13px] text-gray-600">
+      <div className="rounded-lg bg-canvas-sunken border border-ink-faint/40 px-3 py-2 text-[13px] text-ink-soft">
         Waiting for <strong>{battle.attacker}</strong> to {bothStanding ? 'fight on or stop' : 'see the result'}…
       </div>
     );
@@ -37,28 +38,24 @@ export const BetweenRoundsControls: React.FC<BetweenRoundsControlsProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {bothStanding && (
-        <button
-          type="button"
+        <Button
+          variant="danger"
           onClick={onContinue}
-          className="w-full bg-red-600 text-white rounded-lg py-2.5 text-[14px] font-bold shadow hover:bg-red-700 cursor-pointer"
+          className="w-full !rounded-lg"
         >
           <GameIcon name="attack" size={14} className="inline -mt-0.5" /> Fight round {battle.round + 1}
-        </button>
+        </Button>
       )}
       <div className="flex flex-col gap-1">
-        <button
-          type="button"
+        <Button
+          variant={bothStanding ? 'secondary' : 'danger'}
           onClick={onEnd}
-          className={`w-full rounded-lg py-2 text-[13px] font-semibold cursor-pointer ${
-            bothStanding
-              ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
-              : 'bg-red-600 text-white shadow hover:bg-red-700'
-          }`}
+          className="w-full !rounded-lg"
         >
           {bothStanding ? 'Stop the battle here' : <>See result <GameIcon name="arrowRight" size={12} className="inline -mt-0.5" /></>}
-        </button>
+        </Button>
         {bothStanding && (
-          <div className="text-[11px] text-amber-700 text-center">
+          <div className="text-[11px] text-clay text-center">
             <GameIcon name="warning" size={11} className="inline -mt-0.5" /> Ending now counts as a loss
           </div>
         )}

@@ -31,3 +31,8 @@ export const DETAIL_ZOOM_IN = 4;
 export const SELECT_FOCUS_ZOOM = DETAIL_ZOOM_IN * 1.15;
 /** Duration of the click-to-focus animation, in ms. */
 export const FOCUS_DURATION_MS = 350;
+/** Margin (board units) around the sail pick-mode zoom-to-fit box. */
+export const SAIL_FIT_PADDING = 40;
+/** Pointer drift (screen px) between press and release that still counts as
+ *  a click — sail pick mode ignores commits from pans that ended in place. */
+export const SAIL_CLICK_DRIFT_PX = 8;

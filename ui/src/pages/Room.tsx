@@ -20,7 +20,7 @@ const RoomPage: React.FC<{ error: string | null; onCustomizeGame?: () => void }>
   const { leaveGame: emitLeaveGame, joinRoom: onJoinRoom } = useSocket();
 
   if (!gameRoom) {
-    return <p className="text-center text-gray-500">Loading game...</p>;
+    return <p className="text-center text-ink-faint">Loading game...</p>;
   }
 
   // Spectating (no seat): a started game renders read-only; if the room was

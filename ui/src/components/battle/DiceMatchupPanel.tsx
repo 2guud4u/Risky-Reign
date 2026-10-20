@@ -1,6 +1,6 @@
 import React from 'react';
 import { DiceMatch } from '../../types/battleModal';
-import Dice from '../Dice';
+import Dice from '../ui/Dice';
 
 /** Pip-die size in the matchup rows (px). */
 const MATCHUP_DIE_SIZE = 30;
@@ -20,19 +20,19 @@ interface DiceMatchupPanelProps {
 export const DiceMatchupPanel: React.FC<DiceMatchupPanelProps> = ({ matchup, attacker, defender }) =>
   matchup.length === 0 ? null : (
     <div className="flex flex-col gap-1.5">
-      <div className="grid grid-cols-[1fr_auto_1fr] text-[11px] font-semibold text-gray-500 px-1">
+      <div className="grid grid-cols-[1fr_auto_1fr] text-[11px] font-semibold text-ink-faint px-1">
         <span className="truncate">{attacker}</span>
         <span />
         <span className="truncate text-right">{defender || 'Defender'}</span>
       </div>
       {matchup.map((m, i) => (
-        <div key={i} className="rounded-lg bg-gray-50 border border-gray-200 px-2 py-1.5">
+        <div key={i} className="rounded-lg bg-canvas-sunken border border-ink-faint/40 px-2 py-1.5">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-            <span className={`justify-self-start rounded-lg ${m.a > m.d ? 'ring-2 ring-red-500' : ''}`}>
+            <span className={`justify-self-start rounded-lg ${m.a > m.d ? 'ring-2 ring-clay' : ''}`}>
               <Dice value={m.a} size={MATCHUP_DIE_SIZE} />
             </span>
-            <span className="text-[11px] font-bold text-gray-400 px-2">vs</span>
-            <span className={`justify-self-end rounded-lg ${m.d > m.a ? 'ring-2 ring-blue-500' : ''}`}>
+            <span className="text-[11px] font-bold text-ink-faint px-2">vs</span>
+            <span className={`justify-self-end rounded-lg ${m.d > m.a ? 'ring-2 ring-sky' : ''}`}>
               <Dice value={m.d} size={MATCHUP_DIE_SIZE} />
             </span>
           </div>

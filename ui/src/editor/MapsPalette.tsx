@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapCatalogEntry } from 'common';
 import { MapsPaletteProps } from './types';
 import MapThumbnail from './MapThumbnail';
+import Button from '../components/ui/Button';
 import { inputClass } from './constants';
 
 type Generator = 'standard' | 'expansion';
@@ -57,18 +58,18 @@ const MapsPalette: React.FC<MapsPaletteProps> = ({
   };
 
   return (
-    <div className="p-3 border border-gray-300 rounded-lg bg-white">
+    <div className="p-3 border border-ink-faint/50 rounded-lg bg-canvas-raised">
       <div className="flex items-center justify-between mb-2">
         <div className="flex flex-col">
-          <h3 className="text-sm font-semibold text-gray-700">Maps</h3>
-          <p className="text-xs text-gray-500">Prebuilt boards — load one, tweak it, Save Board.</p>
+          <h3 className="text-sm font-semibold text-ink-soft">Maps</h3>
+          <p className="text-xs text-ink-faint">Prebuilt boards — load one, tweak it, Save Board.</p>
         </div>
-        <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer whitespace-nowrap">
+        <label className="flex items-center gap-1 text-xs text-ink-soft cursor-pointer whitespace-nowrap">
           <input
             type="checkbox"
             checked={favsOnly}
             onChange={(e) => setFavsOnly(e.target.checked)}
-            className={inputClass.replace('w-full', '') + ' accent-amber-500'}
+            className={inputClass.replace('w-full', '') + ' accent-gold'}
           />
           ★ favorites
         </label>
@@ -78,28 +79,32 @@ const MapsPalette: React.FC<MapsPaletteProps> = ({
         {GENERATORS.map(({ kind, label }) =>
           pendingGen === kind ? (
             <div key={kind} className="flex-1 flex items-center gap-1.5">
-              <span className="text-xs text-gray-600">Replace draft?</span>
-              <button
+              <span className="text-xs text-ink-soft">Replace draft?</span>
+              <Button
+                size="sm"
                 onClick={() => generate(kind)}
-                className="px-2 py-1 rounded text-xs font-semibold text-white bg-blue-500 cursor-pointer"
+                className="!bg-sky !text-white"
               >
                 Replace
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant="unstyled"
                 onClick={() => setPendingGen(null)}
-                className="px-2 py-1 rounded text-xs border border-gray-300 text-gray-600 cursor-pointer"
+                className="px-2 py-1 rounded text-xs border border-ink-faint/50 text-ink-soft"
               >
                 Keep
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button
               key={kind}
+              size="sm"
               onClick={() => generate(kind)}
-              className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-sm cursor-pointer hover:bg-gray-200"
+              className="flex-1"
             >
               {label}
-            </button>
+            </Button>
           )
         )}
       </div>
@@ -110,55 +115,60 @@ const MapsPalette: React.FC<MapsPaletteProps> = ({
           const confirming = pendingId === m.id;
           const land = m.layouts.filter((l) => l.terrain !== 'Water').length;
           return (
-            <div key={m.id} className="border border-gray-300 rounded-md overflow-hidden">
-              <div className="bg-sky-50 p-1">
+            <div key={m.id} className="border border-ink-faint/50 rounded-md overflow-hidden">
+              <div className="bg-sky-pale p-1">
                 <MapThumbnail layouts={m.layouts} />
               </div>
               <div className="px-2 py-1.5">
                 <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold text-gray-800">{m.name}</span>
-                  <button
+                  <span className="text-sm font-semibold text-ink">{m.name}</span>
+                  <Button
+                    variant="unstyled"
                     onClick={() => onToggleFavorite(m.id)}
                     title={fav ? 'Remove from favorites' : 'Add to favorites'}
-                    className={`ml-auto text-base leading-none cursor-pointer ${fav ? 'text-amber-500' : 'text-gray-300 hover:text-amber-400'}`}
+                    className={`ml-auto text-base leading-none ${fav ? 'text-gold' : 'text-ink-faint hover:text-gold'}`}
                   >
                     ★
-                  </button>
+                  </Button>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-ink-faint">
                   {m.author} · {land} hexes
                   {m.tags.length > 0 ? ` · ${m.tags.join(', ')}` : ''}
                 </div>
                 {confirming ? (
                   <div className="mt-1.5 flex items-center gap-1.5">
-                    <span className="text-xs text-gray-600">Replace your draft?</span>
-                    <button
+                    <span className="text-xs text-ink-soft">Replace your draft?</span>
+                    <Button
+                      size="sm"
                       onClick={() => load(m)}
-                      className="px-2 py-1 rounded text-xs font-semibold text-white bg-blue-500 cursor-pointer"
+                      className="!bg-sky !text-white"
                     >
                       Replace
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="unstyled"
                       onClick={() => setPendingId(null)}
-                      className="px-2 py-1 rounded text-xs border border-gray-300 text-gray-600 cursor-pointer"
+                      className="px-2 py-1 rounded text-xs border border-ink-faint/50 text-ink-soft"
                     >
                       Keep
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
+                  <Button
+                    size="sm"
                     onClick={() => load(m)}
-                    className="mt-1.5 w-full py-1.5 rounded text-sm font-semibold text-white bg-blue-500 cursor-pointer hover:bg-blue-600"
+                    className="mt-1.5 w-full !bg-sky !text-white hover:!bg-sky-soft"
                   >
                     Load into editor
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
           );
         })}
         {sorted.length === 0 && (
-          <p className="text-xs text-gray-500 text-center py-3">No favorited maps yet.</p>
+          <p className="text-xs text-ink-faint text-center py-3">No favorited maps yet.</p>
         )}
       </div>
     </div>

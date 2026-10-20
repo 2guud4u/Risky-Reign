@@ -89,8 +89,15 @@ export function boardBusy(room: GameRoom): string | null {
   if (room.battleState) return 'A battle is in progress';
   if (room.wallGate && room.wallGate.roll === null) return 'A wall crossing is in progress';
   // A wall breach is on the table from fire to the end of its reveal —
-  // like the gate, the whole board waits out the shot.
-  if (room.cannonShot?.kind === 'wall') return 'A wall breach is in progress';
+  // like the gate, the whole board waits out the shot. A ranged shot
+  // freezes like a battle until every die is in; its reveal doesn't.
+  const shot = room.cannonShot;
+  if (shot?.kind === 'wall') return 'A wall breach is in progress';
+  if (
+    shot &&
+    (shot.cannonRoll === null || shot.victims.some((v) => v.roll === null))
+  )
+    return 'A cannon shot is in progress';
   return null;
 }
 

@@ -7,10 +7,12 @@ import { priceLabel } from '../../utils/price';
 import { RESOURCE_ICONS } from '../../utils/resourceIcons';
 import { emptyPrice } from '../../constants';
 import GameIcon, { IconName } from '../../components/ui/GameIcon';
+import Button from '../../components/ui/Button';
+import Stepper from '../../components/ui/Stepper';
+import ResourceTiles from '../../components/ui/ResourceTiles';
+import OptionGrid from '../../components/ui/OptionGrid';
+import { usePlayers } from '../../contexts/GameContext';
 
-/** Small round +/- button used by every amount control. */
-const stepperBtn =
-  'w-11 h-11 md:w-5 md:h-5 flex items-center justify-center rounded-full border border-gray-300 bg-white text-[16px] md:text-[12px] font-bold text-gray-600 cursor-pointer hover:border-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed';
 
 /** A player-color dot. */
 const Dot: React.FC<{ color?: string; size?: number }> = ({ color, size = 10 }) => (
@@ -21,10 +23,10 @@ const Dot: React.FC<{ color?: string; size?: number }> = ({ color, size = 10 }) 
   />
 );
 
-/** A price as icon chips (e.g. [2 🌾] [1 ⛏️]); red for what you give, green for what you get. */
+/** A price as icon chips (e.g. [2 🌾] [1 ⛏️]); clay for what you give, green for what you get. */
 const PriceChips: React.FC<{ price: Price; tone: 'give' | 'get' }> = ({ price, tone }) => {
   const parts = RESOURCES.filter((k) => price[k] > 0);
-  if (parts.length === 0) return <span className="text-[12px] text-gray-400 italic">nothing</span>;
+  if (parts.length === 0) return <span className="text-[12px] text-ink-faint italic">nothing</span>;
   return (
     <span className="flex flex-wrap gap-1">
       {parts.map((k) => (
@@ -32,7 +34,7 @@ const PriceChips: React.FC<{ price: Price; tone: 'give' | 'get' }> = ({ price, t
           key={k}
           title={`${price[k]} ${k}`}
           className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[13px] font-semibold ${
-            tone === 'give' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-green-50 border-green-200 text-green-800'
+            tone === 'give' ? 'bg-clay-pale border-clay-soft/60 text-clay' : 'bg-phase-build/15 border-phase-build/60 text-phase-build'
           }`}
         >
           {price[k]} <GameIcon name={RESOURCE_ICONS[k]} size={14} className="inline -mt-0.5" />
@@ -42,7 +44,8 @@ const PriceChips: React.FC<{ price: Price; tone: 'give' | 'get' }> = ({ price, t
   );
 };
 
-/** Compact −/value/+ control for one resource amount in the offer grid. */
+/** Compact −/value/+ control for one resource amount in the offer grid —
+ * the shared Stepper wrapped in a tone-tinted tray. */
 const Counter: React.FC<{ value: number; max?: number; onChange: (v: number) => void; tone: 'give' | 'get' }> = ({
   value,
   max,
@@ -50,32 +53,26 @@ const Counter: React.FC<{ value: number; max?: number; onChange: (v: number) => 
   tone,
 }) => (
   <div
-    className={`flex items-center justify-center gap-0.5 rounded-md py-1 ${
-      value > 0 ? (tone === 'give' ? 'bg-red-50' : 'bg-green-50') : 'bg-gray-50'
+    className={`flex items-center justify-center rounded-md py-1 ${
+      value > 0 ? (tone === 'give' ? 'bg-clay-pale' : 'bg-phase-build/15') : 'bg-canvas-sunken'
     }`}
   >
-    <button type="button" className={stepperBtn} disabled={value === 0} onClick={() => onChange(value - 1)} aria-label="Less">
-      −
-    </button>
-    <span className={`w-4 text-center text-[13px] font-bold ${value > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{value}</span>
-    <button
-      type="button"
-      className={stepperBtn}
-      disabled={max !== undefined && value >= max}
-      onClick={() => onChange(value + 1)}
-      aria-label="More"
-    >
-      +
-    </button>
+    <Stepper
+      size="sm"
+      value={value}
+      onDecrement={() => onChange(value - 1)}
+      onIncrement={() => onChange(value + 1)}
+      canIncrement={max === undefined || value < max}
+    />
   </div>
 );
 
 /** A section heading with an optional count pill. */
 const SectionTitle: React.FC<{ children: React.ReactNode; count?: number; accent?: string }> = ({ children, count, accent }) => (
-  <h4 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-gray-500 m-0 mb-2">
+  <h4 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-ink-soft m-0 mb-2">
     {children}
     {count !== undefined && (
-      <span className={`px-1.5 rounded-full text-[11px] font-bold text-white ${accent ?? 'bg-gray-400'}`}>{count}</span>
+      <span className={`px-1.5 rounded-full text-[11px] font-bold text-white ${accent ?? 'bg-ink-faint'}`}>{count}</span>
     )}
   </h4>
 );
@@ -90,10 +87,10 @@ const OfferCard: React.FC<{
 }> = ({ offer, canAccept, canTake, blockedReason }) => {
   const { gameRoom, currentPlayer } = useGameState();
   const { acceptTrade, declineTrade, cancelTrade, takeTrade } = useSocket();
+  const { colorOf } = usePlayers();
   if (!gameRoom || !currentPlayer) return null;
 
   const me = currentPlayer.name;
-  const colorOf = (name: string | null) => gameRoom.players.find((p) => p.name === name)?.color;
   const isOpen = offer.to === null;
   const iAmCreator = offer.from === me;
   const iAmClaimer = offer.claimer === me;
@@ -123,33 +120,26 @@ const OfferCard: React.FC<{
     status = 'offers you a trade';
   }
 
-  const btn = 'px-3 py-1 text-[12px] font-semibold rounded-full border cursor-pointer transition-colors';
-  const accept = `${btn} border-green-700 bg-green-600 text-white hover:bg-green-700`;
-  const decline = `${btn} border-red-200 bg-white text-red-700 hover:bg-red-50`;
-  const neutral = `${btn} border-gray-300 bg-white text-gray-700 hover:bg-gray-100`;
-  const take = `${btn} border-blue-700 bg-blue-600 text-white hover:bg-blue-700`;
-
-  // I took an open offer: the poster must still accept me.
   const awaitingPoster = isOpen && iAmClaimer && offer.status === 'pending';
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-2.5 mb-2 shadow-sm">
+    <div className="rounded-lg border border-ink-faint/40 bg-canvas-raised p-2.5 mb-2 shadow-card">
       <div className="flex items-center gap-1.5 mb-2">
         {who === 'Anyone' ? <GameIcon name="megaphone" size={14} /> : <Dot color={colorOf(who)} />}
-        <strong className="text-[13px] text-gray-800">{who}</strong>
-        <span className="text-[12px] text-gray-500 truncate">{status}</span>
+        <strong className="text-[13px] text-ink">{who}</strong>
+        <span className="text-[12px] text-ink-soft truncate">{status}</span>
       </div>
 
       <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
-        <span className="text-[11px] font-semibold text-red-700">You give</span>
+        <span className="text-[11px] font-semibold text-clay">You give</span>
         <PriceChips price={myGive} tone="give" />
-        <span className="text-[11px] font-semibold text-green-700">You get</span>
+        <span className="text-[11px] font-semibold text-phase-build">You get</span>
         <PriceChips price={myGet} tone="get" />
       </div>
 
       {awaitingPoster && (
-        <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-md bg-blue-50 border border-blue-200 text-[12px] text-blue-800">
-          <span className="inline-block w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" aria-hidden="true" />
+        <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-md bg-sky-pale border border-sky-soft/50 text-[12px] text-sky">
+          <span className="inline-block w-3 h-3 rounded-full border-2 border-sky border-t-transparent animate-spin" aria-hidden="true" />
           <span>
             Waiting for <strong>{offer.from}</strong> to accept your offer…
           </span>
@@ -164,41 +154,41 @@ const OfferCard: React.FC<{
               {isOpen && offer.claimer && (
                 <>
                   {canAccept && (
-                    <button type="button" className={accept} onClick={() => acceptTrade(offer.id)}>
+                    <Button size="sm" className="!rounded-full !bg-phase-build !text-white hover:!bg-phase-build/80" onClick={() => acceptTrade(offer.id)}>
                       Accept {offer.claimer}
-                    </button>
+                    </Button>
                   )}
-                  <button type="button" className={decline} onClick={() => declineTrade(offer.id)}>
+                  <Button size="sm" className="!rounded-full !bg-canvas-raised !border !border-clay-soft !text-clay hover:!bg-clay-pale" onClick={() => declineTrade(offer.id)}>
                     Decline
-                  </button>
+                  </Button>
                 </>
               )}
-              <button type="button" className={neutral} onClick={() => cancelTrade(offer.id)}>
+              <Button size="sm" className="!rounded-full" onClick={() => cancelTrade(offer.id)}>
                 Cancel
-              </button>
+              </Button>
             </>
           ) : isOpen && !offer.claimer ? (
             // Open offer I haven't taken: take it.
             canTake && (
-              <button type="button" className={take} onClick={() => takeTrade(offer.id)}>
+              <Button size="sm" className="!rounded-full !bg-sky !text-white hover:!bg-sky-soft" onClick={() => takeTrade(offer.id)}>
                 Take offer
-              </button>
+              </Button>
             )
           ) : iAmClaimer ? (
             // I took an open offer; withdraw my claim.
-            <button type="button" className={neutral} onClick={() => declineTrade(offer.id)}>
+            <Button size="sm" className="!rounded-full" onClick={() => declineTrade(offer.id)}>
               Withdraw
-            </button>
+            </Button>
           ) : iAmRecipient ? (
             // Directed offer to me.
             <>
-              <button type="button" className={decline} onClick={() => declineTrade(offer.id)}>
+              <Button size="sm" className="!rounded-full !bg-canvas-raised !border !border-clay-soft !text-clay hover:!bg-clay-pale" onClick={() => declineTrade(offer.id)}>
                 Decline
-              </button>
+              </Button>
               {canAccept && (
-                <button type="button" className={accept} onClick={() => acceptTrade(offer.id)}>
+                <Button size="sm" className="!rounded-full !bg-phase-build !text-white hover:!bg-phase-build/80" onClick={() => acceptTrade(offer.id)}>
                   Accept
-                </button>
+                </Button>
               )}
             </>
           ) : null}
@@ -206,11 +196,11 @@ const OfferCard: React.FC<{
       )}
 
       {offer.status === 'pending' && blockedReason && (
-        <p className="text-[12px] text-amber-700 mt-1.5 m-0"><GameIcon name="lock" size={11} className="inline -mt-0.5" /> {blockedReason}</p>
+        <p className="text-[12px] text-clay mt-1.5 m-0"><GameIcon name="lock" size={11} className="inline -mt-0.5" /> {blockedReason}</p>
       )}
 
       {offer.status !== 'pending' && (
-        <p className="text-[12px] text-gray-500 mt-1.5 m-0 capitalize">Status: {offer.status}</p>
+        <p className="text-[12px] text-ink-soft mt-1.5 m-0 capitalize">Status: {offer.status}</p>
       )}
     </div>
   );
@@ -221,20 +211,26 @@ const OfferCard: React.FC<{
 const TradeButton: React.FC<{
   label: React.ReactNode;
   check: BuildCheck;
-  color: string; // enabled tailwind classes, e.g. 'bg-green-600 border-green-600'
+  /** Enabled state colors as a Button variant: build for a profitable bank
+   *  trade, sky for posting a player offer. */
+  variant: 'build' | 'sky';
   onDo: () => void;
   onBlocked: (reason: string) => void;
-}> = ({ label, check, color, onDo, onBlocked }) => (
-  <button
-    type="button"
+}> = ({ label, check, variant, onDo, onBlocked }) => (
+  <Button
+    variant="unstyled"
     onClick={() => (check.allowed ? onDo() : onBlocked(check.reason ?? 'Not allowed'))}
     aria-disabled={!check.allowed}
-    className={`w-full py-2 text-[14px] font-bold rounded-lg border-2 text-white shadow-sm ${
-      check.allowed ? `${color} cursor-pointer` : 'bg-gray-300 border-gray-300 cursor-not-allowed'
+    className={`w-full py-2 text-[14px] font-bold rounded-lg border-2 text-white shadow-card ${
+      check.allowed
+        ? variant === 'build'
+          ? 'bg-phase-build border-phase-build hover:bg-phase-build/80 cursor-pointer'
+          : 'bg-sky border-sky hover:bg-sky-soft cursor-pointer'
+        : 'bg-ink-faint/50 border-ink-faint/50 cursor-not-allowed'
     }`}
   >
     {label}
-  </button>
+  </Button>
 );
 
 /**
@@ -250,6 +246,7 @@ const TradeTab: React.FC<{
 }> = ({ port = null }) => {
   const { gameRoom, currentPlayer } = useGameState();
   const { createTradeOffer, bankTrade } = useSocket();
+  const { playerByName, colorOf } = usePlayers();
   // A port click opens straight on the Bank form.
   const [counterparty, setCounterparty] = useState(port ? 'Bank' : '');
   const ratioFor = (k: ResourceKey) =>
@@ -287,8 +284,7 @@ const TradeTab: React.FC<{
   );
   const turnOwner = diceOwner(gameRoom);
   const isTurnOwner = turnOwner === me;
-  const turnOwnerColor = gameRoom.players.find((p) => p.name === turnOwner)?.color;
-
+  const turnOwnerColor = colorOf(turnOwner);
   // Bank ratio for the selected give resource (port-aware).
   const bankRatio = ratioFor(bankGive);
   const bankGet = Math.floor(bankCount / bankRatio);
@@ -342,17 +338,12 @@ const TradeTab: React.FC<{
     ...others.map((p) => ({ value: p.name, label: p.name, color: p.color, sub: <>{p.resourceCount} <GameIcon name="cards" size={11} className="inline" /></> })),
   ];
 
-  const tile = (selected: boolean) =>
-    `flex flex-col items-center gap-0.5 rounded-lg border-2 py-1.5 cursor-pointer transition-all ${
-      selected ? 'border-blue-600 bg-blue-50 shadow-sm scale-[1.04]' : 'border-gray-200 bg-white hover:border-gray-400'
-    }`;
-
   // Offers, grouped and ordered by what they need from me.
   const decorateIncoming = (o: TradeOffer) => {
-    const from = gameRoom.players.find((p) => p.name === o.from);
+    const from = playerByName(o.from);
     // Counterparty: the directed recipient, or the player who took an open offer.
     const cpName = o.to ?? o.claimer ?? null;
-    const counter = cpName ? gameRoom.players.find((p) => p.name === cpName) : undefined;
+    const counter = playerByName(cpName);
     // Mirror of the backend's affordability check using only public data: an
     // opponent's hand is masked, so resourceCount is the only signal (the
     // server still enforces the real check).
@@ -389,14 +380,14 @@ const TradeTab: React.FC<{
       {/* Who can trade right now: only the turn owner makes trades; everyone
           else can only respond to the turn owner's offers. */}
       {isTurnOwner ? (
-        <div className="flex items-center gap-2 text-[13px] rounded-lg px-3 py-2 bg-green-600 text-white shadow-sm">
+        <div className="flex items-center gap-2 text-[13px] rounded-lg px-3 py-2 bg-phase-build text-white shadow-card">
           <GameIcon name="trade" size={14} />
           <span>
             <strong>Your turn</strong> — trade with the bank or any player.
           </span>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-[13px] rounded-lg px-3 py-2 border border-amber-300 bg-amber-50 text-amber-900">
+        <div className="flex items-center gap-2 text-[13px] rounded-lg px-3 py-2 border border-gold bg-gold-pale text-gold-deep">
           <Dot color={turnOwnerColor} size={12} />
           <span>
             Only <strong>{turnOwner}</strong> can start trades right now. You can still answer their offers below.
@@ -407,99 +398,83 @@ const TradeTab: React.FC<{
       {isTurnOwner && (
         <section>
           <SectionTitle>Trade with</SectionTitle>
-          <div className="flex flex-wrap gap-2">
-            {targets.map((t) => {
-              const selected = counterparty === t.value;
-              return (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => {
-                    setCounterparty(t.value);
-                    setNotice(null);
-                  }}
-                  aria-pressed={selected}
-                  className={`flex items-center gap-1.5 h-9 pl-2.5 pr-3 rounded-full border-2 text-[13px] font-semibold cursor-pointer transition-all ${
-                    selected
-                      ? 'border-blue-600 bg-blue-600 text-white shadow'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  {t.icon ? <GameIcon name={t.icon} size={14} /> : <Dot color={t.color} size={12} />}
-                  {t.label}
-                  {t.sub && <span className={`text-[11px] font-normal ${selected ? 'text-blue-100' : 'text-gray-400'}`}>{t.sub}</span>}
-                </button>
-              );
-            })}
-          </div>
+          <OptionGrid
+            layout="chip"
+            selected={counterparty}
+            options={targets.map((t) => ({
+              key: t.value,
+              title: t.label,
+              icon: t.icon ? t.icon : <Dot color={t.color} size={12} />,
+              sub: t.sub,
+            }))}
+            onPick={(value) => {
+              setCounterparty(value);
+              setNotice(null);
+            }}
+          />
         </section>
       )}
 
       {isTurnOwner && isBank && (
-        <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-3">
+        <section className="rounded-xl border border-ink-faint/40 bg-canvas-sunken p-3 flex flex-col gap-3">
           <div>
             <SectionTitle>You give</SectionTitle>
-            <div className="grid grid-cols-5 gap-1.5">
-              {RESOURCES.map((k) => (
-                <button key={k} type="button" onClick={() => pickBankGive(k)} className={tile(bankGive === k)} title={k}>
-                  <GameIcon name={RESOURCE_ICONS[k]} size={24} />
-                  <span className="text-[11px] text-gray-500">have {currentPlayer.resources[k]}</span>
-                  <span
-                    className={`text-[10px] font-bold px-1.5 rounded-full ${
-                      ratioFor(k) < 4 ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {ratioFor(k)}:1
-                  </span>
-                </button>
-              ))}
-            </div>
+            <ResourceTiles
+              accent="sky"
+              iconSize={24}
+              gridClassName="grid grid-cols-5 gap-1.5"
+              picked={bankGive}
+              onPick={pickBankGive}
+              sub={(k) => `have ${currentPlayer.resources[k]}`}
+              badge={(k) => (
+                <span
+                  className={`text-[10px] font-bold px-1.5 rounded-full ${
+                    ratioFor(k) < 4 ? 'bg-gold-pale text-gold-deep' : 'bg-canvas-sunken text-ink-soft'
+                  }`}
+                >
+                  {ratioFor(k)}:1
+                </span>
+              )}
+            />
           </div>
           <div>
             <SectionTitle>You get</SectionTitle>
-            <div className="grid grid-cols-5 gap-1.5">
-              {RESOURCES.map((k) => (
-                <button key={k} type="button" onClick={() => pickBankWant(k)} className={tile(bankWant === k)} title={k}>
-                  <GameIcon name={RESOURCE_ICONS[k]} size={24} />
-                  <span className="text-[11px] text-gray-500">bank {gameRoom.bankSupply[k]}</span>
-                </button>
-              ))}
-            </div>
+            <ResourceTiles
+              accent="sky"
+              iconSize={24}
+              gridClassName="grid grid-cols-5 gap-1.5"
+              picked={bankWant}
+              onPick={pickBankWant}
+              sub={(k) => `bank ${gameRoom.bankSupply[k]}`}
+            />
           </div>
           {/* Amount: whole batches of the ratio. */}
-          <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
-              className={stepperBtn}
-              disabled={bankCount <= bankRatio}
-              onClick={() => setBankCount((c) => Math.max(bankRatio, c - bankRatio))}
-              aria-label="Fewer"
+          <div className="flex items-center justify-center">
+            <Stepper
+              size="sm"
+              value={bankCount}
+              canDecrement={bankCount > bankRatio}
+              canIncrement={bankCount / bankRatio < bankMaxBatches}
+              onDecrement={() => setBankCount((c) => Math.max(bankRatio, c - bankRatio))}
+              onIncrement={() => setBankCount((c) => c + bankRatio)}
+              ariaDecrement="Fewer"
+              ariaIncrement="More"
             >
-              −
-            </button>
-            <span className="flex items-center gap-2 text-[16px] font-bold">
-              <span className="text-red-700">
-                {bankCount} <GameIcon name={RESOURCE_ICONS[bankGive]} size={16} className="inline -mt-0.5" />
+              <span className="flex items-center gap-2 text-[16px] font-bold">
+                <span className="text-clay">
+                  {bankCount} <GameIcon name={RESOURCE_ICONS[bankGive]} size={16} className="inline -mt-0.5" />
+                </span>
+                <GameIcon name="arrowRight" size={14} className="text-ink-faint" />
+                <span className="text-phase-build">
+                  {bankGet} <GameIcon name={RESOURCE_ICONS[bankWant]} size={16} className="inline -mt-0.5" />
+                </span>
               </span>
-              <GameIcon name="arrowRight" size={14} className="text-gray-400" />
-              <span className="text-green-700">
-                {bankGet} <GameIcon name={RESOURCE_ICONS[bankWant]} size={16} className="inline -mt-0.5" />
-              </span>
-            </span>
-            <button
-              type="button"
-              className={stepperBtn}
-              disabled={bankCount / bankRatio >= bankMaxBatches}
-              onClick={() => setBankCount((c) => c + bankRatio)}
-              aria-label="More"
-            >
-              +
-            </button>
+            </Stepper>
           </div>
           <TradeButton
             label="Trade with Bank"
             check={bankCheck}
-            color="bg-green-600 border-green-700 hover:bg-green-700"
+            variant="build"
             onDo={submitBank}
             onBlocked={setNotice}
           />
@@ -508,7 +483,7 @@ const TradeTab: React.FC<{
       )}
 
       {isTurnOwner && counterparty !== '' && !isBank && (
-        <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-3">
+        <section className="rounded-xl border border-ink-faint/40 bg-canvas-sunken p-3 flex flex-col gap-3">
           <div className="grid grid-cols-[auto_repeat(5,minmax(0,1fr))] items-center gap-x-1.5 gap-y-1.5">
             <span />
             {RESOURCES.map((k) => (
@@ -516,17 +491,17 @@ const TradeTab: React.FC<{
                 <GameIcon name={RESOURCE_ICONS[k]} size={22} />
               </span>
             ))}
-            <span className="text-[12px] font-bold text-red-700 pr-1">You give</span>
+            <span className="text-[12px] font-bold text-clay pr-1">You give</span>
             {RESOURCES.map((k) => (
               <Counter key={k} tone="give" value={give[k]} max={currentPlayer.resources[k]} onChange={(v) => setGiveAmount(k, v)} />
             ))}
-            <span className="text-[12px] font-bold text-green-700 pr-1">You get</span>
+            <span className="text-[12px] font-bold text-phase-build pr-1">You get</span>
             {RESOURCES.map((k) => (
               <Counter key={k} tone="get" value={want[k]} onChange={(v) => setWantAmount(k, v)} />
             ))}
-            <span className="text-[11px] text-gray-400 pr-1">You have</span>
+            <span className="text-[11px] text-ink-faint pr-1">You have</span>
             {RESOURCES.map((k) => (
-              <span key={k} className="text-center text-[11px] text-gray-400">
+              <span key={k} className="text-center text-[11px] text-ink-faint">
                 {currentPlayer.resources[k]}
               </span>
             ))}
@@ -534,7 +509,7 @@ const TradeTab: React.FC<{
           <TradeButton
             label={isOpenTarget ? 'Post to everyone' : `Send offer to ${counterparty}`}
             check={offerCheck}
-            color="bg-blue-600 border-blue-700 hover:bg-blue-700"
+            variant="sky"
             onDo={submitOffer}
             onBlocked={setNotice}
           />
@@ -545,7 +520,7 @@ const TradeTab: React.FC<{
       {/* Offers, grouped by what they need from you; empty groups are hidden. */}
       {incoming.length > 0 && (
         <section>
-          <SectionTitle count={incoming.length} accent="bg-red-600">
+          <SectionTitle count={incoming.length} accent="bg-clay">
             Needs your answer
           </SectionTitle>
           {incoming.map(decorateIncoming)}
@@ -553,7 +528,7 @@ const TradeTab: React.FC<{
       )}
       {openOffers.length > 0 && (
         <section>
-          <SectionTitle count={openOffers.length} accent="bg-blue-600">
+          <SectionTitle count={openOffers.length} accent="bg-sky">
             Open offers
           </SectionTitle>
           {openOffers.map((o) => {
@@ -571,7 +546,7 @@ const TradeTab: React.FC<{
           ))}
         </section>
       )}
-      {!hasOffers && <p className="text-[12px] text-gray-400 text-center m-0">No trade offers right now.</p>}
+      {!hasOffers && <p className="text-[12px] text-ink-faint text-center m-0">No trade offers right now.</p>}
     </div>
   );
 };

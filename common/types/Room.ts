@@ -121,10 +121,24 @@ export interface WallGateState {
   /** Owner of the wall (triggers the resolving roll). */
   wallOwnerName: string;
 }
+/** One piece under a ranged shot: its owner owes the roll for its die. */
+export interface CannonShotVictim {
+  soldierId: string;
+  ownerName: string;
+  type: 'infantry' | 'cannon';
+  /** The victim's die — null until its owner clicks it (or the server rolls). */
+  roll: number | null;
+  /** Filled when every die is in: the victim's fate against the cannon's roll. */
+  outcome: 'kill' | 'injure' | 'miss' | null;
+}
 /**
- * A resolved single-target cannon shot, kept briefly so every client can show
- * the duel panel (shooter vs victim, both dice, outcome). Cleared server-side
- * after CANNON_SHOT_REVEAL_MS. Splash shots don't set it.
+ * A ranged shot on the table (GLOSSARY "Cannon"): while set, every client
+ * shows the duel panel. Firing records the shot with all dice unrolled and
+ * freezes the board like a battle — the shooter rolls the cannon's die and
+ * each victim's owner rolls that soldier's die (`rollCannonShot`; the server
+ * rolls owed dice after the deadline or instantly on disconnect). Once every
+ * die is in, outcomes apply and the record lingers CANNON_SHOT_REVEAL_MS.
+ * `chained` marks a Chain shot: one cannon die against every victim.
  */
 export interface CannonDuelShot {
   kind?: 'duel';
@@ -132,20 +146,14 @@ export interface CannonDuelShot {
   cannonId: string;
   /** The shooter's player name. */
   shooterName: string;
-  /** The soldier that was shot at (may already be deleted from the board). */
-  targetSoldierId: string;
-  /** The victim's player name. */
-  targetOwnerName: string;
-  /** The vertex the victim stood on. */
+  /** The vertex the victims stood on. */
   vertexId: string;
-  cannonRoll: number;
-  targetRoll: number;
-  /** 'kill' = destroyed, 'injure' = hit, 'miss' = the defender rolled higher. */
-  outcome: 'kill' | 'injure' | 'miss';
-  /** Whether chain shot (splash) was loaded — always false today; reserved. */
+  /** The cannon's die — null until the shooter rolls it. */
+  cannonRoll: number | null;
+  /** Single shot has exactly one victim; a Chain shot lists everyone hit. */
+  victims: CannonShotVictim[];
+  /** Whether chain shot (splash) was loaded. */
   chained: boolean;
-  /** The victim's piece type — survives the target's deletion for the HUD. */
-  targetType: 'infantry' | 'cannon';
 }
 /**
  * A wall shot on the table (GLOSSARY "Wall" breach): while set, every client

@@ -33,7 +33,7 @@ export const EXPANSION_TOKENS: Record<number, number> = {
 };
 
 /** Shared input styling for the editor's form fields. */
-export const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
+export const inputClass = 'w-full px-3 py-2 border border-ink-faint/50 rounded-md text-sm';
 
 /** Board units per hex in the editor canvas (matches the lobby board size). */
 export const HEX_SIZE = LOBBY_HEX_SIZE;

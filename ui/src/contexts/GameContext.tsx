@@ -118,3 +118,26 @@ export const useGameActions = (): GameActionsValue => {
   if (!ctx) throw new Error('useGameActions must be used within a GameRoomProvider');
   return ctx;
 };
+
+/**
+ * Memoized player lookups — the single seam for "who is X". Replaces both
+ * `players.find(p => p.name === n)` scans and `playerColorMap(room)` calls.
+ * Returns stable helpers; `playerByName`/`colorOf` never re-render a caller
+ * that only reads them inside callbacks… they do re-render on room change
+ * (same as useGameState, which they wrap).
+ */
+export const usePlayers = (): {
+  playerByName: (name: string | null | undefined) => PublicPlayer | undefined;
+  colorOf: (name: string | null | undefined) => string | undefined;
+} => {
+  const { gameRoom } = useGameState();
+  return useMemo(() => {
+    const byName: Record<string, PublicPlayer> = Object.fromEntries(
+      (gameRoom?.players ?? []).map((p) => [p.name, p])
+    );
+    return {
+      playerByName: (name) => (name == null ? undefined : byName[name]),
+      colorOf: (name) => (name == null ? undefined : byName[name]?.color),
+    };
+  }, [gameRoom]);
+};

@@ -10,7 +10,7 @@ import Button from '../components/ui/Button';
 import { Settings, Link2, Check, LogOut } from 'lucide-react';
 
 const inputClass =
-  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
+  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-canvas-raised text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
 
 /** Bottom-left menu (gear) shared by the waiting room: leave the lobby. */
 const LobbyMenu: React.FC<{
@@ -22,12 +22,13 @@ const LobbyMenu: React.FC<{
   <div className="fixed bottom-3 left-3 z-50">
     {open && (
       <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl border border-ink-faint/40 bg-canvas-raised shadow-pop p-2 text-ink">
-        <button
+        <Button
+          variant="ghost"
           onClick={onLeave}
-          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-semibold hover:bg-ink-faint/10 text-left"
+          className="w-full !justify-start"
         >
           <LogOut size={15} /> Leave lobby
-        </button>
+        </Button>
       </div>
     )}
     <Button
@@ -166,15 +167,15 @@ const WaitingRoom: React.FC<{ error: string | null; onCustomizeGame?: () => void
           <h1 className="text-2xl font-bold text-center mb-4 text-ink">Waiting for Players</h1>
           <p className="text-center text-ink-soft">
             Current Room ID: <strong>{gameRoom.id}</strong>
-            <button
-              type="button"
+            <Button
+              variant="unstyled"
               onClick={copyJoinLink}
               title="Copy join link"
               aria-label="Copy join link"
-              className="ml-0.5 -my-2 align-middle inline-flex items-center justify-center min-w-[40px] min-h-[44px] text-[13px] text-ink-soft hover:text-ink cursor-pointer"
+              className="ml-0.5 -my-2 align-middle min-w-[40px] min-h-[44px] text-[13px] text-ink-soft hover:text-ink"
             >
               {linkCopied ? <Check size={14} /> : <Link2 size={14} />}
-            </button>
+            </Button>
             {linkCopied && <span className="text-[11px] text-moss font-semibold"> link copied</span>}
           </p>
           <p className="text-center text-ink-soft">

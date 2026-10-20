@@ -17,12 +17,12 @@ interface RollingPromptProps {
  */
 export const RollingPrompt: React.FC<RollingPromptProps> = ({ waitingLines, rolling, myRollPending }) =>
   myRollPending || rolling ? (
-    <div className="rounded-lg bg-amber-100 border-2 border-amber-400 px-3 py-2 text-amber-900 attention-ring">
+    <div className="rounded-lg bg-gold-pale border-2 border-gold px-3 py-2 text-gold-deep attention-ring">
       <div className="text-[14px] font-bold"><GameIcon name="dice" size={14} className="inline -mt-0.5" /> {rolling ? 'Rolling…' : 'Your roll'}</div>
       {!rolling && <div className="text-[12px]">Click the troop the finger points at to roll its die.</div>}
     </div>
   ) : (
-    <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-[13px] text-gray-600">
+    <div className="rounded-lg bg-canvas-sunken border border-ink-faint/40 px-3 py-2 text-[13px] text-ink-soft">
       {waitingLines.length > 0 ? <>Waiting for {waitingLines.join(', ')} to roll…</> : 'Resolving…'}
     </div>
   );

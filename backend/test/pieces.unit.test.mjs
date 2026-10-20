@@ -307,15 +307,54 @@ test("splash can hit the cannon’s own vertex; the cannon is immune", () => {
   const [v] = inlandPath(room, 1);
   const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
   const ally = soldier(room, "A", v);
-  // Cannon rolls 6 vs every victim's 6: a tie goes to the cannon → injure.
+  // Fire opens the pending shot: the board freezes, no dice yet.
   assert.equal(
-    withRoll(6, () =>
-      run(room, "cannonSplash", "A", { soldierId: cannon.id, vertexId: v }),
-    ).error,
+    run(room, "cannonSplash", "A", { soldierId: cannon.id, vertexId: v }).error,
     undefined,
   );
+  assert.equal(ally.injured, false);
+  assert.equal(room.cannonShot.chained, true);
+  assert.equal(room.cannonShot.cannonRoll, null);
+  assert.deepEqual(room.cannonShot.victims.map((x) => x.soldierId), [ally.id]);
+  // A owns both the cannon and the victim — A rolls each owed die.
+  // Cannon 6 vs victim 6: a tie goes to the cannon → injure.
+  withRoll(6, () => run(room, "rollCannonShot", "A", { soldierId: null }));
+  assert.equal(ally.injured, false, "victim not resolved before its own roll");
+  withRoll(6, () => run(room, "rollCannonShot", "A", { soldierId: ally.id }));
   assert.equal(ally.injured, true);
   assert.ok(room.board.soldiers[cannon.id]);
+});
+
+test("a pending ranged shot freezes the board and seats the victim's roll", () => {
+  const room = freshRoom();
+  const [v, w] = inlandPath(room, 2);
+  const cannon = soldier(room, "A", v, { type: "cannon", stationed: true });
+  const target = soldier(room, "B", w);
+  const bystander = soldier(room, "A", v);
+  assert.equal(
+    run(room, "cannonAttack", "A", { soldierId: cannon.id, targetSoldierId: target.id }).error,
+    undefined,
+  );
+  // Frozen like a battle: nobody can move while dice are owed.
+  assert.equal(
+    run(room, "moveSoldier", "A", { soldierId: bystander.id, targetVertexId: w }).error,
+    "A cannon shot is in progress",
+  );
+  // Seats: the victim's die belongs to B, the cannon's to A.
+  assert.equal(
+    run(room, "rollCannonShot", "A", { soldierId: target.id }).error,
+    "Only that soldier’s owner rolls its die",
+  );
+  withRoll(2, () => run(room, "rollCannonShot", "B", { soldierId: target.id }));
+  assert.ok(room.board.soldiers[target.id], "still pending the cannon's roll");
+  // Cannon 5 vs target 2: margin 3 ≥ 2 → kill, and the board unfreezes.
+  withRoll(5, () => run(room, "rollCannonShot", "A", { soldierId: null }));
+  assert.equal(room.cannonShot.victims[0].outcome, "kill");
+  assert.equal(room.board.soldiers[target.id], undefined);
+  assert.equal(
+    run(room, "moveSoldier", "A", { soldierId: bystander.id, targetVertexId: w }).error === "A cannon shot is in progress",
+    false,
+  );
 });
 
 test("cannon shots and wall attacks cannot be undone (nor anything before them)", () => {

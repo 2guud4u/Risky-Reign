@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PLAYER_COLORS, normalizeColor, playerColorError } from 'common';
 import GameIcon from './ui/GameIcon';
 import { TintedImg } from './TintedSprite';
-import { SOLDIER_ART, CITY_ART, SETTLEMENT_ART } from '../utils/tintedArt';
+import { SOLDIER_ART, CITY_ART, SETTLEMENT_ART, SHIP_ART, CANNON_UNSTATIONED_ART } from '../utils/tintedArt';
+import Button from './ui/Button';
 interface OtherPlayer {
   name: string;
   color: string;
@@ -25,11 +26,13 @@ const same = (a: string, b: string) => normalizeColor(a) === normalizeColor(b);
 /** Your pieces tinted with `color` — the same art and tinting as the board. */
 const PiecePreview: React.FC<{ color: string; label: string }> = ({ color, label }) => (
   <div
-    className="flex items-center justify-center gap-5 h-24 rounded-lg bg-gradient-to-b from-sky-50 to-emerald-100 border border-emerald-200"
+    className="flex items-center justify-center gap-4 h-24 rounded-lg bg-gradient-to-b from-sky-pale to-moss-pale border border-moss-soft"
   >
     <TintedImg art={SETTLEMENT_ART} color={color} width={42} height={43} />
     <TintedImg art={CITY_ART} color={color} width={47} height={56} />
+    <TintedImg art={SHIP_ART} color={color} width={52} height={34} />
     <TintedImg art={SOLDIER_ART} color={color} width={27} height={62} />
+    <TintedImg art={CANNON_UNSTATIONED_ART} color={color} width={57} height={48} />
     <span className="sr-only">{label}</span>
   </div>
 );
@@ -80,9 +83,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
           const selected = !pending && same(c, current);
           const blocker = selected ? null : blockerOf(c);
           return (
-            <button
+            <Button
               key={c}
-              type="button"
+              variant="unstyled"
               onClick={() => {
                 setDraft(null);
                 onChange(c);
@@ -93,10 +96,10 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
               aria-pressed={selected}
               className={`relative w-9 h-9 rounded-md transition-transform ${
                 selected
-                  ? 'ring-2 ring-offset-2 ring-gray-900 scale-105'
+                  ? 'ring-2 ring-offset-2 ring-ink scale-105'
                   : blocker
                     ? 'cursor-not-allowed'
-                    : 'cursor-pointer hover:scale-110 hover:shadow-md'
+                    : 'hover:scale-110 hover:shadow-md'
               }`}
               style={{ background: c }}
             >
@@ -106,11 +109,11 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
                 </span>
               )}
               {blocker && (
-                <span className="absolute inset-0 flex items-center justify-center rounded-md bg-white/70 text-gray-700 text-lg font-bold">
+                <span className="absolute inset-0 flex items-center justify-center rounded-md bg-canvas-raised/70 text-ink-soft text-lg font-bold">
                   <GameIcon name="x" size={18} strokeWidth={3} />
                 </span>
               )}
-            </button>
+            </Button>
           );
         })}
 
@@ -119,9 +122,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
           title="Pick any color"
           className={`relative w-9 h-9 rounded-md cursor-pointer overflow-hidden transition-transform hover:scale-110 hover:shadow-md ${
             draftError
-              ? 'ring-2 ring-offset-2 ring-red-600'
+              ? 'ring-2 ring-offset-2 ring-clay'
               : customActive
-                ? 'ring-2 ring-offset-2 ring-gray-900 scale-105'
+                ? 'ring-2 ring-offset-2 ring-ink scale-105'
                 : ''
           }`}
           style={{
@@ -146,9 +149,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ value, others, onChange }) =>
 
       <div className="text-[12px] min-h-[18px]">
         {draftError ? (
-          <span className="text-red-600 font-medium">{draftError} — pick another.</span>
+          <span className="text-clay font-medium">{draftError} — pick another.</span>
         ) : (
-          <span className="text-gray-500">
+          <span className="text-ink-faint">
             {customActive ? 'Custom color' : 'Preset color'} ·{' '}
             <span className="font-mono uppercase">{shown}</span>
           </span>

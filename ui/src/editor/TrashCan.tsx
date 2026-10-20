@@ -11,10 +11,10 @@ const TrashCan: React.FC<TrashCanProps> = ({ ref, draggingDeletable, overTrash }
     ref={ref}
     className={`absolute top-3 right-3 flex flex-col items-center justify-center w-20 h-20 rounded-xl border-2 text-3xl select-none pointer-events-none transition-colors ${
       overTrash && draggingDeletable
-        ? 'border-red-500 bg-red-100'
+        ? 'border-clay bg-clay-pale'
         : draggingDeletable
-        ? 'border-gray-400 bg-white'
-        : 'border-gray-300 bg-white/90'
+        ? 'border-ink-soft bg-canvas-raised'
+        : 'border-ink-faint/50 bg-canvas-raised/90'
     }`}
     title="Drag a hex or a number here to delete it"
   >

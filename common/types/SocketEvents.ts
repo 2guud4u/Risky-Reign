@@ -89,6 +89,9 @@ export interface ClientToServerEvents {
   cannonAttackWall: (data: { roomId: string; soldierId: string; edgeId: string; explosive?: boolean }) => void;
   /** The shooter rolls the breach die on their pending wall shot. */
   rollWallShot: (data: { roomId: string }) => void;
+  /** A roller rolls one owed die on a pending ranged shot: `soldierId` null
+   *  (or omitted) is the cannon's die, otherwise that victim's die. */
+  rollCannonShot: (data: { roomId: string; soldierId?: string | null }) => void;
   upgradeRoadToWall: (data: { roomId: string; edgeId: string }) => void;
   /** The crosser submits their 1-6 guess for a pending wall gate. */
   wallGuess: (data: { roomId: string; guess: number }) => void;
@@ -179,6 +182,8 @@ export interface ServerToClientEvents {
   joined: (data: { token: string }) => void;
   /** The room code Quick Play landed on (existing open room, or a fresh one). */
   quickPlayFound: (data: { roomId: string }) => void;
+  /** Total connected clients, pushed to every socket on connect/disconnect. */
+  onlineCount: (data: { count: number }) => void;
   /** One-shot robber-fight dice result, broadcast to the room. */
   robberFightResult: (result: RobberFightResult) => void;
   /**

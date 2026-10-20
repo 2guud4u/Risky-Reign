@@ -5,7 +5,7 @@ interface MapIconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   icon: React.ReactNode;
   /** Open/active state: blue ring + tinted face. */
   active?: boolean;
-  /** Trade-style "you can act now" state: solid green face. */
+  /** Trade-style "you can act now" state: solid build-phase green face. */
   live?: boolean;
 }
 
@@ -22,10 +22,10 @@ const MapIconButton = React.forwardRef<HTMLButtonElement, MapIconButtonProps>(
       type="button"
       className={`absolute z-20 flex items-center justify-center w-12 h-12 rounded-full border-2 shadow-lg leading-none cursor-pointer hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform ${
         live
-          ? 'bg-green-500 border-green-700 text-white hover:bg-green-400'
+          ? 'bg-phase-build border-phase-build text-white hover:bg-phase-build/80'
           : active
-            ? 'bg-blue-100 border-blue-600 text-gray-800 ring-2 ring-blue-300'
-            : 'bg-white border-gray-300 text-gray-700 hover:border-blue-500'
+            ? 'bg-sky-pale border-sky text-ink ring-2 ring-sky-soft'
+            : 'bg-canvas-raised border-ink-faint/50 text-ink-soft hover:border-sky'
       } ${className}`}
       {...rest}
     >

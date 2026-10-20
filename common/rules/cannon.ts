@@ -180,62 +180,6 @@ export function canCannonAttack(
 /** How long a resolved single-target shot lingers so everyone sees the outcome. */
 export const CANNON_SHOT_REVEAL_MS = 3000;
 
-/** The rolled outcome of a single cannon shot. */
-export interface CannonAttackResult {
-  cannonRoll: number;
-  targetRoll: number;
-  /** 'miss' = defender rolled higher; otherwise the target's fate. */
-  outcome: 'kill' | 'injure' | 'miss';
-}
-
-/**
- * Apply a ranged shot: cannon die vs target die, cannon wins ties. A win by
- * >=2 kills the target, by 1 injures it (target cannons die instead — they
- * can never be injured). The cannon itself is never hurt. Assumes the check
- * passed; the caller supplies both d6 rolls.
- */
-export function applyCannonAttack(
-  room: GameRoom,
-  _player: Player,
-  soldierId: string,
-  targetSoldierId: string,
-  cannonRoll: number,
-  targetRoll: number
-): CannonAttackResult {
-  const board = room.board!;
-  const target = board.soldiers[targetSoldierId];
-  let outcome: CannonAttackResult['outcome'] = 'miss';
-  if (cannonRoll >= targetRoll) {
-    // Cannon wins ties. Win by >=2 kills outright, otherwise injures —
-    // except cannons, which die on any loss.
-    if (cannonRoll - targetRoll >= 2 || target.type === 'cannon') {
-      delete board.soldiers[targetSoldierId];
-      outcome = 'kill';
-    } else {
-      target.injured = true;
-      outcome = 'injure';
-    }
-  }
-  room.turnState.soldiersActedThisTurn.push(soldierId);
-  // A shot is final (GLOSSARY "Cannon"): its dice are public, so neither it
-  // nor anything before it this phase can be undone.
-  room.turnState.undoLog = [];
-  // Record the shot so every client can show the duel panel; it self-clears
-  // after CANNON_SHOT_REVEAL_MS via the cannon-shot reveal timer.
-  room.cannonShot = {
-    cannonId: soldierId,
-    shooterName: _player.name,
-    targetSoldierId,
-    targetOwnerName: target.owner,
-    vertexId: target.vertexId,
-    cannonRoll,
-    targetRoll,
-    outcome,
-    chained: false,
-    targetType: target.type,
-  };
-  return { cannonRoll, targetRoll, outcome };
-}
 
 /**
  * Splash check: stationed cannon; the target vertex is the cannon's own
@@ -260,54 +204,118 @@ export function canCannonSplash(
   return pass;
 }
 
-/** The rolled outcome of a splash: the cannon's die plus each victim's fate. */
-export interface CannonSplashResult {
-  cannonRoll: number;
-  kills: string[];
-  injured: string[];
+/** The dice a player still owes on a pending ranged shot: the cannon's die
+ *  (`soldierId: null`) plus one entry per victim of theirs. */
+export function owedDice(
+  shot: { kind?: 'duel'; shooterName: string; cannonRoll: number | null; victims: { soldierId: string; ownerName: string; roll: number | null }[] },
+  playerName: string
+): (string | null)[] {
+  const owed: (string | null)[] = [];
+  if (shot.shooterName === playerName && shot.cannonRoll === null) owed.push(null);
+  for (const v of shot.victims) {
+    if (v.ownerName === playerName && v.roll === null) owed.push(v.soldierId);
+  }
+  return owed;
+}
+
+/** Any player with at least one unrolled die on the pending shot. */
+export function owedRollers(
+  shot: { shooterName: string; cannonRoll: number | null; victims: { ownerName: string; roll: number | null }[] }
+): Set<string> {
+  const names = new Set<string>();
+  if (shot.cannonRoll === null) names.add(shot.shooterName);
+  for (const v of shot.victims) if (v.roll === null) names.add(v.ownerName);
+  return names;
 }
 
 /**
- * Apply a splash: pay 1 ore; every soldier on the target vertex pairs its own
- * roll against the cannon's single roll (cannon wins ties); margin casualties
- * hit victims only — the cannon takes nothing. `victimRolls` maps each victim
- * soldier id to its server-rolled d6.
+ * Open a ranged shot: the cannon's action is spent and the shot is final
+ * the moment it fires (undo log cleared). No dice roll yet — the record sits
+ * with `cannonRoll: null` and every victim `roll: null`, freezing the board
+ * like a battle until `rollCannonShot` fills them. `chained` marks the Chain
+ * shot: its 1-ore cost is paid at fire and `victims` covers the whole vertex.
  */
-export function applyCannonSplash(
+export function applyFireRangedShot(
   room: GameRoom,
   player: Player,
   soldierId: string,
+  victimIds: string[],
   vertexId: VertexId,
-  cannonRoll: number,
-  victimRolls: Record<string, number>
-): CannonSplashResult {
+  chained: boolean
+): void {
   const board = room.board!;
-  player.resources = subtractPrice(player.resources, {
-    Wood: 0,
-    Brick: 0,
-    Sheep: 0,
-    Wheat: 0,
-    Ore: 1,
-  });
-  const injured: string[] = [];
-  const kills: string[] = [];
-  for (const victim of Object.values(board.soldiers)) {
-    if (victim.vertexId !== vertexId || victim.id === soldierId) continue;
-    const roll = victimRolls[victim.id] ?? 0;
-    if (cannonRoll < roll) continue;
-    if (cannonRoll - roll >= 2 || victim.type === 'cannon') {
-      kills.push(victim.id);
-      delete board.soldiers[victim.id];
-    } else {
-      if (!victim.injured) injured.push(victim.id);
-      victim.injured = true;
-    }
-  }
   room.turnState.soldiersActedThisTurn.push(soldierId);
-  // A shot is final: neither it nor anything before it can be undone.
   room.turnState.undoLog = [];
-  return { cannonRoll, kills, injured };
+  if (chained) {
+    player.resources = subtractPrice(player.resources, {
+      Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 1,
+    });
+  }
+  room.cannonShot = {
+    kind: 'duel',
+    cannonId: soldierId,
+    shooterName: player.name,
+    vertexId,
+    cannonRoll: null,
+    victims: victimIds.map((id) => {
+      const s = board.soldiers[id]!;
+      return { soldierId: id, ownerName: s.owner, type: s.type, roll: null, outcome: null };
+    }),
+    chained,
+  };
 }
+
+/**
+ * A die-roll check on the pending ranged shot: `soldierId` null picks the
+ * cannon's die (shooter only), otherwise that victim's die (its owner only).
+ */
+export function canRollCannonShot(room: GameRoom, player: Player, soldierId: string | null): BuildCheck {
+  const shot = room.cannonShot;
+  if (!shot || shot.kind === 'wall') return fail('No ranged shot is in progress');
+  if (soldierId === null) {
+    if (shot.cannonRoll !== null) return fail('The cannon already rolled');
+    if (shot.shooterName !== player.name) return fail('Only the shooter rolls the cannon die');
+    return pass;
+  }
+  const victim = shot.victims.find((v) => v.soldierId === soldierId);
+  if (!victim) return fail('That soldier is not part of this shot');
+  if (victim.roll !== null) return fail('That soldier already rolled');
+  if (victim.ownerName !== player.name) return fail('Only that soldier’s owner rolls its die');
+  return pass;
+}
+
+/**
+ * Apply one rolled die on the pending ranged shot (`soldierId` null = the
+ * cannon's die). Once every die is in, outcomes apply: cannon wins ties, a
+ * margin of >=2 kills, a lesser margin injures (victim cannons die on any
+ * loss and are never injured). The shot then sits for the reveal timer.
+ */
+export function applyRollCannonShot(
+  room: GameRoom,
+  _player: Player,
+  soldierId: string | null,
+  roll: number
+): void {
+  const shot = room.cannonShot;
+  if (!shot || shot.kind === 'wall') return;
+  if (soldierId === null) shot.cannonRoll = roll;
+  else {
+    const victim = shot.victims.find((v) => v.soldierId === soldierId);
+    if (victim) victim.roll = roll;
+  }
+  if (shot.cannonRoll === null || shot.victims.some((v) => v.roll === null)) return;
+  // All dice in: resolve every victim's fate against the cannon's roll.
+  const board = room.board!;
+  for (const victim of shot.victims) {
+    const margin = shot.cannonRoll - victim.roll!;
+    victim.outcome = margin < 0 ? 'miss' : margin >= 2 || victim.type === 'cannon' ? 'kill' : 'injure';
+    const soldier = board.soldiers[victim.soldierId];
+    if (!soldier) continue;
+    if (victim.outcome === 'kill') delete board.soldiers[victim.soldierId];
+    else if (victim.outcome === 'injure') soldier.injured = true;
+  }
+}
+
 
 /**
  * Wall-attack check: stationed cannon adjacent to a walled edge (the wall's

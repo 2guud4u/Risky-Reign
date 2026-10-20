@@ -3,6 +3,7 @@ import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import Modal from '../components/ui/Modal';
 import GameIcon from '../components/ui/GameIcon';
+import Button from '../components/ui/Button';
 
 /**
  * Victory overlay: shown on top of the board when the game ends. Displays the
@@ -18,22 +19,18 @@ const VictoryOverlay: React.FC = () => {
 
   if (viewingMap) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl shadow-2xl bg-white border border-gray-200">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded-xl shadow-pop bg-canvas-raised border border-ink-faint/40">
         <span className="text-[15px] font-bold"><GameIcon name="trophy" size={15} className="inline -mt-0.5" /> {gameRoom.winner} wins!</span>
-        <button
-          type="button"
-          onClick={() => setViewingMap(false)}
-          className="px-3 py-1.5 rounded-md text-[13px] font-semibold border border-gray-300 bg-gray-100 cursor-pointer hover:bg-gray-200"
-        >
+        <Button size="sm" onClick={() => setViewingMap(false)}>
           Show results
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          size="sm"
           onClick={() => resetGame()}
-          className="px-3 py-1.5 rounded-md text-[13px] font-semibold text-white bg-blue-500 cursor-pointer"
+          className="!bg-sky !text-white"
         >
           Play Again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -44,39 +41,40 @@ const VictoryOverlay: React.FC = () => {
     <Modal open aria-label="Game over" width="max-w-[520px]">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2"><GameIcon name="trophy" size={26} className="inline -mt-1" /> {gameRoom.winner} wins!</h1>
-        <p className="text-gray-600 mb-6">
+        <p className="text-ink-soft mb-6">
           First to {gameRoom.pointsToWin} victory points — or the last player standing — wins the game.
         </p>
         <div className="space-y-2 mb-6">
           {standings.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between px-3 py-2 rounded-md bg-gray-50"
+              className="flex items-center justify-between px-3 py-2 rounded-md bg-canvas-sunken"
             >
               <span className="font-semibold" style={{ color: p.color }}>
                 {p.name}
               </span>
-              <span className="text-yellow-700 font-semibold">
-                {p.eliminated && <span className="text-gray-500 mr-2"><GameIcon name="skull" size={12} className="inline -mt-0.5" /> Knocked out</span>}<GameIcon name="star" size={13} className="inline -mt-0.5" /> {p.victoryPoints} VP
+              <span className="text-gold-deep font-semibold">
+                {p.eliminated && <span className="text-ink-faint mr-2"><GameIcon name="skull" size={12} className="inline -mt-0.5" /> Knocked out</span>}<GameIcon name="star" size={13} className="inline -mt-0.5" /> {p.victoryPoints} VP
               </span>
             </div>
           ))}
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="lg"
             onClick={() => setViewingMap(true)}
-            className="flex-1 py-2.5 px-4 rounded-md text-[15px] font-semibold border border-gray-300 bg-gray-100 cursor-pointer hover:bg-gray-200"
+            className="flex-1"
           >
             View map
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="unstyled"
             onClick={() => resetGame()}
-            className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-blue-500 cursor-pointer transition-all active:scale-95 motion-reduce:active:scale-100"
+            className="flex-1 py-2.5 px-4 border-0 rounded-md text-[15px] font-semibold text-white bg-sky transition-all active:scale-95 motion-reduce:active:scale-100"
           >
             Play Again
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

@@ -63,6 +63,7 @@ const actionSpec = {
   cannonSplash: (soldierId: string, vertexId: string) => ({ soldierId, vertexId }),
   cannonAttackWall: (soldierId: string, edgeId: string, explosive?: boolean) => ({ soldierId, edgeId, explosive }),
   rollWallShot: () => ({}),
+  rollCannonShot: (soldierId?: string | null) => ({ soldierId: soldierId ?? null }),
   upgradeRoadToWall: (edgeId: string) => ({ edgeId }),
   wallGuess: (guess: number) => ({ guess }),
   rollWallGate: () => ({}),
@@ -146,6 +147,8 @@ type AddressedActions = { [K in keyof typeof addressedActionSpec]: (typeof addre
 interface SocketContextType extends RoomActions, AddressedActions {
   socket: GameSocket | null;
   isConnected: boolean;
+  /** Connected clients server-wide; null until the first push arrives. */
+  onlineCount: number | null;
   /** `asCity`: during setup, place a city directly (room's setup-cities setting). */
   joinRoom: (
     playerName: string,
@@ -173,6 +176,7 @@ const noopActions = Object.fromEntries(
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
+  onlineCount: null,
   joinRoom: () => {},
   quickPlay: () => {},
   spectateRoom: () => {},
@@ -184,6 +188,7 @@ const SocketContext = createContext<SocketContextType>({
 
 const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<GameSocket | null>(null);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   // The room every bound action targets: the last one we joined (or
   // spectated / claimed a seat in). A ref, not state: no action emit ever
@@ -312,7 +317,13 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     setSocket(newSocket);
 
     newSocket.on('connect', () => setIsConnected(true));
-    newSocket.on('disconnect', () => setIsConnected(false));
+    newSocket.on('disconnect', () => {
+      setIsConnected(false);
+      setOnlineCount(null);
+    });
+    // Server pushes the running total of connected clients on every
+    // connect/disconnect; clear it while we're down so nothing shows stale.
+    newSocket.on('onlineCount', (data) => setOnlineCount(data.count));
 
     // Mobile browsers suspend/suspend-kill backgrounded tabs, quietly dropping
     // the socket. When the tab becomes visible again, reconnect immediately
@@ -351,6 +362,7 @@ const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) =
     <SocketContext.Provider
       value={{
         socket,
+        onlineCount,
         isConnected,
         joinRoom,
         quickPlay,

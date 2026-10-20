@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BuildCheck } from 'common';
 import { useGameActions } from '../../contexts/GameContext';
 import GameIcon, { IconName } from '../ui/GameIcon';
+import Button from '../ui/Button';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 declare global {
@@ -88,28 +89,28 @@ export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, hid
        so centering would push its right edge past the column and off-screen.
        Right-anchoring keeps the pill's edge on the shared column axis. */
     <div className="relative flex flex-col items-end gap-1 w-14">
-      <button
-        type="button"
+      <Button
+        variant="unstyled"
         onClick={onClick}
         aria-expanded={open}
         aria-label={open ? (ok ? `Confirm: ${a.label}` : `${a.label} unavailable`) : a.label}
         // h-14 collapsed; expanded grows to fit multi-line reason/cost text
         // (it still sits centered inside its fixed 86px slot).
-        className={`flex shrink-0 items-center gap-2 rounded-full border-2 shadow-lg transition-all duration-200 cursor-pointer ${
+        className={`flex shrink-0 items-center gap-2 rounded-full border-2 shadow-lg transition-all duration-200 ${
           open ? 'w-max pl-2 pr-4 py-1.5 min-h-14' : 'w-14 h-14 justify-center'
         } ${
           ok
             ? open
-              ? 'bg-blue-600 border-blue-700 text-white'
-              : 'bg-white border-gray-300 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-blue-500'
+              ? 'bg-sky border-sky text-white'
+              : 'bg-canvas-raised border-ink-faint/50 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-sky'
             : open
-              ? 'bg-white border-gray-300 text-gray-800'
-              : 'bg-gray-200 border-gray-300'
+              ? 'bg-canvas-raised border-ink-faint/50 text-ink'
+              : 'bg-canvas-sunken border-ink-faint/50'
         }`}
       >
         <span
           className={`flex shrink-0 items-center justify-center text-2xl leading-none ${
-            open ? 'w-10 h-10 rounded-full bg-white/20' : ''
+            open ? 'w-10 h-10 rounded-full bg-canvas-raised/20' : ''
           } ${ok ? '' : 'grayscale opacity-50'}`}
           aria-hidden="true"
         >
@@ -121,13 +122,13 @@ export const ActionBubble: React.FC<ActionBubbleProps> = ({ action: a, open, hid
             {ok ? (
               <span className="text-[12px] opacity-90">{a.costText} · tap again to confirm</span>
             ) : (
-              <span className="text-[12px] text-red-600 max-w-[220px] whitespace-normal">
+              <span className="text-[12px] text-clay max-w-[220px] whitespace-normal">
                 {a.check.reason ?? 'Not allowed here'}
               </span>
             )}
           </span>
         )}
-      </button>
+      </Button>
       {/* Collapsed: a short caption so the icon is never a guess. */}
       {!open && !hideCaption && (
         /* Out of flow: the caption is wider than the 56px bubble, so keeping
@@ -361,7 +362,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
   );
 
   const chipClass =
-    'bubble-pop flex w-max shrink-0 items-center gap-2 min-h-10 py-1 pl-2 pr-4 rounded-full bg-white border-2 shadow-lg text-[14px] font-bold text-gray-800 whitespace-nowrap cursor-pointer transition-transform duration-150 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100';
+    'bubble-pop flex w-max shrink-0 items-center gap-2 min-h-10 py-1 pl-2 pr-4 rounded-full bg-canvas-raised border-2 shadow-lg text-[14px] font-bold text-ink whitespace-nowrap cursor-pointer transition-transform duration-150 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100';
 
   /**
    * One tap on a chip. Blocked chips show their reason (pinned toggles) or
@@ -389,30 +390,30 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
   const optionChip = (o: BubbleAction, level: 2 | 3, parentLabel: string, index: number) => {
     const open = level === 2 && expandedGrand === o.key;
     return (
-      <button
+      <Button
         key={o.key}
-        type="button"
+        variant="unstyled"
         onClick={() => onOptionClick(o)}
         aria-expanded={open}
         aria-label={o.check.allowed ? `${parentLabel}: ${o.label}` : `${parentLabel}: ${o.label} unavailable`}
         title={o.label}
         className={`${chipClass} ${
           !o.check.allowed
-            ? 'bg-gray-200 text-gray-500'
+            ? 'bg-canvas-sunken text-ink-faint'
             : open || o.active
-              ? 'border-blue-600 bg-blue-50'
+              ? 'border-sky bg-sky-pale'
               : ''
         }`}
-        style={{ borderColor: o.color ?? (o.active ? '#2563eb' : '#d1d5db'), animationDelay: `${index * 50}ms` }}
+        style={{ borderColor: o.color ?? (o.active ? '#4a7ea8' : '#9b9183'), animationDelay: `${index * 50}ms` }}
       >
         {!o.check.allowed && o.pinned && open ? (
-          <span className="max-w-[220px] whitespace-normal text-left text-[12px] font-semibold text-red-600">
+          <span className="max-w-[220px] whitespace-normal text-left text-[12px] font-semibold text-clay">
             {o.check.reason ?? 'Not allowed here'}
           </span>
         ) : (
           chipFace(o)
         )}
-      </button>
+      </Button>
     );
   };
 
@@ -452,20 +453,20 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
       owner drops it, since its chips sit right over that spot. */
   const litBubble = (a: BubbleAction, ariaLabel: string, caption: boolean) => (
     <div className="relative flex flex-col items-end gap-1 w-14">
-      <button
-        type="button"
+      <Button
+        variant="unstyled"
         onClick={() => onBubbleClick(a)}
         aria-expanded="true"
         aria-label={ariaLabel}
         title={a.label}
-        className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-blue-700 bg-blue-600 text-white ring-4 ring-blue-300/60 shadow-lg cursor-pointer transition-all duration-200"
+        className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-sky bg-sky text-white ring-4 ring-sky-soft/60 shadow-lg cursor-pointer transition-all duration-200"
       >
         <GameIcon name={a.icon} size={24} />
-      </button>
+      </Button>
       {caption && (
         <span
           aria-hidden="true"
-          className="absolute top-full mt-1 right-0 px-1.5 py-px rounded bg-blue-700 text-[10px] font-semibold text-white whitespace-nowrap"
+          className="absolute top-full mt-1 right-0 px-1.5 py-px rounded bg-sky text-[10px] font-semibold text-white whitespace-nowrap"
         >
           {a.label}
         </span>
@@ -531,15 +532,15 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
       </AnimatePresence>
       {/* Close ✕ sits at the bottom of the column. */}
       <motion.div layout transition={spring} className="h-[86px] flex flex-col items-center justify-center gap-1">
-        <button
-          type="button"
+        <Button
+          variant="unstyled"
           onClick={() => setSelectedObject(null)}
           aria-label="Close and zoom back out"
           title="Close"
-          className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-gray-300 bg-white shadow-lg text-2xl leading-none text-gray-700 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-gray-500"
+          className="w-14 h-14 rounded-full border-2 border-ink-faint/50 bg-canvas-raised shadow-lg text-2xl leading-none text-ink-soft transition-all duration-200 hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 hover:border-ink-soft"
         >
           <GameIcon name="x" size={24} />
-        </button>
+        </Button>
         <span aria-hidden="true" className="px-1.5 py-px rounded bg-black/60 text-[10px] font-semibold text-white">
           Close
         </span>

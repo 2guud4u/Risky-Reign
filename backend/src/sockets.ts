@@ -35,10 +35,18 @@ function makeSocketCrashSafe(socket: GameSocket): void {
  *    which is adapter work, not a game action.
  */
 export function setupSocketHandlers(io: GameServer): void {
+  // Presence: every connected client counts as "online" (no room needed).
+  // Push the running total to ALL sockets on each change so lobby viewers
+  // see it live. nsp._remove runs before 'disconnect' fires, so
+  // io.sockets.sockets.size is already accurate in both handlers.
+  const broadcastOnlineCount = () =>
+    io.emit('onlineCount', { count: io.sockets.sockets.size });
   io.on('connection', (socket) => {
     makeSocketCrashSafe(socket);
     const ctx = { io, socket };
     registerRoomHandlers(ctx);
     registerDispatchHandlers(ctx);
+    broadcastOnlineCount();
+    socket.on('disconnect', broadcastOnlineCount);
   });
 }

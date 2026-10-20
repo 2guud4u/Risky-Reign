@@ -1,8 +1,8 @@
 import React from 'react';
 import { upcomingTurns } from 'common';
-import { useGameState } from '../contexts/GameContext';
-import { playerColorMap } from '../utils/soldierPlacement';
+import { useGameState, usePlayers } from '../contexts/GameContext';
 import { phaseColor } from './TurnOverlay';
+import Button from '../components/ui/Button';
 import { X } from 'lucide-react';
 
 /** How many turns ahead the timeline forecasts. */
@@ -17,22 +17,22 @@ const TIMELINE_LOOKAHEAD = 25;
  */
 const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { gameRoom, currentPlayer } = useGameState();
+  const { colorOf } = usePlayers();
   if (!gameRoom) return null;
-  const colors = playerColorMap(gameRoom);
   const knockedOut = gameRoom.players.filter((p) => p.eliminated).map((p) => p.name);
   const steps = [gameRoom.turnState, ...upcomingTurns(gameRoom.turnState, TIMELINE_LOOKAHEAD, knockedOut, gameRoom.turnMode)];
   return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-[calc(100vw-2rem)] rounded-xl bg-white shadow-2xl border border-gray-200 px-4 pt-2 pb-3 text-gray-800">
+    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 max-w-[calc(100vw-2rem)] rounded-xl bg-canvas-raised shadow-pop border border-ink-faint/40 px-4 pt-2 pb-3 text-ink">
       <div className="flex items-center mb-1">
-        <span className="text-[12px] font-semibold text-gray-500">Turn order</span>
-        <button
-          type="button"
+        <span className="text-[12px] font-semibold text-ink-faint">Turn order</span>
+        <Button
+          variant="unstyled"
           onClick={onClose}
-          className="ml-auto flex items-center justify-center w-8 h-8 md:w-6 md:h-6 rounded text-gray-400 hover:text-gray-700 cursor-pointer"
+          className="ml-auto w-8 h-8 md:w-6 md:h-6 rounded text-ink-faint hover:text-ink-soft"
           aria-label="Close turn timeline"
         >
           <X size={14} />
-        </button>
+        </Button>
       </div>
       {/* pt-2: overflow-x-auto clips vertically too — without headroom the
           current node's ring is cut off at the top.
@@ -45,17 +45,17 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <li key={i} className="relative flex flex-col items-center w-20 shrink-0">
               {/* The line: joins this node to the next one. */}
               {i < steps.length - 1 && (
-                <span className="absolute top-[9px] left-1/2 w-full h-0.5 bg-gray-300" aria-hidden="true" />
+                <span className="absolute top-[9px] left-1/2 w-full h-0.5 bg-ink-faint/50" aria-hidden="true" />
               )}
               <span
                 className={`relative z-10 rounded-full border-2 border-white shadow ${
-                  now ? 'w-5 h-5 ring-2 ring-gray-800' : 'w-4 h-4 mt-0.5'
+                  now ? 'w-5 h-5 ring-2 ring-ink' : 'w-4 h-4 mt-0.5'
                 }`}
-                style={{ background: colors[pos.player] ?? '#9ca3af' }}
+                style={{ background: colorOf(pos.player) ?? '#9b9183' }}
                 aria-hidden="true"
               />
               <span
-                className={`mt-1 max-w-full truncate text-[12px] ${now ? 'font-bold text-gray-900' : 'text-gray-700'}`}
+                className={`mt-1 max-w-full truncate text-[12px] ${now ? 'font-bold text-ink' : 'text-ink-soft'}`}
               >
                 {name}
               </span>

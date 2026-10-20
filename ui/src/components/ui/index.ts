@@ -1,3 +1,9 @@
 export { default as Button } from './Button';
 export { default as Modal } from './Modal';
 export { default as Chip } from './Chip';
+export { default as Stepper } from './Stepper';
+export { default as ResourceTiles } from './ResourceTiles';
+export { default as OptionGrid } from './OptionGrid';
+export { default as TabBar } from './TabBar';
+export { default as Dice } from './Dice';
+export { default as SeatButton } from './SeatButton';

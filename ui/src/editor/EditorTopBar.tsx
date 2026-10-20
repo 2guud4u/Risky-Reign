@@ -1,4 +1,5 @@
 import { EditorTopBarProps } from './types';
+import Button from '../components/ui/Button';
 
 /**
  * The Board tab's top bar inside Customize Game: the random-map regen and a
@@ -13,14 +14,14 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({
   missingNumbers,
 }) => (
   <div className="w-full max-w-[1200px] flex items-center gap-3 flex-wrap">
-    <button
+    <Button
+      size="sm"
       onClick={onRefreshMap}
-      className="px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-sm cursor-pointer"
       title="Replace the room's board with a fresh random map (loses the current draft)"
     >
       Refresh Map
-    </button>
-    <span className="text-sm text-gray-500">
+    </Button>
+    <span className="text-sm text-ink-faint">
       {hexCount} hexes · {validation.allowed ? 'valid' : `invalid: ${validation.reason}`}
       {missingNumbers > 0 ? ` · ${missingNumbers} missing number${missingNumbers > 1 ? 's' : ''}` : ''}
     </span>

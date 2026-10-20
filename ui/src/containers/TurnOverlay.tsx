@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import EndTurnButton from './game/EndTurnButton';
+import Button from '../components/ui/Button';
 import TurnTimeline from './TurnTimeline';
 import { Undo2 } from 'lucide-react';
 
@@ -9,15 +10,15 @@ import { Undo2 } from 'lucide-react';
 export const phaseColor = (phase: string): string => {
   switch (phase) {
     case 'SetUp':
-      return 'bg-blue-600';
+      return 'bg-phase-setup';
     case 'Dice':
-      return 'bg-amber-500';
+      return 'bg-phase-dice';
     case 'Build':
-      return 'bg-green-600';
+      return 'bg-phase-build';
     case 'Action':
-      return 'bg-rose-600';
+      return 'bg-phase-action';
     default:
-      return 'bg-gray-600';
+      return 'bg-ink-soft';
   }
 };
 
@@ -48,26 +49,26 @@ const TurnOverlay: React.FC = () => {
       className={`relative z-10 shrink-0 flex flex-col gap-1.5 px-4 py-2.5 rounded-xl shadow-lg text-white min-w-[240px] ${phaseColor(gameRoom.turnState.phase)} ${myTurn ? 'turn-glow' : ''}`}
     >
       <div className="flex items-center gap-2.5">
-        <button
-          type="button"
+        <Button
+          variant="unstyled"
           onClick={() => setTimelineOpen((o) => !o)}
-          className="px-2 py-2 md:py-0.5 rounded-md bg-white/20 text-[11px] font-bold uppercase tracking-wide cursor-pointer hover:bg-white/35"
+          className="px-2 py-2 md:py-0.5 rounded-md bg-canvas-raised/20 text-[11px] font-bold uppercase tracking-wide hover:bg-canvas-raised/35"
           title="Show upcoming turns"
           aria-expanded={timelineOpen}
         >
           {gameRoom.turnState.phase} ▾
-        </button>
+        </Button>
         <div className="ml-auto flex items-center gap-2">
           {canUndo && (
-            <button
-              type="button"
+            <Button
+              variant="unstyled"
               onClick={() => undoBuild()}
-              className="flex items-center gap-1 px-2.5 py-2 md:py-1.5 text-[13px] font-semibold rounded-md bg-white/25 cursor-pointer hover:bg-white/40"
+              className="flex items-center gap-1 px-2.5 py-2 md:py-1.5 text-[13px] font-semibold rounded-md bg-canvas-raised/25 hover:bg-canvas-raised/40"
               title="Undo last action"
               aria-label="Undo last action"
             >
               <Undo2 size={14} /> Undo
-            </button>
+            </Button>
           )}
           {currentPlayer ? (
             <EndTurnButton variant="snackbar" />

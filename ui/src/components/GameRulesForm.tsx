@@ -13,12 +13,12 @@ import GameIcon from './ui/GameIcon';
 import Button from './ui/Button';
 
 const inputClass =
-  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
+  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-[15px] bg-canvas-raised text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none disabled:opacity-60';
 
 /** Segmented option button (turn-structure presets, setup-cities counts). */
 const segClass = (active: boolean) =>
   `flex-1 py-1.5 px-1 rounded-md text-[13px] font-semibold border cursor-pointer transition-colors disabled:opacity-60 ${
-    active ? 'border-gold bg-gold-pale text-ink' : 'border-ink-faint/40 bg-white text-ink-soft hover:bg-canvas-sunken'
+    active ? 'border-gold bg-gold-pale text-ink' : 'border-ink-faint/40 bg-canvas-raised text-ink-soft hover:bg-canvas-sunken'
   }`;
 
 /**
@@ -65,13 +65,14 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
     </div>
   );
   const presetBtn = (label: string, preset: TurnMode, active: boolean) => (
-    <button
+    <Button
+      variant="unstyled"
       onClick={() => !disabled && setTurnMode({ ...preset })}
       disabled={disabled}
       className={segClass(active)}
     >
       {label}
-    </button>
+    </Button>
   );
 
   return (
@@ -147,14 +148,15 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
         <span className={heading}>Setup Cities</span>
         <div className="flex gap-1.5">
           {Array.from({ length: MAX_SETUP_CITIES + 1 }, (_, n) => (
-            <button
+            <Button
               key={n}
+              variant="unstyled"
               onClick={() => setSetupCities(n)}
               disabled={disabled}
               className={segClass(room.setupCities === n)}
             >
               {n}
-            </button>
+            </Button>
           ))}
         </div>
         <p className="mt-1 text-[11px] text-ink-faint">
@@ -199,7 +201,7 @@ const GameRulesForm: React.FC<{ room: PublicGameRoom; disabled: boolean }> = ({ 
                         setTurnTimer(s * 1000);
                       }
                     }}
-                    className="w-24 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink disabled:opacity-60 focus:border-gold focus:outline-none"
+                    className="w-24 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-canvas-raised text-ink disabled:opacity-60 focus:border-gold focus:outline-none"
                   />
                   <span className="text-[13px] text-ink-soft">seconds per phase</span>
                 </div>

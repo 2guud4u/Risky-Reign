@@ -8,6 +8,26 @@ import { SelectableObject } from '../types';
  * no JSX and no interaction handling here.
  */
 
+/** Sprite box (top-left x/y + w/h) for a settlement/city at a vertex position.
+ *  The art is cropped to the visible piece and the sprite is contained in the
+ *  box (aspect kept), so the center offset positions it slightly above the
+ *  vertex. The numbers match the pre-crop board look; the village
+ *  (settlement) is larger than a single house but clearly smaller than a
+ *  city. Shared by BoardVertex and the build-animation layer so a piece and
+ *  its animated stand-in draw the same frame. */
+export function houseFrame(
+  isCity: boolean,
+  position: { x: number; y: number },
+  size: number
+): { x: number; y: number; w: number; h: number } {
+  const w = size * (isCity ? 12.9 : 8.0);
+  const h = size * (isCity ? 13.61 : 8.14);
+  const cx = position.x + size * (isCity ? 0.31 : 0);
+  const cy = position.y - size * (isCity ? 2.41 : 2.5);
+  return { x: cx - w / 2, y: cy - h / 2, w, h };
+}
+
+
 
 /**
  * Group boundary port vertices into docks. A dock serves 1-2 adjacent coastal

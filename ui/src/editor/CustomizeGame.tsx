@@ -7,6 +7,7 @@ import BoardEditorPage from './BoardEditor';
 import BoardView from '../containers/BoardView';
 import GameIcon from '../components/ui/GameIcon';
 import Button from '../components/ui/Button';
+import TabBar from '../components/ui/TabBar';
 
 /**
  * Customize Game: the room's pre-game configuration page (waiting-room only).
@@ -92,8 +93,8 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </Button>
 
         {/* Customization lock: host flips it; everyone sees the state. */}
-        <button
-          type="button"
+        <Button
+          size="sm"
           onClick={() => isHost && setRulesLock(!room.rulesLocked)}
           disabled={!isHost}
           title={
@@ -105,11 +106,10 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 ? 'Locked by the host — rules and board are view only'
                 : 'Unlocked — anyone may change rules and board'
           }
-          className="px-3 py-1.5 border border-ink-faint/40 rounded-md bg-canvas-raised text-sm text-ink disabled:opacity-70"
         >
           <GameIcon name="lock" size={13} className="inline -mt-0.5" />{' '}
           {room.rulesLocked ? 'Host only' : 'Anyone can edit'}
-        </button>
+        </Button>
 
         {/* Presets: named rules+map bundles, browser-local. */}
         <div className="flex items-center gap-1.5 ml-auto">
@@ -121,7 +121,7 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               const p = presets.find((x) => x.name === e.target.value);
               if (p) loadPreset(p);
             }}
-            className="px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink disabled:opacity-60"
+            className="px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-canvas-raised text-ink disabled:opacity-60"
           >
             <option value="">{presets.length ? 'Load preset…' : 'No presets saved'}</option>
             {presets.map((p) => (
@@ -138,7 +138,7 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 const name = e.target.value;
                 if (name && window.confirm(`Delete preset "${name}"?`)) remove(name);
               }}
-              className="px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink-soft"
+              className="px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-canvas-raised text-ink-soft"
             >
               <option value="">Delete…</option>
               {presets.map((p) => (
@@ -154,7 +154,7 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             onChange={(e) => setPresetName(e.target.value)}
             placeholder="Preset name"
             maxLength={40}
-            className="w-32 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-white text-ink placeholder:text-ink-faint"
+            className="w-32 px-2 py-1.5 border border-ink-faint/40 rounded-md text-[13px] bg-canvas-raised text-ink placeholder:text-ink-faint"
           />
           <Button variant="secondary" size="sm" onClick={savePreset} disabled={!presetName.trim()}>
             Save as preset
@@ -163,27 +163,15 @@ const CustomizeGamePage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       </div>
 
       {/* Tabs */}
-      <div className="w-full max-w-[1200px] flex gap-1 border-b border-ink-faint/30">
-        {(
-          [
-            ['rules', 'General Rules'],
-            ['board', 'Board'],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            aria-selected={tab === key}
-            className={`px-4 py-2 text-[14px] font-semibold border-b-2 -mb-px transition-colors ${
-              tab === key
-                ? 'border-gold text-ink'
-                : 'border-transparent text-ink-soft hover:text-ink'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabBar
+        className="w-full max-w-[1200px]"
+        tabs={[
+          { key: 'rules', label: 'General Rules' },
+          { key: 'board', label: 'Board' },
+        ]}
+        active={tab}
+        onChange={setTab}
+      />
 
       {tab === 'rules' ? (
         // Page-wide panels, not a card: the rules are the content of the

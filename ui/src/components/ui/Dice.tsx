@@ -56,10 +56,10 @@ const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll, circle }) => 
   <button
     type="button"
     onClick={canRoll ? onRoll : undefined}
-    className={`${circle ? 'rounded-full shadow-lg' : 'rounded-lg'} border-2 flex items-center justify-center font-bold text-gray-800 ${
+    className={`${circle ? 'rounded-full shadow-lg' : 'rounded-lg'} border-2 flex items-center justify-center font-bold text-ink ${
       canRoll
-        ? 'border-amber-500 bg-amber-50 cursor-pointer hover:bg-amber-100 active:scale-90 transition-transform motion-reduce:active:scale-100'
-        : 'border-gray-300 bg-white'
+        ? 'border-gold bg-gold-pale cursor-pointer hover:bg-gold-soft/40 active:scale-90 transition-transform motion-reduce:active:scale-100'
+        : 'border-ink-faint/50 bg-canvas-raised'
     }`}
     style={{ width: size, height: size }}
     title={canRoll ? 'Click to roll' : undefined}
@@ -70,7 +70,7 @@ const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll, circle }) => 
     ) : (
       <svg width={size} height={size} viewBox="0 0 100 100" aria-label={`Die showing ${value}`}>
         {PIP_LAYOUTS[value].map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r={PIP_RADIUS} fill="#374151" />
+          <circle key={i} cx={cx} cy={cy} r={PIP_RADIUS} fill="#2d2520" />
         ))}
       </svg>
     )}

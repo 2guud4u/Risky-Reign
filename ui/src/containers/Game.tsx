@@ -13,7 +13,7 @@ import ResourceSpendLayer from '../components/ResourceSpendLayer';
 import BattleModal from './BattleModal';
 import ResourceDisplay from './ResourceDisplay';
 import DiceDisplay from './DiceDisplay';
-import Dice from '../components/Dice';
+import Dice from '../components/ui/Dice';
 import GameIcon from '../components/ui/GameIcon';
 import ActionBubbles from '../components/board/ActionBubbles';
 import { useBoardActions } from '../board/actions';
@@ -102,7 +102,7 @@ const Game: React.FC = () => {
   // Spectators (no seat) see the same board read-only: every seat-only panel
   // (resources, trade, prompts, bubbles) renders nothing without a player.
   if (!gameRoom) {
-    return <p className="text-center text-gray-500">Loading game...</p>;
+    return <p className="text-center text-ink-faint">Loading game...</p>;
   }
   const spectating = !currentPlayer;
   const isHost = !!currentPlayer && gameRoom.players[0]?.name === currentPlayer.name;
@@ -128,8 +128,8 @@ const Game: React.FC = () => {
           </div>
         )}
         {menuOpen && (
-          <div className="absolute bottom-full left-0 mb-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg p-2 text-gray-800">
-            <div className="px-2 py-1.5 text-[13px] font-semibold text-gray-600">
+          <div className="absolute bottom-full left-0 mb-2 w-48 rounded-md border border-ink-faint/50 bg-canvas-raised shadow-lg p-2 text-ink">
+            <div className="px-2 py-1.5 text-[13px] font-semibold text-ink-soft">
               Room {gameRoom.id}
             </div>
             <Button
@@ -137,7 +137,7 @@ const Game: React.FC = () => {
               size="sm"
               icon={<Lightbulb size={15} />}
               onClick={() => setTutorialHints(!hintsOn)}
-              className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
+              className="w-full !justify-start !text-ink-soft !text-[13px] !font-semibold hover:!bg-canvas-sunken"
             >
               {hintsOn ? 'Turn tips off' : 'Turn tips on'}
             </Button>
@@ -146,12 +146,12 @@ const Game: React.FC = () => {
               size="sm"
               icon={fullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
               onClick={toggleFullscreen}
-              className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
+              className="w-full !justify-start !text-ink-soft !text-[13px] !font-semibold hover:!bg-canvas-sunken"
             >
               {fullscreen ? 'Leave full screen' : 'Full screen'}
             </Button>
             {fsHint && (
-              <p className="m-0 mb-1 px-2 py-1 text-[11px] leading-snug text-amber-700 bg-amber-50 rounded-md">
+              <p className="m-0 mb-1 px-2 py-1 text-[11px] leading-snug text-clay bg-gold-pale rounded-md">
                 This browser can't hide its bars. On iPhone, open the Share menu and choose{' '}
                 <b>Add to Home Screen</b> for a bar-free game.
               </p>
@@ -165,7 +165,7 @@ const Game: React.FC = () => {
                   setMenuOpen(false);
                   setPauseOpen(true);
                 }}
-                className="w-full !justify-start !text-gray-700 !text-[13px] !font-semibold hover:!bg-gray-100"
+                className="w-full !justify-start !text-ink-soft !text-[13px] !font-semibold hover:!bg-canvas-sunken"
               >
                 Pause game…
               </Button>
@@ -178,24 +178,24 @@ const Game: React.FC = () => {
                 setMenuOpen(false);
                 leaveGame();
               }}
-              className="w-full !justify-start !bg-red-600 !text-white !text-[13px] !font-semibold hover:!bg-red-700"
+              className="w-full !justify-start !bg-clay !text-white !text-[13px] !font-semibold hover:!bg-clay-soft"
             >
               {spectating ? 'Stop watching' : 'Leave game'}
             </Button>
           </div>
         )}
-        <button
-          type="button"
+        <Button
+          variant="unstyled"
           onClick={() => setMenuOpen((open) => !open)}
           // White-circle backing, same look as the left-edge map buttons: the
           // bare icon was unreadable on the ocean/board texture.
-          className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-gray-300 bg-white text-gray-700 shadow-lg leading-none cursor-pointer hover:scale-110 hover:border-blue-500 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform"
+          className="w-12 h-12 rounded-full border-2 border-ink-faint/50 bg-canvas-raised text-ink-soft shadow-lg leading-none hover:scale-110 hover:border-sky active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 transition-transform"
           title="Menu"
           aria-label="Menu"
           aria-expanded={menuOpen}
         >
           <Settings size={20} />
-        </button>
+        </Button>
       </div>
 
       {/* Pause dialog: the host picks the reopen password (host) and the
@@ -211,21 +211,21 @@ const Game: React.FC = () => {
             <Button
               variant="ghost"
               onClick={() => setPauseOpen(false)}
-              className="flex-1 !bg-gray-100 !text-gray-700 hover:!bg-gray-200"
+              className="flex-1 !bg-canvas-sunken !text-ink-soft hover:!bg-canvas-sunken"
             >
               Cancel
             </Button>
             <Button
               onClick={submitPause}
               disabled={!hostPassword || !lobbyPassword}
-              className="flex-1 !bg-blue-600 !text-white !font-semibold hover:!bg-blue-700"
+              className="flex-1 !bg-sky !text-white !font-semibold hover:!bg-sky"
             >
               Pause game
             </Button>
           </div>
         }
       >
-        <p className="m-0 text-[13px] text-gray-600">
+        <p className="m-0 text-[13px] text-ink-soft">
           The board is saved and the room closes. Reopen it later with the host password;
           players rejoin their seats with the lobby password.
         </p>
@@ -234,20 +234,20 @@ const Game: React.FC = () => {
           value={hostPassword}
           onChange={(e) => setHostPassword(e.target.value)}
           placeholder="Host password (reopens the game)"
-          className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+          className="w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 text-[15px] focus:border-sky outline-none"
         />
         <input
           type="password"
           value={lobbyPassword}
           onChange={(e) => setLobbyPassword(e.target.value)}
           placeholder="Lobby password (players rejoin)"
-          className="w-full px-3 py-2 rounded-md border-2 border-gray-200 text-[15px] focus:border-blue-500 outline-none"
+          className="w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 text-[15px] focus:border-sky outline-none"
         />
       </Modal>
       <div className="fixed inset-0 flex safe-inset">
-        <div className="relative flex-1 min-w-0 bg-white">
+        <div className="relative flex-1 min-w-0 bg-canvas-raised">
           {spectating && (
-            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-[13px] font-semibold shadow-lg">
+            <div className="absolute top-3 left-16 z-30 px-3 py-1.5 rounded-lg bg-ink text-white text-[13px] font-semibold shadow-lg">
               <GameIcon name="eye" size={13} className="inline -mt-0.5" /> Spectating
             </div>
           )}

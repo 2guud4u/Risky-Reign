@@ -4,6 +4,7 @@ import { useSetupCoach } from '../hooks/useSetupCoach';
 import { setTutorialHints, useTutorialHints } from '../utils/tutorial';
 import { affordableSummary } from '../utils/affordable';
 import GameIcon from '../components/ui/GameIcon';
+import Button from '../components/ui/Button';
 
 /** Milliseconds of no input on your turn before "Need help?" slides in. */
 const IDLE_HELP_MS = 30_000;
@@ -75,15 +76,15 @@ const TutorialCoach: React.FC = () => {
       // left-16 clears the top-left button column; right-16 keeps the card off
       // the right-edge resource strip on narrow screens; max-w keeps it tidy
       // on desktop. w-auto lets it shrink between the two edges on mobile.
-      className="slide-in-left absolute left-16 right-16 top-4 z-30 w-auto max-w-[260px] rounded-xl border-2 border-blue-300 bg-white shadow-2xl p-3 flex flex-col gap-2"
+      className="slide-in-left absolute left-16 right-16 top-4 z-30 w-auto max-w-[260px] rounded-xl border-2 border-sky bg-canvas-raised shadow-pop p-3 flex flex-col gap-2"
     >
       {coach ? (
         <>
-          <div className="text-[11px] font-bold uppercase tracking-wide text-blue-600">Quick tutorial</div>
-          <div className="text-[15px] font-bold text-gray-900">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-sky">Quick tutorial</div>
+          <div className="text-[15px] font-bold text-ink">
             <GameIcon name={coach.key === 'settlement' ? 'settlement' : 'road'} size={15} className="inline -mt-0.5" /> {coach.title}
           </div>
-          <p className="m-0 text-[13px] text-gray-600">
+          <p className="m-0 text-[13px] text-ink-soft">
             {coach.bubbleOpen
               ? `Now click the ${coach.key === 'settlement' ? 'home' : 'hammer'} button at the bottom, then click it again to confirm.`
               : coach.body}
@@ -91,16 +92,16 @@ const TutorialCoach: React.FC = () => {
         </>
       ) : showTip && tip ? (
         <>
-          <div className="text-[15px] font-bold text-gray-900"><GameIcon name="bulb" size={15} className="inline -mt-0.5" /> {tip.title}</div>
-          <p className="m-0 text-[13px] text-gray-600">{tip.body}</p>
+          <div className="text-[15px] font-bold text-ink"><GameIcon name="bulb" size={15} className="inline -mt-0.5" /> {tip.title}</div>
+          <p className="m-0 text-[13px] text-ink-soft">{tip.body}</p>
           {gameRoom?.board && currentPlayer && phase && (() => {
             const lines = affordableSummary(gameRoom.board, currentPlayer, phase);
             return lines.length > 0 ? (
-              <div className="flex flex-col gap-1 border-t border-gray-200 pt-2">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">With your cards</div>
+              <div className="flex flex-col gap-1 border-t border-ink-faint/40 pt-2">
+                <div className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">With your cards</div>
                 <ul className="m-0 p-0 list-none flex flex-col gap-0.5">
                   {lines.map((l) => (
-                    <li key={l.key} className="text-[13px] text-gray-800">
+                    <li key={l.key} className="text-[13px] text-ink">
                       <GameIcon name={l.icon} size={14} className="inline -mt-0.5" /> {l.text}
                     </li>
                   ))}
@@ -108,43 +109,43 @@ const TutorialCoach: React.FC = () => {
               </div>
             ) : null;
           })()}
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={() => setDismissed(true)}
-            className="self-start px-3 py-1 rounded-md bg-blue-600 text-white text-[13px] font-semibold cursor-pointer hover:bg-blue-700"
+            className="self-start !bg-sky !text-white hover:!bg-sky-soft"
           >
             Got it
-          </button>
+          </Button>
         </>
       ) : (
         <>
-          <div className="text-[15px] font-bold text-gray-900"><GameIcon name="question" size={15} className="inline -mt-0.5" /> Need help?</div>
-          <p className="m-0 text-[13px] text-gray-600">Not sure what to do this turn?</p>
+          <div className="text-[15px] font-bold text-ink"><GameIcon name="question" size={15} className="inline -mt-0.5" /> Need help?</div>
+          <p className="m-0 text-[13px] text-ink-soft">Not sure what to do this turn?</p>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <Button
+              size="sm"
               onClick={() => setShowTip(true)}
-              className="flex-1 px-3 py-1 rounded-md bg-blue-600 text-white text-[13px] font-semibold cursor-pointer hover:bg-blue-700"
+              className="flex-1 !bg-sky !text-white hover:!bg-sky-soft"
             >
               Show me
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="sm"
               onClick={() => setDismissed(true)}
-              className="flex-1 px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-[13px] font-semibold cursor-pointer hover:bg-gray-200"
+              className="flex-1"
             >
               I'm fine
-            </button>
+            </Button>
           </div>
         </>
       )}
-      <button
-        type="button"
+      <Button
+        variant="unstyled"
         onClick={() => setTutorialHints(false)}
-        className="self-end text-[11px] text-gray-400 hover:text-gray-700 cursor-pointer"
+        className="self-end text-[11px] text-ink-faint hover:text-ink-soft"
       >
         Hide tips
-      </button>
+      </Button>
     </div>
   );
 };

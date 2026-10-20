@@ -99,12 +99,12 @@ const TradeButton: React.FC = () => {
       >
         {canTrade && !tradeSeen && (
           // Soft pulsing halo: "you can trade now" (until first opened).
-          <span className="trade-halo absolute inset-0 rounded-full bg-green-400" aria-hidden="true" />
+          <span className="trade-halo absolute inset-0 rounded-full bg-phase-build/60" aria-hidden="true" />
         )}
         {canTrade && (
           // Tag beside the button so the cue reads at a glance.
           <span
-            className="absolute left-full ml-2 px-2 py-0.5 rounded-full bg-green-600 text-white text-[12px] font-bold whitespace-nowrap shadow pointer-events-none"
+            className="absolute left-full ml-2 px-2 py-0.5 rounded-full bg-phase-build text-white text-[12px] font-bold whitespace-nowrap shadow pointer-events-none"
             aria-hidden="true"
           >
             Trade
@@ -112,7 +112,7 @@ const TradeButton: React.FC = () => {
         )}
         {waiting > 0 && (
           // Red notification dot with the count; a white ring separates it from the map.
-          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 ring-2 ring-white text-white text-[11px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-alert ring-2 ring-white text-white text-[11px] font-bold flex items-center justify-center">
             {waiting}
           </span>
         )}

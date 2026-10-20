@@ -34,7 +34,7 @@ const SideName: React.FC<{ name: string; color?: string; you: boolean; align?: '
     <span className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/10" style={{ background: color ?? FALLBACK_OWNER_COLOR }} />
     <span className="truncate">
       {name}
-      {you && <span className="text-gray-400 font-normal"> (you)</span>}
+      {you && <span className="text-ink-faint font-normal"> (you)</span>}
     </span>
   </span>
 );
@@ -141,7 +141,7 @@ const BattleModalInner: React.FC<{
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 md:p-4">
       {/* Fixed to the viewport height: the map shrinks to fit, never scrolls. */}
       <motion.div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-full max-h-[860px] p-2 md:p-4 flex flex-col gap-3 overflow-hidden"
+        className="bg-canvas-raised rounded-xl shadow-pop w-full max-w-6xl h-full max-h-[860px] p-2 md:p-4 flex flex-col gap-3 overflow-hidden"
         initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 18 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
@@ -151,7 +151,7 @@ const BattleModalInner: React.FC<{
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 shrink-0">
           <h2 className="m-0 flex items-center gap-2 text-lg font-bold min-w-0">
             <SideName name={battle.attacker} color={colors[battle.attacker]} you={battle.attacker === me} />
-            <GameIcon name="attack" size={15} className="text-gray-400" />
+            <GameIcon name="attack" size={15} className="text-ink-faint" />
             <SideName
               name={battle.defender || 'Defender'}
               color={colors[battle.defender]}

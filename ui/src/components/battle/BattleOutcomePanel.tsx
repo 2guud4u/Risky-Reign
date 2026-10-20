@@ -2,6 +2,7 @@ import React from 'react';
 import { BattleOutcome, BattleState, Board, Player } from 'common';
 import { robberTargets } from '../../board/selectors';
 import GameIcon from '../ui/GameIcon';
+import Button from '../ui/Button';
 
 interface BattleOutcomePanelProps {
   battle: BattleState;
@@ -27,15 +28,15 @@ const Tally: React.FC<{ name: string; alive: number; inj: number; dead: number; 
   dead,
   won,
 }) => (
-  <div className={`rounded-lg border px-2.5 py-1.5 ${won ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white'}`}>
+  <div className={`rounded-lg border px-2.5 py-1.5 ${won ? 'border-gold bg-gold-pale' : 'border-ink-faint/40 bg-canvas-raised'}`}>
     <div className="flex items-center gap-1 text-[13px] font-semibold truncate">
       {won && <GameIcon name="trophy" size={13} />}
       {name}
     </div>
     <div className="flex gap-1.5 mt-1 text-[11px] font-semibold">
-      <span className="px-1.5 rounded bg-green-100 text-green-800">{alive} standing</span>
-      {inj > 0 && <span className="px-1.5 rounded bg-amber-100 text-amber-800">{inj} injured</span>}
-      {dead > 0 && <span className="px-1.5 rounded bg-red-100 text-red-800">{dead} killed</span>}
+      <span className="px-1.5 rounded bg-moss-pale text-moss">{alive} standing</span>
+      {inj > 0 && <span className="px-1.5 rounded bg-gold-pale text-gold-deep">{inj} injured</span>}
+      {dead > 0 && <span className="px-1.5 rounded bg-clay-pale text-clay">{dead} killed</span>}
     </div>
   </div>
 );
@@ -82,7 +83,7 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
     <div className="flex flex-col gap-2.5">
       <div
         className={`rounded-lg px-3 py-2 text-center text-[16px] font-extrabold ${
-          iWon ? 'bg-amber-400 text-amber-950' : iLost ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-800'
+          iWon ? 'bg-gold-soft text-ink' : iLost ? 'bg-ink-soft text-white' : 'bg-canvas-sunken text-ink'
         }`}
       >
         {iWon && <GameIcon name="trophy" size={15} className="inline -mt-0.5" />}{' '}
@@ -90,7 +91,7 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
       </div>
 
       {battle.forfeitedBy && (
-        <div className="text-[12px] text-center text-gray-500">
+        <div className="text-[12px] text-center text-ink-faint">
           <GameIcon name="capture" size={12} className="inline -mt-0.5" /> {battle.forfeitedBy === me ? 'You' : battle.forfeitedBy} fled — the battle counts as a loss
         </div>
       )}
@@ -120,7 +121,7 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
 
       {/* Retreat: injured troops must leave the battle site, attacker first. */}
       {myRetreat && (
-        <div className="rounded-lg border-2 border-green-500 bg-green-50 px-3 py-2 text-green-900">
+        <div className="rounded-lg border-2 border-moss bg-moss-pale px-3 py-2 text-moss">
           <div className="text-[14px] font-bold"><GameIcon name="heal" size={14} className="inline -mt-0.5" /> Retreat your injured</div>
           <div className="text-[12px] mt-0.5">
             <strong>Drag</strong> a glowing troop onto a <strong>green circle</strong> (or just click the circle).
@@ -128,8 +129,8 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
           </div>
           {moverTotal > 1 && (
             <div className="mt-1.5 flex items-center gap-2">
-              <div className="flex-1 h-1.5 rounded-full bg-green-200 overflow-hidden">
-                <div className="h-full bg-green-600" style={{ width: `${(moved / moverTotal) * 100}%` }} />
+              <div className="flex-1 h-1.5 rounded-full bg-moss-soft/40 overflow-hidden">
+                <div className="h-full bg-moss" style={{ width: `${(moved / moverTotal) * 100}%` }} />
               </div>
               <span className="text-[11px] font-semibold">
                 {moved}/{moverTotal}
@@ -139,7 +140,7 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
         </div>
       )}
       {retreatPending && !myRetreat && (
-        <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-[13px] text-gray-600">
+        <div className="rounded-lg bg-canvas-sunken border border-ink-faint/40 px-3 py-2 text-[13px] text-ink-soft">
           Waiting for <strong>{moverName}</strong> to move their injured troops…
         </div>
       )}
@@ -147,20 +148,19 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
       {/* After defeating the robber, the winner may move it to an adjacent hex. */}
       {robberDefeatedBy && robberDefeatedBy.playerName === me && (
         <div className="flex flex-col gap-1">
-          <div className="text-[12px] font-semibold text-gray-600">Move the robber to:</div>
+          <div className="text-[12px] font-semibold text-ink-soft">Move the robber to:</div>
           <div className="flex flex-wrap gap-1">
             {robberTargets(board, robberDefeatedBy.fromHexId).map((hexId) => {
               const hex = board.hexes[hexId];
               return (
-                <button
+                <Button
                   key={hexId}
-                  type="button"
+                  size="sm"
                   onClick={() => moveRobberAfterWin(hexId)}
-                  className="px-2 py-1 rounded-md border border-gray-300 bg-white text-[12px] hover:bg-gray-100 cursor-pointer"
                 >
                   {hex.terrain}
                   {hex.rollNumber !== null ? ` (${hex.rollNumber})` : ''}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -168,13 +168,13 @@ export const BattleOutcomePanel: React.FC<BattleOutcomePanelProps> = ({
       )}
 
       {!retreatPending && (
-        <button
-          type="button"
+        <Button
+          variant="unstyled"
           onClick={onExit}
-          className="w-full rounded-lg py-2.5 text-[14px] font-bold bg-gray-800 text-white hover:bg-gray-900 cursor-pointer"
+          className="w-full rounded-lg py-2.5 text-[14px] font-bold bg-ink text-white hover:bg-ink-soft"
         >
           Close
-        </button>
+        </Button>
       )}
     </div>
   );

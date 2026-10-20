@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 import GameIcon from '../components/ui/GameIcon';
 
 const inputClass =
-  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-sm bg-white text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none';
+  'w-full px-3 py-2 border border-ink-faint/40 rounded-md text-sm bg-canvas-raised text-ink placeholder:text-ink-faint focus:border-gold focus:outline-none';
 
 
 interface LobbyProps {
@@ -19,7 +19,7 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
   // The password field is hidden until the server says this room is private —
   // open rooms never see it.
   const [needsPassword, setNeedsPassword] = useState(false);
-  const { isConnected, socket, joinRoom: onJoinRoom, quickPlay: onQuickPlay } = useSocket();
+  const { isConnected, socket, joinRoom: onJoinRoom, quickPlay: onQuickPlay, onlineCount } = useSocket();
 
   useEffect(() => {
     if (!socket) return;
@@ -154,6 +154,15 @@ const LobbyPage: React.FC<LobbyProps> = ({ error }) => {
         </div>
 
       </div>
+
+      {/* Server-wide presence: pushed live on every connect/disconnect.
+          Hidden while we haven't heard a count (offline or pre-connect). */}
+      {onlineCount !== null && (
+        <div className="fixed top-4 right-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-canvas-raised/90 shadow-card text-[13px] font-semibold text-ink">
+          <span className="w-2 h-2 rounded-full bg-moss" />
+          {onlineCount} players online
+        </div>
+      )}
     </div>
   );
 };

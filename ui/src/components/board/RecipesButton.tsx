@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Modal from '../ui/Modal';
 import MapIconButton from '../ui/MapIconButton';
+import TabBar from '../ui/TabBar';
 import { Info } from 'lucide-react';
 import { useGameState } from '../../contexts/GameContext';
 import {
@@ -72,24 +73,12 @@ const RecipesButton: React.FC = () => {
         aria-label="Game info"
         width="max-w-[440px]"
       >
-        <div role="tablist" className="flex flex-wrap gap-1 mb-3 border-b border-gray-200">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-3 py-1.5 -mb-px text-[13px] font-semibold border-b-2 cursor-pointer ${
-                tab === t.key
-                  ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-800'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <TabBar
+          className="flex-wrap mb-3"
+          tabs={TABS.map((t) => ({ key: t.key, label: t.label }))}
+          active={tab}
+          onChange={setTab}
+        />
         <div role="tabpanel">
           {tab === 'pieces' && <PiecesPanel enabled={enabled} />}
           {tab === 'turns' && <TurnsPanel turnMode={gameRoom?.turnMode} />}

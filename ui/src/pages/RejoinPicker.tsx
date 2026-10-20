@@ -5,6 +5,7 @@ import { saveSession, clearSavedSession, readSavedSession } from '../utils/sessi
 import Button from '../components/ui/Button';
 import { Eye } from 'lucide-react';
 import GameIcon from '../components/ui/GameIcon';
+import SeatButton from '../components/ui/SeatButton';
 
 interface RejoinPickerProps {
   roomId: string;
@@ -65,16 +66,14 @@ const RejoinPicker: React.FC<RejoinPickerProps> = ({ roomId, seats, onBack }) =>
           <div className="flex flex-col gap-2">
             <p className="text-sm text-ink-soft m-0">Who were you? Pick your player to jump back in:</p>
             {seats.map((s) => (
-              <button
+              <SeatButton
                 key={s.name}
-                type="button"
+                color={s.color}
                 onClick={() => claim(s.name)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-md border-2 border-ink-faint/40 bg-white text-left cursor-pointer hover:border-gold hover:bg-gold-pale transition-colors"
+                status="offline · rejoin"
               >
-                <span className="w-5 h-5 rounded-full border-2 border-white shadow" style={{ background: s.color }} />
-                <span className="text-[15px] font-semibold text-ink">{s.name}</span>
-                <span className="ml-auto text-[12px] text-ink-faint">offline · rejoin</span>
-              </button>
+                {s.name}
+              </SeatButton>
             ))}
           </div>
         ) : (
@@ -94,7 +93,7 @@ const RejoinPicker: React.FC<RejoinPickerProps> = ({ roomId, seats, onBack }) =>
               onChange={(e) => setWatchPassword(e.target.value)}
               placeholder="This room is private"
               autoFocus
-              className="w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 bg-white text-ink text-[15px] focus:border-gold focus:outline-none"
+              className="w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 bg-canvas-raised text-ink text-[15px] focus:border-gold focus:outline-none"
             />
           </div>
         )}

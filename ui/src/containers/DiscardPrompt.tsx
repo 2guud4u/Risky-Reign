@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGameState } from '../contexts/GameContext';
 import Modal from '../components/ui/Modal';
+import Button from '../components/ui/Button';
+import ResourceTiles from '../components/ui/ResourceTiles';
 import { useSocket } from '../contexts/SocketContext';
 import { RESOURCES, ResourceKey } from 'common';
-import { RESOURCE_ICONS } from '../utils/resourceIcons';
-import GameIcon from '../components/ui/GameIcon';
+import { useResetOn } from '../hooks/useResetOn';
 
+const EMPTY: Record<ResourceKey, number> = { Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 };
 /**
  * 7-discard prompt. Shown when a 7 is rolled and a player holds 8 or more
  * resource cards: that player must hand in half their hand (rounded down),
@@ -30,9 +32,7 @@ const DiscardPrompt: React.FC = () => {
   // Reset the selection when the prompt closes, so a stale discard selection
   // from a previous 7 can't pre-enable the confirm.
   const active = Object.keys(gameRoom?.discards ?? {}).length > 0;
-  useEffect(() => {
-    if (!active) setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
-  }, [active]);
+  useResetOn(active, () => setCounts({ ...EMPTY }));
 
   // Outer stays mounted: Modal wraps AnimatePresence, which must exist
   // for the exit spring to play. Values below fall back when nothing is owed.
@@ -59,78 +59,34 @@ const DiscardPrompt: React.FC = () => {
   const confirm = () => {
     if (total !== need || !gameRoom) return;
     resolveDiscard(counts);
-    setCounts({ Wood: 0, Brick: 0, Sheep: 0, Wheat: 0, Ore: 0 });
+    setCounts({ ...EMPTY });
   };
 
   return (
     <Modal open={open} aria-label="Discard cards" title="A 7 was rolled" width="max-w-[560px]">
-      <p className="text-sm text-gray-500 mb-3">
+      <p className="text-sm text-ink-soft mb-3">
         You hold {handTotal} cards — discard {need} of them.
       </p>
-
       {/* One tile per resource: − / count / + and "Max" (capped by the hand). */}
-      <div className="grid grid-cols-3 min-[480px]:grid-cols-5 gap-2 mb-4">
-        {RESOURCES.map((r) => {
-          const count = counts[r] ?? 0;
-          const held = currentPlayer?.resources[r] ?? 0;
-          const canAdd = total < need && count < held;
-          return (
-            <div
-              key={r}
-              className={`py-2 rounded-md border-2 flex flex-col items-center gap-1 ${
-                count > 0 ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
-            >
-              <GameIcon name={RESOURCE_ICONS[r]} size={30} />
-              <span className="text-[12px] font-semibold text-gray-700">
-                {r} ({held})
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => decrement(r)}
-                  disabled={count <= 0}
-                  aria-label={`Discard one less ${r}`}
-                  className="w-11 h-11 md:w-6 md:h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
-                >
-                  −
-                </button>
-                <span className="w-5 text-center text-sm font-bold text-gray-800">{count}</span>
-                <button
-                  type="button"
-                  onClick={() => increment(r)}
-                  disabled={!canAdd}
-                  aria-label={`Discard one more ${r}`}
-                  className="w-11 h-11 md:w-6 md:h-6 rounded bg-gray-200 hover:bg-gray-300 active:scale-90 motion-reduce:active:scale-100 transition-transform disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 font-bold cursor-pointer"
-                >
-                  +
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => increment(r, held)}
-                disabled={!canAdd}
-                className="text-[11px] font-semibold text-red-600 hover:text-red-700 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Max
-              </button>
-            </div>
-          );
-        })}
+      <div className="mb-4">
+        <ResourceTiles
+          counts={counts}
+          accent="clay"
+          sub={(r) => `held ${currentPlayer?.resources[r] ?? 0}`}
+          onStep={(r, d) => (d > 0 ? increment(r, d) : decrement(r))}
+          canAdd={(r) => total < need && (counts[r] ?? 0) < (currentPlayer?.resources[r] ?? 0)}
+          maxFor={(r) => currentPlayer?.resources[r] ?? null}
+        />
       </div>
 
-      <button
-        type="button"
+      <Button
+        variant="danger"
         onClick={confirm}
         disabled={total !== need}
-        className={`w-full py-2 rounded-md font-semibold transition-all active:scale-[0.98] motion-reduce:active:scale-100 cursor-pointer ${
-          total === need
-            ? 'bg-red-600 text-white hover:bg-red-700'
-            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-        }`}
+        className="w-full"
       >
         Discard {total}/{need} cards
-      </button>
+      </Button>
     </Modal>
   );
 };

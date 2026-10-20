@@ -4,6 +4,7 @@ import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { DEV_CARD_ICONS, RESOURCE_ICONS } from '../utils/resourceIcons';
 import GameIcon from '../components/ui/GameIcon';
+import Button from '../components/ui/Button';
 import { PriceText, priceLabel } from '../utils/price';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -52,15 +53,15 @@ const ResourceDisplay: React.FC = () => {
       }`}
     >
       {/* Pull tab: phones start collapsed so the board keeps the height. */}
-      <button
-        type="button"
+      <Button
+        variant="unstyled"
         onClick={() => setCollapsed(!collapsed)}
         aria-label={collapsed ? 'Show your hand' : 'Hide your hand'}
         title={collapsed ? 'Show your hand' : 'Hide your hand'}
-        className="absolute bottom-full left-1/2 -translate-x-1/2 flex items-center justify-center w-16 h-7 rounded-t-lg bg-canvas-raised border border-b-0 border-ink-faint/40 text-ink-faint shadow-card cursor-pointer hover:text-ink"
+        className="absolute bottom-full left-1/2 -translate-x-1/2 w-16 h-7 rounded-t-lg bg-canvas-raised border border-b-0 border-ink-faint/40 text-ink-faint shadow-card hover:text-ink"
       >
         {collapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
+      </Button>
 
       {/* Wood tray: warm brown base + horizontal grain + knots. */}
       <div
@@ -82,7 +83,7 @@ const ResourceDisplay: React.FC = () => {
             return (
               <div
                 key={resource}
-                className="flex flex-col items-center justify-center w-[52px] h-[74px] rounded-lg border-2 border-ink-faint/45 bg-white shadow-card -ml-3.5 first:ml-0 transition-transform"
+                className="flex flex-col items-center justify-center w-[52px] h-[74px] rounded-lg border-2 border-ink-faint/45 bg-canvas-raised shadow-card -ml-3.5 first:ml-0 transition-transform"
                 style={{ transform: `rotate(${tilt})`, transformOrigin: 'bottom center' }}
                 title={`${resource}: ${count}`}
               >
@@ -97,7 +98,7 @@ const ResourceDisplay: React.FC = () => {
           })}
         </div>
 
-        <div className="self-stretch w-px my-1 bg-white/20" />
+        <div className="self-stretch w-px my-1 bg-canvas-raised/20" />
 
         {/* Dev cards: tap a playable card to reveal its Play chip. */}
         <div className="flex items-end gap-1.5">
@@ -116,9 +117,9 @@ const ResourceDisplay: React.FC = () => {
             // the second click on the Play chip (or the card again) plays it.
             const selected = selCard === i;
             return (
-              <button
+              <Button
                 key={`${card}-${i}`}
-                type="button"
+                variant="unstyled"
                 disabled={!playable}
                 onClick={() => {
                   if (selected) {
@@ -129,22 +130,22 @@ const ResourceDisplay: React.FC = () => {
                 }}
                 title={`${meta.label}${lockedThisTurn ? ' — playable next turn' : playable ? ' — tap to select, tap again to play' : ''}`}
                 className={`relative flex flex-col items-center justify-center w-12 h-[68px] rounded-lg border-2 shadow-card transition-transform ${
-                  selected ? '-translate-y-2 ring-2 ring-purple-400' : ''
-                } ${lockedThisTurn ? 'opacity-50' : 'cursor-pointer hover:-translate-y-1.5'} bg-purple-50 border-purple-300`}
+                  selected ? '-translate-y-2 ring-2 ring-gold' : ''
+                } ${lockedThisTurn ? 'opacity-50' : 'hover:-translate-y-1.5'} bg-gold-pale border-gold-soft`}
               >
                 {selected && playable && (
-                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-extrabold whitespace-nowrap pointer-events-none">
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-gold-deep text-white text-[10px] font-extrabold whitespace-nowrap pointer-events-none">
                     Play
                   </span>
                 )}
                 <GameIcon name={DEV_CARD_ICONS[card]} size={22} />
-                <span className="mt-0.5 text-[8px] font-bold text-purple-700">{meta.label}</span>
-              </button>
+                <span className="mt-0.5 text-[8px] font-bold text-gold-deep">{meta.label}</span>
+              </Button>
             );
           })}
           {/* Buy tile: first tap expands to the cost + confirm; second buys. */}
-          <button
-            type="button"
+          <Button
+            variant="unstyled"
             onClick={() => {
               if (!buyOpen) {
                 setBuyOpen(true);
@@ -161,8 +162,8 @@ const ResourceDisplay: React.FC = () => {
               buyOpen
                 ? buyCheck.allowed
                   ? 'bg-gold border-gold-deep text-white border-solid'
-                  : 'bg-white/80 border-ink-faint/50 border-dashed text-ink-soft cursor-default'
-                : 'border-dashed border-white/60 text-white/85 cursor-pointer hover:bg-white/10'
+                  : 'bg-canvas-raised/80 border-ink-faint/50 border-dashed text-ink-soft cursor-default'
+                : 'border-dashed border-white/60 text-white/85 cursor-pointer hover:bg-canvas-raised/10'
             }`}
           >
             {buyOpen ? (
@@ -182,7 +183,7 @@ const ResourceDisplay: React.FC = () => {
                 <span>Buy card</span>
               </>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Free roads from a played Road Building card — pinned above the tray's right edge. */}

@@ -2,8 +2,12 @@ import { Server } from 'socket.io';
 import {
   GameRoom,
   applyBonuses,
+  applyRollCannonShot,
   applyRollWallShot,
+  canRollCannonShot,
   canRollWallShot,
+  owedDice,
+  owedRollers,
   rollDie,
   CANNON_SHOT_REVEAL_MS,
   WALL_SHOT_ROLL_MS,
@@ -13,14 +17,14 @@ import { getRoom } from './store';
 import { armRoomTimer, armedRoomTimer, disarmRoomTimer } from './roomTimer';
 
 /**
- * Cannon-shot timers (GLOSSARY "Wall" breach):
- *  - A Single wall shot first sits pending (`roll: null`): the shooter owes
- *    the breach roll — WALL_SHOT_ROLL_MS, then the server rolls for them.
- *    A disconnected shooter is rolled for immediately rather than burning
- *    the clock while the whole board waits.
- *  - Once any shot is resolved (a duel, a rolled wall shot, or a guaranteed
- *    Explosive shot) the record lingers CANNON_SHOT_REVEAL_MS so every
- *    client can show the panel, then clears.
+ * Cannon-shot timers:
+ *  - A pending shot (a Single wall shot's breach die, or a ranged duel's
+ *    cannon + victim dice) gives its rollers WALL_SHOT_ROLL_MS, then the
+ *    server rolls every owed die for them. A disconnected roller is rolled
+ *    for immediately rather than burning the clock while the board waits.
+ *  - Once every die is in (or the shot needs no dice, like an Explosive
+ *    shot) the record lingers CANNON_SHOT_REVEAL_MS so every client can
+ *    show the panel, then clears.
  * A timer is armed per (shot, step) so a pending shot's deadline never fires
  * into its own reveal. Handles are runtime-only, keyed per room in
  * roomTimer, synced off the broadcast funnel.
@@ -28,8 +32,10 @@ import { armRoomTimer, armedRoomTimer, disarmRoomTimer } from './roomTimer';
 
 type Step = 'pending' | 'reveal';
 
-const stepOf = (shot: NonNullable<GameRoom['cannonShot']>): Step =>
-  shot.kind === 'wall' && !shot.explosive && shot.roll === null ? 'pending' : 'reveal';
+const stepOf = (shot: NonNullable<GameRoom['cannonShot']>): Step => {
+  if (shot.kind === 'wall') return !shot.explosive && shot.roll === null ? 'pending' : 'reveal';
+  return shot.cannonRoll === null || shot.victims.some((v) => v.roll === null) ? 'pending' : 'reveal';
+};
 
 /**
  * Reconcile the room's cannon-shot timer with its current state. Runs at the
@@ -43,12 +49,19 @@ export function syncCannonShotTimer(io: Server, room: GameRoom): void {
   }
   const step = stepOf(shot);
   if (step === 'pending') {
-    const seat = room.players.find((p) => p.name === shot.shooterName);
-    // An absent shooter is rolled for right away — the frozen board must
-    // never wait on a seat that isn't there.
-    if (!seat || !seat.connected) {
+    // An absent roller is rolled for right away — the frozen board must
+    // never wait on a seat that isn't there. Wall shots owe one die (the
+    // shooter's); duel shots can owe dice to several players at once.
+    const rollers =
+      shot.kind === 'wall'
+        ? [shot.shooterName]
+        : [...owedRollers(shot)];
+    const absent = rollers.some(
+      (name) => !room.players.find((p) => p.name === name)?.connected
+    );
+    if (absent) {
       disarmRoomTimer(room.id, 'cannonShot');
-      rollForShooter(io, room);
+      rollOwedDice(io, room);
       return;
     }
   }
@@ -67,16 +80,30 @@ function onTimer(io: Server, roomId: string, shot: object, step: Step): void {
     broadcastRoom(io, room);
     return;
   }
-  if (stepOf(room.cannonShot) === 'pending') rollForShooter(io, room);
+  if (stepOf(room.cannonShot) === 'pending') rollOwedDice(io, room);
 }
 
-/** Roll the breach die for a silent shooter through the same check+apply path. */
-function rollForShooter(io: Server, room: GameRoom): void {
+/** Roll every owed die on a pending shot through the same check+apply path. */
+function rollOwedDice(io: Server, room: GameRoom): void {
   const shot = room.cannonShot;
-  if (!shot || shot.kind !== 'wall') return;
-  const shooter = room.players.find((p) => p.name === shot.shooterName);
-  if (!shooter || !canRollWallShot(room, shooter).allowed) return;
-  applyRollWallShot(room, shooter, rollDie());
+  if (!shot) return;
+  if (shot.kind === 'wall') {
+    const shooter = room.players.find((p) => p.name === shot.shooterName);
+    if (shooter && canRollWallShot(room, shooter).allowed) applyRollWallShot(room, shooter, rollDie());
+  } else {
+    // One die at a time through the shared check: the cannon's die for the
+    // shooter, each victim die for its owner.
+    const rolls = [...owedRollers(shot)].flatMap((name) => {
+      const player = room.players.find((p) => p.name === name);
+      if (!player) return [];
+      return owedDice(shot, name).map((soldierId) => ({ player, soldierId }));
+    });
+    for (const { player, soldierId } of rolls) {
+      if (canRollCannonShot(room, player, soldierId).allowed) {
+        applyRollCannonShot(room, player, soldierId, rollDie());
+      }
+    }
+  }
   applyBonuses(room);
   broadcastRoom(io, room);
 }

@@ -5,20 +5,21 @@ import { useGameState } from '../contexts/GameContext';
 import { useSocket } from '../contexts/SocketContext';
 import { PriceText } from '../utils/price';
 import GameIcon from '../components/ui/GameIcon';
+import Button from '../components/ui/Button';
 import TurnOverlay from './TurnOverlay';
 /** Tailwind gradient classes for the your-turn toast, keyed to the current phase. */
 const phaseGradient = (phase: string): string => {
   switch (phase) {
     case 'SetUp':
-      return 'from-blue-500 to-blue-700';
+      return 'from-sky-soft to-sky';
     case 'Dice':
-      return 'from-amber-400 to-amber-600';
+      return 'from-gold-soft to-gold-deep';
     case 'Build':
-      return 'from-green-500 to-green-700';
+      return 'from-moss-soft to-moss';
     case 'Action':
-      return 'from-rose-500 to-rose-700';
+      return 'from-clay-soft to-clay';
     default:
-      return 'from-gray-500 to-gray-700';
+      return 'from-ink-faint to-ink-soft';
   }
 };
 
@@ -31,8 +32,8 @@ const TRADE_TOAST_MS = 6000;
 const noticeClass = (mine: boolean): string =>
   `px-4 py-2 text-sm rounded-md border shadow-lg ${
     mine
-      ? 'border-amber-300 bg-amber-50 text-amber-900'
-      : 'border-gray-200 bg-gray-50 text-gray-600'
+      ? 'border-gold bg-gold-pale text-gold-deep'
+      : 'border-ink-faint/40 bg-canvas-sunken text-ink-soft'
   }`;
 
 /**
@@ -135,13 +136,13 @@ const NoticeRail: React.FC = () => {
       text: (
         <span className="flex items-center gap-3">
           <span><GameIcon name="knight" size={14} className="inline -mt-0.5" /> Knight: click a glowing ring to spawn a soldier there.</span>
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={() => chooseKnightEffect('cancel')}
-            className="px-2 py-0.5 rounded-md border border-amber-400 bg-white text-[12px] font-semibold text-amber-900 cursor-pointer hover:bg-amber-100"
+            className="!px-2 !py-0.5 !border !border-gold !bg-canvas-raised !text-gold-deep hover:!bg-gold-pale"
           >
             Cancel
-          </button>
+          </Button>
         </span>
       ),
     });
@@ -205,7 +206,7 @@ const NoticeRail: React.FC = () => {
       <AnimatePresence>
         {showToast && (
           <motion.div
-            className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl shadow-2xl bg-gradient-to-r ${phaseGradient(
+            className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl shadow-pop bg-gradient-to-r ${phaseGradient(
               phase
             )} text-white`}
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.9 }}
@@ -229,7 +230,7 @@ const NoticeRail: React.FC = () => {
             <motion.div
               key={`${m.at}-${i}`}
               role="status"
-              className="px-4 py-2 text-sm rounded-md border border-green-300 bg-green-50 text-green-900 shadow-lg"
+              className="px-4 py-2 text-sm rounded-md border border-moss-soft bg-moss-pale text-moss shadow-lg"
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: -16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}

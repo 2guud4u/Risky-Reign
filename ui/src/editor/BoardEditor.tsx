@@ -10,6 +10,7 @@ import SavePanel from './SavePanel';
 import { useMapFavorites } from '../hooks/useMapFavorites';
 import { BoardEditorProps, Tactic, Target, TerrainTarget, ToolbarDrag } from './types';
 import { countMissingNumbers, countRollNumbers, countTerrain, setCustomDragImage, toHexLayouts } from './utils';
+import TabBar from '../components/ui/TabBar';
 import { useEditorMap } from './useEditorMap';
 
 type SidebarTab = 'terrain' | 'numbers' | 'docks' | 'maps';
@@ -100,7 +101,7 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
       />
       <div className="w-full max-w-[1200px] flex gap-4 flex-col lg:flex-row">
         {/* Canvas */}
-        <div className="flex-1 h-[650px] border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+        <div className="flex-1 h-[650px] border border-ink-faint/50 rounded-lg overflow-hidden bg-canvas-sunken">
           <BoardEditorCanvas
             map={map}
             selectedTerrain={selectedTerrain}
@@ -129,29 +130,16 @@ const BoardEditorPage: React.FC<BoardEditorProps> = ({ initialBoard, onRefreshMa
 
         {/* Toolbar: tabbed palettes share the column; Save Board sits below. */}
         <div className="w-full lg:w-[300px] flex flex-col gap-4">
-          <div className="flex gap-1 border-b border-gray-300">
-            {(
-              [
-                ['terrain', 'Terrain'],
-                ['numbers', 'Numbers'],
-                ['docks', 'Docks'],
-                ['maps', 'Maps'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                aria-selected={tab === key}
-                className={`px-3 py-1.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors cursor-pointer ${
-                  tab === key
-                    ? 'border-blue-500 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <TabBar
+            tabs={[
+              { key: 'terrain', label: 'Terrain' },
+              { key: 'numbers', label: 'Numbers' },
+              { key: 'docks', label: 'Docks' },
+              { key: 'maps', label: 'Maps' },
+            ]}
+            active={tab}
+            onChange={setTab}
+          />
           {tab === 'terrain' && (
             <TerrainPalette
               paintMode={paintMode}

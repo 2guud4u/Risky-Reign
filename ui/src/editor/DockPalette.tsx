@@ -2,6 +2,7 @@ import React from 'react';
 import { PortType } from 'common';
 import { DockPaletteProps } from './types';
 import { PORT_GENERIC_FILL, PORT_SPECIAL_FILL } from '../constants';
+import Button from '../components/ui/Button';
 
 const PORT_OPTIONS: { port: PortType; label: string }[] = [
   { port: 'generic', label: '3:1 any' },
@@ -31,31 +32,33 @@ const DockPalette: React.FC<DockPaletteProps> = ({
 }) => {
   const selected = selectedDockIndex !== null ? docks[selectedDockIndex] : null;
   return (
-    <div className="p-3 border border-gray-300 rounded-lg bg-white">
+    <div className="p-3 border border-ink-faint/50 rounded-lg bg-canvas-raised">
       <div className="flex items-center justify-between mb-2">
         <div className="flex flex-col">
-          <h3 className="text-sm font-semibold text-gray-700">Docks</h3>
-          <p className="w-full max-w-[1200px] text-xs text-gray-500">
+          <h3 className="text-sm font-semibold text-ink-soft">Docks</h3>
+          <p className="w-full max-w-[1200px] text-xs text-ink-faint">
             {selected
               ? 'Click a port to reassign the selected dock, or drag it to move / trash it.'
               : 'Drag a port onto a coast vertex (or click a + handle) to add a dock.'}
           </p>
         </div>
-        <button
+        <Button
+          variant="unstyled"
           onClick={onRandomize}
           title="Re-roll the port layout over the current coast"
-          className="px-2 py-1 border border-gray-300 rounded-md bg-gray-100 text-xs cursor-pointer whitespace-nowrap"
+          className="px-2 py-1 border border-ink-faint/50 rounded-md bg-canvas-sunken text-xs whitespace-nowrap"
         >
           Randomize ({docks.length})
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         {PORT_OPTIONS.map(({ port, label }) => {
           const active = selected ? selected.port === port : pendingPort === port;
           return (
-            <button
+            <Button
               key={port}
+              variant="unstyled"
               draggable
               onDragStart={(e) => onPortDragStart(e, port)}
               onDragEnd={onDragEnd}
@@ -66,26 +69,27 @@ const DockPalette: React.FC<DockPaletteProps> = ({
                   : `New docks are ${label} (drag onto the coast to place)`
               }
               className={`flex items-center gap-2 px-2 py-1.5 border rounded-md text-sm cursor-grab active:cursor-grabbing ${
-                active ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-300'
+                active ? 'border-sky ring-1 ring-sky' : 'border-ink-faint/50'
               }`}
             >
               <span
-                className="w-4 h-4 rounded-full border border-gray-400"
+                className="w-4 h-4 rounded-full border border-ink-soft"
                 style={{ background: port === 'generic' ? PORT_GENERIC_FILL : PORT_SPECIAL_FILL }}
               />
               {label}
-            </button>
+            </Button>
           );
         })}
       </div>
 
       {selected && (
-        <button
+        <Button
+          variant="danger"
           onClick={() => onRemoveDock(selectedDockIndex!)}
-          className="mt-2 w-full py-1.5 px-3 border-0 rounded-md text-sm font-semibold text-white bg-red-500 cursor-pointer"
+          className="mt-2 w-full"
         >
           Delete selected dock
-        </button>
+        </Button>
       )}
     </div>
   );

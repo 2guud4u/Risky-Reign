@@ -30,6 +30,7 @@ import {
 } from 'common';
 import { RESOURCE_ICONS, DEV_CARD_ICONS } from '../../utils/resourceIcons';
 import GameIcon, { IconName } from '../ui/GameIcon';
+import Button from '../ui/Button';
 
 /** The room's piece toggles — 'soldier' and 'robber' are always in play. */
 export type PieceFlag = 'cannons' | 'walls' | 'ships';
@@ -43,7 +44,7 @@ const CostChips: React.FC<{ price: Price }> = ({ price }) => (
       <span
         key={k}
         title={`${price[k]} ${k}`}
-        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 text-[13px]"
+        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-canvas-sunken border border-ink-faint/40 text-[13px]"
       >
         {price[k]} <GameIcon name={RESOURCE_ICONS[k]} size={14} />
       </span>
@@ -51,7 +52,7 @@ const CostChips: React.FC<{ price: Price }> = ({ price }) => (
   </span>
 );
 
-const cardClass = 'border border-gray-200 rounded-md p-2 bg-white';
+const cardClass = 'border border-ink-faint/40 rounded-md p-2 bg-canvas-raised';
 
 const CardHead: React.FC<{ icon: IconName; name: string; price?: Price; right?: React.ReactNode }> = ({
   icon,
@@ -60,7 +61,7 @@ const CardHead: React.FC<{ icon: IconName; name: string; price?: Price; right?: 
   right,
 }) => (
   <div className="flex items-center justify-between gap-2">
-    <span className="text-[14px] font-semibold text-gray-800">
+    <span className="text-[14px] font-semibold text-ink">
       <GameIcon name={icon} size={14} className="inline -mt-0.5" /> {name}
     </span>
     {price ? <CostChips price={price} /> : right}
@@ -68,7 +69,7 @@ const CardHead: React.FC<{ icon: IconName; name: string; price?: Price; right?: 
 );
 
 const Bullets: React.FC<{ items: string[] }> = ({ items }) => (
-  <ul className="m-0 mt-1 pl-4 list-disc text-[12px] text-gray-500 flex flex-col gap-0.5">
+  <ul className="m-0 mt-1 pl-4 list-disc text-[12px] text-ink-faint flex flex-col gap-0.5">
     {items.map((b) => (
       <li key={b}>{b}</li>
     ))}
@@ -86,14 +87,14 @@ const JumpNav: React.FC<{ items: { key: string; icon: IconName; label: string }[
     className="flex gap-1 mb-3 overflow-x-auto md:mb-0 md:flex-col md:shrink-0 md:w-28 md:overflow-visible md:sticky md:top-0 md:self-start"
   >
     {items.map((s) => (
-      <button
+      <Button
         key={s.key}
-        type="button"
+        variant="unstyled"
         onClick={() => document.getElementById(`info-${s.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-        className="shrink-0 px-2 py-1 rounded border border-gray-200 bg-gray-50 text-[12px] font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-left cursor-pointer"
+        className="shrink-0 px-2 py-1 rounded border border-ink-faint/40 bg-canvas-sunken text-[12px] font-semibold text-ink-soft hover:bg-sky-pale hover:border-sky hover:text-sky text-left"
       >
         <GameIcon name={s.icon} size={13} className="inline -mt-0.5" /> {s.label}
-      </button>
+      </Button>
     ))}
   </nav>
 );
@@ -367,8 +368,8 @@ export const CardsPanel: React.FC = () => {
     label: DEVELOPMENT_CARD_META[type].label,
     body: (
       <>
-        <p className="text-[12px] text-gray-500 m-0 mt-1">{DEVELOPMENT_CARD_META[type].description}</p>
-        <p className="text-[11px] text-gray-400 m-0 mt-1">×{DEVELOPMENT_CARD_DISTRIBUTION[type]} in the deck</p>
+        <p className="text-[12px] text-ink-faint m-0 mt-1">{DEVELOPMENT_CARD_META[type].description}</p>
+        <p className="text-[11px] text-ink-faint m-0 mt-1">×{DEVELOPMENT_CARD_DISTRIBUTION[type]} in the deck</p>
       </>
     ),
   }));
@@ -463,7 +464,7 @@ export const RecipesPanel: React.FC<{ enabled: (flag?: PieceFlag) => boolean }> 
             price={r.price}
             right={r.price ? undefined : <span className="text-[13px]">{r.cost}</span>}
           />
-          <p className="text-[12px] text-gray-500 m-0 mt-1">{r.note}</p>
+          <p className="text-[12px] text-ink-faint m-0 mt-1">{r.note}</p>
         </li>
       ))}
     </ul>
@@ -487,7 +488,7 @@ export const AchievementsPanel: React.FC<{ enabled: (flag?: PieceFlag) => boolea
   const achievements = ACHIEVEMENTS.filter((a) => enabled(a.flag));
   return (
     <div>
-      <p className="text-[12px] text-gray-500 m-0 mb-2">
+      <p className="text-[12px] text-ink-faint m-0 mb-2">
         First to {WIN_VP} VP wins. Bonuses go to one player; a tie keeps the current holder.
       </p>
       <ul className="m-0 p-0 list-none flex flex-col gap-2">
@@ -497,12 +498,12 @@ export const AchievementsPanel: React.FC<{ enabled: (flag?: PieceFlag) => boolea
               icon={a.icon}
               name={a.name}
               right={
-                <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-[12px] font-bold text-amber-800">
+                <span className="px-1.5 py-0.5 rounded bg-gold-pale border border-gold text-[12px] font-bold text-gold-deep">
                   +{a.vp} VP
                 </span>
               }
             />
-            <p className="text-[12px] text-gray-500 m-0 mt-1">{a.note}</p>
+            <p className="text-[12px] text-ink-faint m-0 mt-1">{a.note}</p>
           </li>
         ))}
       </ul>

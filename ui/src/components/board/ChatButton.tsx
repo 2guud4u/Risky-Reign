@@ -85,7 +85,7 @@ const ChatButton: React.FC = () => {
         {unread > 0 && (
           <span
             aria-label={`${unread} unread messages`}
-            className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 ring-2 ring-white text-white text-[11px] font-bold flex items-center justify-center"
+            className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-alert ring-2 ring-white text-white text-[11px] font-bold flex items-center justify-center"
           >
             {unread > 9 ? '9+' : unread}
           </span>
@@ -100,7 +100,7 @@ const ChatButton: React.FC = () => {
           // Beside the button so it can overlap the player column without
           // closing it; keep clicks inside from panning the map.
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-gray-300 bg-white shadow-xl origin-left"
+          className="absolute top-[120px] left-[64px] z-30 w-[280px] flex flex-col rounded-lg border border-ink-faint/50 bg-canvas-raised shadow-xl origin-left"
           initial={reduce ? { opacity: 0 } : { opacity: 0, x: -12, scale: 0.96 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, x: -8, scale: 0.97 }}
@@ -111,7 +111,7 @@ const ChatButton: React.FC = () => {
             className="flex-1 min-h-[120px] max-h-[320px] overflow-y-auto px-2.5 py-2 space-y-1.5"
           >
             {log.length === 0 ? (
-              <p className="text-[12px] text-gray-400 italic text-center py-4">
+              <p className="text-[12px] text-ink-faint italic text-center py-4">
                 No messages yet. Say hi!
               </p>
             ) : (
@@ -120,7 +120,7 @@ const ChatButton: React.FC = () => {
                   // Server-posted trade announcement: who gave what to whom.
                   <div
                     key={`${m.at}-${i}`}
-                    className="text-[12px] leading-snug break-words rounded-md bg-green-50 border border-green-200 px-2 py-1 text-green-900"
+                    className="text-[12px] leading-snug break-words rounded-md bg-moss-pale border border-moss-soft px-2 py-1 text-moss"
                   >
                     <GameIcon name="trade" size={12} className="inline -mt-0.5" />{' '}
                     <strong>{m.trade.from}</strong> gave <strong><PriceText price={m.trade.gave} size={11} /></strong> to{' '}
@@ -130,18 +130,18 @@ const ChatButton: React.FC = () => {
                   <div key={`${m.at}-${i}`} className="text-[13px] leading-snug break-words">
                     {m.to && (
                       <span
-                        className="mr-1 text-purple-600 font-semibold"
+                        className="mr-1 text-gold-deep font-semibold"
                         title={m.from === myName ? `Whisper to ${m.to}` : `Whisper to you`}
                       >
                         <GameIcon name="lock" size={11} className="inline" />{m.from === myName ? <><GameIcon name="arrowRight" size={11} className="inline" />{m.to}</> : ''}
                       </span>
                     )}
                     <span
-                      className={`font-semibold ${m.from === myName ? 'text-blue-700' : 'text-gray-800'}`}
+                      className={`font-semibold ${m.from === myName ? 'text-sky' : 'text-ink'}`}
                     >
                       {m.from}:
                     </span>{' '}
-                    <span className="text-gray-700">{m.text}</span>
+                    <span className="text-ink-soft">{m.text}</span>
                   </div>
                 )
               )
@@ -149,13 +149,13 @@ const ChatButton: React.FC = () => {
           </div>
           {/* Recipient picker: everyone or a private whisper to one seat. */}
           {whisperTargets.length > 0 && (
-            <div className="flex items-center gap-1.5 px-2 pt-2 text-[12px] text-gray-500">
+            <div className="flex items-center gap-1.5 px-2 pt-2 text-[12px] text-ink-faint">
               <label htmlFor="chat-to" className="shrink-0">To:</label>
               <select
                 id="chat-to"
                 value={whisperTo}
                 onChange={(e) => setWhisperTo(e.target.value)}
-                className="flex-1 min-w-0 px-1.5 py-1 border border-gray-300 rounded-md text-[12px] bg-white"
+                className="flex-1 min-w-0 px-1.5 py-1 border border-ink-faint/50 rounded-md text-[12px] bg-canvas-raised"
               >
                 <option value="">Everyone</option>
                 {whisperTargets.map((n) => (
@@ -166,7 +166,7 @@ const ChatButton: React.FC = () => {
               </select>
             </div>
           )}
-          <form onSubmit={submit} className="flex gap-1.5 border-t border-gray-200 p-2">
+          <form onSubmit={submit} className="flex gap-1.5 border-t border-ink-faint/40 p-2">
             <input
               type="text"
               value={draft}
@@ -174,13 +174,13 @@ const ChatButton: React.FC = () => {
               placeholder="Message…"
               aria-label="Chat message"
               maxLength={CHAT_MESSAGE_MAX}
-              className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-md text-[13px]"
+              className="flex-1 min-w-0 px-2 py-1.5 border border-ink-faint/50 rounded-md text-[13px]"
             />
             <Button
               type="submit"
               size="sm"
               disabled={!draft.trim()}
-              className="!bg-blue-500 !text-white hover:!bg-blue-600"
+              className="!bg-sky !text-white hover:!bg-sky"
             >
               Send
             </Button>

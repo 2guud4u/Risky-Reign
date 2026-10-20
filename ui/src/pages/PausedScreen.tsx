@@ -6,9 +6,10 @@ import { saveSession, clearSavedSession, readSavedSession } from '../utils/sessi
 import { PASSWORD_MAX } from 'common';
 import Button from '../components/ui/Button';
 import GameIcon from '../components/ui/GameIcon';
+import SeatButton from '../components/ui/SeatButton';
 
 const inputClass =
-  'w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 bg-white text-ink text-[15px] placeholder:text-ink-faint focus:border-gold focus:outline-none';
+  'w-full px-3 py-2 rounded-md border-2 border-ink-faint/40 bg-canvas-raised text-ink text-[15px] placeholder:text-ink-faint focus:border-gold focus:outline-none';
 
 interface PausedScreenProps {
   info: PausedGameInfo;
@@ -114,22 +115,15 @@ const PausedScreen: React.FC<PausedScreenProps> = ({ info, onBack }) => {
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-ink-soft m-0">Pick your player to get back in:</p>
                 {info.players.map((p) => (
-                  <button
+                  <SeatButton
                     key={p.name}
-                    type="button"
+                    color={p.color}
                     disabled={p.connected || !unlocked}
                     onClick={() => claim(p.name)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-md border-2 border-ink-faint/40 bg-white text-left cursor-pointer hover:border-gold hover:bg-gold-pale transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    status={p.connected ? <>back in <GameIcon name="check" size={11} className="inline" /></> : 'waiting…'}
                   >
-                    <span
-                      className="w-5 h-5 rounded-full border-2 border-white shadow"
-                      style={{ background: p.color }}
-                    />
-                    <span className="text-[15px] font-semibold text-ink">{p.name}</span>
-                    <span className="ml-auto text-[12px] text-ink-faint">
-                      {p.connected ? <>back in <GameIcon name="check" size={11} className="inline" /></> : 'waiting…'}
-                    </span>
-                  </button>
+                    {p.name}
+                  </SeatButton>
                 ))}
               </div>
             )}

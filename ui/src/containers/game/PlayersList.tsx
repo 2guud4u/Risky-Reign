@@ -39,7 +39,7 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
             tone={player.id === currentPlayerId ? 'accent' : player.eliminated ? 'muted' : 'default'}
             icon={
               <span
-                className="inline-block w-3 h-3 rounded-full border border-gray-300 shrink-0"
+                className="inline-block w-3 h-3 rounded-full border border-ink-faint/50 shrink-0"
                 style={{ background: player.color || '#999' }}
                 title={player.color}
               />
@@ -47,41 +47,41 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
             trailing={
               <>
                 {hasRoad && (
-                  <span className="text-blue-700 font-semibold" title={`Longest road: ${roadLen} roads (+2 VP)`}>
+                  <span className="text-sky font-semibold" title={`Longest road: ${roadLen} roads (+2 VP)`}>
                     <GameIcon name="road" size={12} className="inline" />{roadLen}
                   </span>
                 )}
                 {hasArmy && (
-                  <span className="text-red-700 font-semibold" title={`Largest army: ${soldiers} soldiers (+2 VP)`}>
+                  <span className="text-clay font-semibold" title={`Largest army: ${soldiers} soldiers (+2 VP)`}>
                     <GameIcon name="attack" size={12} />
                   </span>
                 )}
                 {hasWar && (
-                  <span className="text-orange-700 font-semibold" title={`Conqueror: ${battlesWon} battles won (+2 VP)`}>
+                  <span className="text-clay font-semibold" title={`Conqueror: ${battlesWon} battles won (+2 VP)`}>
                     <GameIcon name="crown" size={12} />
                   </span>
                 )}
                 {hasAdmiral && (
-                  <span className="text-sky-700 font-semibold" title={`The Admiral: ${fleetSize} ships (+1 VP, +1 sail step per ship)`}>
+                  <span className="text-sky font-semibold" title={`The Admiral: ${fleetSize} ships (+1 VP, +1 sail step per ship)`}>
                     <GameIcon name="ship" size={12} className="inline" />{fleetSize}
                   </span>
                 )}
                 {hasWall && (
-                  <span className="text-stone-700 font-semibold" title={`The Great Wall: ${wallRun} connected walls (+1 VP, walls break on 5+)`}>
+                  <span className="text-ink-soft font-semibold" title={`The Great Wall: ${wallRun} connected walls (+1 VP, walls break on 5+)`}>
                     <GameIcon name="wall" size={12} className="inline" />{wallRun}
                   </span>
                 )}
                 {battlesWon > 0 && (
-                  <span className="text-amber-700 font-semibold" title={`Battles won: ${battlesWon}`}>
+                  <span className="text-clay font-semibold" title={`Battles won: ${battlesWon}`}>
                     <GameIcon name="trophy" size={12} className="inline" />{battlesWon}
                   </span>
                 )}
                 {(player.victoryPoints ?? 0) > 0 && (
-                  <span className="text-yellow-700" title="Victory points">
+                  <span className="text-gold-deep" title="Victory points">
                     <GameIcon name="star" size={12} className="inline" />{player.victoryPoints}
                   </span>
                 )}
-                <span className="text-gray-600" title="Total resource cards">
+                <span className="text-ink-soft" title="Total resource cards">
                   <GameIcon name="cards" size={12} className="inline" />{totalResources}
                 </span>
               </>
@@ -90,10 +90,10 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
             <span className={player.eliminated ? 'line-through' : undefined} title={player.name}>
               {player.name}
             </span>
-            {player.id === currentPlayerId && <span className="text-[11px] text-gray-500"> (you)</span>}
+            {player.id === currentPlayerId && <span className="text-[11px] text-ink-faint"> (you)</span>}
             {!player.connected && (
               <span
-                className="ml-1 text-[10px] font-semibold text-white bg-gray-500 rounded-full px-1.5"
+                className="ml-1 text-[10px] font-semibold text-white bg-canvas-sunken0 rounded-full px-1.5"
                 title="Disconnected — anyone with the room link can take this seat"
               >
                 offline

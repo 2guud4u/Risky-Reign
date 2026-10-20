@@ -82,15 +82,17 @@ function addRoadFrom(board: Board, owner: string, vertexId: string): string | nu
 }
 
 /**
- * Lay a wall on the first free edge out of `fromId` whose far end is
- * unsettled (a building there would sever the run); returns the far vertex.
+ * Lay a wall on the first free edge out of `fromId` — preferring a far end
+ * with no settlement (a building there would sever a run); `allowSettledEnd`
+ * relaxes that for breach targets where the run doesn't matter. Returns the
+ * far vertex, or null when no free edge exists.
  */
-function addWallRoad(board: Board, owner: string, fromId: string): string | null {
+function addWallRoad(board: Board, owner: string, fromId: string, allowSettledEnd = false): string | null {
   for (const edgeId of board.vertices[fromId].roadIds) {
     const edge = board.edges[edgeId];
     if (!edge || edge.roadId !== null) continue;
     const far = edge.vertexAId === fromId ? edge.vertexBId : edge.vertexAId;
-    if (board.vertices[far]?.settlementId) continue;
+    if (!allowSettledEnd && board.vertices[far]?.settlementId) continue;
     const id = nextId('road');
     board.roads[id] = { id, edgeId, ownerId: owner, builtAt: Date.now(), isWall: true };
     edge.roadId = id;
@@ -364,35 +366,24 @@ export function applyDevPreset(room: GameRoom): void {
     }
     const bSettleRoad = settlements[b] ? roadOn(settlements[b], b) : null;
     if (bSettleRoad && settlements[b]) {
+      // B's settle road joins the run; extend past its tip for a 2-wall run —
+      // if the tip is boxed in, branch the second wall off the settlement.
+      bSettleRoad.isWall = true;
       const tip = farEnd(settlements[b], bSettleRoad.edgeId);
-      if (tip) addWallRoad(board, b, tip);
+      if (!tip || !addWallRoad(board, b, tip)) addWallRoad(board, b, settlements[b]);
     }
-    // Breach targets in range of both staged cannons: B walls the last edge
-    // of A's contested road end (A's stationed cannon can test a plain 4+
-    // shot), and A walls the last edge of B's city (B's cannon faces the
-    // 5+ Great Wall threshold — the buff, live).
+    // Breach targets in range of both staged cannons: A's city road flips to
+    // a B wall (the stationed cannon at the road end can test a plain 4+
+    // shot), and a fresh A wall off B's city (B's cannon faces the 5+ Great
+    // Wall threshold — the buff, live).
     if (roadEnds[a]) {
       const target = roadBetween(board, cities[a], roadEnds[a]!);
-      if (target) target.isWall = true;
-      else {
-        const edgeId = board.vertices[roadEnds[a]!].roadIds.find((id) => !board.edges[id]?.roadId);
-        if (edgeId) {
-          const id = nextId('road');
-          board.roads[id] = { id, edgeId, ownerId: b, builtAt: Date.now(), isWall: true };
-          board.edges[edgeId]!.roadId = id;
-        }
+      if (target) {
+        target.isWall = true;
+        target.ownerId = b;
       }
     }
-    if (roadEnds[b]) {
-      const aWallEdge = board.vertices[roadEnds[b]!].roadIds.find(
-        (id) => !board.edges[id]?.roadId,
-      );
-      if (aWallEdge) {
-        const id = nextId('road');
-        board.roads[id] = { id, edgeId: aWallEdge, ownerId: a, builtAt: Date.now(), isWall: true };
-        board.edges[aWallEdge]!.roadId = id;
-      }
-    }
+    addWallRoad(board, a, cities[b], true);
   }
 
   if (room.shipsEnabled && a) {
