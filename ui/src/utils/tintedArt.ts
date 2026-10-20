@@ -30,6 +30,56 @@ export const CANNON_UNSTATIONED_ART: TintArt = {
   href: '/art/pieces/cannon_unstationed.png',
   maskHref: '/art/pieces/cannon_unstationed_mask.png',
 };
+
+/**
+ * Wall art: one sprite per hex-edge orientation, cut from one sheet drawn at
+ * a single scale and light (art-src/wall.png via tools/mask-painter). Each
+ * keeps the angle it was drawn at so its perspective and shading stay right;
+ * the board picks the sprite closest to perpendicular and rotates only the
+ * few-degree remainder.
+ */
+export interface WallSprite {
+  art: TintArt;
+  /** Sprite pixel size. */
+  w: number;
+  h: number;
+  /** Screen angle (degrees, y down) of the wall's long axis as drawn. */
+  axisDeg: number;
+  /** Pixel on the wall's ground-level centerline, midway along its length:
+   *  the point that sits on the road's midpoint. */
+  anchorX: number;
+  anchorY: number;
+}
+
+export const WALL_SPRITES: WallSprite[] = [
+  {
+    art: { href: '/art/pieces/wall_90.png', maskHref: '/art/pieces/wall_90_mask.png' },
+    w: 371,
+    h: 216,
+    axisDeg: 0,
+    anchorX: 184,
+    anchorY: 164,
+  },
+  {
+    art: { href: '/art/pieces/wall_30.png', maskHref: '/art/pieces/wall_30_mask.png' },
+    w: 294,
+    h: 430,
+    axisDeg: -55,
+    anchorX: 198,
+    anchorY: 235,
+  },
+  {
+    art: { href: '/art/pieces/wall_150.png', maskHref: '/art/pieces/wall_150_mask.png' },
+    w: 291,
+    h: 437,
+    axisDeg: 55,
+    anchorX: 82,
+    anchorY: 243,
+  },
+];
+/** The horizontal sprite's end-to-end length (px): the reference that sets
+ *  the one board scale all wall sprites share. */
+export const WALL_REFERENCE_LENGTH_PX = 366;
 /** The sprite each troop kind draws with (sizes: `TROOP_ART` in constants). */
 export const TROOP_SPRITES: Record<keyof typeof TROOP_ART, TintArt> = {
   soldier: SOLDIER_ART,

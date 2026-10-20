@@ -52,6 +52,7 @@ function pieceApi(): Plugin {
                 id: pid,
                 label: p.label,
                 longSide: p.longSide,
+                crop: p.crop ?? null,
                 hasMask: await exists(p.maskLayer),
                 hasSilhouette: await exists(p.silhouetteLayer),
               }))

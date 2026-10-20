@@ -15,7 +15,9 @@ export const TintedSprite: React.FC<{
   width: number;
   height: number;
   transform?: string;
-}> = ({ art, color, x, y, width, height, transform }) => {
+  /** Decorative sprites that must not catch clicks pass 'none'. */
+  pointerEvents?: 'visiblePainted' | 'none';
+}> = ({ art, color, x, y, width, height, transform, pointerEvents = 'visiblePainted' }) => {
   const href = useTintedArt(art, color);
   if (!href) return null;
   return (
@@ -26,7 +28,7 @@ export const TintedSprite: React.FC<{
       width={width}
       height={height}
       transform={transform}
-      pointerEvents="visiblePainted"
+      pointerEvents={pointerEvents}
     />
   );
 };

@@ -7,7 +7,7 @@ import Dice from '../components/ui/Dice';
 import GameIcon from '../components/ui/GameIcon';
 import { usePlayers } from '../contexts/GameContext';
 import { TintedImg } from '../components/TintedSprite';
-import { CANNON_UNSTATIONED_ART, INJURED_SOLDIER_ART, SOLDIER_ART } from '../utils/tintedArt';
+import { CANNON_UNSTATIONED_ART, INJURED_SOLDIER_ART, SOLDIER_ART, WALL_SPRITES } from '../utils/tintedArt';
 
 /**
  * Wall-gate prompt: while `room.wallGate` is pending, a soldier crossing an
@@ -73,11 +73,11 @@ const WallGatePrompt: React.FC = () => {
                 {soldier?.type === 'cannon' ? 'Cannon' : 'Soldier'}
               </span>
             </div>
-            <img
-              src="/art/pieces/wall_90.png"
-              alt=""
-              aria-hidden
-              className="h-14 object-contain opacity-90"
+            <TintedImg
+              art={WALL_SPRITES[0].art}
+              color={colorOf(gate.wallOwnerName) ?? "#64748b"}
+              width={Math.round((56 * WALL_SPRITES[0].w) / WALL_SPRITES[0].h)}
+              height={56}
             />
           </div>
 

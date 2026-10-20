@@ -39,6 +39,9 @@ export const BOARD_VIEWBOX_MARGIN = 1.2;
 export const BOARD_RENDER_MARGIN = 1.1;
 /** Radius of vertex markers on the main board (SVG units). */
 export const BOARD_VERTEX_SIZE = 8;
+/** Length of a wall sprite (its horizontal reference, end to end) as a
+ *  multiple of the edge it stands on. */
+export const WALL_LENGTH_FRACTION = .6;
 /** Render size of a port-dock icon (SVG units). */
 export const PORT_DOCK_SIZE = 8;
 /** Max coastal vertices served by one port dock. */

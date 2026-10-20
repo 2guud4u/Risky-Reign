@@ -11,6 +11,7 @@ import { actableSoldierIds, knightSpawnTargets, movableSoldierIds, robberPlaceme
 import { mouseToSvgPoint, nearestWithin } from '../utils/boardInteraction';
 import { HexLayer } from '../components/board/HexLayer';
 import { EdgeLayer, VertexLayer } from '../components/board/PieceLayers';
+import { StructureLayer } from '../components/board/StructureLayer';
 import BuildAnimationLayer from '../components/board/BuildAnimationLayer';
 import { ShipLayer } from '../components/board/ShipLayer';
 import { PortLayer } from '../components/board/PortLayer';
@@ -508,8 +509,17 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
               to each of the 1-2 vertices it serves. */}
           <PortLayer portGroups={portGroups} />
 
-          {/* Vertices layer */}
+          {/* Vertices layer: hit areas and dots. */}
           <VertexLayer vertices={vertices} onClick={handleVertexClick} onHover={setHoveredVertexId} />
+
+          {/* Walls, settlements and cities, depth-sorted together so the
+              piece standing nearer the viewer draws on top. */}
+          <StructureLayer
+            vertices={vertices}
+            edges={edges}
+            onVertexClick={handleVertexClick}
+            onVertexHover={setHoveredVertexId}
+          />
 
           {/* Build animations: piece pops/grow/smoke replayed from board
               diffs; cosmetic only, claims the real piece while playing. */}

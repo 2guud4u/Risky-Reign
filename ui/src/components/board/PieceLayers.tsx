@@ -23,7 +23,7 @@ export const EdgeLayer = React.memo(function EdgeLayer({
   );
 });
 
-/** Vertices layer: settlements/cities tinted in the owner's color. */
+/** Vertices layer: hit areas, dots and selection rings (town art is in StructureLayer). */
 export const VertexLayer = React.memo(function VertexLayer({
   vertices,
   onClick,

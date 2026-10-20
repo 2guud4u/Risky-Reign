@@ -1,30 +1,26 @@
 import React from 'react';
 import { BoardVertex as BoardVertexType } from 'common';
 import { VERTEX_HIT_SCALE } from '../constants';
-import { TintedSprite } from './TintedSprite';
-import { CITY_ART, SETTLEMENT_ART } from '../utils/tintedArt';
-import { houseFrame } from '../utils/boardPresentation';
-import { usePieceHidden } from './board/buildFx';
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
   onHover: (vertexId: string | null) => void;
   size?: number;
-  /** Owner's chosen color, used to tint the settlement. */
-  ownerColor?: string;
 }
 
+/**
+ * A vertex's hit area, dot and (when empty) selection ring. Settlement and
+ * city art draws in StructureLayer, depth-sorted with walls.
+ */
 const BoardVertexInner: React.FC<BoardVertexProps> = ({
   id,
   position,
   hasSettlement,
-  settlementLevel,
   isHovered,
   isSelected,
   isSelectable,
   onClick,
   onHover,
   size = 8,
-  ownerColor,
 }) => {
   const handleClick = () => {
     if (isSelectable) {
@@ -49,10 +45,6 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
     return '#999';
   };
   
-  // Hidden while a build animation stands in for the piece (buildFx).
-  const pieceHidden = usePieceHidden(id);
-  const isCity = settlementLevel === 'city';
-  const frame = houseFrame(isCity, position, size);
   return (
     <g
       data-vertex-id={id}
@@ -74,33 +66,8 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
         strokeWidth={2}
         opacity={isSelectable ? 1 : 0.5}
       />
-
-      {/* Settlement: whole-village art; the thatched roofs are tinted to the
-          owner's color. Hidden while the build animation stands in. */}
-      {hasSettlement && !isCity && !pieceHidden && (
-        <TintedSprite
-          art={SETTLEMENT_ART}
-          color={ownerColor ?? '#999'}
-          x={frame.x}
-          y={frame.y}
-          width={frame.w}
-          height={frame.h}
-        />
-      )}
-      {/* City: pre-baked raster; the roof is tinted to the owner's color. */}
-      {hasSettlement && isCity && !pieceHidden && (
-        <TintedSprite
-          art={CITY_ART}
-          color={ownerColor ?? '#999'}
-          x={frame.x}
-          y={frame.y}
-          width={frame.w}
-          height={frame.h}
-        />
-      )}
-
-      {/* Selection ring */}
-      {isSelected && (
+      {/* Selection ring (a town draws its own, above its art). */}
+      {isSelected && !hasSettlement && (
         <circle
           cx={position.x}
           cy={position.y}

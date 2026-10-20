@@ -11,6 +11,8 @@ interface PieceInfo {
   id: string;
   label: string;
   longSide: number;
+  /** Region of the source this piece uses; null = the whole image. */
+  crop: { x: number; y: number; w: number; h: number } | null;
   hasMask: boolean;
   hasSilhouette: boolean;
 }
@@ -87,8 +89,10 @@ async function loadPiece(info: PieceInfo) {
   setStatus(`loading ${info.label}…`);
   piece = info;
   const src = await loadImage(`/api/pieces/${info.id}/source?t=${Date.now()}`);
-  srcCanvas = newCanvas(src.naturalWidth, src.naturalHeight);
-  ctxOf(srcCanvas).drawImage(src, 0, 0);
+  // Pieces sharing a sheet work on their own crop; layers live at crop size.
+  const c = info.crop ?? { x: 0, y: 0, w: src.naturalWidth, h: src.naturalHeight };
+  srcCanvas = newCanvas(c.w, c.h);
+  ctxOf(srcCanvas).drawImage(src, c.x, c.y, c.w, c.h, 0, 0, c.w, c.h);
   srcImg = rgbaOf(srcCanvas);
   const { width: w, height: h } = srcCanvas;
 
