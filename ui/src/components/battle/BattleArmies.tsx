@@ -19,6 +19,8 @@ interface BattleArmiesProps {
   rollingSoldierId: string | null;
   colors: Record<string, string>;
   onRoll: (soldierId: string) => void;
+  /** Troops mid-replay in the map fight layer — hidden here so they don't double-draw. */
+  hiddenIds?: ReadonlySet<string>;
 }
 
 /**
@@ -37,9 +39,12 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
   rollingSoldierId,
   colors,
   onRoll,
+  hiddenIds,
 }) => {
+  const atkVisible = hiddenIds ? attackerSlots.filter((s) => !hiddenIds.has(s.s.soldier.id)) : attackerSlots;
+  const defVisible = hiddenIds ? defenderSlots.filter((s) => !hiddenIds.has(s.s.soldier.id)) : defenderSlots;
   // canRoll covers dead/rolled troops and turn ownership; skip the in-flight one.
-  const next = [...attackerSlots, ...defenderSlots].find(
+  const next = [...atkVisible, ...defVisible].find(
     (slot) => canRoll(slot.s) && slot.s.soldier.id !== rollingSoldierId
   );
   // Attackers stand left of the clash line, so their open side is the left.
@@ -62,7 +67,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
         opacity={0.6}
       />
       {/* Attacker's army (left) and defender's army (right). */}
-      {attackerSlots.map((slot, i) => (
+      {atkVisible.map((slot, i) => (
         <BattleTroop
           key={`a-${i}`}
           slot={slot}
@@ -74,7 +79,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
           onRoll={onRoll}
         />
       ))}
-      {defenderSlots.map((slot, i) => (
+      {defVisible.map((slot, i) => (
         <BattleTroop
           key={`d-${i}`}
           slot={slot}

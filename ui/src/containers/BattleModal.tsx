@@ -10,6 +10,7 @@ import { useBattleReposition } from '../hooks/useBattleReposition';
 import {
   clashLineSpread,
   computeDiceMatchup,
+  computeFights,
   computeWaitingLines,
   FALLBACK_OWNER_COLOR,
   layoutSide,
@@ -19,9 +20,11 @@ import { BattleOutcomePanel } from '../components/battle/BattleOutcomePanel';
 import { BattleStepper } from '../components/battle/BattleStepper';
 import { BetweenRoundsControls } from '../components/battle/BetweenRoundsControls';
 import { DiceMatchupPanel } from '../components/battle/DiceMatchupPanel';
+import { MapFightLayer } from '../components/battle/FightStage';
 import { RepositionOverlay } from '../components/battle/RepositionOverlay';
 import { RollingPrompt } from '../components/battle/RollingPrompt';
 import { BATTLE_MINI_MIN_VIEW_SIZE } from '../components/battle/constants';
+import { ROW_H } from '../constants';
 
 /** A player name with their color dot, for the battle header. */
 const SideName: React.FC<{ name: string; color?: string; you: boolean; align?: 'left' | 'right' }> = ({
@@ -83,16 +86,27 @@ const BattleModalInner: React.FC<{
       .find((x) => x.soldier.id === rollingSoldierId);
     if (!s || s.rollNum !== null) setRollingSoldierId(null);
   }, [battle, rollingSoldierId]);
+  // The fight replay: once a round resolves, the pairs' choreography plays
+  // over the arena (poses from art/battle/). Each round plays exactly once —
+  // played rounds (this battle instance + round) are remembered so a
+  // re-render, a phase hop or a modal remount never replays the same beat.
+  const colors = playerColorMap(gameRoom);
+  const attackerSide = battle?.states[battle.attacker] ?? { soldiers: [] };
+  const defenderSide =
+    battle?.defender && battle.states[battle.defender] ? battle.states[battle.defender] : { soldiers: [] };
+  const fights = battle ? computeFights(battle, attackerSide.soldiers, defenderSide.soldiers, colors) : [];
+  const roundKey = battle ? `${battle.vertexId}|${battle.attacker}|${battle.round}` : '';
+  const [replay, setReplay] = useState<{ key: string; playing: boolean } | null>(null);
+  useEffect(() => {
+    if (!battle || battle.phase === 'rolling' || fights.length === 0 || reduce) return;
+    setReplay((r) => (r?.key === roundKey ? r : { key: roundKey, playing: true }));
+  }, [battle, roundKey, fights.length, reduce]);
+
   if (!battle || !board) return null;
 
   const vertex = board.vertices[battle.vertexId];
   const center = vertex ? vertex.position : { x: 0, y: 0 };
-  const colors = playerColorMap(gameRoom);
   const me = currentPlayer?.name;
-
-  const attackerSide = battle.states[battle.attacker] ?? { soldiers: [] };
-  const defenderSide =
-    battle.defender && battle.states[battle.defender] ? battle.states[battle.defender] : { soldiers: [] };
 
   const phase = battle.phase;
 
@@ -116,14 +130,28 @@ const BattleModalInner: React.FC<{
   const defenderAlive = defenderSide.soldiers.some((s) => !s.dead && !s.injured);
   const attackerAlive = attackerSide.soldiers.some((s) => !s.dead && !s.injured);
 
-  // Verdict comes from common — the same rule the server credits battlesWon with.
   const outcome = phase === 'repositioning' || phase === 'finished' ? resolveBattleOutcome(battle) : null;
+
+  const showReplay = !!replay?.playing && replay.key === roundKey && fights.length > 0;
 
   // During 'betweenRounds' this round's casualties are hidden (pending), so
   // every troop that rolled is still on the clash line.
   const attackerSlots = layoutSide(center, attackerSide.soldiers, true, phase, false);
   const defenderSlots = layoutSide(center, defenderSide.soldiers, false, phase, !!battle.injuredFight);
   const troopSpread = clashLineSpread(battle, phase);
+
+  // Anchor each fight on the clash-line row where its attacker stood, and
+  // hide the paired troops in the armies view while the replay runs (the
+  // layer redraws them at their lineup spot, then walking in).
+  const fightingIds = new Set(fights.flatMap((f) => [f.attacker.id, f.defender.id].filter(Boolean) as string[]));
+  if (showReplay) {
+    fights.forEach((f, i) => {
+      const slot = attackerSlots.find((s) => s.s.soldier.id === f.attacker.id)
+        ?? defenderSlots.find((s) => s.s.soldier.id === f.defender.id);
+      f.rowY = slot?.y ?? center.y + (i - (fights.length - 1) / 2) * ROW_H;
+    });
+  }
+  const hiddenIds = showReplay ? fightingIds : undefined;
 
   const waitingLines = computeWaitingLines(battle, phase);
   const matchup = computeDiceMatchup(battle, attackerSide.soldiers, defenderSide.soldiers, phase);
@@ -164,7 +192,7 @@ const BattleModalInner: React.FC<{
         <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-4 overflow-y-auto md:overflow-visible">
           {/* The arena: the vertex mini-map with both armies on it, or (when
               repositioning) the injured troops and where they can retreat. */}
-          <div className="min-w-0 min-h-[240px] md:flex-1 md:min-h-0">
+          <div className="relative min-w-0 min-h-[240px] md:flex-1 md:min-h-0">
             {vertex && (
               <MiniView
                 board={board}
@@ -202,6 +230,19 @@ const BattleModalInner: React.FC<{
                     rollingSoldierId={rollingSoldierId}
                     colors={colors}
                     onRoll={handleRoll}
+                    hiddenIds={hiddenIds}
+                  />
+                )}
+                {/* The resolved round's choreography replay: drawn inside the
+                    mini-map on the clash line itself (the paired troops hide
+                    above and replay at their lineup spot, then converge),
+                    then dismissed so the armies show the post-battle state. */}
+                {showReplay && phase !== 'repositioning' && (
+                  <MapFightLayer
+                    key={replay!.key}
+                    fights={fights}
+                    x={center.x}
+                    onDone={() => setReplay({ key: replay!.key, playing: false })}
                   />
                 )}
               </MiniView>

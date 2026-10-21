@@ -11,7 +11,8 @@ import { TROOP_ART } from '../constants';
  */
 export interface TintArt {
   href: string;
-  maskHref: string;
+  /** Player-color tint region. Omit for sprites that never tint (robber, effects). */
+  maskHref?: string;
 }
 
 export const SOLDIER_ART: TintArt = { href: '/art/soldier.png', maskHref: '/art/soldier_mask.png' };
@@ -35,6 +36,22 @@ export const CANNON_UNSTATIONED_ART: TintArt = {
   href: '/art/pieces/cannon_unstationed.png',
   maskHref: '/art/pieces/cannon_unstationed_mask.png',
 };
+
+/** Battle-choreography poses (see components/battle/FightStage): one file per
+ *  strike, reaction and effect frame, all in `ui/public/art/battle/`. */
+export const BATTLE_ART = {
+  thrust: { href: '/art/battle/thrust.png', maskHref: '/art/battle/thrust_mask.png' },
+  slash: { href: '/art/battle/slash.png', maskHref: '/art/battle/slash_mask.png' },
+  stabbed: { href: '/art/battle/stabbed.png', maskHref: '/art/battle/stabbed_mask.png' },
+  injuredStabbed: { href: '/art/battle/injuredStabbed.png', maskHref: '/art/battle/injuredStabbed_mask.png' },
+  stunned: { href: '/art/battle/stunned.png', maskHref: '/art/battle/stunned_mask.png' },
+  cannonFire: { href: '/art/battle/cannonFire.png', maskHref: '/art/battle/cannonFire_mask.png' },
+  cannonWreck: { href: '/art/battle/cannonWreck.png', maskHref: '/art/battle/cannonWreck_mask.png' },
+  robberStrike: { href: '/art/battle/robberStrike.png' },
+  robberStabbed: { href: '/art/battle/robberStabbed.png' },
+  poof: { href: '/art/battle/poof.png' },
+  sack: { href: '/art/battle/sack.png' },
+} satisfies Record<string, TintArt>;
 
 /**
  * Wall art: one sprite per hex-edge orientation, cut from one sheet drawn at
@@ -113,6 +130,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 async function bake(art: TintArt, color: string): Promise<string> {
+  if (!art.maskHref) return art.href;
   const [base, mask] = await Promise.all([loadImage(art.href), loadImage(art.maskHref)]);
   const canvas = document.createElement('canvas');
   canvas.width = base.naturalWidth;

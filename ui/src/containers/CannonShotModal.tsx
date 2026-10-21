@@ -7,6 +7,7 @@ import Dice from '../components/ui/Dice';
 import GameIcon from '../components/ui/GameIcon';
 import { TintedImg } from '../components/TintedSprite';
 import { CANNON_STATIONED_ART, INJURED_SOLDIER_ART, SOLDIER_ART, TROOP_SPRITES } from '../utils/tintedArt';
+import { FightStage } from '../components/battle/FightStage';
 import type { CannonWallShot } from 'common';
 
 /**
@@ -104,6 +105,33 @@ const CannonShotModal: React.FC = () => {
           </div>
         </div>
 
+        {/* The resolved shot, replayed: fire, ball flight, each victim's fate. */}
+        {!pending && anyResolved && (
+          <div className="rounded-lg overflow-hidden bg-[#1a1916] h-[220px]">
+            <FightStage
+              fights={shot.victims.map((v) => ({
+                attacker: {
+                  kind: 'cannonStationed',
+                  color: colorOf(shot.shooterName) ?? '#9b9183',
+                  roll: shot.cannonRoll,
+                },
+                defender: {
+                  kind:
+                    v.type === 'cannon'
+                      ? 'cannonStationed'
+                      : gameRoom?.board?.soldiers[v.soldierId]?.injured
+                        ? 'injured'
+                        : 'soldier',
+                  color: colorOf(v.ownerName) ?? '#9b9183',
+                  roll: v.roll,
+                },
+                outcome:
+                  v.outcome === 'kill' ? 'killDefender' : v.outcome === 'injure' ? 'injureDefender' : 'miss',
+                ranged: true,
+              }))}
+            />
+          </div>
+        )}
         {/* One row per victim: their art, their die, their fate. */}
         <div className="flex flex-col gap-2 rounded-lg bg-canvas-sunken border border-ink-faint/40 px-4 py-3">
           {shot.victims.map((v) => (

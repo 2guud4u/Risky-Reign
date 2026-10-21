@@ -7,6 +7,7 @@ import {
   activeSoldiersOf,
   MAX_PER_ROUND,
 } from 'common';
+import type { Fight, FightTroop } from '../components/battle/FightStage';
 import { DiceMatch, RepositionTroop, TroopSlot } from '../types/battleModal';
 import {
   CENTER_GAP,
@@ -217,4 +218,73 @@ export function computeDiceMatchup(
     }
   }
   return matchup;
+}
+
+/**
+ * The choreography for the just-resolved round: one Fight per resolved pair,
+ * in pair order (the stage staggers rows by index). Mirrors `resolvePairs`,
+ * `resolveInjuredFight` and the robber roll-off in common/utils/battle — the
+ * server already marked casualties, so outcomes come from the same dice +
+ * flags the resolver used.
+ */
+export function computeFights(
+  battle: BattleState,
+  attackerSoldiers: SoldierBattleState[],
+  defenderSoldiers: SoldierBattleState[],
+  colors: Record<string, string>
+): Fight[] {
+  const troopOf = (s: SoldierBattleState): FightTroop => {
+    const sld = s.soldier;
+    const kind = sld.owner === 'Robber'
+      ? 'robber'
+      : sld.type === 'cannon'
+        ? sld.stationed ? 'cannonStationed' : 'cannonUnstationed'
+        : sld.injured ? 'injured' : 'soldier';
+    return { id: sld.id, kind, color: colors[sld.owner] ?? FALLBACK_OWNER_COLOR, roll: s.rollNum };
+  };
+
+  if (battle.robberFight) {
+    const a = attackerSoldiers[0];
+    const r = defenderSoldiers[0] ?? battle.states['Robber']?.soldiers[0];
+    if (!a || !r) return [];
+    // The attacker wins only on a strictly higher roll; the robber wins ties.
+    const won = (a.rollNum ?? 0) > (r.rollNum ?? 0);
+    return [{ attacker: troopOf(a), defender: troopOf(r), outcome: won ? 'killDefender' : 'killAttacker', sack: won }];
+  }
+
+  const isCannon = (s: SoldierBattleState) => s.soldier.type === 'cannon';
+  const byRoll = (x: SoldierBattleState, y: SoldierBattleState) =>
+    (!battle.injuredFight && (isCannon(x) ? 1 : isCannon(y) ? -1 : 0)) ||
+    (y.rollNum ?? 0) - (x.rollNum ?? 0);
+  const aList = attackerSoldiers.filter((s) => s.rollNum !== null).sort(byRoll);
+  const dList = defenderSoldiers.filter((s) => s.rollNum !== null).sort(byRoll);
+
+  const fights: Fight[] = [];
+  for (let i = 0; i < Math.min(aList.length, dList.length); i++) {
+    const atk = aList[i];
+    const def = dList[i];
+    const ar = atk.rollNum ?? 0;
+    const dr = def.rollNum ?? 0;
+    const atkCannon = isCannon(atk);
+    const defCannon = isCannon(def);
+    const f: Fight = { attacker: troopOf(atk), defender: troopOf(def), outcome: 'draw' };
+    if (battle.injuredFight) {
+      // The injured defender flees on a strictly higher roll, dies otherwise.
+      f.outcome = dr > ar ? 'escape' : 'killDefender';
+    } else if (ar > dr || (ar === dr && atkCannon && !defCannon)) {
+      // Attacker wins; an unstationed cannon takes the win by rolling away.
+      f.outcome = atk.soldier.stationed === false && atkCannon ? 'flee'
+        : ar - dr >= 2 || defCannon ? 'killDefender' : 'injureDefender';
+    } else {
+      // Defender wins ties (a cannon dies on any lost roll).
+      f.outcome = def.soldier.stationed === false && defCannon ? 'flee'
+        : dr - ar >= 2 || atkCannon ? 'killAttacker' : 'injureAttacker';
+    }
+    fights.push(f);
+  }
+  // Only unstationed cannons left on the line: the round resolves as a draw.
+  if (fights.length === 0 && aList.length > 0 && dList.length > 0) {
+    fights.push({ attacker: troopOf(aList[0]), defender: troopOf(dList[0]), outcome: 'draw' });
+  }
+  return fights;
 }
