@@ -26,6 +26,10 @@ export interface PieceConfig {
   outMask: string;
   /** Output long side in px (never upscaled). */
   longSide: number;
+  /** Extra shrink applied to the crop after the longSide fit, for pieces
+   *  whose source figure is drawn bigger than its kin (e.g. injured soldier
+   *  vs soldier). Content stays bottom-aligned inside the same box. */
+  figureScale?: number;
 }
 
 /** One wall per hex-edge orientation, all cut from one sheet (same scale and
@@ -72,6 +76,9 @@ export const PIECES: Record<string, PieceConfig> = {
     outArt: 'ui/public/art/injuredSoldier.png',
     outMask: 'ui/public/art/injuredSoldier_mask.png',
     longSide: 682,
+    // The source figure is drawn ~14% bigger than the soldier's; shrink it
+    // back so injured and healthy troops match in-game.
+    figureScale: 0.88,
   },
   cannonStationed: {
     label: 'Cannon — stationed',

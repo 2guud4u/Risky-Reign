@@ -1,7 +1,7 @@
 import React from 'react';
 import { BattlePhase } from 'common';
 import { TroopSlot } from '../../types/battleModal';
-import { effDead, effInjured, FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
+import { effDead, FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
 import { TROOP_ART, TROOP_R } from '../../constants';
 import { GAME_ICONS } from '../ui/GameIcon';
 import { TintedSprite } from '../TintedSprite';
@@ -47,10 +47,11 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
   onRoll,
 }) => {
   const { x, y, s } = slot;
-  // During 'betweenRounds', this round's casualties are not shown yet — the
-  // troop keeps its healthy look and die until "continue battle" is clicked.
+  // During 'betweenRounds', this round's DEAD casualties stay healthy-looking
+  // until "continue battle" — but a newly-injured troop keeps its injured
+  // pose right away (it "stays in injured form" after the fight replay).
   const dead = effDead(s, phase);
-  const injured = effInjured(s, phase);
+  const injured = s.injured;
   const opacity = dead ? DEAD_TROOP_OPACITY : 1;
   const isRobber = s.soldier.owner === 'Robber';
   let label: React.ReactNode = '·';

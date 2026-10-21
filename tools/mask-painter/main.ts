@@ -11,6 +11,8 @@ interface PieceInfo {
   id: string;
   label: string;
   longSide: number;
+  /** Extra content shrink applied inside the output box (see pieces.ts). */
+  figureScale?: number;
   /** Region of the source this piece uses; null = the whole image. */
   crop: { x: number; y: number; w: number; h: number } | null;
   hasMask: boolean;
@@ -481,14 +483,23 @@ window.addEventListener('resize', resize);
 
 // ---- save ------------------------------------------------------------------
 
-/** Crop to the piece and downscale so the long side is `longSide` (never up). */
-function exportSized(img: Rgba, crop: { x: number; y: number; w: number; h: number }, longSide: number) {
+/** Crop to the piece and downscale so the long side is `longSide` (never up).
+ *  `figureScale` (<1) shrinks the content further inside the same box —
+ *  bottom-aligned — for pieces whose figure was drawn too big at source. */
+function exportSized(
+  img: Rgba,
+  crop: { x: number; y: number; w: number; h: number },
+  longSide: number,
+  figureScale = 1
+) {
   const full = canvasOf(img);
   const k = Math.min(1, longSide / Math.max(crop.w, crop.h));
   const out = newCanvas(Math.max(1, Math.round(crop.w * k)), Math.max(1, Math.round(crop.h * k)));
   const x = ctxOf(out);
   x.imageSmoothingQuality = 'high';
-  x.drawImage(full, crop.x, crop.y, crop.w, crop.h, 0, 0, out.width, out.height);
+  const dw = out.width * figureScale;
+  const dh = out.height * figureScale;
+  x.drawImage(full, crop.x, crop.y, crop.w, crop.h, (out.width - dw) / 2, out.height - dh, dw, dh);
   return out.toDataURL('image/png');
 }
 
@@ -505,8 +516,8 @@ async function save() {
   const body = {
     maskLayer: layers.mask!.toDataURL('image/png'),
     silhouetteLayer: layers.silhouette!.toDataURL('image/png'),
-    art: exportSized(baked.art, crop, piece.longSide),
-    mask: exportSized(baked.mask, crop, piece.longSide),
+    art: exportSized(baked.art, crop, piece.longSide, piece.figureScale),
+    mask: exportSized(baked.mask, crop, piece.longSide, piece.figureScale),
   };
   const res = await fetch(`/api/pieces/${piece.id}`, { method: 'POST', body: JSON.stringify(body) });
   if (!res.ok) {
