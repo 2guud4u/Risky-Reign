@@ -4,6 +4,7 @@ import { ROAD_HIT_WIDTH } from '../constants';
 import { usePieceHidden } from './board/buildFx';
 import { TintedSprite } from './TintedSprite';
 import { ROAD_ART, ROAD_SPRITE_W, ROAD_SPRITE_H } from '../utils/tintedArt';
+import { C } from '../theme';
 
 interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;
@@ -46,10 +47,10 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   const pieceHidden = usePieceHidden(id);
   const roadDrawn = hasRoad && !pieceHidden;
   const getStrokeColor = () => {
-    if (isHovered) return '#FFA500';
-    if (roadDrawn) return ownerColor ?? '#8B4513';
-    if (!isSelectable) return '#999';
-    return '#383636';
+    if (isHovered) return C['board.hover'];
+    if (roadDrawn) return ownerColor ?? C['board.wood'];
+    if (!isSelectable) return C['board.ghost'];
+    return C['board.line'];
   };
 
   const getStrokeWidth = () => {
@@ -110,7 +111,7 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
         <g opacity={isSelectable ? 1 : 0.5}>
           <TintedSprite
             art={ROAD_ART}
-            color={ownerColor ?? '#8B4513'}
+            color={ownerColor ?? C['board.wood']}
             x={-ROAD_SPRITE_W / 2}
             y={-ROAD_SPRITE_H / 2}
             width={ROAD_SPRITE_W}
@@ -140,7 +141,7 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   y1={start.y + offsetY}
   x2={end.x + offsetX}
   y2={end.y + offsetY}
-  stroke="#eb1010"
+  stroke={C['board.danger']}
   strokeWidth={2}
   strokeLinecap="round"
   strokeDasharray="2 6"
@@ -154,7 +155,7 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
   y1={start.y - offsetY}
   x2={end.x - offsetX}
   y2={end.y - offsetY}
-  stroke="#eb1010"
+  stroke={C['board.danger']}
   strokeWidth={2}
   strokeLinecap="round"
   strokeDasharray="2 6"

@@ -11,6 +11,7 @@ import { roadStroke } from '../../utils/miniMap';
 import { MiniViewProps, VertexMiniLayout } from '../../types/miniMap';
 import { SettlementMarker } from './SettlementMarker';
 import SoldierGroup from '../SoldierGroup';
+import { C } from '../../theme';
 
 interface VertexNeighborhoodProps {
   layout: VertexMiniLayout;
@@ -53,8 +54,8 @@ export const VertexNeighborhood: React.FC<VertexNeighborhoodProps> = ({
             cx={vertex.position.x}
             cy={vertex.position.y}
             r={MINI_NEIGHBOR_R}
-            fill="#6b7280"
-            stroke="#fff"
+            fill={C['ink.faint']}
+            stroke={C['white']}
             strokeWidth={2}
           />
           <SettlementMarker
@@ -71,7 +72,7 @@ export const VertexNeighborhood: React.FC<VertexNeighborhoodProps> = ({
               dominantBaseline="middle"
               fontSize={MINI_LABEL_FONT}
               fontWeight="bold"
-              fill="#111827"
+              fill={C['panel.dark']}
             >
               {label}
             </text>
@@ -110,7 +111,7 @@ export const VertexNeighborhood: React.FC<VertexNeighborhoodProps> = ({
           cy={layout.vertex.position.y}
           r={MINI_SELECT_RING_R}
           fill="none"
-          stroke="#2563eb"
+          stroke={C['board.pointerRing']}
           strokeWidth={3}
         />
       </g>
@@ -119,8 +120,8 @@ export const VertexNeighborhood: React.FC<VertexNeighborhoodProps> = ({
         cx={layout.vertex.position.x}
         cy={layout.vertex.position.y}
         r={MINI_SELECT_CIRCLE_R}
-        fill="#2563eb"
-        stroke="#fff"
+        fill={C['board.pointerRing']}
+        stroke={C['white']}
         strokeWidth={3}
       />
     )}

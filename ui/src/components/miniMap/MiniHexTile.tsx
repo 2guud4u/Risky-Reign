@@ -2,6 +2,7 @@ import React from 'react';
 import { GAME_HEX_SIZE, HexNode, cubeToPixel } from 'common';
 import { hexPointsAt } from '../../utils/hex';
 import TerrainBackground from '../TerrainBackground';
+import { C } from '../../theme';
 
 /**
  * One hex in the mini-map: terrain background (artwork, or flat-color
@@ -14,14 +15,14 @@ export const MiniHexTile: React.FC<{ hex: HexNode }> = ({ hex }) => {
     <g>
       <TerrainBackground x={x} y={y} size={GAME_HEX_SIZE} terrain={hex.terrain} points={points} />
       {/* Hex border. */}
-      <polygon points={points} fill="none" stroke="#000" strokeWidth={2} />
+      <polygon points={points} fill="none" stroke={C['black']} strokeWidth={2} />
       {hex.rollNumber !== null && (
         <text
           x={x}
           y={y}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#FFF"
+          fill={C['white']}
           fontSize={16}
           fontWeight="bold"
           className="select-none"

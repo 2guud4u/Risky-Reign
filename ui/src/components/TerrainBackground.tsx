@@ -1,5 +1,6 @@
 import React from 'react';
 import { terrainColors } from 'common';
+import { C } from '../theme';
 
 /**
  * Terrain → background artwork (served from /public/art). Each image is a
@@ -59,7 +60,7 @@ const TerrainBackground: React.FC<TerrainBackgroundProps> = ({ x, y, size, terra
       />
     );
   }
-  return <polygon points={points} fill={terrainColors[terrain] ?? '#DDD'} />;
+  return <polygon points={points} fill={terrainColors[terrain] ?? C['neutral.dim']} />;
 };
 
 export default TerrainBackground;

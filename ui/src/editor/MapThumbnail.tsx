@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { HexLayout, cubeToPixel, terrainColors } from 'common';
+import { C } from '../theme';
 
 const SIZE = 10;
 
@@ -23,7 +24,7 @@ const MapThumbnail: React.FC<{ layouts: HexLayout[] }> = ({ layouts }) => {
           const a = (Math.PI / 180) * (60 * k - 30);
           return `${(cx + SIZE * Math.cos(a)).toFixed(1)},${(cy + SIZE * Math.sin(a)).toFixed(1)}`;
         }).join(' ');
-        return { corners, fill: terrainColors[l.terrain] ?? '#ccc' };
+        return { corners, fill: terrainColors[l.terrain] ?? C['neutral.grey'] };
       }),
     };
   }, [layouts]);

@@ -9,6 +9,7 @@ import { PortDock } from '../components/PortDock';
 import EditorHexCell from './EditorHexCell';
 import DragPreview from './DragPreview';
 import TrashCan from './TrashCan';
+import { C } from '../theme';
 
 /** Port size scaled to editor units (matches the game's proportions). */
 const DOCK_SIZE = (PORT_DOCK_SIZE * HEX_SIZE) / GAME_HEX_SIZE;
@@ -104,7 +105,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = (props) => {
               <PortDock vertices={verts} port={dock.port} size={DOCK_SIZE} interactive={false} />
               {docksMode && i === selectedDock && marker && (
                 // Selection halo on the active dock's marker.
-                <circle cx={marker.x} cy={marker.y} r={DOCK_SIZE * 1.6} fill="none" stroke="#4363d8" strokeWidth={2} />
+                <circle cx={marker.x} cy={marker.y} r={DOCK_SIZE * 1.6} fill="none" stroke={C['editor.previewBlue']} strokeWidth={2} />
               )}
               {docksMode && verts.map((v, end) => (
                 <circle
@@ -112,9 +113,9 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = (props) => {
                   cx={v.x}
                   cy={v.y}
                   r={DOCK_GRIP_R}
-                  fill="#0a2434"
+                  fill={C['editor.water']}
                   fillOpacity={0.55}
-                  stroke="#fff"
+                  stroke={C['board.white']}
                   strokeWidth={1}
                   style={{ cursor: 'grab' }}
                 />
@@ -125,7 +126,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = (props) => {
                   cy={coast[(((dock.coast[0] % coast.length) + coast.length) % coast.length + 1) % coast.length].y}
                   r={DOCK_GRIP_R}
                   fill="none"
-                  stroke="#0a2434"
+                  stroke={C['editor.water']}
                   strokeWidth={1.2}
                   strokeDasharray="2 2"
                   style={{ cursor: 'grab' }}
@@ -142,9 +143,9 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = (props) => {
               cx={coast[i].x}
               cy={coast[i].y}
               r={DOCK_GRIP_R}
-              fill="#fff"
+              fill={C['board.white']}
               fillOpacity={0.55}
-              stroke="#0a2434"
+              stroke={C['editor.water']}
               strokeWidth={1}
               strokeDasharray="2 2"
             />
@@ -154,7 +155,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = (props) => {
               textAnchor="middle"
               dominantBaseline="central"
               fontSize={DOCK_GRIP_R * 1.4}
-              fill="#0a2434"
+              fill={C['editor.water']}
               style={{ pointerEvents: 'none' }}
             >
               +
@@ -167,7 +168,7 @@ const BoardEditorCanvas: React.FC<BoardEditorCanvasProps> = (props) => {
             cx={coast[hoverDockIndex].x}
             cy={coast[hoverDockIndex].y}
             r={DOCK_GRIP_R * 1.4}
-            fill="#0a2434"
+            fill={C['editor.water']}
             fillOpacity={0.25}
           />
         )}

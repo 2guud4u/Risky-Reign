@@ -5,6 +5,7 @@ import { TROOP_ART, TROOP_R } from '../../constants';
 import { troopArtKind } from '../../utils/garrisonFormation';
 import { BattleTroop } from './BattleTroop';
 import { ROLL_FINGER_GAP, ROLL_FINGER_SIZE, SOLDIER_ICON_HEIGHT } from './constants';
+import { C } from '../../theme';
 
 interface BattleArmiesProps {
   /** The battle vertex's mini-map position. */
@@ -59,7 +60,7 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
         y1={center.y - troopSpread / 2}
         x2={center.x}
         y2={center.y + troopSpread / 2}
-        stroke="#dc2626"
+        stroke={C['fight.line']}
         strokeWidth={2}
         strokeDasharray="6 5"
         opacity={0.6}

@@ -9,6 +9,7 @@ import { TintedImg } from '../components/TintedSprite';
 import { CANNON_STATIONED_ART, INJURED_SOLDIER_ART, SOLDIER_ART, TROOP_SPRITES } from '../utils/tintedArt';
 import { FightStage } from '../components/battle/FightStage';
 import type { CannonWallShot } from 'common';
+import { C } from '../theme';
 
 /**
  * Cannon-shot panel: while `room.cannonShot` is set, a shot is on the table
@@ -36,7 +37,7 @@ const CannonShotModal: React.FC = () => {
   const NameChip: React.FC<{ name: string }> = ({ name }) => (
     <span
       className="px-2 py-0.5 rounded-md text-[12px] font-bold text-white"
-      style={{ backgroundColor: colorOf(name) ?? '#9b9183' }}
+      style={{ backgroundColor: colorOf(name) ?? C['board.fallback'] }}
     >
       {name}
     </span>
@@ -90,7 +91,7 @@ const CannonShotModal: React.FC = () => {
         {/* The cannon and its die: the shooter's roll seat. */}
         <div className="flex items-center justify-center gap-6 rounded-lg bg-canvas-sunken border border-ink-faint/40 px-4 py-3">
           <div className="flex flex-col items-center gap-1">
-            <TintedImg art={CANNON_STATIONED_ART} color={colorOf(shot.shooterName) ?? '#9b9183'} width={72} height={70} />
+            <TintedImg art={CANNON_STATIONED_ART} color={colorOf(shot.shooterName) ?? C['board.fallback']} width={72} height={70} />
             <span className="text-[11px] font-semibold text-ink-soft">Cannon</span>
           </div>
           <div className="flex flex-col items-center gap-1">
@@ -107,12 +108,12 @@ const CannonShotModal: React.FC = () => {
 
         {/* The resolved shot, replayed: fire, ball flight, each victim's fate. */}
         {!pending && anyResolved && (
-          <div className="rounded-lg overflow-hidden bg-[#1a1916] h-[220px]">
+          <div className="rounded-lg overflow-hidden bg-[C['fight.stageBg']] h-[220px]">
             <FightStage
               fights={shot.victims.map((v) => ({
                 attacker: {
                   kind: 'cannonStationed',
-                  color: colorOf(shot.shooterName) ?? '#9b9183',
+                  color: colorOf(shot.shooterName) ?? C['board.fallback'],
                   roll: shot.cannonRoll,
                 },
                 defender: {
@@ -122,7 +123,7 @@ const CannonShotModal: React.FC = () => {
                       : gameRoom?.board?.soldiers[v.soldierId]?.injured
                         ? 'injured'
                         : 'soldier',
-                  color: colorOf(v.ownerName) ?? '#9b9183',
+                  color: colorOf(v.ownerName) ?? C['board.fallback'],
                   roll: v.roll,
                 },
                 outcome:
@@ -145,7 +146,7 @@ const CannonShotModal: React.FC = () => {
                         ? INJURED_SOLDIER_ART
                         : SOLDIER_ART
                   }
-                  color={colorOf(v.ownerName) ?? '#9b9183'}
+                  color={colorOf(v.ownerName) ?? C['board.fallback']}
                   width={v.type === 'cannon' ? 40 : 24}
                   height={v.type === 'cannon' ? 39 : 30}
                 />
@@ -257,7 +258,7 @@ const WallShot: React.FC<{
       {/* Cannon vs wall panel. */}
       <div className="flex items-center justify-center gap-6 rounded-lg bg-canvas-sunken border border-ink-faint/40 px-4 py-3">
         <div className="flex flex-col items-center gap-1">
-          <TintedImg art={CANNON_STATIONED_ART} color={colorOf(shot.shooterName) ?? '#9b9183'} width={72} height={70} />
+          <TintedImg art={CANNON_STATIONED_ART} color={colorOf(shot.shooterName) ?? C['board.fallback']} width={72} height={70} />
           <span className="text-[11px] font-semibold text-ink-soft">Cannon</span>
         </div>
         <div className="flex flex-col items-center gap-1">

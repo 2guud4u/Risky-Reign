@@ -1,6 +1,7 @@
 import React from 'react';
 import { BoardVertex as BoardVertexType } from 'common';
 import { VERTEX_HIT_SCALE } from '../constants';
+import { C } from '../theme';
 interface BoardVertexProps extends BoardVertexType {
   onClick: (vertexId: string) => void;
   onHover: (vertexId: string | null) => void;
@@ -39,10 +40,10 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
   };
 
   const getColor = () => {
-    if (isSelected) return '#FFD700';
-    if (isHovered) return '#FFA500';
-    if (!isSelectable) return '#666';
-    return '#999';
+    if (isSelected) return C['board.select'];
+    if (isHovered) return C['board.hover'];
+    if (!isSelectable) return C['board.dim'];
+    return C['board.ghost'];
   };
   
   return (
@@ -62,7 +63,7 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
         cy={position.y}
         r={size}
         fill={getColor()}
-        stroke="#333"
+        stroke={C['board.markerEdge']}
         strokeWidth={2}
         opacity={isSelectable ? 1 : 0.5}
       />
@@ -73,7 +74,7 @@ const BoardVertexInner: React.FC<BoardVertexProps> = ({
           cy={position.y}
           r={size * 2.5}
           fill="none"
-          stroke="#eb1010"
+          stroke={C['board.danger']}
           strokeWidth={3}
           strokeDasharray="5,5"
           className="blink-circle"

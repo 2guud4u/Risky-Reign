@@ -17,9 +17,10 @@ import {
   SIDE_COL_MAX,
   SIDE_OFFSET,
 } from '../constants';
+import { C } from '../theme';
 
 /** Fallback colour for a troop icon whose owner has no mapped colour. */
-export const FALLBACK_OWNER_COLOR = '#888';
+export const FALLBACK_OWNER_COLOR = C['board.fallback'];
 
 /** The clash line spans at least this many rows so it stays visible. */
 const MIN_CLASH_LINE_ROWS = 2;

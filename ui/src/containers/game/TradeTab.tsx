@@ -12,13 +12,14 @@ import Stepper from '../../components/ui/Stepper';
 import ResourceTiles from '../../components/ui/ResourceTiles';
 import OptionGrid from '../../components/ui/OptionGrid';
 import { usePlayers } from '../../contexts/GameContext';
+import { C } from '../../theme';
 
 
 /** A player-color dot. */
 const Dot: React.FC<{ color?: string; size?: number }> = ({ color, size = 10 }) => (
   <span
     className="inline-block rounded-full border border-black/10 shrink-0"
-    style={{ width: size, height: size, background: color ?? '#9ca3af' }}
+    style={{ width: size, height: size, background: color ?? C['panel.edge'] }}
     aria-hidden="true"
   />
 );

@@ -1,13 +1,14 @@
 import React from 'react';
 import { PixelCoord } from 'common';
 import { BOARD_VERTEX_SIZE } from '../../constants';
+import { C } from '../../theme';
 
 /** Target ring radius, in multiples of the vertex dot. */
 const RING_SCALE = 3;
 
 const TONES = {
-  green: { fill: '#22c55e', ring: '#16a34a' },
-  blue: { fill: '#38bdf8', ring: '#0284c7' },
+  green: { fill: C['board.checkSoft'], ring: C['board.check'] },
+  blue: { fill: C['board.targetBlue'], ring: C['sky.soft'] },
 } as const;
 
 /**
@@ -52,7 +53,7 @@ export const SpawnTargetLayer = React.memo(function SpawnTargetLayer({
           }}
         >
           <title>{label}</title>
-          <circle cx={t.position.x} cy={t.position.y} r={r} fill={colors.fill} fillOpacity={0.3} stroke="#fff" strokeWidth={5} />
+          <circle cx={t.position.x} cy={t.position.y} r={r} fill={colors.fill} fillOpacity={0.3} stroke={C['white']} strokeWidth={5} />
           <circle cx={t.position.x} cy={t.position.y} r={r} fill="none" stroke={colors.ring} strokeWidth={3} />
           {/* Pulsing outer halo: draws the eye without ever fading the ring itself. */}
           <circle
@@ -70,7 +71,7 @@ export const SpawnTargetLayer = React.memo(function SpawnTargetLayer({
                 cx={t.position.x + r}
                 cy={t.position.y - r}
                 r={r * 0.55}
-                fill="#fff"
+                fill={C['white']}
                 stroke={colors.ring}
                 strokeWidth={2}
               />

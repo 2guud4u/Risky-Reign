@@ -1,61 +1,11 @@
+import { colors } from './src/theme.js';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
-      colors: {
-        // Warm cream canvas — the game's "table". Every surface sits on this.
-        canvas: {
-          DEFAULT: '#faf6ef',
-          raised: '#fdfaf4',
-          sunken: '#f2ead8',
-        },
-        // Warm ink — replaces gray for text. Softer than pure black, warmer
-        // than slate.
-        ink: {
-          DEFAULT: '#2d2520',
-          soft: '#5c5248',
-          faint: '#9b9183',
-        },
-        // Gold — the primary accent. Buttons, highlights, "this is yours".
-        gold: {
-          DEFAULT: '#d4a017',
-          deep: '#b8860b',
-          soft: '#e8c547',
-          pale: '#fdf2d0',
-        },
-        // Terracotta — warm secondary, used for warnings/warm states.
-        clay: {
-          DEFAULT: '#c06b4a',
-          soft: '#d98f72',
-          pale: '#fbe8de',
-        },
-        // Moss — bright green for success/go states.
-        moss: {
-          DEFAULT: '#57f800ff',
-          soft: '#59ff00ff',
-          pale: '#eef7e3',
-        },
-        // Sky — warm blue for info/neutral accents.
-        sky: {
-          DEFAULT: '#4a7ea8',
-          soft: '#6f9fc4',
-          pale: '#e3f0f8',
-        },
-        // Phase accents — saturated standouts for the turn status bar so the
-        // current phase reads at a glance. Same hue families, hotter tone.
-        phase: {
-          setup: '#2f9ee0',
-          dice: '#f2ad1f',
-          build: '#4fbd29',
-          action: '#e06334',
-        },
-        // Alert — notification badges (chat, trade counts). Bright, urgent red.
-        alert: {
-          DEFAULT: '#e5342a',
-          soft: '#f56b60',
-        },
-      },
+      colors,
       borderRadius: {
         // Playful, consistent roundness: chips stay pill, cards stay soft.
         sm: '0.375rem',

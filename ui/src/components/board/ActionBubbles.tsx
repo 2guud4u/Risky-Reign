@@ -4,6 +4,7 @@ import { useGameActions } from '../../contexts/GameContext';
 import GameIcon, { IconName } from '../ui/GameIcon';
 import Button from '../ui/Button';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { C } from '../../theme';
 
 declare global {
   interface Window {
@@ -404,7 +405,7 @@ const ActionBubbles: React.FC<ActionBubblesProps> = ({ actions, resetKey }) => {
               ? 'border-sky bg-sky-pale'
               : ''
         }`}
-        style={{ borderColor: o.color ?? (o.active ? '#4a7ea8' : '#9b9183'), animationDelay: `${index * 50}ms` }}
+        style={{ borderColor: o.color ?? (o.active ? C['sky'] : C['board.fallback']), animationDelay: `${index * 50}ms` }}
       >
         {!o.check.allowed && o.pinned && open ? (
           <span className="max-w-[220px] whitespace-normal text-left text-[12px] font-semibold text-clay">

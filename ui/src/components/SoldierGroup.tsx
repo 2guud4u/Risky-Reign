@@ -18,6 +18,7 @@ import {
 import { GarrisonArmy } from '../utils/garrisonFormation';
 import { TROOP_SPRITES } from '../utils/tintedArt';
 import { TintedSprite } from './TintedSprite';
+import { C } from '../theme';
 
 interface SoldierGroupProps {
   /** The owner's garrison as a formation of ranks. */
@@ -101,7 +102,7 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
       >
         <TintedSprite
           art={TROOP_SPRITES[fs.art]}
-          color={playerColors?.[army.ownerName] ?? '#888'}
+          color={playerColors?.[army.ownerName] ?? C['board.fallback']}
           x={x - aw / 2}
           y={y - ah / 2}
           width={aw}
@@ -122,11 +123,11 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
             never hidden by the sprite or the bolt. */}
         {isSel && (
           <g pointerEvents="none">
-            <circle cx={x} cy={badgeCy} r={badgeR} fill={CHECK_BADGE_COLOR} stroke="#fff" strokeWidth={1} />
+            <circle cx={x} cy={badgeCy} r={badgeR} fill={CHECK_BADGE_COLOR} stroke={C['white']} strokeWidth={1} />
             <path
               d={`M ${x - badgeR * 0.5} ${badgeCy} l ${badgeR * 0.3} ${badgeR * 0.35} l ${badgeR * 0.5} ${-badgeR * 0.55}`}
               fill="none"
-              stroke="#fff"
+              stroke={C['white']}
               strokeWidth={Math.max(1, badgeR * 0.28)}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -148,8 +149,8 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
           width={army.pillWidth}
           height={FORMATION_PILL_H}
           rx={FORMATION_PILL_H / 2}
-          fill={playerColors?.[army.ownerName] ?? '#888'}
-          stroke="#fff"
+          fill={playerColors?.[army.ownerName] ?? C['board.fallback']}
+          stroke={C['white']}
           strokeWidth={2}
           opacity={0.95}
         />
@@ -158,7 +159,7 @@ const SoldierGroup: React.FC<SoldierGroupProps> = ({
           y={army.pillY + FORMATION_PILL_H / 2}
           textAnchor="middle"
           dominantBaseline="central"
-          fill="#fff"
+          fill={C['white']}
           fontSize={FORMATION_PILL_FONT}
           fontWeight="bold"
         >

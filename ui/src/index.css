@@ -12,8 +12,8 @@ body {
 
 body {
     margin: 0;
-    background: #ffffff;
-    color: #222;
+    background: theme('colors.white');
+    color: theme('colors.ink.deep');
 }
 
 /* Pad a full-screen shell in past device edges (notch, home indicator,
@@ -55,7 +55,7 @@ body {
 .bg-ocean {
     background-image: url('/art/ocean.jpeg');
     background-repeat: repeat;
-    background-color: #00ffff;
+    background-color: theme('colors.water.fallback');
 }
 
 @keyframes blink {
@@ -230,12 +230,12 @@ body {
     padding: 3px;
     background: conic-gradient(
         from var(--turn-glow-angle),
-        #fde047,
-        #f472b6,
-        #a78bfa,
-        #38bdf8,
-        #4ade80,
-        #fde047
+        theme('colors.glow.yellow'),
+        theme('colors.glow.pink'),
+        theme('colors.glow.violet'),
+        theme('colors.glow.blue'),
+        theme('colors.glow.green'),
+        theme('colors.glow.yellow')
     );
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;

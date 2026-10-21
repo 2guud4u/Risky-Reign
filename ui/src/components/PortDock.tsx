@@ -18,6 +18,7 @@ import {
   PORT_TEXT,
 } from '../constants';
 import { emitEffect } from '../effects';
+import { C } from '../theme';
 
 /** Open the trade window preset to this port's bank trade. */
 const openPortTrade = (port: PortType) => emitEffect('openTrade', { port });
@@ -140,7 +141,7 @@ const PortDockInner: React.FC<{
           : {})}
       >
         <title>{`Trade at this port (${ratio})`}</title>
-      <ellipse cx={x} cy={y + r * 0.12} rx={r} ry={r * 0.92} fill="#0a2434" opacity={0.18} />
+      <ellipse cx={x} cy={y + r * 0.12} rx={r} ry={r * 0.92} fill={C['board.deep']} opacity={0.18} />
       <circle cx={x} cy={y} r={r} fill={ring} stroke={PORT_STROKE} strokeWidth={1} />
       <circle cx={x} cy={y} r={r * 0.8} fill={PORT_FACE_FILL} />
       {/* Resource glyph on top, trade ratio beneath. */}

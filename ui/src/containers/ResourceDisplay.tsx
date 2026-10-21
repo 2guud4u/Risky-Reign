@@ -7,6 +7,7 @@ import GameIcon from '../components/ui/GameIcon';
 import Button from '../components/ui/Button';
 import { PriceText, priceLabel } from '../utils/price';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { C } from '../theme';
 
 /**
  * The current player's hand, rendered as a card tray centered on the bottom
@@ -71,7 +72,7 @@ const ResourceDisplay: React.FC = () => {
             'radial-gradient(ellipse 10px 26px at 22% 40%, rgba(70,40,15,.4), transparent 60%),' +
             'radial-gradient(ellipse 8px 20px at 74% 60%, rgba(70,40,15,.3), transparent 60%),' +
             'repeating-linear-gradient(to bottom, rgba(0,0,0,.10) 0 1px, transparent 1px 9px),' +
-            'linear-gradient(to bottom, #a9713e, #8f5c2d)',
+            `linear-gradient(to bottom, ${C['wood.from']}, ${C['wood.to']})`,
           boxShadow: 'var(--tw-shadow, 0 4px 12px rgba(45,37,32,.12)), inset 0 2px 0 rgba(255,255,255,.15)',
         }}
       >

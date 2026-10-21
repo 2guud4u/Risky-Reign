@@ -1,4 +1,5 @@
 import React from 'react';
+import { C } from '../../theme';
 
 interface DiceProps {
   /** The die's value (1-6), or null when it hasn't been rolled yet. */
@@ -70,7 +71,7 @@ const Dice: React.FC<DiceProps> = ({ value, size, canRoll, onRoll, circle }) => 
     ) : (
       <svg width={size} height={size} viewBox="0 0 100 100" aria-label={`Die showing ${value}`}>
         {PIP_LAYOUTS[value].map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r={PIP_RADIUS} fill="#2d2520" />
+          <circle key={i} cx={cx} cy={cy} r={PIP_RADIUS} fill={C['board.dicePip']} />
         ))}
       </svg>
     )}

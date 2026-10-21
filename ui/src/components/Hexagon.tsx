@@ -9,6 +9,7 @@ import {
   ROLL_NUMBER_STROKE_W,
   LIT_HEX_GOLD,
 } from '../constants';
+import { C } from '../theme';
 
 interface HexagonProps {
   hex: BoardHex;
@@ -47,7 +48,7 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
       {/* Terrain background (artwork, or flat-color fallback). */}
       <TerrainBackground x={x} y={y} size={size} terrain={hex.terrain} points={hexPoints} />
       {/* Hex border. */}
-      <polygon points={hexPoints} fill="none" stroke={litUp ? LIT_HEX_GOLD : '#000'} strokeWidth={litUp ? 3 : 2} />
+      <polygon points={hexPoints} fill="none" stroke={litUp ? LIT_HEX_GOLD : C['black']} strokeWidth={litUp ? 3 : 2} />
 
       {hex.rollNumber !== null && (
         <text
@@ -55,11 +56,11 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
           y={y}
           textAnchor="middle"
           dominantBaseline="central"
-          fill={litUp ? LIT_HEX_GOLD : '#FFF'}
+          fill={litUp ? LIT_HEX_GOLD : C['white']}
           fontSize={size / 3}
           fontWeight="bold"
           paintOrder="stroke"
-          stroke="#000"
+          stroke={C['black']}
           strokeWidth={ROLL_NUMBER_STROKE_W}
           className="select-none"
           style={litUp ? { filter: `drop-shadow(0 0 5px ${LIT_HEX_GOLD})` } : undefined}
@@ -92,7 +93,7 @@ const Hexagon: React.FC<HexagonProps> = ({ hex, size, onClick, highlight, onRobb
         <polygon
           points={hexPoints}
           fill="none"
-          stroke="#22c55e"
+          stroke={C['board.checkSoft']}
           strokeWidth={4}
           strokeDasharray="6,4"
         />

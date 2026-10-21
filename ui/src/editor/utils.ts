@@ -18,6 +18,7 @@ import {
 } from 'common';
 import { EditorHex, EditorMap, Tactic, Target, TerrainTarget } from './types';
 import { EXPANSION_TERRAIN_COUNTS, EXPANSION_TOKENS, HEX_SIZE, NUMBER_OPTIONS, TERRAIN_OPTIONS } from './constants';
+import { C } from '../theme';
 
 /**
  * The editor's coast ring: vertices touching exactly one non-water placed
@@ -260,17 +261,17 @@ export function setCustomDragImage(e: DragEvent, kind: 'terrain' | 'number' | 'p
   el.style.justifyContent = 'center';
   el.style.fontWeight = 'bold';
   el.style.fontSize = '20px';
-  el.style.border = '2px solid #111';
+  el.style.border = `2px solid ${C['editor.border']}`;
   el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
   if (kind === 'terrain') {
-    el.style.background = terrainColors[value as Terrain] ?? '#eee';
+    el.style.background = terrainColors[value as Terrain] ?? C['editor.hexFallbackFill'];
   } else if (kind === 'port') {
-    el.style.background = value === 'generic' ? '#b8895a' : '#8a5a30';
-    el.style.color = '#fff';
+    el.style.background = value === 'generic' ? C['editor.dockGeneric'] : C['editor.dockSpecial'];
+    el.style.color = C['editor.tokenFill'];
     el.textContent = value === 'generic' ? '3:1' : '2:1';
     el.style.fontSize = '14px';
   } else {
-    el.style.background = '#fff';
+    el.style.background = C['editor.tokenFill'];
     el.textContent = String(value);
   }
   document.body.appendChild(el);

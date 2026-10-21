@@ -13,6 +13,7 @@ import {
   VertexMiniLayout,
   VertexNeighbor,
 } from '../types/miniMap';
+import { C } from '../theme';
 
 /**
  * Pure layout/geometry for the mini-map (MiniView): which objects surround the
@@ -30,7 +31,7 @@ export const roadStroke = (
 ): RoadStroke => {
   const road = edge.roadId ? board.roads[edge.roadId] : null;
   return {
-    color: road ? (playerColors?.[road.ownerId] ?? '#8B4513') : '#9ca3af',
+    color: road ? (playerColors?.[road.ownerId] ?? C['board.wood']) : C['panel.edge'],
     width: road ? 6 : 4,
   };
 };

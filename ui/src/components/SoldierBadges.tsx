@@ -7,6 +7,7 @@ import {
   SOLDIER_BADGE_R,
   SOLDIER_BADGE_ROW_OFFSET_FRACTION,
 } from '../constants';
+import { C } from '../theme';
 
 interface SoldierBadgesProps {
   /** vertexId -> (ownerName -> count). */
@@ -66,8 +67,8 @@ export const SoldierBadges = React.memo(function SoldierBadges({
                 cx={cx}
                 cy={cy}
                 r={SOLDIER_BADGE_R}
-                fill={color ?? '#888'}
-                stroke="#222"
+                fill={color ?? C['board.fallback']}
+                stroke={C['fight.ball']}
                 strokeWidth={1.5}
               />
               <text

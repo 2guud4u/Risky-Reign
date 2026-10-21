@@ -39,6 +39,7 @@ import {
   groupPortVertices,
   layerBoardInteraction,
 } from '../utils/boardPresentation';
+import { C } from '../theme';
 
 /**
  * Renders the board as an SVG of hexes / edges / vertices.
@@ -547,7 +548,7 @@ const BoardView: React.FC<BoardViewProps> = ({ hexSize }) => {
                     .map((p) => `${p!.x},${p!.y}`)
                     .join(' ')}
                   fill="none"
-                  stroke="#0284c7"
+                  stroke={C['sky.soft']}
                   strokeWidth={4}
                   strokeDasharray="10 8"
                   strokeLinecap="round"

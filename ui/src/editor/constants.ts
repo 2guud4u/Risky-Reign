@@ -1,4 +1,5 @@
 import { Terrain, VALID_ROLL_NUMBERS, LOBBY_HEX_SIZE } from 'common';
+import { C } from '../theme';
 
 /** Terrain palette order for the editor toolbar. */
 export const TERRAIN_OPTIONS: Terrain[] = ['Wood', 'Sheep', 'Wheat', 'Brick', 'Ore', 'Desert', 'Water'];
@@ -88,14 +89,14 @@ export const PREVIEW_DASH = '8 4';
 
 /** SVG colors used by the editor canvas (not themed via CSS). */
 export const EDITOR_COLORS = {
-  emptyCellStroke: '#d1d5db',
-  placedStroke: '#374151',
-  hoverStroke: '#16a34a',
-  selectedStroke: '#f59e0b',
-  invalidStroke: '#dc2626',
-  hexFallbackFill: '#eee',
-  tokenFill: '#fff',
-  tokenStroke: '#111',
-  desertLabel: '#92400e',
+  emptyCellStroke: C['editor.emptyCellStroke'],
+  placedStroke: C['editor.placedStroke'],
+  hoverStroke: C['editor.hoverStroke'],
+  selectedStroke: C['editor.selectedStroke'],
+  invalidStroke: C['editor.invalidStroke'],
+  hexFallbackFill: C['editor.hexFallbackFill'],
+  tokenFill: C['editor.tokenFill'],
+  tokenStroke: C['editor.tokenStroke'],
+  desertLabel: C['editor.desertLabel'],
 } as const;
 

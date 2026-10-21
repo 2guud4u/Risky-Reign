@@ -2,6 +2,7 @@ import React from 'react';
 import { PixelCoord } from 'common';
 import { BOARD_VERTEX_SIZE, PROJ_SIZE } from '../../constants';
 import { GAME_ICONS } from '../ui/GameIcon';
+import { C } from '../../theme';
 
 /** Finger glyph size, as a fraction of the hex size (board units, so it
  *  scales with zoom like every other piece). */
@@ -42,9 +43,9 @@ export const PointerFinger: React.FC<{ at: PixelCoord; label?: string; onTargetC
             onTargetClick();
           }}
         >
-          <circle cx={at.x} cy={at.y} r={ringR} fill="#3b82f6" fillOpacity={0.3} stroke="#fff" strokeWidth={5} />
-          <circle cx={at.x} cy={at.y} r={ringR} fill="none" stroke="#2563eb" strokeWidth={3} />
-          <circle cx={at.x} cy={at.y} r={ringR * 1.35} fill="none" stroke="#3b82f6" strokeWidth={3} className="blink-circle" />
+          <circle cx={at.x} cy={at.y} r={ringR} fill={C['board.pointer']} fillOpacity={0.3} stroke={C['white']} strokeWidth={5} />
+          <circle cx={at.x} cy={at.y} r={ringR} fill="none" stroke={C['board.pointerRing']} strokeWidth={3} />
+          <circle cx={at.x} cy={at.y} r={ringR * 1.35} fill="none" stroke={C['board.pointer']} strokeWidth={3} className="blink-circle" />
         </g>
       )}
       <g pointerEvents="none" className="select-none">
@@ -53,7 +54,7 @@ export const PointerFinger: React.FC<{ at: PixelCoord; label?: string; onTargetC
           className="pointer-finger"
           style={{ filter: 'drop-shadow(0 -4px 6px rgba(0,0,0,0.45))' }}
         >
-          <PointerIcon x={-size / 2} y={-size / 2} width={size} height={size} color="#fff" />
+          <PointerIcon x={-size / 2} y={-size / 2} width={size} height={size} color={C['white']} />
         </g>
         {label && (
           <text
@@ -62,8 +63,8 @@ export const PointerFinger: React.FC<{ at: PixelCoord; label?: string; onTargetC
             textAnchor="middle"
             fontSize={size * 0.32}
             fontWeight="bold"
-            fill="#fff"
-            stroke="#111827"
+            fill={C['white']}
+            stroke={C['panel.dark']}
             strokeWidth={size * 0.06}
             paintOrder="stroke"
           >

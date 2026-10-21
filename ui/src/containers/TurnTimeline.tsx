@@ -4,6 +4,7 @@ import { useGameState, usePlayers } from '../contexts/GameContext';
 import { phaseColor } from './TurnOverlay';
 import Button from '../components/ui/Button';
 import { X } from 'lucide-react';
+import { C } from '../theme';
 
 /** How many turns ahead the timeline forecasts. */
 const TIMELINE_LOOKAHEAD = 25;
@@ -51,7 +52,7 @@ const TurnTimeline: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 className={`relative z-10 rounded-full border-2 border-white shadow ${
                   now ? 'w-5 h-5 ring-2 ring-ink' : 'w-4 h-4 mt-0.5'
                 }`}
-                style={{ background: colorOf(pos.player) ?? '#9b9183' }}
+                style={{ background: colorOf(pos.player) ?? C['board.fallback'] }}
                 aria-hidden="true"
               />
               <span

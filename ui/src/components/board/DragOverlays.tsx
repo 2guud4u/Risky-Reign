@@ -12,6 +12,7 @@ import {
   SOLDIER_BADGE_R,
 } from '../../constants';
 import { DragSettle, SoldierDragState } from '../../types/board';
+import { C } from '../../theme';
 
 /** Settle spring: quick, slightly under-damped — lands with a soft pop. */
 const SETTLE_SPRING = { type: 'spring' as const, stiffness: 320, damping: 22 };
@@ -37,8 +38,8 @@ const SettleGhost: React.FC<{ settle: DragSettle; onDone: () => void }> = ({ set
         transition={{ ...SETTLE_SPRING, opacity: { duration: 0.35 } }}
         onAnimationComplete={onDone}
         r={SOLDIER_BADGE_R}
-        fill={settle.color ?? '#888'}
-        stroke="#222"
+        fill={settle.color ?? C['board.fallback']}
+        stroke={C['fight.ball']}
         strokeWidth={1.5}
         pointerEvents="none"
       />
@@ -100,7 +101,7 @@ export const DragOverlays: React.FC<{
               cy={v.position.y}
               r={DROP_TARGET_RING_R}
               fill="none"
-              stroke="#22c55e"
+              stroke={C['board.checkSoft']}
               strokeWidth={DROP_TARGET_STROKE_W}
               strokeDasharray="4,3"
             />
@@ -113,9 +114,9 @@ export const DragOverlays: React.FC<{
           cx={mousePos.x}
           cy={mousePos.y}
           r={SOLDIER_BADGE_R}
-          fill={colorOf(drag.ownerName) ?? '#888'}
+          fill={colorOf(drag.ownerName) ?? C['board.fallback']}
           opacity={DRAG_GHOST_OPACITY}
-          stroke="#222"
+          stroke={C['fight.ball']}
           strokeWidth={1.5}
           pointerEvents="none"
         />

@@ -8,6 +8,7 @@ import GameIcon from '../components/ui/GameIcon';
 import { usePlayers } from '../contexts/GameContext';
 import { TintedImg } from '../components/TintedSprite';
 import { CANNON_UNSTATIONED_ART, INJURED_SOLDIER_ART, SOLDIER_ART, WALL_SPRITES } from '../utils/tintedArt';
+import { C } from '../theme';
 
 /**
  * Wall-gate prompt: while `room.wallGate` is pending, a soldier crossing an
@@ -36,7 +37,7 @@ const WallGatePrompt: React.FC = () => {
   const NameChip: React.FC<{ name: string }> = ({ name }) => (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white"
-      style={{ backgroundColor: colorOf(name) ?? "#64748b" }}
+      style={{ backgroundColor: colorOf(name) ?? C['board.fallback'] }}
     >
       {name}{name === me ? ' (you)' : ''}
     </span>
@@ -60,11 +61,11 @@ const WallGatePrompt: React.FC = () => {
               {soldier?.type === 'cannon' ? (
                 // Only an unstationed cannon can move, so it crosses as the
                 // gunner carrying its ammo crate.
-                <TintedImg art={CANNON_UNSTATIONED_ART} color={colorOf(gate.crosserName) ?? "#64748b"} width={86} height={72} />
+                <TintedImg art={CANNON_UNSTATIONED_ART} color={colorOf(gate.crosserName) ?? C['board.fallback']} width={86} height={72} />
               ) : (
                 <TintedImg
                   art={soldier?.injured ? INJURED_SOLDIER_ART : SOLDIER_ART}
-                  color={colorOf(gate.crosserName) ?? "#64748b"}
+                  color={colorOf(gate.crosserName) ?? C['board.fallback']}
                   width={56}
                   height={72}
                 />
@@ -75,7 +76,7 @@ const WallGatePrompt: React.FC = () => {
             </div>
             <TintedImg
               art={WALL_SPRITES[0].art}
-              color={colorOf(gate.wallOwnerName) ?? "#64748b"}
+              color={colorOf(gate.wallOwnerName) ?? C['board.fallback']}
               width={Math.round((56 * WALL_SPRITES[0].w) / WALL_SPRITES[0].h)}
               height={56}
             />

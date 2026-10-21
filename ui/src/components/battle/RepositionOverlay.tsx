@@ -10,6 +10,7 @@ import {
 } from '../../constants';
 import { TintedSprite } from '../TintedSprite';
 import { INJURED_SOLDIER_ART } from '../../utils/tintedArt';
+import { C } from '../../theme';
 
 interface RepositionOverlayProps {
   board: Board;
@@ -58,7 +59,7 @@ const InjuredSprite: React.FC<{
       data-drag-handle={onPress ? true : undefined}
     >
       {selected && (
-        <circle cx={at.x} cy={at.y} r={w * 0.62} fill="#fef3c7" stroke="#f59e0b" strokeWidth={3} className="blink-circle" />
+        <circle cx={at.x} cy={at.y} r={w * 0.62} fill={C['board.selectedAmberPale']} stroke={C['board.selectedAmber']} strokeWidth={3} className="blink-circle" />
       )}
       <TintedSprite art={INJURED_SOLDIER_ART} color={color} x={at.x - w / 2} y={at.y - h / 2} width={w} height={h} />
     </g>
@@ -106,7 +107,7 @@ export const RepositionOverlay: React.FC<RepositionOverlayProps> = ({
     <>
       <defs>
         <marker id="reposition-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-          <path d="M0,0 L10,5 L0,10 Z" fill="#16a34a" />
+          <path d="M0,0 L10,5 L0,10 Z" fill={C['board.check']} />
         </marker>
       </defs>
 
@@ -125,7 +126,7 @@ export const RepositionOverlay: React.FC<RepositionOverlayProps> = ({
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke="#16a34a"
+              stroke={C['board.check']}
               strokeWidth={4}
               strokeLinecap="round"
               markerEnd="url(#reposition-arrow)"
@@ -135,9 +136,9 @@ export const RepositionOverlay: React.FC<RepositionOverlayProps> = ({
               cx={v.x}
               cy={v.y}
               r={DROP_TARGET_RING_R * (hot ? 1.8 : 1.4)}
-              fill="#22c55e"
+              fill={C['board.checkSoft']}
               fillOpacity={hot ? 0.45 : 0.25}
-              stroke="#16a34a"
+              stroke={C['board.check']}
               strokeWidth={hot ? 4 : 3}
               strokeDasharray={hot ? undefined : '5,3'}
               className={hot ? undefined : 'blink-circle'}
@@ -164,8 +165,8 @@ export const RepositionOverlay: React.FC<RepositionOverlayProps> = ({
               <InjuredSprite at={at} color={colorOf(owner)} scale={PLACED_SCALE} />
               {count > 1 && (
                 <>
-                  <circle cx={badgeX} cy={badgeY} r={8} fill="#111827" stroke="#fff" strokeWidth={1.5} />
-                  <text x={badgeX} y={badgeY} textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={700} fill="#fff">
+                  <circle cx={badgeX} cy={badgeY} r={8} fill={C['panel.dark']} stroke={C['white']} strokeWidth={1.5} />
+                  <text x={badgeX} y={badgeY} textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={700} fill={C['white']}>
                     {count}
                   </text>
                 </>

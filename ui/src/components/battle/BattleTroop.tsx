@@ -18,6 +18,7 @@ import {
   TROOP_ROLL_BADGE_R,
   TROOP_ROLL_LABEL_SIZE,
 } from './constants';
+import { C } from '../../theme';
 
 /** Dice glyph on a troop that's mine to roll (replaces the old  label). */
 const DiceIcon = GAME_ICONS.dice;
@@ -140,7 +141,7 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
           y={y - TROOP_ROLL_LABEL_SIZE * 0.7}
           width={TROOP_ROLL_LABEL_SIZE * 1.4}
           height={TROOP_ROLL_LABEL_SIZE * 1.4}
-          color="#fff"
+          color={C['white']}
           pointerEvents="none"
         />
       )}
@@ -149,7 +150,7 @@ export const BattleTroop: React.FC<BattleTroopProps> = ({
         y={y}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="#fff"
+        fill={C['white']}
         // Dark outline painted under the fill: legible on light or dark art.
         stroke={TROOP_LABEL_OUTLINE}
         strokeWidth={TROOP_LABEL_OUTLINE_WIDTH}

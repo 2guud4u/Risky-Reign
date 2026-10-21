@@ -4,6 +4,7 @@
  */
 
 import { GAME_HEX_SIZE } from 'common';
+import { C } from '../theme';
 
 /** Internal projection size — must match the backend's board projection. */
 export const PROJ_SIZE = GAME_HEX_SIZE;
@@ -62,7 +63,7 @@ export const ROBBER_GHOST_OPACITY = 0.85;
 /** Black outline thickness (px, at the default board scale) around white roll numbers so they read over busy terrain art. */
 export const ROLL_NUMBER_STROKE_W = 1;
 /** Gold used to highlight a hex whose roll number matches the current roll (border, glow, number fill). */
-export const LIT_HEX_GOLD = '#FFD700';
+export const LIT_HEX_GOLD = C['board.select'];
 
 /** Minimum scale for responsive board sizing within its panel. */
 export const BOARD_MIN_SCALE = 0.5;

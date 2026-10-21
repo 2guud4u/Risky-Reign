@@ -15,6 +15,7 @@ import { hidePiece, showPiece, clearHiddenPieces } from './buildFx';
 import { TintedSprite } from '../TintedSprite';
 import { CITY_ART, SETTLEMENT_ART } from '../../utils/tintedArt';
 import { BoardEdgeRender, BoardVertexRender } from '../../types/board';
+import { C } from '../../theme';
 
 /**
  * Cosmetic layer for builds: diffs consecutive presentation board states and
@@ -57,7 +58,7 @@ const PUFFS: { x: number; y: number; r: number; dx: number; delay: number }[] = 
   { x: -18, y: -20, r: 8, dx: -30, delay: 180 },
 ];
 
-const PUFF_FILL = '#d8d2c8';
+const PUFF_FILL = C['board.puff'];
 
 const POP_EASE = [0.34, 1.56, 0.64, 1] as const;
 const POP_TIMES = [0, 0.55, 0.78, 1];
@@ -83,7 +84,7 @@ const PieceAnim: React.FC<{ anim: ActiveAnim }> = ({ anim }) => {
           y1={start.y}
           x2={end.x}
           y2={end.y}
-          stroke={anim.edge.ownerColor ?? '#8B4513'}
+          stroke={anim.edge.ownerColor ?? C['board.wood']}
           strokeWidth={8}
           strokeLinecap="round"
           strokeDasharray={len}
@@ -97,7 +98,7 @@ const PieceAnim: React.FC<{ anim: ActiveAnim }> = ({ anim }) => {
 
   if (!anim.vertex) return null;
   const v = anim.vertex;
-  const color = v.ownerColor ?? '#999';
+  const color = v.ownerColor ?? C['board.ghost'];
   const cityFrame = houseFrame(true, v.position, BOARD_VERTEX_SIZE);
   const settleFrame = houseFrame(false, v.position, BOARD_VERTEX_SIZE);
 

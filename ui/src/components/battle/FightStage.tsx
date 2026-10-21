@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { FIGHT_GAP, TROOP_ART, TROOP_R } from '../../constants';
 import { BATTLE_ART, SOLDIER_ART, INJURED_SOLDIER_ART, CANNON_STATIONED_ART, CANNON_UNSTATIONED_ART, type TintArt } from '../../utils/tintedArt';
 import { ROBBER_ART, SOLDIER_ICON_HEIGHT, SOLDIER_ICON_LIFT } from './constants';
+import { C } from '../../theme';
 
 /**
  * The fight-replay stage: an SVG overlay that replays the just-resolved round
@@ -305,7 +306,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     return pts.join(' ');
   };
   const hitSpark = (parent: Element, x: number, y: number, at: number) => {
-    const s = spawn('polygon', { points: starPts(x, y, 15, 6, 8), fill: '#fff2a8', stroke: '#e11d48', 'stroke-width': 2 }, parent);
+    const s = spawn('polygon', { points: starPts(x, y, 15, 6, 8), fill: C['fight.spark'], stroke: C['fight.sparkEdge'], 'stroke-width': 2 }, parent);
     (s as SVGElement).style.opacity = '0';
     anim(s, [{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], at, 240);
   };
@@ -340,10 +341,10 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     const src = t.layers.get(t.kind === 'robber' ? 'robber' : t.kind)!;
     ghost.appendChild(src.cloneNode(true));
     (ghost.firstElementChild as SVGElement).style.opacity = '1';
-    const x = el('text', { x: t.x, y: GROUND - 40, 'text-anchor': 'middle', class: 'result', fill: '#fff', 'font-size': 30 }, g) as SVGTextElement;
+    const x = el('text', { x: t.x, y: GROUND - 40, 'text-anchor': 'middle', class: 'result', fill: C['white'], 'font-size': 30 }, g) as SVGTextElement;
     x.textContent = '×';
     x.setAttribute('paint-order', 'stroke');
-    x.setAttribute('stroke', '#111');
+    x.setAttribute('stroke', C['fight.outline']);
     x.setAttribute('stroke-width', '4');
     g.style.opacity = '0';
     show(g, at, 150);
@@ -352,7 +353,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     const t = spawn('text', { x: scene.cx, y: H - 10, 'text-anchor': 'middle', fill: color, 'font-size': 15, 'font-weight': 700 }, parent) as SVGTextElement;
     t.textContent = str;
     t.setAttribute('paint-order', 'stroke');
-    t.setAttribute('stroke', '#111');
+    t.setAttribute('stroke', C['fight.outline']);
     t.setAttribute('stroke-width', '4');
     t.style.opacity = '0';
     show(t, at, 120);
@@ -432,7 +433,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     // A miss lands short: on the cannon's side of the target.
     const ex = miss ? def.x + def.dir * 70 : def.x;
     const ey = miss ? GROUND - 4 : GROUND - 55;
-    const ball = spawn('circle', { r: 6, fill: '#222', stroke: '#000' }, parent) as SVGCircleElement;
+    const ball = spawn('circle', { r: 6, fill: C['fight.ball'], stroke: C['black'] }, parent) as SVGCircleElement;
     ball.style.opacity = '0';
     anim(
       ball,
@@ -492,11 +493,11 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
 
     if (f.outcome === 'draw') {
       const b = spawn('g', {}, row);
-      el('rect', { x: scene.cx - 110, y: 60, width: 220, height: 44, rx: 10, fill: '#111827', stroke: '#9ca3af' }, b);
-      const t = el('text', { x: scene.cx, y: 88, 'text-anchor': 'middle', fill: '#e5e7eb', 'font-size': 15, 'font-weight': 700 }, b) as SVGTextElement;
+      el('rect', { x: scene.cx - 110, y: 60, width: 220, height: 44, rx: 10, fill: C['panel.dark'], stroke: C['panel.edge'] }, b);
+      const t = el('text', { x: scene.cx, y: 88, 'text-anchor': 'middle', fill: C['fight.text'], 'font-size': 15, 'font-weight': 700 }, b) as SVGTextElement;
       t.textContent = 'Battle ends: draw';
       t.setAttribute('paint-order', 'stroke');
-      t.setAttribute('stroke', '#111');
+      t.setAttribute('stroke', C['fight.outline']);
       t.setAttribute('stroke-width', '4');
       b.style.opacity = '0';
       anim(b, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], t0 + 300, 300);
@@ -505,7 +506,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     if (f.outcome === 'flee') {
       const can = a.kind === 'cannonUnstationed' ? a : d;
       flee(can, tF);
-      if (single) resultLabel(row, tF + 1200, 'Cannon fled', '#7dd3fc');
+      if (single) resultLabel(row, tF + 1200, 'Cannon fled', C['fight.flee']);
       return;
     }
     if (f.outcome === 'escape') {
@@ -529,7 +530,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
         450,
         { easing: 'ease-out' }
       );
-      if (single) resultLabel(row, tF + 1200, 'Defender escapes', '#7dd3fc');
+      if (single) resultLabel(row, tF + 1200, 'Defender escapes', C['fight.flee']);
       return;
     }
 
@@ -540,13 +541,13 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     const out = f.outcome === 'miss' ? 'miss' : severity(atkWins ? 'd' : 'a');
 
     let label: string;
-    let color = '#f87171';
+    let color = C['fight.kill'];
     if (f.ranged || atk.kind === 'cannonStationed') {
       // Stationed cannon wins: it fires rather than closing to melee.
       fire(row, atk, def, tF, out);
       label = out === 'miss' ? 'Miss' : out === 'kill' ? 'Target killed' : 'Target injured';
-      if (out === 'miss') color = '#cbd5e1';
-      else if (out === 'injure') color = '#fbbf24';
+      if (out === 'miss') color = C['fight.miss'];
+      else if (out === 'injure') color = C['fight.wound'];
     } else {
       // Melee: the robber swings its staff; kills read as thrusts, wounds as slashes.
       const strike = atk.kind === 'robber' ? 'robberStrike' : out === 'kill' ? 'thrust' : 'slash';
@@ -554,8 +555,8 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
       label = f.sack ? 'Robber defeated'
         : out === 'kill' ? `${atkWins ? 'Defender' : 'Attacker'} killed`
         : `${atkWins ? 'Defender' : 'Attacker'} injured`;
-      if (f.sack) color = '#86efac';
-      else if (out === 'injure') color = '#fbbf24';
+      if (f.sack) color = C['fight.sack'];
+      else if (out === 'injure') color = C['fight.wound'];
       if (f.sack) {
         // The sack appears where the robber fell and flies to the victor.
         const sack = spawn('image', { href: BATTLE_ART.sack.href, x: -16, y: -40, width: 32, height: 40 }, row) as SVGImageElement;
@@ -580,7 +581,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
       const lbl = spawn('text', { x: scene.labelX ?? scene.cx + 175, y: GROUND - 40, 'text-anchor': scene.labelAnchor ?? 'start', fill: color, 'font-size': 26, 'font-weight': 700 }, row) as SVGTextElement;
       lbl.textContent = label;
       lbl.setAttribute('paint-order', 'stroke');
-      lbl.setAttribute('stroke', '#111');
+      lbl.setAttribute('stroke', C['fight.outline']);
       lbl.setAttribute('stroke-width', '4');
       lbl.style.opacity = '0';
       show(lbl, tF + 1200, 120);
@@ -628,7 +629,7 @@ const FightRow: React.FC<{
   ground: number;
 }> = ({ f, i, x0, x1, cx, showLine, k, ground }) => (
   <>
-    {showLine && <line x1={cx} y1={46} x2={cx} y2={ground} stroke="#dc2626" strokeWidth={2} strokeDasharray="6 5" opacity={0.6} />}
+    {showLine && <line x1={cx} y1={46} x2={cx} y2={ground} stroke={C['fight.line']} strokeWidth={2} strokeDasharray="6 5" opacity={0.6} />}
     {(['a', 'd'] as const).map((side) => {
       const t = side === 'a' ? f.attacker : f.defender;
       const x = side === 'a' ? x0 : x1;
@@ -669,7 +670,7 @@ export const FightStage: React.FC<FightStageProps> = ({ fights, onDone }) => {
 
   return (
     <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
-      <rect x={0} y={GROUND - 4} width={W} height={H - GROUND + 4} fill="#35502f" />
+      <rect x={0} y={GROUND - 4} width={W} height={H - GROUND + 4} fill={C['fight.ground']} />
       {fights.map((f, i) => {
         const rowY = multi ? 80 + i * 66 : GROUND;
         const inner = (

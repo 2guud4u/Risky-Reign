@@ -5,6 +5,7 @@ import { houseFrame } from '../../utils/boardPresentation';
 import { CITY_ART, SETTLEMENT_ART, WALL_REFERENCE_LENGTH_PX, WALL_SPRITES } from '../../utils/tintedArt';
 import { TintedSprite } from '../TintedSprite';
 import { usePieceHidden } from './buildFx';
+import { C } from '../../theme';
 
 /** Signed difference a − b folded into (−90, 90]: walls are symmetric
  *  under a half turn, so only the line's direction matters. */
@@ -35,7 +36,7 @@ const Wall: React.FC<{ edge: BoardEdgeRender }> = ({ edge }) => {
   return (
     <TintedSprite
       art={sprite.art}
-      color={edge.ownerColor ?? '#8B4513'}
+      color={edge.ownerColor ?? C['board.wood']}
       x={-sprite.anchorX * k}
       y={-sprite.anchorY * k}
       width={sprite.w * k}
@@ -69,7 +70,7 @@ const Town: React.FC<{
     >
       <TintedSprite
         art={isCity ? CITY_ART : SETTLEMENT_ART}
-        color={vertex.ownerColor ?? '#999'}
+        color={vertex.ownerColor ?? C['board.ghost']}
         x={frame.x}
         y={frame.y}
         width={frame.w}
@@ -81,7 +82,7 @@ const Town: React.FC<{
           cy={position.y}
           r={BOARD_VERTEX_SIZE * 2.5}
           fill="none"
-          stroke="#eb1010"
+          stroke={C['board.danger']}
           strokeWidth={3}
           strokeDasharray="5,5"
           className="blink-circle"

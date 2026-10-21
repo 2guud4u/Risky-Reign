@@ -3,6 +3,7 @@ import { Board, PixelCoord, ShipObj, troopsAboard } from 'common';
 import { BOARD_VERTEX_SIZE } from '../../constants';
 import { TintedSprite } from '../TintedSprite';
 import { SHIP_ART } from '../../utils/tintedArt';
+import { C } from '../../theme';
 
 /** Ship sprite width, in multiples of the vertex dot. */
 const SHIP_SCALE = 6.4;
@@ -48,7 +49,7 @@ const ShipPiece: React.FC<{
           cy={at.y}
           r={BOARD_VERTEX_SIZE * 3.4}
           fill="none"
-          stroke="#eb1010"
+          stroke={C['board.danger']}
           strokeWidth={3}
           strokeDasharray="5,5"
           className="blink-circle"
@@ -70,7 +71,7 @@ const ShipPiece: React.FC<{
             cy={at.y - s * 0.55}
             r={BOARD_VERTEX_SIZE * BADGE_SCALE}
             fill={color}
-            stroke="#fff"
+            stroke={C['white']}
             strokeWidth={2}
           />
           <text
@@ -78,7 +79,7 @@ const ShipPiece: React.FC<{
             y={at.y - s * 0.55}
             textAnchor="middle"
             dominantBaseline="central"
-            fill="#fff"
+            fill={C['white']}
             fontSize={BOARD_VERTEX_SIZE * 2}
             fontWeight="bold"
           >
@@ -115,7 +116,7 @@ export const ShipLayer = React.memo(function ShipLayer({
             key={ship.id}
             ship={ship}
             at={vertex.position}
-            color={colorOf(ship.ownerId) ?? '#8b5a2b'}
+            color={colorOf(ship.ownerId) ?? C['board.ship']}
             troops={troopsAboard(board, ship.id).length}
             selected={ship.id === selectedShipId}
             onClick={onClick}

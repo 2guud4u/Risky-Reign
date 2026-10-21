@@ -1,5 +1,6 @@
 import React from 'react';
 import { Board, VertexNode } from 'common';
+import { C } from '../../theme';
 
 /**
  * Settlement/city marker at a vertex: a square for a settlement, a triangle
@@ -15,7 +16,7 @@ export const SettlementMarker: React.FC<{
 }> = ({ vertex: v, r, board, playerColors }) => {
   const settlement = v.settlementId ? board.settlements[v.settlementId] : null;
   if (!settlement) return null;
-  const color = playerColors?.[settlement.ownerId] ?? '#8B4513';
+  const color = playerColors?.[settlement.ownerId] ?? C['board.wood'];
   if (settlement.level === 'city') {
     const s = r * 1.8;
     const cx = v.position.x;
@@ -24,7 +25,7 @@ export const SettlementMarker: React.FC<{
       <polygon
         points={`${cx},${cy - s / 2} ${cx - s / 2},${cy + s / 2} ${cx + s / 2},${cy + s / 2}`}
         fill={color}
-        stroke="#333"
+        stroke={C['board.markerEdge']}
         strokeWidth={1.5}
       />
     );
@@ -37,7 +38,7 @@ export const SettlementMarker: React.FC<{
       width={s}
       height={s}
       fill={color}
-      stroke="#fff"
+      stroke={C['white']}
       strokeWidth={2}
     />
   );

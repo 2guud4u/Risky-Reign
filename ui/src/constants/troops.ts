@@ -1,3 +1,4 @@
+import { C } from '../theme';
 /**
  * Troop art and garrison-formation constants: sprite sizes, formation grid
  * spacing, the count pill, and the action-check badge.
@@ -46,7 +47,7 @@ export const FORMATION_LINE_GAP = 12;
 export const CHECK_BADGE_R_FRAC = 0.16;
 /** Selected-soldier check badge: gap above the sprite's top edge (as a fraction of soldier art height). */
 export const CHECK_BADGE_Y_OFF = 0.05;
-export const CHECK_BADGE_COLOR = '#16a34a';
+export const CHECK_BADGE_COLOR = C['board.check'];
 
 /** Energy bolt marking a soldier with an unspent action (mini-map). */
 /** Bolt height as a fraction of the soldier art height. */
@@ -58,5 +59,5 @@ export const ACTION_BOLT_X_OFF = 0;
 /** Bolt center offset: 0 = centered on the soldier. */
 export const ACTION_BOLT_Y_OFF = 0;
 /** Bolt fill / outline colors. */
-export const ACTION_BOLT_FILL = '#facc15';
-export const ACTION_BOLT_STROKE = '#92680e';
+export const ACTION_BOLT_FILL = C['board.bolt'];
+export const ACTION_BOLT_STROKE = C['board.boltEdge'];

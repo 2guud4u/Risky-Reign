@@ -2,6 +2,7 @@ import React from 'react';
 import { Board, PublicPlayer, RoomBonuses } from 'common';
 import Chip from '../../components/ui/Chip';
 import GameIcon from '../../components/ui/GameIcon';
+import { C } from '../../theme';
 
 interface PlayersListProps {
   players: PublicPlayer[];
@@ -40,7 +41,7 @@ const PlayersList: React.FC<PlayersListProps> = ({ players, board, bonuses, curr
             icon={
               <span
                 className="inline-block w-3 h-3 rounded-full border border-ink-faint/50 shrink-0"
-                style={{ background: player.color || '#999' }}
+                style={{ background: player.color || C['board.ghost'] }}
                 title={player.color}
               />
             }
