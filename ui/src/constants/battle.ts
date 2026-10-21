@@ -25,6 +25,6 @@ export const REPOSITION_ROW_SPACING = 44;
 /** Distance below the vertex center where the repositioning row sits. */
 export const REPOSITION_ROW_OFFSET_Y = 60;
 /** Injured-soldier icon in the repositioning view: the board's injured art box
- *  scaled up (keeps the people-matched aspect, about 46 tall). */
+ *  (same canvas as the healthy soldier). */
 export const REPOSITION_SOLDIER_W = TROOP_ART.injured.w;
 export const REPOSITION_SOLDIER_H = TROOP_ART.injured.h;

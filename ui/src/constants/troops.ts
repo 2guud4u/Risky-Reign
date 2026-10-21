@@ -10,7 +10,7 @@
  */
 export const TROOP_ART = {
   soldier: { w: 28.94, h: 66 },
-  injured: { w: 34.25, h: 46.33 },
+  injured: { w: 28.94, h: 66 },
   cannonStationed: { w: 71.23, h: 69.56 },
   cannonUnstationed: { w: 56.98, h: 47.74 },
 } as const;

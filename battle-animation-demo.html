@@ -35,6 +35,9 @@
     <label><input type="checkbox" id="slow"> Slow motion (×3)</label>
   </div>
 
+  <h2>Troop art: every pose in both player colors</h2>
+  <div id="gallery" style="display:flex; flex-wrap:wrap; gap:12px; max-width:1240px; width:100%;"></div>
+
   <h2>Normal battle: soldier vs soldier</h2>
   <div class="grid" id="g-normal"></div>
   <h2>Normal battle: cannons</h2>
@@ -65,13 +68,13 @@ const K = 110 / 66;
  */
 const POSE = {
   soldier:           { href: 'soldier.png', mask: 'soldier_mask.png', w: 28.94, h: 66, ax: 13.37, ay: 66 },
-  injured:           { href: 'injuredSoldier.png', mask: 'injuredSoldier_mask.png', w: 34.25, h: 46.33, ax: 16, ay: 46.33 },
+  injured:           { href: 'injuredSoldier.png', mask: 'injuredSoldier_mask.png', w: 28.94, h: 66, ax: 16.61, ay: 66 },
   cannonStationed:   { href: 'pieces/cannon_stationed.png', mask: 'pieces/cannon_stationed_mask.png', w: 71.23, h: 69.56, ax: 41.2, ay: 69.56 },
   cannonUnstationed: { href: 'pieces/cannon_unstationed.png', mask: 'pieces/cannon_unstationed_mask.png', w: 56.98, h: 47.74, ax: 29.21, ay: 47.74 },
   thrust:      { href: 'battle/thrust.png', mask: 'battle/thrust_mask.png', w: 72.48, h: 48.29, ax: 54.68, ay: 48.19 },
   slash:       { href: 'battle/slash.png', mask: 'battle/slash_mask.png', w: 78.97, h: 52.35, ax: 37.23, ay: 52.26 },
   stabbed:     { href: 'battle/stabbed.png', mask: 'battle/stabbed_mask.png', w: 48.87, h: 53.71, ax: 30.69, ay: 53.61 },
-  injuredStabbed: { href: 'battle/injuredStabbed.png', mask: 'battle/injuredStabbed_mask.png', w: 54.67, h: 62.84, ax: 31, ay: 62.84 },
+  injuredStabbed: { href: 'battle/injuredStabbed.png', mask: 'battle/injuredStabbed_mask.png', w: 53.86, h: 62, ax: 12.31, ay: 61.9 },
   stunned:     { href: 'battle/stunned.png', mask: 'battle/stunned_mask.png', w: 39.58, h: 58.26, ax: 27.89, ay: 58.16 },
   cannonFire:  { href: 'battle/cannonFire.png', mask: 'battle/cannonFire_mask.png', w: 88.76, h: 58.99, ax: 61.48, ay: 58.85 },
   cannonWreck: { href: 'battle/cannonWreck.png', mask: 'battle/cannonWreck_mask.png', w: 61.49, h: 42.29, ax: 34.57, ay: 42.15 },
@@ -454,7 +457,25 @@ for (const [label, sub, rule, rolls, outcome, str, color] of [
   });
 }
 
+// ---------- gallery: every tinted pose, red and blue ----------
+for (const name of Object.keys(POSE)) {
+  const p = POSE[name];
+  if (!p.mask) continue;
+  // Frame each pose on its own art box (feet at x = CX, ground = GROUND).
+  const vw = p.w * K + 16, vh = p.h * K + 22;
+  const vx = p.facesRight ? CX - (p.w - p.ax) * K - 8 : CX - p.ax * K - 8;
+  for (const color of [RED, BLUE]) {
+    const svg = el('svg', { viewBox: `${vx} ${GROUND - p.ay * K - 16} ${vw} ${vh}` });
+    svg.style.cssText = `height:150px;width:${(150 * vw) / vh}px;flex:none;background:#2b2a27;border:1px solid #4a473f;border-radius:8px`;
+    poseLayer(svg, name, color, CX);
+    const t = el('text', { x: vx + 4, y: GROUND - p.ay * K - 5, class: 'dieTxt', 'font-size': 10 }, svg);
+    t.textContent = name;
+    document.getElementById('gallery').appendChild(svg);
+  }
+}
+
 // ---------- wiring ----------
+
 const players = [];
 for (const s of SCEN) {
   const card = document.createElement('div');
