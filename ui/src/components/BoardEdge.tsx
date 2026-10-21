@@ -2,6 +2,8 @@ import React from 'react';
 import { BoardEdge as BoardEdgeType } from 'common';
 import { ROAD_HIT_WIDTH } from '../constants';
 import { usePieceHidden } from './board/buildFx';
+import { TintedSprite } from './TintedSprite';
+import { ROAD_ART, ROAD_SPRITE_W, ROAD_SPRITE_H } from '../utils/tintedArt';
 
 interface BoardEdgeProps extends BoardEdgeType {
   onClick: (edgeId: string) => void;
@@ -101,17 +103,34 @@ const BoardEdgeInner: React.FC<BoardEdgeProps> = ({
         strokeWidth={ROAD_HIT_WIDTH}
         strokeLinecap="round"
       />
-      {/* Normal road */}
-      <line
-        x1={start.x}
-        y1={start.y}
-        x2={end.x}
-        y2={end.y}
-        stroke={getStrokeColor()}
-        strokeWidth={getStrokeWidth()}
-        strokeLinecap="round"
-        opacity={isSelectable ? 1 : 0.5}
-      />
+      {/* Road: owner-tinted cobblestone sprite laid along the edge. Walled
+          roads show it too — the wall sprite (StructureLayer) sits on top,
+          a wall standing on the road. */}
+      {roadDrawn ? (
+        <g opacity={isSelectable ? 1 : 0.5}>
+          <TintedSprite
+            art={ROAD_ART}
+            color={ownerColor ?? '#8B4513'}
+            x={-ROAD_SPRITE_W / 2}
+            y={-ROAD_SPRITE_H / 2}
+            width={ROAD_SPRITE_W}
+            height={ROAD_SPRITE_H}
+            transform={`translate(${(start.x + end.x) / 2},${(start.y + end.y) / 2}) rotate(${(Math.atan2(dy, dx) * 180) / Math.PI}) scale(${(length + 10) / ROAD_SPRITE_W})`}
+            pointerEvents="none"
+          />
+        </g>
+      ) : (
+        <line
+          x1={start.x}
+          y1={start.y}
+          x2={end.x}
+          y2={end.y}
+          stroke={getStrokeColor()}
+          strokeWidth={getStrokeWidth()}
+          strokeLinecap="round"
+          opacity={isSelectable ? 1 : 0.5}
+        />
+      )}
       {/* Red dotted selection outline */}
       {isSelected && (
         <>

@@ -21,6 +21,11 @@ export const INJURED_SOLDIER_ART: TintArt = {
 };
 export const SHIP_ART: TintArt = { href: '/art/pieces/ship.png', maskHref: '/art/pieces/ship_mask.png' };
 export const SETTLEMENT_ART: TintArt = { href: '/art/settlement.png', maskHref: '/art/settlement_mask.png' };
+/** One straight cobblestone road segment; the band fills the whole image. */
+export const ROAD_ART: TintArt = { href: '/art/road.png', maskHref: '/art/road_mask.png' };
+/** road.png source size: the band is top-to-bottom, so w:h scales directly. */
+export const ROAD_SPRITE_W = 1024;
+export const ROAD_SPRITE_H = 172;
 export const CITY_ART: TintArt = { href: '/art/city.png', maskHref: '/art/city_mask.png' };
 export const CANNON_STATIONED_ART: TintArt = {
   href: '/art/pieces/cannon_stationed.png',
