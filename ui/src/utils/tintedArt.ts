@@ -50,7 +50,7 @@ export interface WallSprite {
   h: number;
   /** Screen angle (degrees, y down) of the wall's long axis as drawn. */
   axisDeg: number;
-  /** Pixel on the wall's ground-level centerline, midway along its length:
+  /** Pixel on the wall's visual centerline, midway along its length:
    *  the point that sits on the road's midpoint. */
   anchorX: number;
   anchorY: number;
@@ -59,32 +59,33 @@ export interface WallSprite {
 export const WALL_SPRITES: WallSprite[] = [
   {
     art: { href: '/art/pieces/wall_90.png', maskHref: '/art/pieces/wall_90_mask.png' },
-    w: 371,
-    h: 216,
-    axisDeg: 0,
-    anchorX: 184,
-    anchorY: 164,
+    w: 946,
+    h: 660,
+    axisDeg: 20,
+    anchorX: 472,
+    anchorY: 351,
   },
   {
     art: { href: '/art/pieces/wall_30.png', maskHref: '/art/pieces/wall_30_mask.png' },
-    w: 294,
-    h: 430,
-    axisDeg: -55,
-    anchorX: 198,
-    anchorY: 235,
+    w: 963,
+    h: 962,
+    axisDeg: -60,
+    anchorX: 481,
+    anchorY: 501,
   },
   {
     art: { href: '/art/pieces/wall_150.png', maskHref: '/art/pieces/wall_150_mask.png' },
-    w: 291,
-    h: 437,
-    axisDeg: 55,
-    anchorX: 82,
-    anchorY: 243,
+    w: 958,
+    h: 891,
+    axisDeg: 60,
+    anchorX: 479,
+    anchorY: 461,
   },
 ];
-/** The horizontal sprite's end-to-end length (px): the reference that sets
- *  the one board scale all wall sprites share. */
-export const WALL_REFERENCE_LENGTH_PX = 366;
+/** Reference px length the WALL_LENGTH_FRACTION scale targets; smaller =
+ *  larger sprite on screen. Matches the sprites' true axial span (~1050-1140
+ *  px across the three crops) so the wall run covers ~55% of an edge. */
+export const WALL_REFERENCE_LENGTH_PX = 900;
 /** The sprite each troop kind draws with (sizes: `TROOP_ART` in constants). */
 export const TROOP_SPRITES: Record<keyof typeof TROOP_ART, TintArt> = {
   soldier: SOLDIER_ART,
