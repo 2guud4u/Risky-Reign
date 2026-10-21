@@ -71,7 +71,7 @@ const RecipesButton: React.FC = () => {
         onClose={() => setOpen(false)}
         title="Info"
         aria-label="Game info"
-        width="max-w-[440px]"
+        width="max-w-[640px]"
       >
         <TabBar
           className="flex-wrap mb-3"

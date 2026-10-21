@@ -133,11 +133,11 @@ const PIECES: PieceCard[] = [
     name: 'Soldier',
     price: SoldierPrice,
     bullets: [
-      'Recruit on your settlement or city during the Action phase.',
-      'Each soldier spends one action per phase: move along your roads, attack, or heal.',
-      'Fresh recruits and freshly healed soldiers can’t move the same turn.',
-      'Losing a fight by 1 injures; by 2 or more kills. Injured soldiers can’t attack until healed (double the recruit cost).',
-      'Fight the robber beside your troops; capture the enemy settlement you stand on.',
+      'Recruit soldiers on your settlement or city during the Action phase.',
+      'Each soldier takes one action per turn: move along your roads, attack, or heal.',
+      'Soldiers recruited or healed this turn can’t move yet.',
+      'Losing a fight by 1 injures your soldier; losing by 2 or more kills it. An injured soldier can’t attack until you heal it, which costs double the recruit price.',
+      'Fight the robber standing next to your troops, or capture the enemy settlement you’re standing on.',
     ],
   },
   {
@@ -145,9 +145,9 @@ const PIECES: PieceCard[] = [
     icon: 'robber',
     name: 'Robber',
     bullets: [
-      'A hex the robber sits on produces into the robber’s bag instead of your hand.',
-      'Rolling a 7: anyone holding 8+ cards discards half (rounded down) into the bag before the robber moves.',
-      'Beat it with a soldier to steal from the bag and move it one hex.',
+      'A hex with the robber produces nothing for its owners — its resources go into the robber’s bag instead of your hand.',
+      'When a 7 is rolled, anyone holding 8 or more cards discards half (rounded down) into the bag before the robber moves.',
+      'Beat it with a soldier to steal from the bag and move it to another hex.',
       'The robber wins ties.',
     ],
   },
@@ -158,12 +158,12 @@ const PIECES: PieceCard[] = [
     price: CannonUpgradePrice,
     flag: 'cannons',
     bullets: [
-      'Upgrade a healthy soldier standing on your settlement or city; it starts unstationed.',
-      'Station to fire: aim a direction at an adjacent vertex. Margin 2+ kills, 1 injures — cannons win ties and never get injured: a lost roll is fatal.',
-      'Chain shot (1 ore, toggle in Fire): rolls once against every soldier on the target vertex — even your own.',
-      'Stationed beside a wall: roll 4+ to break it back into a road.',
-      'Unstation to move; downgrade back to a soldier anywhere for its action. Shots are final — no undo.',
-      'Aboard a ship it becomes naval artillery, firing 1 intersection out.',
+      'Upgrade a healthy soldier standing on your settlement or city; it starts out unstationed.',
+      'Station it to fire: pick a direction to shoot at an adjacent vertex. A margin of 2 or more kills, a margin of 1 injures. Cannons win ties and are never injured — a lost roll is fatal.',
+      'Chain shot (1 ore, toggled in Fire): rolls once against every soldier on the target vertex — including your own.',
+      'Stationed beside a wall, it rolls 4+ to breach the wall back into a road.',
+      'Unstation it to move, or downgrade it back to a soldier anywhere — that spends its action. Shots are final and can’t be undone.',
+      'Aboard a ship, it becomes naval artillery and can fire 1 intersection away.',
     ],
   },
   {
@@ -174,9 +174,9 @@ const PIECES: PieceCard[] = [
     flag: 'walls',
     bullets: [
       'Upgrade one of your roads during the Build phase.',
-      'Blocks enemy soldiers only — your own troops cross freely.',
-      'A crossing enemy opens the gate: they pick 1–6, you roll. Match = they cross; either way their action is spent.',
-      'A stationed cannon can break it on a 4+ — 5+ if the owner holds The Great Wall (the road survives). A captured settlement keeps the wall.',
+      'Walls only block enemy soldiers — your own troops cross freely.',
+      'An enemy who tries to cross plays the gate: they guess a number from 1 to 6 and you roll a die. A match lets them through; either way, their action is spent.',
+      'A stationed cannon breaches it on a 4+ — or a 5+ if the owner holds The Great Wall. (The road survives.) A captured settlement keeps its wall.',
     ],
   },
   {
@@ -186,12 +186,12 @@ const PIECES: PieceCard[] = [
     price: ShipPrice,
     flag: 'ships',
     bullets: [
-      'Build on a coast vertex your road or settlement touches.',
-      'Sails ⌈roll ÷ 2⌉ steps each of your Action phases — free, and doesn’t spend troop actions.',
-      'Board and land troops only on its coast vertex; each costs the troop’s action. Open sea can’t load or unload.',
-      'An empty ship can be sailed by anyone; a crewed ship answers only to its owner.',
-      'Convert it into a settlement on its own or an adjacent coast vertex (distance rule applies, no free garrison).',
-      'Troops aboard can be attacked but can’t capture or start fights until they land.',
+      'Build on a coast vertex touched by one of your roads or settlements.',
+      'Sails ⌈roll ÷ 2⌉ steps during each of your Action phases — for free, and it doesn’t spend troop actions.',
+      'Troops can only board or land at the ship’s coast vertex, and each boarding or landing costs that troop its action. At open sea they can’t move.',
+      'Anyone can sail an empty ship; a crewed ship answers only to its owner.',
+      'Convert the ship into a settlement on its own or an adjacent coast vertex (the distance rule applies, and no free garrison).',
+      'Troops aboard can be attacked but can’t capture anything or start fights until they land.',
     ],
   },
 ];
@@ -224,31 +224,31 @@ export const TurnsPanel: React.FC<{ turnMode: TurnMode | undefined }> = ({ turnM
   const buildAround = turnMode?.build === 'around';
   const actionAround = turnMode?.action === 'around';
   const buildBody = buildAround
-    ? 'Every player takes a Build phase in turn order — the dice player first.'
-    : 'Only the dice player builds; the phase ends when they pass.';
+    ? 'Every player takes a Build phase in turn order, starting with the player who rolled.'
+    : 'Only the player who rolled may build, and the phase ends when they pass.';
   const actionBody = actionAround
     ? 'Every player takes an Action phase in turn order.'
-    : 'Only the dice player acts; the phase ends when they pass.';
+    : 'Only the player who rolled may act, and the phase ends when they pass.';
   const phases: { icon: IconName; name: string; bullets: string[] }[] = [
     {
       icon: 'dice',
       name: 'Dice',
       bullets: [
-        'Click each die to roll. Settlements and cities beside a hex matching the total collect that hex’s resource.',
+        'Click each die to roll. Settlements and cities touching a hex whose number matches the total collect that hex’s resource.',
         'Rolling a 7 activates the robber instead of paying out (see the Robber card).',
-        ...(turnMode?.secondRoll ? ['This game rolls a second time after everyone builds — with its own payouts.'] : []),
+        ...(turnMode?.secondRoll ? ['This game rolls a second time after everyone builds, with its own payouts.'] : []),
       ],
     },
-    { icon: 'build', name: 'Build', bullets: [buildBody, 'Spend resources on roads, settlements, cities, ships — or buy a development card.'] },
+    { icon: 'build', name: 'Build', bullets: [buildBody, 'Spend resources on roads, settlements, cities and ships, or buy a development card.'] },
     {
       icon: 'attack',
       name: 'Action',
-      bullets: [actionBody, 'Each soldier spends one action: move, attack, capture, heal, or its piece-specific action. Ships sail too.'],
+      bullets: [actionBody, 'Each soldier spends one action: move, attack, capture, heal, or a piece-specific action. Ships can also sail.'],
     },
     {
       icon: 'move',
       name: 'End turn',
-      bullets: ['Pass with the phase button when you’re done — actions you didn’t take don’t carry over.'],
+      bullets: ['Click the phase button to pass when you’re done — unused actions don’t carry over.'],
     },
   ];
   return (
@@ -275,9 +275,9 @@ export const BattlesPanel: React.FC = () => (
         body: (
           <Bullets
             items={[
-              'Pick your soldier(s) on a vertex with enemy troops, then Attack — or Fight the robber beside them.',
-              'Nothing else happens while a battle runs: the board freezes until it resolves.',
-              'Attacker retreats first when they can’t continue; fleeing counts as a loss.',
+              'Pick your soldier(s) on a vertex that has enemy troops, then Attack — or Fight the robber standing next to them.',
+              'Nothing else happens while a battle is running: the board freezes until it resolves.',
+              'The attacker retreats first when they can’t continue, and fleeing counts as a loss.',
             ]}
           />
         ),
@@ -289,7 +289,7 @@ export const BattlesPanel: React.FC = () => (
         body: (
           <Bullets
             items={[
-              'Only the first 3 standing troops per side fight each round — the rest are reserves that step up as the front falls.',
+              'Only the first 3 standing troops on each side fight in a round — the rest are reserves who step up as the front line falls.',
               'Each fighter clicks their own die to roll it.',
             ]}
           />
@@ -302,8 +302,8 @@ export const BattlesPanel: React.FC = () => (
         body: (
           <Bullets
             items={[
-              'Each side sorts its rolls high→low and pairs highest-vs-highest; cannons always pair as their side’s lowest roll.',
-              'Defender wins ties — except a cannon in the pair, which wins its own ties.',
+              'Each side sorts its rolls from highest to lowest and pairs highest against highest; cannons always pair as their side’s lowest roll.',
+              'The defender wins ties — except a cannon in the pair, which always wins its own ties.',
             ]}
           />
         ),
@@ -316,8 +316,8 @@ export const BattlesPanel: React.FC = () => (
           <Bullets
             items={[
               'Win by 2 or more: the loser dies. Win by 1: the loser is injured.',
-              'Cannons are never injured — any lost roll kills them.',
-              'Injured defenders get an injured fight: they flee on a win, die on a loss or tie.',
+              'Cannons are never injured — any lost roll destroys them.',
+              'Injured defenders fight their next round as an injured fighter: they flee on a win and die on a loss or a tie.',
             ]}
           />
         ),
@@ -334,7 +334,7 @@ export const TradePanel: React.FC = () => (
       <CardHead icon="cards" name="Bank" />
       <Bullets
         items={[
-          'Trade any 4 of one resource for 1 of another — the default rate, always available on your turn.',
+          'Trade any 4 cards of one resource for 1 of another — the default rate, always available on your turn.',
         ]}
       />
     </section>
@@ -342,8 +342,8 @@ export const TradePanel: React.FC = () => (
       <CardHead icon="ship" name="Ports" />
       <Bullets
         items={[
-          'The 2:1 / 3:1 medallions on the coast are ports. Settle on a port’s vertex to earn its rate.',
-          'A 2:1 port gives its resource cheaper; a 3:1 port works for any resource.',
+          'The 2:1 and 3:1 medallions on the coast are ports. Settle on a port’s vertex to unlock its rate.',
+          'A 2:1 port trades only its own resource at the cheaper rate; a 3:1 port trades any resource.',
         ]}
       />
     </section>
@@ -351,7 +351,7 @@ export const TradePanel: React.FC = () => (
       <CardHead icon="heal" name="Players" />
       <Bullets
         items={[
-          'Offer trades to the table or accept a standing offer — the trade pop-ups ride the top notice rail.',
+          'Offer trades to the whole table or accept a standing offer — trade pop-ups appear in the notice rail at the top.',
           'Only the player whose turn it is can trade.',
         ]}
       />
@@ -385,7 +385,7 @@ export const CapturePanel: React.FC = () => (
       <Bullets
         items={[
           'A healthy soldier standing on an enemy settlement or city can capture it for its action — it becomes yours.',
-          'Captured buildings keep their level; capture costs the soldier’s action.',
+          'Captured buildings keep their level; capturing costs the soldier its action.',
         ]}
       />
     </section>
@@ -393,8 +393,8 @@ export const CapturePanel: React.FC = () => (
       <CardHead icon="road" name="Road chains" />
       <Bullets
         items={[
-          'Roads recolor with the capture: each road chain reachable through empty vertices becomes yours — unless it ends at another player’s building.',
-          'A chain stops at any building, a junction (an empty vertex with 3+ roads), or a dead end. Walls are roads too and change hands with them.',
+          'Roads recolor with the capture: every road chain reachable through empty vertices becomes yours — unless it ends at another player’s building.',
+          'A chain stops at any building, at a junction (an empty vertex with 3 or more roads), or at a dead end. Walls count as roads and change hands along with them.',
         ]}
       />
     </section>
@@ -423,8 +423,8 @@ interface Recipe {
 
 const RECIPES: Recipe[] = [
   { icon: 'road', name: 'Road', price: RoadPrice, note: 'Connects your settlements; counts toward Longest Road.' },
-  { icon: 'settlement', name: 'Settlement', price: SettlementPrice, note: '1 VP. Collects resources from adjacent hexes.' },
-  { icon: 'city', name: 'City', price: CityPrice, note: 'Upgrade a settlement. 2 VP; collects double resources.' },
+  { icon: 'settlement', name: 'Settlement', price: SettlementPrice, note: 'Worth 1 VP. Collects resources from adjacent hexes.' },
+  { icon: 'city', name: 'City', price: CityPrice, note: 'Upgrades a settlement. Worth 2 VP; collects double resources.' },
   { icon: 'attack', name: 'Soldier', price: SoldierPrice, note: 'Garrisons a vertex; fights battles and the robber.' },
   {
     icon: 'heal',
@@ -445,10 +445,10 @@ const RECIPES: Recipe[] = [
 ];
 
 const GATED_RECIPES: Recipe[] = [
-  { icon: 'ship', name: 'Ship', price: ShipPrice, flag: 'ships', note: 'Sails coast and open water; ferries troops, can settle on a coast.' },
-  { icon: 'wall', name: 'Wall', price: WallPrice, flag: 'walls', note: 'Upgrades one of your roads; blocks enemy soldiers, yours cross freely.' },
+  { icon: 'ship', name: 'Ship', price: ShipPrice, flag: 'ships', note: 'Sails coast and open water; ferries troops and can become a settlement on a coast.' },
+  { icon: 'wall', name: 'Wall', price: WallPrice, flag: 'walls', note: 'Upgrades one of your roads; blocks enemy soldiers while yours cross freely.' },
   { icon: 'cannon', name: 'Cannon', price: CannonUpgradePrice, flag: 'cannons', note: 'Upgrades a healthy soldier on your settlement; station it to fire.' },
-  { icon: 'cannon', name: 'Chain shot', price: SplashPrice, flag: 'cannons', note: 'A cannon shot hitting every soldier on the vertex — yours included.' },
+  { icon: 'cannon', name: 'Chain shot', price: SplashPrice, flag: 'cannons', note: 'A cannon shot that hits every soldier on the vertex — including yours.' },
   { icon: 'settlement', name: 'Settle ship', price: ShipSettlePrice, flag: 'ships', note: 'Converts your ship into a settlement on its coast.' },
 ];
 
@@ -477,11 +477,11 @@ const ACHIEVEMENTS: { icon: IconName; name: string; vp: number; note: string; fl
   { icon: 'settlement', name: 'Settlement', vp: 1, note: 'Each settlement you own.' },
   { icon: 'city', name: 'City', vp: 2, note: 'Each city you own.' },
   { icon: 'star', name: 'Victory Point card', vp: 1, note: 'Counted as soon as you draw it.' },
-  { icon: 'road', name: 'Longest Road', vp: BONUS_VP, note: `Longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
-  { icon: 'knight', name: 'Largest Army', vp: BONUS_VP, note: `Most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
-  { icon: 'crown', name: 'Conqueror', vp: BONUS_VP, note: `Most battles won against players, at least ${CONQUEROR_MIN}.` },
-  { icon: 'ship', name: 'The Admiral', vp: ADMIRAL_VP, flag: 'ships', note: `Largest fleet, at least ${ADMIRAL_MIN} ships; each of your ships gains +1 sail step.` },
-  { icon: 'wall', name: 'The Great Wall', vp: GREAT_WALL_VP, flag: 'walls', note: `Longest connected wall run, at least ${GREAT_WALL_MIN}; holder's walls need a 5+ cannon roll to breach.` },
+  { icon: 'road', name: 'Longest Road', vp: BONUS_VP, note: `The longest unbroken road chain, at least ${LONGEST_ROAD_MIN} roads.` },
+  { icon: 'knight', name: 'Largest Army', vp: BONUS_VP, note: `The most soldiers on the board, at least ${LARGEST_ARMY_MIN}.` },
+  { icon: 'crown', name: 'Conqueror', vp: BONUS_VP, note: `The most battles won against players, at least ${CONQUEROR_MIN}.` },
+  { icon: 'ship', name: 'The Admiral', vp: ADMIRAL_VP, flag: 'ships', note: `The largest fleet, at least ${ADMIRAL_MIN} ships; each of your ships gains +1 sail step.` },
+  { icon: 'wall', name: 'The Great Wall', vp: GREAT_WALL_VP, flag: 'walls', note: `The longest connected wall run, at least ${GREAT_WALL_MIN}; the holder's walls need a 5+ cannon roll to breach.` },
 ];
 
 export const AchievementsPanel: React.FC<{ enabled: (flag?: PieceFlag) => boolean }> = ({ enabled }) => {
@@ -489,7 +489,7 @@ export const AchievementsPanel: React.FC<{ enabled: (flag?: PieceFlag) => boolea
   return (
     <div>
       <p className="text-[12px] text-ink-faint m-0 mb-2">
-        First to {WIN_VP} VP wins. Bonuses go to one player; a tie keeps the current holder.
+        First to {WIN_VP} VP wins. Each bonus goes to a single player; on a tie the current holder keeps it.
       </p>
       <ul className="m-0 p-0 list-none flex flex-col gap-2">
         {achievements.map((a) => (
