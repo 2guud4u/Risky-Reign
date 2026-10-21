@@ -88,6 +88,9 @@ export function useBattleReposition(opts: {
   /** Press on one of my waiting troops: pick it, and arm a drag. */
   const startTroopPress = (troop: RepositionTroop, e: React.PointerEvent) => {
     if (!myStaged.some((t) => t.soldierId === troop.soldierId)) return;
+    // preventDefault keeps the browser from starting a native image-drag
+    // (floating bitmap ghost) that would steal the pointer events.
+    e.preventDefault();
     e.stopPropagation();
     setPickedId(troop.soldierId);
     press.current = { soldierId: troop.soldierId, x: e.clientX, y: e.clientY };

@@ -29,6 +29,11 @@ export const TintedSprite: React.FC<{
       height={height}
       transform={transform}
       pointerEvents={pointerEvents}
+      // Never let the browser's native image-drag ghost start: it swallows
+      // pointer events and breaks custom drag (e.g. repositioning troops).
+      // `draggable` isn't a typed SVG prop; the attr + -webkit-user-drag both apply.
+      {...({ draggable: false } as object)}
+      style={{ WebkitUserDrag: 'none' } as React.CSSProperties}
     />
   );
 };
@@ -52,7 +57,7 @@ export const TintedImg: React.FC<{
       alt=""
       aria-hidden
       className={className}
-      style={{ objectFit: 'contain' }}
+      style={{ objectFit: 'contain', WebkitUserDrag: 'none' } as React.CSSProperties}
       draggable={false}
     />
   );
