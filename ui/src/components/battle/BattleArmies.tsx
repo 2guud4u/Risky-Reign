@@ -1,5 +1,5 @@
 import React from 'react';
-import { BattlePhase, PixelCoord, SoldierBattleState } from 'common';
+import { PixelCoord, SoldierBattleState } from 'common';
 import { TroopSlot } from '../../types/battleModal';
 import { TROOP_ART, TROOP_R } from '../../constants';
 import { troopArtKind } from '../../utils/garrisonFormation';
@@ -9,7 +9,6 @@ import { ROLL_FINGER_GAP, ROLL_FINGER_SIZE, SOLDIER_ICON_HEIGHT } from './consta
 interface BattleArmiesProps {
   /** The battle vertex's mini-map position. */
   center: PixelCoord;
-  phase: BattlePhase;
   attackerSlots: TroopSlot[];
   defenderSlots: TroopSlot[];
   /** Pixel height of the dashed center clash line. */
@@ -31,7 +30,6 @@ interface BattleArmiesProps {
  */
 export const BattleArmies: React.FC<BattleArmiesProps> = ({
   center,
-  phase,
   attackerSlots,
   defenderSlots,
   troopSpread,
@@ -72,7 +70,6 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
           key={`a-${i}`}
           slot={slot}
           centerX={center.x}
-          phase={phase}
           mine={canRoll(slot.s)}
           rolling={slot.s.soldier.id === rollingSoldierId}
           colors={colors}
@@ -84,7 +81,6 @@ export const BattleArmies: React.FC<BattleArmiesProps> = ({
           key={`d-${i}`}
           slot={slot}
           centerX={center.x}
-          phase={phase}
           mine={canRoll(slot.s)}
           rolling={slot.s.soldier.id === rollingSoldierId}
           colors={colors}

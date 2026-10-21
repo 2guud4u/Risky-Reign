@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { TROOP_ART, TROOP_R } from '../../constants';
+import { FIGHT_GAP, TROOP_ART, TROOP_R } from '../../constants';
 import { BATTLE_ART, SOLDIER_ART, INJURED_SOLDIER_ART, CANNON_STATIONED_ART, CANNON_UNSTATIONED_ART, type TintArt } from '../../utils/tintedArt';
 import { ROBBER_ART, SOLDIER_ICON_HEIGHT, SOLDIER_ICON_LIFT } from './constants';
 
@@ -165,23 +165,6 @@ const PoseLayer: React.FC<{ name: string; color: string; x: number; ground: numb
     </g>
   );
 };
-
-/** A die badge above a troop (attack side rolls left, defence right). */
-const DieBadge: React.FC<{ x: number; n: number | null; cy?: number; size?: number; font?: number }> = ({
-  x,
-  n,
-  cy = 24,
-  size = 26,
-  font = 14,
-}) =>
-  n === null ? null : (
-    <g>
-      <rect x={x - size / 2} y={cy - size / 2} width={size} height={size} rx={6} fill="#1f2937" stroke="#fff" strokeWidth={1.5} />
-      <text x={x} y={cy + 1} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={font} fontWeight={700}>
-        {n}
-      </text>
-    </g>
-  );
 
 // ------------------------------------------------------- imperative engine
 
@@ -595,7 +578,7 @@ export function playFights(svg: SVGElement, fights: Fight[], onDone?: () => void
     else if (single) resultLabel(row, tF + 1200, label, color);
     else {
       const lbl = spawn('text', { x: scene.labelX ?? scene.cx + 175, y: GROUND - 40, 'text-anchor': scene.labelAnchor ?? 'start', fill: color, 'font-size': 26, 'font-weight': 700 }, row) as SVGTextElement;
-      lbl.textContent = `${f.attacker.roll} vs ${f.defender.roll} · ${label}`;
+      lbl.textContent = label;
       lbl.setAttribute('paint-order', 'stroke');
       lbl.setAttribute('stroke', '#111');
       lbl.setAttribute('stroke-width', '4');
@@ -641,14 +624,11 @@ const FightRow: React.FC<{
   x1: number;
   cx: number;
   showLine: boolean;
-  showDice: boolean;
   k: number;
   ground: number;
-}> = ({ f, i, x0, x1, cx, showLine, showDice, k, ground }) => (
+}> = ({ f, i, x0, x1, cx, showLine, k, ground }) => (
   <>
     {showLine && <line x1={cx} y1={46} x2={cx} y2={ground} stroke="#dc2626" strokeWidth={2} strokeDasharray="6 5" opacity={0.6} />}
-    {showDice && <DieBadge x={x0} n={f.attacker.roll} />}
-    {showDice && <DieBadge x={x1} n={f.defender.roll} />}
     {(['a', 'd'] as const).map((side) => {
       const t = side === 'a' ? f.attacker : f.defender;
       const x = side === 'a' ? x0 : x1;
@@ -700,7 +680,7 @@ export const FightStage: React.FC<FightStageProps> = ({ fights, onDone }) => {
             x1={DX}
             cx={CX}
             showLine
-            showDice={!multi}
+            
             k={K}
             ground={GROUND}
           />
@@ -742,12 +722,10 @@ export const MapFightLayer: React.FC<{
   // stage's standing soldier is 110 row units (66 game units × K). Scaling
   // by 110 makes replay soldiers the same size as the armies' troops.
   const k = (TROOP_R * SOLDIER_ICON_HEIGHT) / 110;
-  // ~30 world px from the line — twice the roll gap, enough for the lunge.
-  const gap = Math.round(30 / k);
+  // Fight spots match the resolved lineup's FIGHT_GAP so the armies' troops
+  // already stand where the animation starts — no shuffle on hand-off.
+  const gap = Math.round(FIGHT_GAP / k);
   const feetBelowLabel = TROOP_R * (SOLDIER_ICON_HEIGHT - SOLDIER_ICON_LIFT);
-  // Roll badge sits over each troop's fight spot, just above the figure's
-  // head in row units.
-  const badgeCy = GROUND - 150;
 
   useEffect(() => {
     const g = gRef.current;
@@ -762,13 +740,7 @@ export const MapFightLayer: React.FC<{
         const feetY = (f.rowY ?? 0) + feetBelowLabel; // label center → feet (see BattleTroop)
         return (
           <g key={i} data-row={i} transform={`translate(${x - CX * k},${feetY - GROUND * k}) scale(${k})`}>
-            <FightRow f={f} i={i} x0={CX - gap} x1={CX + gap} cx={CX} showLine={false} showDice={false} k={K} ground={GROUND} />
-            <g transform={`translate(${CX - gap},0)`}>
-              <DieBadge x={0} n={f.attacker.roll} cy={badgeCy} size={30} font={18} />
-            </g>
-            <g transform={`translate(${CX + gap},0)`}>
-              <DieBadge x={0} n={f.defender.roll} cy={badgeCy} size={30} font={18} />
-            </g>
+            <FightRow f={f} i={i} x0={CX - gap} x1={CX + gap} cx={CX} showLine={false} k={K} ground={GROUND} />
           </g>
         );
       })}

@@ -12,6 +12,7 @@ import { DiceMatch, RepositionTroop, TroopSlot } from '../types/battleModal';
 import {
   CENTER_GAP,
   COL_W,
+  FIGHT_GAP,
   ROW_H,
   SIDE_COL_MAX,
   SIDE_OFFSET,
@@ -98,8 +99,12 @@ export function layoutSide(
     return 0; // both unrolled: keep position order
   });
   orderedFrontLine.forEach((s, i) => {
+    // While rolling the pair waits tight at CENTER_GAP; once the round
+    // resolves the lineup widens to FIGHT_GAP — the same spot the fight
+    // replay animates from, so the hand-off is seamless.
+    const lineGap = phase === 'rolling' ? CENTER_GAP : FIGHT_GAP;
     slots.push({
-      x: center.x + sign * CENTER_GAP,
+      x: center.x + sign * lineGap,
       y: center.y + (i - (MAX_PER_ROUND - 1) / 2) * ROW_H,
       s,
     });

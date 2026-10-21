@@ -1,7 +1,6 @@
 import React from 'react';
-import { BattlePhase } from 'common';
 import { TroopSlot } from '../../types/battleModal';
-import { effDead, FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
+import { FALLBACK_OWNER_COLOR } from '../../utils/battleModal';
 import { TROOP_ART, TROOP_R } from '../../constants';
 import { GAME_ICONS } from '../ui/GameIcon';
 import { TintedSprite } from '../TintedSprite';
@@ -27,7 +26,6 @@ interface BattleTroopProps {
   slot: TroopSlot;
   /** The clash-line center x — troops left of it face the other way. */
   centerX: number;
-  phase: BattlePhase;
   /** True while this troop is mine to roll (shows the 🎲 label, clickable). */
   mine: boolean;
   /** True while this troop's roll is in flight (clicked, awaiting the result). */
@@ -40,17 +38,16 @@ interface BattleTroopProps {
 export const BattleTroop: React.FC<BattleTroopProps> = ({
   slot,
   centerX,
-  phase,
   mine,
   rolling,
   colors,
   onRoll,
 }) => {
   const { x, y, s } = slot;
-  // During 'betweenRounds', this round's DEAD casualties stay healthy-looking
-  // until "continue battle" — but a newly-injured troop keeps its injured
-  // pose right away (it "stays in injured form" after the fight replay).
-  const dead = effDead(s, phase);
+  // During 'betweenRounds' the fight replay already showed the results, so
+  // casualties display in place: dead troops keep their × at the fight spot,
+  // injured troops their injured pose (both move to reserves on continue).
+  const dead = s.dead;
   const injured = s.injured;
   const opacity = dead ? DEAD_TROOP_OPACITY : 1;
   const isRobber = s.soldier.owner === 'Robber';

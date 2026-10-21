@@ -8,9 +8,12 @@ import { TROOP_ART } from './troops';
 
 /** Distance of each side's formation from the vertex center (world units). */
 export const SIDE_OFFSET = 130;
-/** Rolled troops stop this far inside the center clash line. */
+/** Rolled troops stop this far inside the center clash line while rolling. */
 export const CENTER_GAP = 15;
-/** Vertical spacing between troops in a line. */
+/** Distance from the clash line where a pair fights its duel (and where the
+ *  front line stands once the round resolves — the armies line up at the
+ *  animation's spots so the replay starts with no shuffle). */
+export const FIGHT_GAP = 30;
 export const ROW_H = 34;
 /** Troop circle radius. */
 export const TROOP_R = 26;

@@ -222,7 +222,6 @@ const BattleModalInner: React.FC<{
                 ) : (
                   <BattleArmies
                     center={center}
-                    phase={phase}
                     attackerSlots={attackerSlots}
                     defenderSlots={defenderSlots}
                     troopSpread={troopSpread}
