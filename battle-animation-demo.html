@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Battle animations demo</title>
+<style>
+  :root { --fg:#e8e6e1; --muted:#9a958c; --surface:#26241f; --bg:#1a1916; --line:#3a3833; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:28px; font:14px/1.4 system-ui,sans-serif; background:var(--bg); color:var(--fg);
+         display:flex; flex-direction:column; align-items:center; gap:18px; }
+  h1 { font-size:18px; font-weight:600; margin:0; }
+  h2 { font-size:15px; font-weight:600; margin:18px 0 0; color:#d8c9a3; max-width:1240px; width:100%; }
+  .hint { color:var(--muted); margin:0; max-width:900px; text-align:center; }
+  .controls { display:flex; gap:14px; align-items:center; color:var(--muted); }
+  button { background:#3a3833; color:var(--fg); border:1px solid #55524a; border-radius:8px; padding:6px 12px; cursor:pointer; }
+  button:hover { background:#46433c; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr)); gap:16px; max-width:1240px; width:100%; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px;
+          display:flex; flex-direction:column; gap:8px; cursor:pointer; user-select:none; }
+  .card:hover { border-color:#6b675d; }
+  .card .label { font-weight:600; }
+  .card .sub { color:var(--muted); font-size:12px; }
+  .card .rule { color:#f0b45a; font-size:12px; }
+  svg { display:block; width:100%; height:auto; background:#3f5f3a; border-radius:8px; }
+  .result { font:700 13px system-ui; paint-order:stroke; stroke:#111; stroke-width:4px; }
+  .dieTxt { font:700 14px system-ui; fill:#fff; }
+</style>
+</head>
+<body>
+  <h1>Battle animations: every scenario</h1>
+  <p class="hint">Click a card to replay. ~1.2s per fight; fights in one round start 250ms apart. All poses are the
+  generated sprites in <code>ui/public/art/battle/</code>, tinted to the owner's color the same way the game does.</p>
+  <div class="controls">
+    <button id="all">Replay all</button>
+    <label><input type="checkbox" id="slow"> Slow motion (×3)</label>
+  </div>
+
+  <h2>Normal battle: soldier vs soldier</h2>
+  <div class="grid" id="g-normal"></div>
+  <h2>Normal battle: cannons</h2>
+  <div class="grid" id="g-cannon"></div>
+  <h2>A full round (3 fights, staggered)</h2>
+  <div class="grid" id="g-round"></div>
+  <h2>Injured fight</h2>
+  <div class="grid" id="g-injured"></div>
+  <h2>Robber fight</h2>
+  <div class="grid" id="g-robber"></div>
+  <h2>Cannon shot panel (ranged / chain shot)</h2>
+  <div class="grid" id="g-ranged"></div>
+
+<script>
+const ART = 'ui/public/art/';
+const NS = 'http://www.w3.org/2000/svg';
+const W = 480, H = 240, CX = 240, GROUND = 205;
+const RED = '#e6194b', BLUE = '#4363d8';
+/** Game units -> demo px (a standing soldier is 66 units tall = 110px here). */
+const K = 110 / 66;
+
+/**
+ * Every pose: size in game units (TROOP_ART scale), and the feet anchor
+ * (ax, ay) — the point that sits on the troop's ground spot, so swapping
+ * poses never makes the figure jump. All art is drawn facing LEFT, except the
+ * poses flagged `facesRight`, which the layer builder mirrors about the feet
+ * point so they still face the clash line.
+ */
+const POSE = {
+  soldier:           { href: 'soldier.png', mask: 'soldier_mask.png', w: 28.94, h: 66, ax: 13.37, ay: 66 },
+  injured:           { href: 'injuredSoldier.png', mask: 'injuredSoldier_mask.png', w: 34.25, h: 46.33, ax: 16, ay: 46.33 },
+  cannonStationed:   { href: 'pieces/cannon_stationed.png', mask: 'pieces/cannon_stationed_mask.png', w: 71.23, h: 69.56, ax: 41.2, ay: 69.56 },
+  cannonUnstationed: { href: 'pieces/cannon_unstationed.png', mask: 'pieces/cannon_unstationed_mask.png', w: 56.98, h: 47.74, ax: 29.21, ay: 47.74 },
+  thrust:      { href: 'battle/thrust.png', mask: 'battle/thrust_mask.png', w: 72.48, h: 48.29, ax: 54.68, ay: 48.19 },
+  slash:       { href: 'battle/slash.png', mask: 'battle/slash_mask.png', w: 78.97, h: 52.35, ax: 37.23, ay: 52.26 },
+  stabbed:     { href: 'battle/stabbed.png', mask: 'battle/stabbed_mask.png', w: 48.87, h: 53.71, ax: 30.69, ay: 53.61 },
+  injuredStabbed: { href: 'battle/injuredStabbed.png', mask: 'battle/injuredStabbed_mask.png', w: 54.67, h: 62.84, ax: 31, ay: 62.84 },
+  stunned:     { href: 'battle/stunned.png', mask: 'battle/stunned_mask.png', w: 39.58, h: 58.26, ax: 27.89, ay: 58.16 },
+  cannonFire:  { href: 'battle/cannonFire.png', mask: 'battle/cannonFire_mask.png', w: 88.76, h: 58.99, ax: 61.48, ay: 58.85 },
+  cannonWreck: { href: 'battle/cannonWreck.png', mask: 'battle/cannonWreck_mask.png', w: 61.49, h: 42.29, ax: 34.57, ay: 42.15 },
+  robber:        { href: 'robber.png', canvas: { cw: 1408, ch: 768, x: 524, y: 92, fw: 402, fh: 601 }, h: 66, facesRight: true },
+  robberStrike:  { href: 'battle/robberStrike.png', w: 57.32, h: 75.77, ax: 38.34, ay: 75.66 },
+  robberStabbed: { href: 'battle/robberStabbed.png', w: 52.16, h: 62.16, ax: 31.46, ay: 62.05, facesRight: true },
+};
+let uid = 0;
+const speed = () => (document.getElementById('slow').checked ? 3 : 1);
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+/** One pose layer at feet point (x, GROUND); tinted through its mask like the game's bake. */
+function poseLayer(parent, name, color, x) {
+  const p = POSE[name];
+  const g = el('g', {}, parent);
+  if (p.canvas) {
+    // The standing robber is a full canvas: place it so its figure stands at x.
+    // `flip` mirrors it about the feet point (the art faces right; see POSE).
+    const s = (p.h * K) / p.canvas.fh, fw = p.canvas.fw * s;
+    const c = el('g', p.facesRight ? { transform: `translate(${x} ${GROUND}) scale(-1 1) translate(${-x} ${-GROUND})` } : {}, g);
+    el('image', { href: ART + p.href, x: x - fw / 2 - p.canvas.x * s, y: GROUND - p.h * K - p.canvas.y * s,
+      width: p.canvas.cw * s, height: p.canvas.ch * s }, c);
+    return g;
+  }
+  const w = p.w * K, h = p.h * K, x0 = x - p.ax * K, y0 = GROUND - p.ay * K;
+  // Right-facing art is mirrored about the feet point so it faces the enemy.
+  const c = p.facesRight ? el('g', { transform: `translate(${x} ${GROUND}) scale(-1 1) translate(${-x} ${-GROUND})` }, g) : g;
+  if (p.mask) {
+    const id = 'm' + uid++;
+    const m = el('mask', { id, maskUnits: 'userSpaceOnUse', x: x0, y: y0, width: w, height: h }, el('defs', {}, c));
+    el('image', { href: ART + p.mask, x: x0, y: y0, width: w, height: h, preserveAspectRatio: 'none' }, m);
+    el('rect', { x: x0, y: y0, width: w, height: h, fill: color, mask: `url(#${id})` }, c);
+  }
+  el('image', { href: ART + p.href, x: x0, y: y0, width: w, height: h, preserveAspectRatio: 'none' }, c);
+  return g;
+}
+
+/**
+ * A troop: every pose it may need, stacked and hidden, at one feet spot.
+ * The outer <g> moves (lunge, recoil); the inner mirrors troops on the left
+ * so everyone faces the clash line, as in BattleTroop.
+ */
+function troop(svg, kind, color, x, poses) {
+  const facingRight = x < CX;
+  const outer = el('g', {}, svg);
+  const flip = el('g', { transform: facingRight ? `translate(${2 * x},0) scale(-1,1)` : '' }, outer);
+  const layers = {};
+  for (const name of [kind, ...poses]) {
+    layers[name] = poseLayer(flip, name, color, x);
+    layers[name].style.opacity = name === kind ? 1 : 0;
+  }
+  return { outer, layers, x, kind, color, dir: facingRight ? 1 : -1, current: kind };
+}
+
+// ---------- timeline helpers (Web Animations API) ----------
+function anim(node, frames, delay, dur, extra = {}) {
+  const k = speed();
+  return node.animate(frames, { delay: delay * k, duration: dur * k, fill: 'both', easing: 'ease-in-out', ...extra });
+}
+/**
+ * Opacity toggles (pose swaps, labels, × marks) are collected per node and
+ * built into ONE keyframe track per node by flushToggles(): separate
+ * show/hide animations on the same node fight over which one wins.
+ */
+const TOG = new Map();
+function toggle(n, at, d, v) {
+  if (!TOG.has(n)) TOG.set(n, { init: n.style.opacity === '' ? 1 : +n.style.opacity, ev: [] });
+  TOG.get(n).ev.push([at, Math.max(d, 1), v]);
+}
+const show = (n, at, d = 1) => toggle(n, at, d, 1);
+const hide = (n, at, d = 1) => toggle(n, at, d, 0);
+function flushToggles() {
+  for (const [n, { init, ev }] of TOG) {
+    ev.sort((a, b) => a[0] - b[0]);
+    const end = Math.max(...ev.map(([at, d]) => at + d)) + 1;
+    const frames = [{ offset: 0, opacity: init }];
+    let cur = init;
+    for (const [at, d, v] of ev) {
+      frames.push({ offset: at / end, opacity: cur }, { offset: (at + d) / end, opacity: v });
+      cur = v;
+    }
+    frames.push({ offset: 1, opacity: cur });
+    anim(n, frames, 0, end, { easing: 'linear' });
+  }
+  TOG.clear();
+}
+/** Swap the visible pose at time `at` (hard cut, like a sprite frame). */
+function setPose(t, name, at) {
+  hide(t.layers[t.current], at);
+  show(t.layers[name], at);
+  t.current = name;
+}
+/**
+ * One movement track per troop: [timeMs, dx, dy] points, absolute from the
+ * scene start, interpolated piecewise. A single animation per troop avoids
+ * one move's fill overriding another's.
+ */
+function track(t, pts, easing = 'ease-in-out') {
+  const t0 = pts[0][0], t1 = pts[pts.length - 1][0], span = Math.max(t1 - t0, 1);
+  anim(t.outer, pts.map(([ms, dx, dy = 0]) => ({ transform: `translate(${dx}px,${dy}px)`, offset: (ms - t0) / span, easing })), t0, span, { easing: 'linear' });
+}
+/** Walking bob: small hops between `from` and `to` dx over [a, b] ms. */
+function walk(a, b, from, to, steps = 3) {
+  const pts = [];
+  for (let i = 0; i <= steps * 2; i++) {
+    const f = i / (steps * 2);
+    pts.push([a + (b - a) * f, from + (to - from) * f, i % 2 ? -4 : 0]);
+  }
+  return pts;
+}
+
+// ---------- effects ----------
+function starPts(cx, cy, R, r, n) {
+  const pts = [];
+  for (let i = 0; i < n * 2; i++) {
+    const a = (Math.PI * i) / n - Math.PI / 2, rr = i % 2 ? r : R;
+    pts.push(`${cx + Math.cos(a) * rr},${cy + Math.sin(a) * rr}`);
+  }
+  return pts.join(' ');
+}
+function hitSpark(svg, x, y, at) {
+  const s = el('polygon', { points: starPts(x, y, 15, 6, 8), fill: '#fff2a8', stroke: '#e11d48', 'stroke-width': 2 }, svg);
+  s.style.opacity = 0;
+  anim(s, [{ opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .6 }, { opacity: 0 }], at, 240);
+}
+function poof(svg, x, at, size = 1) {
+  const w = 72 * size, h = 58 * size;
+  const g = el('g', {}, svg);
+  el('image', { href: ART + 'battle/poof.png', x: x - w / 2, y: GROUND - 40 * size - h / 2, width: w, height: h }, g);
+  g.style.transformBox = 'fill-box'; g.style.transformOrigin = 'center';
+  anim(g, [
+    { opacity: 0, transform: 'scale(.3)' },
+    { opacity: 1, transform: 'scale(1.05)', offset: .3 },
+    { opacity: 1, transform: 'scale(1.15)', offset: .6 },
+    { opacity: 0, transform: 'scale(1.35) translateY(-8px)' },
+  ], at, 450, { easing: 'ease-out' });
+}
+/** After death: the standing sprite, faded, with ×, as the game shows dead troops today. */
+function deadMark(svg, t, at) {
+  hide(t.layers[t.current], at);
+  const g = el('g', {}, svg);
+  const ghost = el('g', { transform: t.dir > 0 ? `translate(${2 * t.x},0) scale(-1,1)` : '', opacity: .4 }, g);
+  poseLayer(ghost, t.kind === 'robber' ? 'robber' : t.kind, t.color, t.x);
+  const x = el('text', { x: t.x, y: GROUND - 40, 'text-anchor': 'middle', class: 'result', fill: '#fff', 'font-size': 30 }, g);
+  x.textContent = '×';
+  g.style.opacity = 0;
+  show(g, at, 150);
+}
+function die(svg, x, n) {
+  const g = el('g', {}, svg);
+  el('rect', { x: x - 13, y: 11, width: 26, height: 26, rx: 6, fill: '#1f2937', stroke: '#fff', 'stroke-width': 1.5 }, g);
+  const t = el('text', { x, y: 25, 'text-anchor': 'middle', 'dominant-baseline': 'central', class: 'dieTxt' }, g);
+  t.textContent = n;
+}
+function resultLabel(svg, at, str, color) {
+  const t = el('text', { x: CX, y: H - 10, 'text-anchor': 'middle', class: 'result', fill: color }, svg);
+  t.textContent = str;
+  t.style.opacity = 0;
+  show(t, at, 120);
+}
+
+// ---------- the fight beats ----------
+/**
+ * Melee strike. Returns the impact time.
+ *  - thrust: drop into the stab stance in place and coil back (0–420),
+ *    then lunge fast at the defender (420–560, impact at 560); hold, stand up
+ *    at 900 and walk back (900–1250).
+ *  - slash / robber staff: walk up to the defender in the standing pose
+ *    (0–420), slash (impact at 500), back to the standing pose at 760, walk
+ *    back (760–1150).
+ * The loser reacts at impact: kill = stabbed / wrecked, poof +400, faded ×
+ * +550; injure = stunned, injured look +400.
+ */
+function melee(svg, atk, def, t0, outcome, strike) {
+  // Stop where the lance tip just reaches the defender's front: the strike
+  // art faces left with its feet at ax, so the weapon leads by ax units.
+  const lead = POSE[strike].ax * K;
+  const reach = def.x - atk.x - atk.dir * (lead + 6);
+  let impact;
+  if (strike === 'thrust') {
+    impact = t0 + 560;
+    setPose(atk, 'thrust', t0 + 120);
+    track(atk, [
+      [t0, 0], [t0 + 120, 0], [t0 + 420, -atk.dir * 10],
+      [impact, reach], [t0 + 900, reach],
+      ...walk(t0 + 900, t0 + 1250, reach, 0).slice(1),
+    ]);
+    setPose(atk, atk.kind, t0 + 900);
+  } else {
+    impact = t0 + 500;
+    track(atk, [...walk(t0, t0 + 420, 0, reach), [t0 + 760, reach], ...walk(t0 + 760, t0 + 1150, reach, 0).slice(1)]);
+    setPose(atk, strike, t0 + 420);
+    setPose(atk, atk.kind, t0 + 760);
+  }
+  hitSpark(svg, def.x - def.dir * 6, GROUND - 60, impact);
+  react(svg, def, impact, outcome);
+  return impact;
+}
+function react(svg, def, at, outcome) {
+  if (outcome === 'kill') {
+    const pose = def.kind.startsWith('cannon') ? 'cannonWreck' : def.kind === 'robber' ? 'robberStabbed' : def.kind === 'injured' ? 'injuredStabbed' : 'stabbed';
+    setPose(def, pose, at);
+    track(def, [[at, 0], [at + 300, -def.dir * 10]], 'ease-out');
+    poof(svg, def.x - def.dir * 10, at + 400, def.kind.startsWith('cannon') ? 1.4 : 1);
+    if (def.kind === 'robber') hide(def.layers[def.current], at + 520);
+    else deadMark(svg, def, at + 550);
+  } else if (outcome === 'injure') {
+    setPose(def, 'stunned', at);
+    anim(def.outer, [0, -4, 4, -3, 2, 0].map((d) => ({ transform: `translateX(${d}px)` })), at, 380, { composite: 'add' });
+    setPose(def, 'injured', at + 400);
+  }
+}
+/** Stationed cannon fires: firing pose 250–750 with recoil; ball lands at ~500. */
+function fire(svg, can, def, t0, outcome) {
+  setPose(can, 'cannonFire', t0 + 200);
+  anim(can.outer, [{ transform: 'translateX(0)' }, { transform: `translateX(${-can.dir * 8}px)`, offset: .25 }, { transform: 'translateX(0)' }], t0 + 220, 400, { composite: 'add' });
+  setPose(can, can.kind, t0 + 800);
+  const mx = can.x + can.dir * 78, my = GROUND - 56;
+  const miss = outcome === 'miss';
+  // A miss lands short: on the cannon's side of the target (def.dir points away from the cannon).
+  const ex = miss ? def.x + def.dir * 70 : def.x, ey = miss ? GROUND - 4 : GROUND - 55;
+  const ball = el('circle', { r: 6, fill: '#222', stroke: '#000' }, svg);
+  ball.style.opacity = 0;
+  anim(ball, [
+    { transform: `translate(${mx}px,${my}px)`, opacity: 1 },
+    { transform: `translate(${(mx + ex) / 2}px,${Math.min(my, ey) - 26}px)`, opacity: 1, offset: .5 },
+    { transform: `translate(${ex}px,${ey}px)`, opacity: 1, offset: .97 },
+    { transform: `translate(${ex}px,${ey}px)`, opacity: 0 },
+  ], t0 + 240, 220, { easing: 'linear' });
+  if (miss) poof(svg, ex, t0 + 460, .45);
+  else { hitSpark(svg, ex, ey, t0 + 460); react(svg, def, t0 + 460, outcome); }
+}
+/** Unstationed cannon wins: rolls back out of the arena; nobody is hurt. */
+function flee(svg, can, t0) {
+  anim(can.outer, [
+    { transform: 'translateX(0)', opacity: 1 },
+    { transform: `translateX(${-can.dir * 6}px) translateY(-3px)`, offset: .12 },
+    { transform: `translateX(${-can.dir * 150}px)`, opacity: 0 },
+  ], t0 + 200, 900, { easing: 'ease-in' });
+}
+
+// ---------- scenarios ----------
+const SCEN = [];
+const scenario = (group, label, sub, rule, build) => SCEN.push({ group, label, sub, rule, build });
+const soldierPoses = ['thrust', 'slash', 'stabbed', 'stunned', 'injured'];
+
+scenario('g-normal', 'Soldier kills soldier', 'Attacker 6 vs 3 (margin ≥2) · thrust → stabbed → poof → faded ×', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), d = troop(svg, 'soldier', BLUE, 360, soldierPoses);
+  die(svg, 120, 6); die(svg, 360, 3);
+  melee(svg, a, d, 0, 'kill', 'thrust'); resultLabel(svg, 1200, 'Defender killed', '#f87171');
+});
+scenario('g-normal', 'Soldier injures soldier', 'Attacker 5 vs 4 (margin 1) · slash → stunned → injured look', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), d = troop(svg, 'soldier', BLUE, 360, soldierPoses);
+  die(svg, 120, 5); die(svg, 360, 4);
+  melee(svg, a, d, 0, 'injure', 'slash'); resultLabel(svg, 1200, 'Defender injured', '#fbbf24');
+});
+scenario('g-normal', 'Defender wins (kill)', 'Attacker 2 vs 5 · the defender drops into the stab stance, then lunges left', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), d = troop(svg, 'soldier', BLUE, 360, soldierPoses);
+  die(svg, 120, 2); die(svg, 360, 5);
+  melee(svg, d, a, 0, 'kill', 'thrust'); resultLabel(svg, 1200, 'Attacker killed', '#f87171');
+});
+scenario('g-normal', 'Tie between soldiers', 'Attacker 4 vs 4 · defender wins ties → slash, attacker injured', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), d = troop(svg, 'soldier', BLUE, 360, soldierPoses);
+  die(svg, 120, 4); die(svg, 360, 4);
+  melee(svg, d, a, 0, 'injure', 'slash'); resultLabel(svg, 1200, 'Attacker injured', '#fbbf24');
+});
+
+scenario('g-cannon', 'Stationed cannon kills soldier', 'Cannon 6 vs 2 · firing → ball → stabbed → poof', '', (svg) => {
+  const c = troop(svg, 'cannonStationed', RED, 100, ['cannonFire', 'cannonWreck']), d = troop(svg, 'soldier', BLUE, 380, soldierPoses);
+  die(svg, 100, 6); die(svg, 380, 2);
+  fire(svg, c, d, 0, 'kill'); resultLabel(svg, 1200, 'Defender killed', '#f87171');
+});
+scenario('g-cannon', 'Stationed cannon injures soldier', 'Cannon 4 vs 3 · firing → ball → stunned → injured look', '', (svg) => {
+  const c = troop(svg, 'cannonStationed', RED, 100, ['cannonFire', 'cannonWreck']), d = troop(svg, 'soldier', BLUE, 380, soldierPoses);
+  die(svg, 100, 4); die(svg, 380, 3);
+  fire(svg, c, d, 0, 'injure'); resultLabel(svg, 1200, 'Defender injured', '#fbbf24');
+});
+scenario('g-cannon', 'Soldier beats a cannon', 'Soldier 5 vs cannon 4 · cannons die on any lost roll · thrust → wrecked → poof', '', (svg) => {
+  const c = troop(svg, 'cannonStationed', RED, 110, ['cannonFire', 'cannonWreck']), d = troop(svg, 'soldier', BLUE, 370, soldierPoses);
+  die(svg, 110, 4); die(svg, 370, 5);
+  melee(svg, d, c, 0, 'kill', 'thrust'); resultLabel(svg, 1200, 'Attacker killed', '#f87171');
+});
+scenario('g-cannon', 'Cannon tie → cannon loses', 'Cannon 3 vs 3', 'RULE CHANGE: all cannons now lose ties (they used to win them).', (svg) => {
+  const c = troop(svg, 'cannonStationed', RED, 110, ['cannonFire', 'cannonWreck']), d = troop(svg, 'soldier', BLUE, 370, soldierPoses);
+  die(svg, 110, 3); die(svg, 370, 3);
+  melee(svg, d, c, 0, 'kill', 'thrust'); resultLabel(svg, 1200, 'Attacker killed (tie)', '#f87171');
+});
+scenario('g-cannon', 'Unstationed cannon wins → flees', 'Unstationed cannon 6 vs 2 · the cart rolls away; the soldier stands still, unharmed', 'RULE CHANGE: inflicts nothing; the cannon is out of the fight and moves off in the retreat step.', (svg) => {
+  const c = troop(svg, 'cannonUnstationed', RED, 130, ['cannonWreck']), d = troop(svg, 'soldier', BLUE, 360, soldierPoses);
+  die(svg, 130, 6); die(svg, 360, 2);
+  flee(svg, c, 0); resultLabel(svg, 1200, 'Cannon fled', '#7dd3fc');
+});
+scenario('g-cannon', 'Unstationed cannon loses', 'Soldier 5 vs unstationed cannon 3 · still dies, as today', '', (svg) => {
+  const c = troop(svg, 'cannonUnstationed', RED, 130, ['cannonWreck']), d = troop(svg, 'soldier', BLUE, 360, soldierPoses);
+  die(svg, 130, 3); die(svg, 360, 5);
+  melee(svg, d, c, 0, 'kill', 'thrust'); resultLabel(svg, 1200, 'Attacker killed', '#f87171');
+});
+scenario('g-cannon', 'Only unstationed cannons left', "Both sides' fighters are unstationed cannons", 'RULE CHANGE: the battle ends at once as a draw (no win credit).', (svg) => {
+  troop(svg, 'cannonUnstationed', RED, 130, []); troop(svg, 'cannonUnstationed', BLUE, 350, []);
+  const b = el('g', {}, svg);
+  el('rect', { x: CX - 110, y: 60, width: 220, height: 44, rx: 10, fill: '#111827', stroke: '#9ca3af' }, b);
+  const t = el('text', { x: CX, y: 88, 'text-anchor': 'middle', class: 'result', fill: '#e5e7eb' }, b);
+  t.textContent = 'Battle ends: draw';
+  b.style.opacity = 0;
+  anim(b, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 300, 300);
+});
+
+scenario('g-round', 'Round with 3 fights', 'Pairs start 250ms apart: kill, injure, cannon flees · labels appear as each lands', '', (svg) => {
+  const rows = [['soldier', [6, 2], 'kill'], ['soldier', [4, 3], 'injure'], ['cannonUnstationed', [5, 1], 'flee']];
+  const sc = 0.46;
+  rows.forEach(([kind, rolls, fn], i) => {
+    // Rows stack top to bottom, one ground line per row.
+    const row = el('g', { transform: `translate(${W * (1 - sc) / 2},${80 + i * 66 - GROUND * sc}) scale(${sc})` }, svg);
+    const a = troop(row, kind, RED, 120, kind === 'soldier' ? soldierPoses : []);
+    const d = troop(row, 'soldier', BLUE, 360, soldierPoses);
+    const t0 = i * 250;
+    if (fn === 'flee') flee(row, a, t0); else melee(row, a, d, t0, fn, fn === 'kill' ? 'thrust' : 'slash');
+    const [str, color] = { kill: ['Defender killed', '#f87171'], injure: ['Defender injured', '#fbbf24'], flee: ['Cannon fled', '#7dd3fc'] }[fn];
+    const lbl = el('text', { x: CX + 175, y: GROUND - 40, 'text-anchor': 'start', class: 'result', fill: color, 'font-size': 26 }, row);
+    lbl.textContent = `${rolls[0]} vs ${rolls[1]} · ${str}`;
+    lbl.style.opacity = 0;
+    show(lbl, t0 + 1200, 120);
+  });
+});
+
+scenario('g-injured', 'Injured fight: defender dies', 'Attacker 4 vs injured 3 · tie or loss kills the injured defender · thrust → stabbed → poof', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), d = troop(svg, 'injured', BLUE, 360, ['injuredStabbed']);
+  die(svg, 120, 4); die(svg, 360, 3);
+  melee(svg, a, d, 0, 'kill', 'thrust'); resultLabel(svg, 1200, 'Defender killed', '#f87171');
+});
+scenario('g-injured', 'Injured fight: defender escapes', 'Attacker 2 vs injured 5 · the attacker thrusts at air; the injured troop scuttles away', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), d = troop(svg, 'injured', BLUE, 360, []);
+  die(svg, 120, 2); die(svg, 360, 5);
+  // Same thrust choreography as melee(), but the lunge finds only air.
+  const reach = d.x - a.x - (POSE.thrust.ax * K + 6);
+  setPose(a, 'thrust', 120);
+  track(a, [[0, 0], [120, 0], [420, -10], [560, reach], [900, reach], ...walk(900, 1250, reach, 0).slice(1)]);
+  setPose(a, 'soldier', 900);
+  anim(d.outer, [{ transform: 'translateX(0)' }, { transform: 'translateX(10px) translateY(-6px)', offset: .25 }, { transform: 'translateX(80px)' }], 380, 450, { easing: 'ease-out' });
+  resultLabel(svg, 1200, 'Defender escapes', '#7dd3fc');
+});
+
+scenario('g-robber', 'Soldier beats the robber', 'Soldier 5 vs robber 3 · thrust → robber stabbed → poof, drops a sack → sack flies to the soldier', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), r = troop(svg, 'robber', null, 360, ['robberStrike', 'robberStabbed']);
+  die(svg, 120, 5); die(svg, 360, 3);
+  const hit = melee(svg, a, r, 0, 'kill', 'thrust');
+  const sack = el('image', { href: ART + 'battle/sack.png', x: -16, y: -40, width: 32, height: 40 }, svg);
+  sack.style.opacity = 0;
+  anim(sack, [
+    { transform: `translate(350px,${GROUND}px) scale(.4)`, opacity: 0 },
+    { transform: `translate(350px,${GROUND}px) scale(1)`, opacity: 1, offset: .2 },
+    { transform: `translate(350px,${GROUND}px) scale(1)`, opacity: 1, offset: .5 },
+    { transform: `translate(235px,${GROUND - 90}px) scale(1)`, opacity: 1, offset: .75 },
+    { transform: `translate(120px,${GROUND - 30}px) scale(.6)`, opacity: 0 },
+  ], hit + 450, 1100);
+  resultLabel(svg, 1200, 'Robber defeated', '#86efac');
+});
+scenario('g-robber', 'Robber beats the soldier', 'Soldier 3 vs robber 3 · robber wins ties · staff strike → soldier stabbed → poof → ×', '', (svg) => {
+  const a = troop(svg, 'soldier', RED, 120, soldierPoses), r = troop(svg, 'robber', null, 360, ['robberStrike', 'robberStabbed']);
+  die(svg, 120, 3); die(svg, 360, 3);
+  melee(svg, r, a, 0, 'kill', 'robberStrike'); resultLabel(svg, 1200, 'Soldier killed', '#f87171');
+});
+
+for (const [label, sub, rule, rolls, outcome, str, color] of [
+  ['Shot hits: kill', 'Cannon 6 vs target 3 · firing → ball → stabbed → poof', '', [6, 3], 'kill', 'Target killed', '#f87171'],
+  ['Shot hits: injure', 'Cannon 4 vs target 3 · firing → ball → stunned → injured look', '', [4, 3], 'injure', 'Target injured', '#fbbf24'],
+  ['Shot misses', 'Cannon 2 vs target 5 · the ball lands short; nothing happens', '', [2, 5], 'miss', 'Miss', '#cbd5e1'],
+  ['Tied shot misses', 'Cannon 4 vs target 4', 'RULE CHANGE: ties no longer go to the cannon; a tied shot misses.', [4, 4], 'miss', 'Miss (tie)', '#cbd5e1'],
+]) {
+  scenario('g-ranged', label, sub, rule, (svg) => {
+    const c = troop(svg, 'cannonStationed', RED, 95, ['cannonFire']), d = troop(svg, 'soldier', BLUE, 395, soldierPoses);
+    die(svg, 95, rolls[0]); die(svg, 395, rolls[1]);
+    fire(svg, c, d, 0, outcome); resultLabel(svg, 1200, str, color);
+  });
+}
+
+// ---------- wiring ----------
+const players = [];
+for (const s of SCEN) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="label">${s.label}</div><div class="sub">${s.sub}</div>${s.rule ? `<div class="rule">${s.rule}</div>` : ''}`;
+  document.getElementById(s.group).appendChild(card);
+  const play = () => {
+    card.querySelector('svg')?.remove();
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}` });
+    card.prepend(svg);
+    el('rect', { x: 0, y: GROUND - 4, width: W, height: H - GROUND + 4, fill: '#35502f' }, svg);
+    if (s.group !== 'g-ranged') el('line', { x1: CX, y1: 46, x2: CX, y2: GROUND, stroke: '#dc2626', 'stroke-width': 2, 'stroke-dasharray': '6 5', opacity: .6 }, svg);
+    s.build(svg);
+    flushToggles();
+  };
+  card.addEventListener('click', play);
+  players.push(play);
+  play();
+}
+document.getElementById('all').addEventListener('click', () => players.forEach((p) => p()));
+document.getElementById('slow').addEventListener('change', () => players.forEach((p) => p()));
+</script>
+</body>
+</html>
