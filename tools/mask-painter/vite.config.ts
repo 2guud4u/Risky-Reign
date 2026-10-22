@@ -56,6 +56,7 @@ function pieceApi(): Plugin {
                 crop: p.crop ?? null,
                 hasMask: await exists(p.maskLayer),
                 hasSilhouette: await exists(p.silhouetteLayer),
+                hasPaint: await exists(p.paintLayer),
               }))
             );
             res.setHeader('Content-Type', 'application/json');
@@ -67,19 +68,20 @@ function pieceApi(): Plugin {
             return res.end('unknown piece');
           }
           if (req.method === 'GET' && file) {
-            const p = file === 'source' ? piece.source : file === 'mask' ? piece.maskLayer : piece.silhouetteLayer;
+            const p = file === 'source' ? piece.source : file === 'mask' ? piece.maskLayer : file === 'paint' ? piece.paintLayer : piece.silhouetteLayer;
             res.setHeader('Content-Type', p.endsWith('.png') ? 'image/png' : 'image/jpeg');
             res.setHeader('Cache-Control', 'no-store');
             return res.end(await fs.readFile(abs(p)));
           }
           if (req.method === 'POST' && !file) {
             const body = JSON.parse(await readBody(req)) as Record<
-              'maskLayer' | 'silhouetteLayer' | 'art' | 'mask',
+              'maskLayer' | 'silhouetteLayer' | 'paintLayer' | 'art' | 'mask',
               string
             >;
             const writes: [string, string][] = [
               [piece.maskLayer, body.maskLayer],
               [piece.silhouetteLayer, body.silhouetteLayer],
+              ...(body.paintLayer ? [[piece.paintLayer, body.paintLayer] as [string, string]] : []),
               [piece.outArt, body.art],
               [piece.outMask, body.mask],
             ];

@@ -22,6 +22,8 @@ export interface PieceConfig {
   maskLayer: string;
   /** Painted keep/remove cutout, alpha = keep. */
   silhouetteLayer: string;
+  /** Color retouch layer composited over the source at bake (RGBA). */
+  paintLayer: string;
   outArt: string;
   outMask: string;
   /** Output long side in px (never upscaled). */
@@ -41,6 +43,7 @@ const wall = (id: string, label: string, crop: CropRect): PieceConfig => ({
   crop,
   maskLayer: `art-src/${id}.mask.png`,
   silhouetteLayer: `art-src/${id}.silhouette.png`,
+  paintLayer: `art-src/${id}.paint.png`,
   outArt: `ui/public/art/pieces/${id}.png`,
   outMask: `ui/public/art/pieces/${id}_mask.png`,
   longSide: 512,
@@ -52,6 +55,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/settlement.jpg',
     maskLayer: 'art-src/settlement.mask.png',
     silhouetteLayer: 'art-src/settlement.silhouette.png',
+    paintLayer: 'art-src/settlement.paint.png',
     outArt: 'ui/public/art/settlement.png',
     outMask: 'ui/public/art/settlement_mask.png',
     longSide: 512,
@@ -64,6 +68,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/soldier.png',
     maskLayer: 'art-src/soldier.mask.png',
     silhouetteLayer: 'art-src/soldier.silhouette.png',
+    paintLayer: 'art-src/soldier.paint.png',
     outArt: 'ui/public/art/soldier.png',
     outMask: 'ui/public/art/soldier_mask.png',
     longSide: 682,
@@ -73,6 +78,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/injured.png',
     maskLayer: 'art-src/injured.mask.png',
     silhouetteLayer: 'art-src/injured.silhouette.png',
+    paintLayer: 'art-src/injured.paint.png',
     outArt: 'ui/public/art/injuredSoldier.png',
     outMask: 'ui/public/art/injuredSoldier_mask.png',
     longSide: 682,
@@ -85,6 +91,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/cannonStationed.png',
     maskLayer: 'art-src/cannonStationed.mask.png',
     silhouetteLayer: 'art-src/cannonStationed.silhouette.png',
+    paintLayer: 'art-src/cannonStationed.paint.png',
     outArt: 'ui/public/art/pieces/cannon_stationed.png',
     outMask: 'ui/public/art/pieces/cannon_stationed_mask.png',
     longSide: 512,
@@ -94,6 +101,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/cannonUnstationed.png',
     maskLayer: 'art-src/cannonUnstationed.mask.png',
     silhouetteLayer: 'art-src/cannonUnstationed.silhouette.png',
+    paintLayer: 'art-src/cannonUnstationed.paint.png',
     outArt: 'ui/public/art/pieces/cannon_unstationed.png',
     outMask: 'ui/public/art/pieces/cannon_unstationed_mask.png',
     longSide: 512,
@@ -103,6 +111,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/slash.png',
     maskLayer: 'art-src/slash.mask.png',
     silhouetteLayer: 'art-src/slash.silhouette.png',
+    paintLayer: 'art-src/slash.paint.png',
     outArt: 'ui/public/art/battle/slash.png',
     outMask: 'ui/public/art/battle/slash_mask.png',
     longSide: 816,
@@ -112,6 +121,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/stabbed.png',
     maskLayer: 'art-src/stabbed.mask.png',
     silhouetteLayer: 'art-src/stabbed.silhouette.png',
+    paintLayer: 'art-src/stabbed.paint.png',
     outArt: 'ui/public/art/battle/stabbed.png',
     outMask: 'ui/public/art/battle/stabbed_mask.png',
     longSide: 623,
@@ -121,6 +131,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/stunned.png',
     maskLayer: 'art-src/stunned.mask.png',
     silhouetteLayer: 'art-src/stunned.silhouette.png',
+    paintLayer: 'art-src/stunned.paint.png',
     outArt: 'ui/public/art/battle/stunned.png',
     outMask: 'ui/public/art/battle/stunned_mask.png',
     longSide: 678,
@@ -130,6 +141,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/thrust.png',
     maskLayer: 'art-src/thrust.mask.png',
     silhouetteLayer: 'art-src/thrust.silhouette.png',
+    paintLayer: 'art-src/thrust.paint.png',
     outArt: 'ui/public/art/battle/thrust.png',
     outMask: 'ui/public/art/battle/thrust_mask.png',
     longSide: 843,
@@ -139,6 +151,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/injuredStabbed.png',
     maskLayer: 'art-src/injuredStabbed.mask.png',
     silhouetteLayer: 'art-src/injuredStabbed.silhouette.png',
+    paintLayer: 'art-src/injuredStabbed.paint.png',
     outArt: 'ui/public/art/battle/injuredStabbed.png',
     outMask: 'ui/public/art/battle/injuredStabbed_mask.png',
     longSide: 640,
@@ -148,6 +161,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/cannonFire.png',
     maskLayer: 'art-src/cannonFire.mask.png',
     silhouetteLayer: 'art-src/cannonFire.silhouette.png',
+    paintLayer: 'art-src/cannonFire.paint.png',
     outArt: 'ui/public/art/battle/cannonFire.png',
     outMask: 'ui/public/art/battle/cannonFire_mask.png',
     longSide: 638,
@@ -157,6 +171,7 @@ export const PIECES: Record<string, PieceConfig> = {
     source: 'art-src/cannonWreck.png',
     maskLayer: 'art-src/cannonWreck.mask.png',
     silhouetteLayer: 'art-src/cannonWreck.silhouette.png',
+    paintLayer: 'art-src/cannonWreck.paint.png',
     outArt: 'ui/public/art/battle/cannonWreck.png',
     outMask: 'ui/public/art/battle/cannonWreck_mask.png',
     longSide: 486,

@@ -24,12 +24,15 @@
     <div id="bar">
       <select id="piece"></select>
       <div class="group">
-        <button id="layer-mask" class="on" title="1">Roof mask</button>
+        <button id="layer-mask" class="on" title="1">Player mask</button>
         <button id="layer-sil" title="2">Silhouette</button>
+        <button id="layer-paint" title="3">Draw on art</button>
       </div>
       <div class="group">
         <button id="mode-paint" class="on" title="B">Paint</button>
         <button id="mode-erase" title="E">Erase</button>
+        <button id="mode-bucket" title="F">Bucket</button>
+        <button id="mode-drop" title="I">Dropper</button>
       </div>
       <label>Size <input id="size" type="range" min="2" max="200" value="30" /><span id="size-v"></span></label>
       <label>Hardness <input id="hard" type="range" min="0" max="100" value="60" /></label>
@@ -46,7 +49,7 @@
       <canvas id="view"></canvas>
       <div id="help">
         Pen pressure = brush size · pen eraser end erases · Space+drag or middle-drag pans · wheel / pinch zooms<br />
-        1/2 layer · B/E paint/erase · [ ] size · Tab preview · ⌘Z / ⇧⌘Z undo/redo · ⌘S save · 0 fit
+        1/2/3 layer · B/E/F/I paint/erase/bucket/dropper · [ ] size · Tab preview · ⌘Z / ⇧⌘Z undo/redo · ⌘S save · 0 fit
       </div>
     </div>
     <script type="module" src="./main.ts"></script>

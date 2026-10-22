@@ -56,13 +56,28 @@ export function shadeReference(src: Rgba, mask: Rgba): number {
  * Bake the shipped art + mask from source, mask layer and silhouette layer
  * (all the same size; only the layers' alpha is read).
  */
-export function bakePiece(src: Rgba, mask: Rgba, sil: Rgba): { art: Rgba; mask: Rgba } {
+export function bakePiece(src: Rgba, mask: Rgba, sil: Rgba, paint?: Rgba): { art: Rgba; mask: Rgba } {
   const { width, height } = src;
   const n = width * height * 4;
   const art = new Uint8ClampedArray(n);
   const outMask = new Uint8ClampedArray(n);
+  // Retouch strokes composite over the source before shading: painted pixels
+  // become the art the tint formulas see.
+  let s = src.data;
+  if (paint) {
+    const c = new Uint8ClampedArray(src.data);
+    const p = paint.data;
+    for (let i = 0; i < n; i += 4) {
+      const a = p[i + 3] / 255;
+      if (a === 0) continue;
+      c[i] = p[i] + s[i] * (1 - a);
+      c[i + 1] = p[i + 1] + s[i + 1] * (1 - a);
+      c[i + 2] = p[i + 2] + s[i + 2] * (1 - a);
+    }
+    s = c;
+    src = { ...src, data: c };
+  }
   const ref = shadeReference(src, mask);
-  const s = src.data;
   for (let i = 0; i < n; i += 4) {
     const k = sil.data[i + 3] / 255;
     if (k === 0) continue;
