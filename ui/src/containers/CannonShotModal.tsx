@@ -108,7 +108,7 @@ const CannonShotModal: React.FC = () => {
 
         {/* The resolved shot, replayed: fire, ball flight, each victim's fate. */}
         {!pending && anyResolved && (
-          <div className="rounded-lg overflow-hidden bg-[C['fight.stageBg']] h-[220px]">
+          <div className="rounded-lg overflow-hidden bg-fight-stageBg h-[220px]">
             <FightStage
               fights={shot.victims.map((v) => ({
                 attacker: {

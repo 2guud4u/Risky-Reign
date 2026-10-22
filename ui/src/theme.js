@@ -7,6 +7,7 @@
 
 export const colors = {
   // Warm cream canvas — the game's "table". Every surface sits on this.
+  canvas: { DEFAULT: '#faf6ef', raised: '#fdfaf4', sunken: '#f2ead8' },
   // Warm ink — replaces gray for text. Softer than pure black, warmer
   // than slate. `deep`/`darker` also serve as dark badge/edge fills in SVG.
   ink: { DEFAULT: '#2d2520', soft: '#5c5248', faint: '#9b9183', deep: '#222', darker: '#111' },
